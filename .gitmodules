@@ -1,0 +1,6 @@
+[submodule "embedded-enro"]
+	path = embedded-enro
+	url = https://github.com/isaac-udy/Enro
+[submodule "embedded-udytils"]
+	path = embedded-udytils
+	url = https://github.com/isaac-udy/udytils
