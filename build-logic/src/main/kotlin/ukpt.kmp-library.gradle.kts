@@ -12,8 +12,10 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     id("org.jetbrains.kotlin.multiplatform")
     id("com.android.library")
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+private val libs = versionCatalogs.named("libs")
 kotlin {
     compilerOptions {
         freeCompilerArgs.addAll(
@@ -41,6 +43,12 @@ kotlin {
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         browser()
+    }
+
+    sourceSets {
+        commonMain.dependencies {
+            implementation(libs.findLibrary("kotlinx-serialization").get())
+        }
     }
 }
 
