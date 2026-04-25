@@ -6,6 +6,7 @@ import kotlinx.browser.document
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
+    UkptNavigation.installNavigationController(document)
     ComposeViewport(document.body!!) {
         App()
     }

@@ -3,11 +3,14 @@ package com.isaacudy.ukpt
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 
-fun main() = application {
-    Window(
-        onCloseRequest = ::exitApplication,
-        title = "ukpt",
-    ) {
-        App()
+fun main() {
+    UkptNavigation.installNavigationController(Unit)
+    application {
+        Window(
+            onCloseRequest = ::exitApplication,
+            title = "ukpt",
+        ) {
+            App()
+        }
     }
 }

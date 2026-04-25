@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <application
+        android:name="com.isaacudy.ukpt.UkptApplication"
         android:label="ukpt"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"
         tools:targetApi="36">
