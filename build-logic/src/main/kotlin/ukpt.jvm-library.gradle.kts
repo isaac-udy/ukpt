@@ -1,5 +1,3 @@
-import gradle.kotlin.dsl.accessors._c8c1f5955a7e55b45b290b15209525cf.versionCatalogs
-
 /**
  * Convention plugin for JVM-only library/server modules.
  *

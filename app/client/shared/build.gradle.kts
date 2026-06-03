@@ -4,31 +4,44 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
 }
 
+private val projectNamespace = providers.gradleProperty("ukpt.projectNamespace").get()
+
 kotlin {
     @Suppress("UnstableApiUsage")
     androidLibrary {
-        namespace = "feature.core.client"
+        // Distinct from the application module's namespace (AGP 9 requires unique namespaces).
+        namespace = "$projectNamespace.shared"
     }
-    sourceSets {
-        androidMain.dependencies {
-            implementation(compose.preview)
+
+    // iOS framework consumed by the iOS application (an Xcode project consuming `App.framework`).
+    listOf(
+        iosArm64(),
+        iosSimulatorArm64()
+    ).forEach { iosTarget ->
+        iosTarget.binaries.framework {
+            baseName = "App"
+            isStatic = true
         }
+    }
+
+    sourceSets {
         commonMain.dependencies {
-            api(projects.feature.core.api)
+            implementation(projects.feature.core.client)
 
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
-            implementation(compose.materialIconsExtended)
             implementation(compose.ui)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
 
-            implementation(libs.enro.core)
+            // Exposed as `api` because this module's public API surface includes Enro types
+            // (the @NavigationComponent object and the generated installNavigationController).
+            api(libs.enro.core)
             implementation(libs.udytils.ui)
-            api(libs.koin.core)
+            implementation(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.composeViewmodel)
 
@@ -38,15 +51,6 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
-        }
-        jvmMain.dependencies {
-            implementation(libs.ktor.serverCore)
-            implementation(libs.ktor.serverNetty)
-            implementation(libs.ktor.clientCore)
-            implementation(libs.ktor.clientCio)
-        }
-        wasmJsMain.dependencies {
-            implementation(libs.kotlinx.browser)
         }
     }
 }

@@ -1,24 +1,23 @@
 [versions]
-agp = "8.13.2"
+agp = "9.0.0"
 android-compileSdk = "36"
 android-minSdk = "24"
 android-targetSdk = "36"
-androidx-activity = "1.12.2"
+androidx-activity = "1.13.0"
 androidx-appcompat = "1.7.1"
-androidx-core = "1.17.0"
+androidx-core = "1.18.0"
 androidx-lifecycle = "2.9.6"
-composeMultiplatform = "1.10.0-rc02"
-kotlin = "2.3.0"
+composeMultiplatform = "1.10.3"
+kotlin = "2.3.21"
 kotlinx-coroutines = "1.10.2"
-kotlinx-rpc = "0.10.1"
-kotlinx-serialization = "1.9.0"
-kotlinx-datetime = "0.7.1"
-kotlinx-io = "0.8.0"
+kotlinx-serialization = "1.11.0"
+kotlinx-datetime = "0.8.0"
+kotlinx-io = "0.9.0"
 kotlinx-browser = "0.5.0"
-koin = "4.1.1"
-ksp = "2.3.3"
-ktor = "3.3.3"
-logback = "1.5.24"
+koin = "4.2.1"
+ksp = "2.3.9"
+ktor = "3.5.0"
+logback = "1.5.33"
 konsist = "0.17.3"
 
 [libraries]
@@ -52,14 +51,6 @@ ktor-clientJs = { module = "io.ktor:ktor-client-js", version.ref = "ktor" }
 ktor-clientWebsockets = { module = "io.ktor:ktor-client-websockets", version.ref = "ktor" }
 ktor-clientContentNegotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
 
-kotlinx-rpc-core = { module = "org.jetbrains.kotlinx:kotlinx-rpc-core", version.ref = "kotlinx-rpc" }
-kotlinx-rpc-krpcCore = { module = "org.jetbrains.kotlinx:kotlinx-rpc-krpc-core", version.ref = "kotlinx-rpc" }
-kotlinx-rpc-krpcClient = { module = "org.jetbrains.kotlinx:kotlinx-rpc-krpc-client", version.ref = "kotlinx-rpc" }
-kotlinx-rpc-krpcServer = { module = "org.jetbrains.kotlinx:kotlinx-rpc-krpc-server", version.ref = "kotlinx-rpc" }
-kotlinx-rpc-krpcKtorServer = { module = "org.jetbrains.kotlinx:kotlinx-rpc-krpc-ktor-server", version.ref = "kotlinx-rpc" }
-kotlinx-rpc-krpcKtorClient = { module = "org.jetbrains.kotlinx:kotlinx-rpc-krpc-ktor-client", version.ref = "kotlinx-rpc" }
-kotlinx-rpc-krpcSerializationJson = { module = "org.jetbrains.kotlinx:kotlinx-rpc-krpc-serialization-json", version.ref = "kotlinx-rpc" }
-
 kotlinx-io = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version.ref = "kotlinx-io" }
 kotlinx-browser = { module = "org.jetbrains.kotlinx:kotlinx-browser", version.ref = "kotlinx-browser" }
 
@@ -89,6 +80,7 @@ ktor-gradlePlugin = { module = "io.ktor:plugin", version.ref = "ktor" }
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
+androidKmpLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
@@ -96,4 +88,3 @@ ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
 kotlinKsp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-kotlinxRpc = { id = "org.jetbrains.kotlinx.rpc.plugin", version.ref = "kotlinx-rpc" }

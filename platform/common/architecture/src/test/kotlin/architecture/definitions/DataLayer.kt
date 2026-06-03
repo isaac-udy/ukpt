@@ -79,11 +79,6 @@ object DataLayer : LayerDefinition(
     ) {
         val isServiceInterface by define {
             rule("Is interface") { isInterface() }
-            rule("Is annotated with @Rpc") {
-                iface { declaration ->
-                    declaration.hasAnnotationWithName("Rpc")
-                }
-            }
             rule("Is named 'Service'") {
                 hasNameEndingWith("Service")
             }
