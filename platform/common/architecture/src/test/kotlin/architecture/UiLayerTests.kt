@@ -30,7 +30,7 @@ class UiLayerTests {
             .filter { it.isFeatureModule() }
             .filter { it.packagee?.name?.contains(".ui") == true }
             .assertFalse(
-                additionalMessage = "UI package is forbidden from depending on data package (data.services kRPC interfaces are allowed)"
+                additionalMessage = "UI package is forbidden from depending on data package (data.services service interfaces are allowed)"
             ) { file ->
                 file.imports.any { import ->
                     import.name.containsPackageSegment("data")

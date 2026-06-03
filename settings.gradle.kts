@@ -34,7 +34,10 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
-include(":app:client")
+include(":app:client:shared")
+include(":app:client:android")
+include(":app:client:desktop")
+include(":app:client:web")
 include(":app:server")
 
 include(":feature:core:api")

@@ -1,41 +1,37 @@
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 /**
  * Convention plugin for Kotlin Multiplatform library modules.
  *
- * Applies: KotlinMultiplatform, AndroidLibrary
+ * Applies: KotlinMultiplatform + the AGP 9 Android KMP library plugin
+ * (`com.android.kotlin.multiplatform.library`).
  * Configures: All KMP targets (Android, iOS, JVM, WasmJS), compiler options, Android defaults.
  *
- * Consuming modules should add their own dependencies in their build.gradle.kts.
+ * The Android target is configured via the `kotlin { androidLibrary { } }` accessor. We use
+ * `androidLibrary` (not the `android` alias) because that name is what resolves on AGP 9.0 —
+ * the latest AGP supported by IntelliJ. Both names refer to the same target on AGP 9.1+.
+ *
+ * Consuming modules set their Android `namespace` via `kotlin { androidLibrary { namespace = ... } }`.
  */
 plugins {
     id("org.jetbrains.kotlin.multiplatform")
-    id("com.android.library")
+    id("com.android.kotlin.multiplatform.library")
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 private val libs = versionCatalogs.named("libs")
-kotlin {
-    compilerOptions {
-        freeCompilerArgs.addAll(
-            "-Xcontext-parameters",
-            "-Xexplicit-backing-fields",
-            "-Xexpect-actual-classes",
-        )
-    }
 
-    androidTarget {
+kotlin {
+    @Suppress("UnstableApiUsage")
+    androidLibrary {
+        compileSdk = 36
+        minSdk = 24
+        @OptIn(ExperimentalKotlinGradlePluginApi::class)
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)
         }
-    }
-
-    listOf(
-        iosX64(),
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
     }
 
     jvm()
@@ -45,20 +41,23 @@ kotlin {
         browser()
     }
 
+    listOf(
+        iosArm64(),
+        iosSimulatorArm64()
+    ).forEach { iosTarget ->
+    }
+
+    compilerOptions {
+        freeCompilerArgs.addAll(
+            "-Xcontext-parameters",
+            "-Xexplicit-backing-fields",
+            "-Xexpect-actual-classes",
+        )
+    }
+
     sourceSets {
         commonMain.dependencies {
             implementation(libs.findLibrary("kotlinx-serialization").get())
         }
-    }
-}
-
-android {
-    compileSdk = 36
-    defaultConfig {
-        minSdk = 24
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
     }
 }
