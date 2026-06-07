@@ -44,8 +44,11 @@ kotlin {
             implementation(libs.koin.composeViewmodel)
 
             implementation(libs.ktor.clientCore)
-            implementation(libs.ktor.clientCio)
             implementation(libs.ktor.clientWebsockets)
+            // NOTE: the ktor-client-cio engine is intentionally NOT in commonMain — it pulls
+            // ktor-network, which imports `node:net` and breaks the wasmJs/web bundle. CIO lives
+            // in the JVM/native source sets; web uses ktor-client-js (see :app:client:web).
+            // Engines get wired per-platform when an HTTP/urpc client is actually added.
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

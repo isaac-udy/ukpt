@@ -43,3 +43,16 @@ kotlin {
         }
     }
 }
+
+// macOS Finder/Spotlight drops `.DS_Store` files into the Kotlin/Wasm incremental-compilation
+// cache directory; the IC scanner then treats each as a (now-missing) library and crashes with
+// "IC internal error: can not find removed library name". Purge them from this module's klib
+// cache before any wasm task runs, so incremental dev builds stay reliable on macOS.
+tasks.matching { it.name.contains("WasmJs", ignoreCase = true) }.configureEach {
+    doFirst {
+        val klib = layout.buildDirectory.get().asFile.resolve("klib")
+        if (klib.exists()) {
+            klib.walkTopDown().filter { it.name == ".DS_Store" }.forEach { it.delete() }
+        }
+    }
+}

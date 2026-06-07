@@ -41,6 +41,12 @@ After making changes, compile every platform (client + server) to verify correct
 ```
 The shared module's Android / JVM / wasm targets compile transitively via the per-platform app modules; the iOS targets are built directly from `:app:client:shared` (ukpt has no separate `:app:client:ios` module).
 
+**Web (wasm) caveat — compiling is not enough.** `compileKotlinWasmJs` only type-checks; it does **not** catch wasm bundle/runtime failures — a `node:`-scheme import pulled in by a JVM-only dependency (e.g. `ktor-client-cio`), a missing ViewModel factory (`Factory.create … not implemented`), or the macOS `.DS_Store` IC-cache crash. For any web change, build the actual bundle and run it in a browser:
+```
+./gradlew :app:client:web:wasmJsBrowserDevelopmentWebpack   # bundles via webpack — surfaces node:/IC errors
+./gradlew :app:client:web:wasmJsBrowserDevelopmentRun        # serves it — open the URL and confirm it renders
+```
+
 ## Snapshot tests
 
 Screens are snapshot-tested with Paparazzi and this is enforced — see rule `R-UI-38` (README §4.2.1.2) for the `SnapshotRule` API and conventions. After adding or changing a snapshot test, record then verify the goldens:
