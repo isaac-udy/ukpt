@@ -2,12 +2,21 @@ plugins {
     id("ukpt.compose-library")
     alias(libs.plugins.kotlinKsp)
     alias(libs.plugins.kotlinSerialization)
+    alias(libs.plugins.paparazzi)
 }
 
 kotlin {
     @Suppress("UnstableApiUsage")
     androidLibrary {
         namespace = "feature.core.client"
+        // Generate the R class + process Android resources so Paparazzi host tests can resolve
+        // R classes at runtime (otherwise ClassNotFoundException: feature.core.client.R).
+        experimentalProperties["android.experimental.kmp.enableAndroidResources"] = true
+        // Host (JVM) unit-test component — Paparazzi attaches its record/verify tasks here and
+        // reads the KMP `androidHostTest` source set.
+        withHostTestBuilder {
+        }.configure {
+        }
     }
     sourceSets {
         androidMain.dependencies {
@@ -60,4 +69,22 @@ dependencies {
     add("kspWasmJs", libs.enro.processor)
     add("kspIosArm64", libs.enro.processor)
     add("kspIosSimulatorArm64", libs.enro.processor)
+}
+
+// Paparazzi loads R classes (this module's + every dependency's: dev.enro.R, androidx.*.R, …)
+// reflectively at runtime. The KMP library plugin puts the aggregated host-test stub R jar on the
+// *compile* classpath only, so add it to the test runtime classpath via doFirst (which wins over
+// AGP's lazily-provided AndroidUnitTest classpath); otherwise the tests fail with
+// ClassNotFoundException. Adding it to androidHostTestRuntimeOnly would create a cycle, since the
+// stub-R task consumes the runtime classpath as input.
+tasks.withType<Test>().configureEach {
+    if (name == "testAndroidHostTest") {
+        dependsOn("generateAndroidHostTestStubRFile")
+        val rJar = files(
+            layout.buildDirectory.file("intermediates/compile_and_runtime_r_class_jar/androidHostTest/generateAndroidHostTestStubRFile/R.jar")
+        )
+        doFirst {
+            classpath = classpath + rJar
+        }
+    }
 }

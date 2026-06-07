@@ -448,6 +448,20 @@ val changeRoleScreen = navigationDestination<ChangeRoleDestination>(
 }
 ```
 
+#### **4.2.1.2 Snapshot tests**
+* **Definition**: A [Paparazzi](https://github.com/cashapp/paparazzi) host-side test that renders a Screen's `[Name]ScreenContent` (see [R-UI-11](#421-screens)) and records a golden image, catching visual regressions without a device or emulator.
+* **Rule [R-UI-38]** `✅ tested`: Every `[Name]ScreenContent` composable must be exercised by at least one snapshot test. This is enforced **softly** — the test only checks that each ScreenContent is *called* from a test in an `androidHostTest` source set; it does not require a minimum number of snapshots or coverage of specific states.
+    * **Why**: `ScreenContent` exists specifically so the screen body can be rendered from `state` + callbacks. Requiring a snapshot per ScreenContent keeps that affordance honest — a screen can't ship without a recorded visual baseline.
+    * **Note**: Snapshot tests live in `feature/.../src/androidHostTest/` (the host-test source set under AGP 9.0's KMP library plugin) and use the `SnapshotRule` helper (`platform.snapshot.SnapshotRule`):
+        * `snapshot.screen { ... }` — screen content / composables needing bounded layout constraints (`fillMaxSize()` etc.); renders in a fixed-size container.
+        * `snapshot.component { ... }` — small, self-sizing composables; renders at content size with padding.
+    * **Note**: The composable under test must be `internal` (not `private`) so the host-test source set can reach it — the same constraint R-UI-11 enforces. Add a `@Test` per meaningful state (loaded, empty, error, …) as a screen grows.
+    * **Note**: Record golden images after adding or changing a snapshot test, then verify they match (goldens are committed under `src/androidHostTest/snapshots/images/`):
+        ```
+        ./gradlew :feature:core:client:recordPaparazzi
+        ./gradlew :feature:core:client:verifyPaparazzi
+        ```
+
 #### **4.2.2 Destinations (NavigationKeys)**
 * **Definition**: A serializable data class or object representing the navigation contract for a particular screen; the input parameters required by that screen (if any) and the output result type provided by that screen (if any)
 * **Rule [R-UI-15]** `🔶 construct`: Destinations must be named `[name]Destination`
@@ -765,6 +779,23 @@ internal class UserServiceImpl(
 ### **5.2 Imports**
 * **Rule [R-PROJ-07]** `✅ tested`: Imports must not use wildcards. Always list the explicit symbols.
     * **Why**: Wildcards hide which symbols a file depends on, break a number of architecture-test checks (which inspect import names directly), and silently pull in new names when the imported package adds members.
+
+### **5.3 Action and request types**
+* **Rule [R-PROJ-08]** `📋 guidance`: When a function or service endpoint accepts different variants of an action, model the variants as a `sealed interface`/`sealed class` where each variant is its own `data class` holding only the fields it needs — rather than a single type with an `enum` discriminator and nullable/optional fields.
+    * **Why**: A sealed hierarchy makes illegal field combinations unrepresentable (each variant carries exactly its own data) and lets `when` exhaustiveness drive handling, so adding a variant surfaces every site that must handle it.
+    * **Example**:
+        ```kotlin
+        // Good
+        sealed interface UserAction {
+            data class Rename(val id: User.Id, val newName: String) : UserAction
+            data class Delete(val id: User.Id) : UserAction
+        }
+
+        // Avoid
+        enum class ActionType { RENAME, DELETE }
+        data class UserActionRequest(val id: User.Id, val type: ActionType, val newName: String? = null)
+        ```
+    * **Note**: Enforced by review, not a static test — "an enum that should be a sealed class" can't be detected reliably by Konsist.
 
 ---
 

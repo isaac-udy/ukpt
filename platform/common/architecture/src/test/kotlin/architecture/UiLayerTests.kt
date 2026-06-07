@@ -5,9 +5,11 @@ import architecture.definitions.UiLayer
 import architecture.definitions.containsPackageSegment
 import architecture.definitions.isFeatureModule
 import architecture.definitions.validateLayer
+import com.lemonappdev.konsist.api.Konsist
 import com.lemonappdev.konsist.api.verify.assertFalse
 import com.lemonappdev.konsist.api.verify.assertTrue
 import kotlin.test.Test
+import kotlin.test.fail
 
 class UiLayerTests {
 
@@ -159,6 +161,54 @@ class UiLayerTests {
                     fn.hasInternalModifier &&
                     fn.hasAnnotationWithName("Composable")
             }
+        }
+    }
+
+    /**
+     * Enforces R-UI-38 (§4.2.1.2): every `[Name]ScreenContent` composable must be exercised by at
+     * least one Paparazzi snapshot test. Snapshot tests live in `androidHostTest` source sets,
+     * which [projectScope] deliberately excludes, so this builds a separate scope over those files
+     * and softly checks that each ScreenContent is *called* from one of them. It does not require a
+     * minimum number of snapshots or specific states — only that the screen body is snapshot-tested
+     * at all.
+     */
+    @Test
+    fun `every ScreenContent composable must have a snapshot test`() {
+        val screenContents = projectScope
+            .functions()
+            .filter { UiLayer.inLayerPackage.test(it) }
+            .filter { it.hasAnnotationWithName("Composable") }
+            .filter { it.name.endsWith("ScreenContent") }
+            .filterNot { ArchitectureExceptions.isExempt(it, "R-UI-38") }
+
+        // Snapshot tests live under `src/androidHostTest/`, which `projectScope` excludes — scan
+        // those files directly for a reference to each ScreenContent.
+        val snapshotTestSources = Konsist
+            .scopeFromProject()
+            .files
+            .filter { it.path.contains("/src/androidHostTest/") }
+            .map { it.text }
+
+        val untested = screenContents.filter { screenContent ->
+            snapshotTestSources.none { source -> source.contains("${screenContent.name}(") }
+        }
+
+        if (untested.isNotEmpty()) {
+            fail(
+                buildString {
+                    appendLine(
+                        "[R-UI-38 §4.2.1.2] Every `[Name]ScreenContent` composable must be exercised " +
+                            "by at least one Paparazzi snapshot test — a `@Test` in an `androidHostTest` " +
+                            "source set that renders it via `SnapshotRule`. The following have no " +
+                            "snapshot test that calls them:"
+                    )
+                    untested.forEach { appendLine("    ${it.name}  (${it.containingFile.path})") }
+                    appendLine(
+                        "Add a snapshot test, or — only after discussing with a human — exempt the " +
+                            "declaration with @ArchitectureException(ruleIds = [\"R-UI-38\"], reason = ...)."
+                    )
+                }
+            )
         }
     }
 
