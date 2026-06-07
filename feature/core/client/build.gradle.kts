@@ -28,6 +28,8 @@ kotlin {
 
             implementation(libs.enro.core)
             implementation(libs.udytils.ui)
+            // urpc-client runtime for the KSP-generated service clients consumed by Repositories.
+            implementation(libs.urpc.client)
             api(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.composeViewmodel)

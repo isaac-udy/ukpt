@@ -17,6 +17,7 @@ class NameWithGenerics private constructor(
 }
 
 private fun getTopLevelGenerics(input: String): List<String> {
+    // Extract the content between the first '<' and the last '>'
     val startIndex = input.indexOf('<')
     val endIndex = input.lastIndexOf('>')
 
@@ -41,6 +42,7 @@ private fun getTopLevelGenerics(input: String): List<String> {
             }
             ',' -> {
                 if (depth == 0) {
+                    // We found a top-level comma, save the current part
                     results.add(currentPart.toString().trim())
                     currentPart.clear()
                 } else {
@@ -51,6 +53,7 @@ private fun getTopLevelGenerics(input: String): List<String> {
         }
     }
 
+    // Add the final remaining part
     if (currentPart.isNotEmpty()) {
         results.add(currentPart.toString().trim())
     }

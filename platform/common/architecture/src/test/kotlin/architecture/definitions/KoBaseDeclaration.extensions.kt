@@ -13,10 +13,24 @@ import com.lemonappdev.konsist.api.declaration.KoPropertyDeclaration
 import com.lemonappdev.konsist.api.declaration.combined.KoClassAndInterfaceAndObjectDeclaration
 import com.lemonappdev.konsist.api.declaration.type.KoTypeDeclaration
 import com.lemonappdev.konsist.api.provider.KoAnnotationProvider
+import com.lemonappdev.konsist.api.provider.KoContainingDeclarationProvider
 import com.lemonappdev.konsist.api.provider.KoContainingFileProvider
 import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
 import com.lemonappdev.konsist.api.provider.KoNameProvider
 import com.lemonappdev.konsist.api.provider.modifier.KoModifierProvider
+
+/**
+ * True for declarations that live syntactically inside a function body
+ * — i.e. local functions, local classes, local properties. Architecture
+ * layer scans deliberately ignore these because they are scoped to
+ * the surrounding implementation and aren't part of the public layer
+ * surface. Declarations inside *classes* (methods, nested types) are
+ * **not** treated as locals — those are still tracked.
+ */
+fun KoBaseDeclaration.isInsideFunction(): Boolean {
+    if (this !is KoContainingDeclarationProvider) return false
+    return containingDeclaration is KoFunctionDeclaration
+}
 
 fun KoBaseDeclaration.containingFilePath(): String {
     return when (this) {
@@ -138,6 +152,7 @@ private fun featureNameFromRawPackage(
         afterFeature.containsPackageSegment("domain") -> afterFeature.substringBefore(".domain")
         afterFeature.containsPackageSegment("ui") -> afterFeature.substringBefore(".ui")
         afterFeature.containsPackageSegment("data") -> afterFeature.substringBefore(".data")
+        afterFeature.containsPackageSegment("services") -> afterFeature.substringBefore(".services")
         else -> afterFeature
     }
 }
@@ -189,9 +204,21 @@ internal fun String.containsPackageSegment(segment: String): Boolean {
 }
 
 internal val primitiveTypeNames = setOf(
-    "String", "Int", "Long", "Double", "Float", "Boolean", "Byte", "Short", "Char",
-    "UInt", "ULong", "UByte", "UShort",
-    "Unit", "Nothing",
+    "String", "kotlin.String",
+    "Int", "kotlin.Int",
+    "Long", "kotlin.Long",
+    "Double", "kotlin.Double",
+    "Float", "kotlin.Float",
+    "Boolean", "kotlin.Boolean",
+    "Byte", "kotlin.Byte",
+    "Short", "kotlin.Short",
+    "Char", "kotlin.Char",
+    "UInt", "kotlin.UInt",
+    "ULong", "kotlin.ULong",
+    "UByte", "kotlin.UByte",
+    "UShort", "kotlin.UShort",
+    "Unit", "kotlin.Unit",
+    "Nothing", "kotlin.Nothing",
 )
 
 fun KoBaseDeclaration.isPrimitiveType(): Boolean {
@@ -209,9 +236,14 @@ fun KoBaseDeclaration.isPrimitiveType(): Boolean {
 }
 
 private val mutableTypes = listOf(
+    // Compose
     "androidx.compose.runtime.MutableState",
+
+    // Flows
     "kotlinx.coroutines.flow.MutableSharedFlow",
     "kotlinx.coroutines.flow.MutableStateFlow",
+
+    // Collections
     "kotlin.collections.MutableList",
     "kotlin.collections.MutableMap",
     "kotlin.collections.MutableSet",
@@ -244,3 +276,4 @@ fun KoBaseDeclaration.isMutable(): Boolean {
         else -> return false
     }
 }
+

@@ -206,6 +206,13 @@ sealed interface DefinitionPredicate<out Type : KoBaseDeclaration> {
                 else -> false
             }
         }
+
+        fun hasFileNameMatchingDeclarationName() = any { declaration ->
+            require(declaration is KoNameProvider)
+            val filePath = declaration.containingFilePath()
+            val fileName = filePath.substringAfterLast("/").removeSuffix(".kt")
+            return@any fileName == declaration.name
+        }
     }
 }
 

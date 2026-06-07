@@ -69,6 +69,12 @@ enro-processor = { module = "dev.enro:enro-processor" }
 udytils-core = { module = "dev.isaacudy.udytils:core" }
 udytils-ui = { module = "dev.isaacudy.udytils:ui" }
 
+urpc-protocol = { module = "dev.isaacudy.udytils:urpc-protocol" }
+urpc-client = { module = "dev.isaacudy.udytils:urpc-client" }
+urpc-server = { module = "dev.isaacudy.udytils:urpc-server" }
+urpc-koin = { module = "dev.isaacudy.udytils:urpc-koin" }
+urpc-processor = { module = "dev.isaacudy.udytils:urpc-processor" }
+
 # Build-logic dependencies (gradle plugin classpath artifacts)
 kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlinx-serialization-gradlePlugin = { module = "org.jetbrains.kotlin.plugin.serialization:org.jetbrains.kotlin.plugin.serialization.gradle.plugin", version.ref = "kotlin" }

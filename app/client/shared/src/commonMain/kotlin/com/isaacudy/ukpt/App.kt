@@ -8,7 +8,7 @@ import dev.enro.asBackstack
 import dev.enro.asInstance
 import dev.enro.ui.NavigationDisplay
 import dev.enro.ui.rememberNavigationContainer
-import feature.ukpt.UkptDestination
+import feature.ukpt.ui.UkptDestination
 
 @Composable
 fun App() {

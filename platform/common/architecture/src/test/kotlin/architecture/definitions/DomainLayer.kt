@@ -105,12 +105,26 @@ object DomainLayer : LayerDefinition("feature..domain..") {
         }
     }
 
+    val isDomainConstants by define {
+        rule("Is an object") { isObject() }
+        rule("Has only val properties (no functions, no mutable state)") {
+            obj { declaration ->
+                declaration.functions().isEmpty() &&
+                    declaration.properties().all { it.isVal && !it.isMutable() }
+            }
+        }
+    }
+
     val isException by define {
         rule("Is a class") { isClass() }
-        rule("Extends RuntimeException or Exception") {
+        rule("Extends RuntimeException, Exception, or PresentableException") {
             cls { declaration ->
                 declaration.parents()
-                    .any { it.name == "RuntimeException" || it.name == "Exception" }
+                    .any {
+                        it.name == "RuntimeException" ||
+                        it.name == "Exception" ||
+                        it.name == "PresentableException"
+                    }
             }
         }
     }
@@ -135,13 +149,10 @@ object DomainLayer : LayerDefinition("feature..domain..") {
                 return@function isDomainCompatibleType(
                     typeName = receiverType.name,
                     declaredIn = declaration.containingFile,
-                ).also {
-                    if (!it) {
-                        println("${declaration.name} failed receiver type check with ${receiverType.name} ${receiverType::class}")
-                    }
-                }
+                )
             }
         }
+
         rule("Return type is domain compatible or primitive") {
             function { declaration ->
                 val returnType = declaration.returnType
@@ -164,11 +175,42 @@ object DomainLayer : LayerDefinition("feature..domain..") {
         }
     }
 
+    val isDomainExtensionProperty by define {
+        rule("Is a property") { isProperty() }
+        rule("Receiver type is domain compatible or primitive") {
+            property { declaration ->
+                val receiverType = declaration.receiverType
+                    ?: return@property true
+                return@property isDomainCompatibleType(
+                    typeName = receiverType.name,
+                    declaredIn = declaration.containingFile,
+                ).also {
+                    if (!it) {
+                        println("${declaration.name} failed receiver type check with ${receiverType.name} ${receiverType::class}")
+                    }
+                }
+            }
+        }
+
+        rule("Property type is domain compatible or primitive") {
+            property { declaration ->
+                val returnType = declaration.type
+                    ?: return@property true
+                return@property isDomainCompatibleType(
+                    typeName = returnType.name,
+                    declaredIn = declaration.containingFile,
+                )
+            }
+        }
+    }
+
     override val layerDefinitions = listOf(
         isDomainInterface,
         isDomainObject,
         isUseCase,
         isException,
+        isDomainConstants,
         isDomainExtensionFunction,
+        isDomainExtensionProperty,
     )
 }

@@ -8,6 +8,7 @@ object FeatureLayer : LayerDefinition(
     excludePackages = listOf(
         "feature..data..",
         "feature..domain..",
+        "feature..services..",
         "feature..ui..",
     )
 ) {
@@ -17,6 +18,16 @@ object FeatureLayer : LayerDefinition(
         rule("Is named 'Dependencies'") { hasNameEndingWith("Dependencies") }
     }
 
+    val isDependencyRegistrationHelper by define {
+        rule("Is a function") { isFunction() }
+        rule("Is internal visibility") { hasModifier(KoModifier.INTERNAL) }
+        rule("Has Module receiver") {
+            function { declaration ->
+                declaration.receiverType?.name == "Module"
+            }
+        }
+    }
+
     val isServiceImplementation by define {
         rule("Is a class") { isClass() }
         rule("Is named 'ServiceImpl'") { hasNameEndingWith("ServiceImpl") }
@@ -24,7 +35,7 @@ object FeatureLayer : LayerDefinition(
         rule("Is internal visibility") { hasModifier(KoModifier.INTERNAL) }
         rule("Implements a service interface") {
             cls { declaration ->
-                declaration.parents().any { DataLayer.Services.isServiceInterface.test(it) }
+                declaration.parents().any { ServicesLayer.isServiceInterface.test(it) }
             }
         }
         rule("Does not inject domain interfaces") {
@@ -39,6 +50,7 @@ object FeatureLayer : LayerDefinition(
 
     override val layerDefinitions = listOf(
         isDependencyRegistration,
+        isDependencyRegistrationHelper,
         isServiceImplementation,
     )
 }

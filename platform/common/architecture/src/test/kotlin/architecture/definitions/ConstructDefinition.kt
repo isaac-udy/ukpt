@@ -120,6 +120,8 @@ class ConstructDefinition private constructor(
                             }
                             else -> {
                                 val bestMatchPercent = partialMatches.maxOf { it.percentageOfRequirementsMet }
+                                // We're going to mark anything within 15% points of the best match as
+                                // a potential match, so we can print out the suggestions/requirements
                                 val potentialMatches = partialMatches.filter {
                                     (bestMatchPercent - it.percentageOfRequirementsMet) < 0.15
                                 }
