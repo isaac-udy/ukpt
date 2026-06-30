@@ -2,23 +2,23 @@
 
 This file provides guidance to Claude Code when working with code in this repository.
 
-UKPT is a Kotlin Multiplatform project **template** — Compose UI, Enro navigation, Koin DI, urpc for the client/server contract, and a Ktor server. It targets Android, Desktop (JVM), Web (wasmJs), and iOS, plus a JVM server. It starts minimal; build features out from the documented patterns.
+UKPT is a Kotlin Multiplatform project **template** — Compose UI, Enro navigation, Koin DI, urpc for the client/server contract, and a Ktor server. It targets Android, Desktop (JVM), Web (wasmJs), and iOS, plus a JVM server. It starts minimal; build features out from the documented patterns — `:feature:core` is the worked example to copy.
 
-This file holds only operational guidance (commands, submodules) and a pointer to the rules. The architecture rules themselves are the source of truth in the README below — don't restate them here.
+This file holds only operational guidance (commands, toolchain, submodules) and pointers to the rules. The architecture rules are the source of truth in [`platform/common/architecture/README.md`](./platform/common/architecture/README.md) — don't restate them here. The submodules carry their own CLAUDE.md files; this root file is authoritative for ukpt conventions.
 
 ## Architecture
 
-Follow the architectural rules in [`platform/common/architecture/README.md`](./platform/common/architecture/README.md). They are enforced by Konsist tests. Orientation:
+Follow the rules in [`platform/common/architecture/README.md`](./platform/common/architecture/README.md), enforced by Konsist tests. Orientation:
 
 - **Module groups**: `:app` (executable shells + DI wiring), `:feature` (vertical slices — `:api` contract, `:client` UI/logic, `:server` implementation), `:platform` (reusable infrastructure).
 - **Feature axes**: `domain`, `ui` (client), `data` (client), `services` (`@Urpc` contracts in `:api`; `ServiceImpl`s + `services.internal` + `services.storage` on `:server`).
 - Every rule has a stable ID (`R-<axis>-NN`) and an enforcement tag — search the README for an ID to find its canonical text. Exempt a declaration that genuinely can't conform with `@ArchitectureException` (README §6), only with human sign-off.
 
-Verify the rules:
-```
-./gradlew :platform:common:architecture:test --rerun-tasks
-```
-`--rerun-tasks` is load-bearing — Konsist caches the project scope, and a stale cache can hide new violations.
+## Toolchain & constraints
+
+- JDK target **11** (`jvmTarget = JVM_11`); Gradle **9.6.1** (wrapper). Exact dependency versions live in [`gradle/libs.versions.toml`](./gradle/libs.versions.toml).
+- **AGP is pinned to 9.0.0** — the latest AGP IntelliJ supports (see `build-logic/src/main/kotlin/ukpt.kmp-library.gradle.kts`). Don't bump it past what the IDE understands.
+- `embedded-enro` and `embedded-udytils` are **composite (`includeBuild`) builds**, so a Kotlin / Compose / AGP bump must stay compatible across all three repos — bump them together, not in isolation.
 
 ## Submodules
 
@@ -27,6 +27,13 @@ Verify the rules:
 git submodule update --init --recursive
 ```
 New code may rely on APIs that only exist in a newer submodule commit.
+
+## Running
+
+- **Desktop**: `./gradlew :app:client:desktop:run`
+- **Server** (Ktor): `./gradlew :app:server:run`
+- **Web** (dev server): `./gradlew :app:client:web:wasmJsBrowserDevelopmentRun` — then open the served URL
+- **Android**: run from Android Studio, or `./gradlew :app:client:android:installDebug` to a connected device/emulator
 
 ## Compiling
 
@@ -47,14 +54,16 @@ The shared module's Android / JVM / wasm targets compile transitively via the pe
 ./gradlew :app:client:web:wasmJsBrowserDevelopmentRun        # serves it — open the URL and confirm it renders
 ```
 
-## Snapshot tests
+## Testing
 
-Screens are snapshot-tested with Paparazzi and this is enforced — see rule `R-UI-38` (README §4.2.1.2) for the `SnapshotRule` API and conventions. After adding or changing a snapshot test, record then verify the goldens:
+- **Architecture rules**: `./gradlew :platform:common:architecture:test --rerun-tasks`. `--rerun-tasks` is load-bearing — Konsist caches the project scope and a stale cache hides new violations.
+- **UI snapshots** (enforced per screen by `R-UI-38`): record then verify Paparazzi goldens, per client module:
 ```
 ./gradlew :feature:core:client:recordPaparazzi
 ./gradlew :feature:core:client:verifyPaparazzi
 ```
+- **Unit tests**: per KMP module via the umbrella task, e.g. `./gradlew :feature:core:api:allTests :feature:core:client:allTests`; the server uses `./gradlew :app:server:test`.
 
 ## Server persistence (Postgres)
 
-Server persistence uses the `dev.isaacudy.udytils.postgres` toolkit (Exposed + Flyway); the conventions are in README §4.4.4. The `:platform:server:postgres` module that owns the Flyway migrations + codegen is created when the first server feature needs persistence — until then the `services.storage` rules pass vacuously.
+Server persistence uses the `dev.isaacudy.udytils.postgres` toolkit (Exposed + Flyway); conventions are in README §4.4.4. The `:platform:server:postgres` module (Flyway migrations + codegen) is created when the first server feature needs persistence — until then the `services.storage` rules pass vacuously.
