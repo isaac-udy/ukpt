@@ -74,12 +74,11 @@ class ConstructDefinition private constructor(
 
     companion object {
         fun define(
-            layer: LayerDefinition?,
             constructName: String?,
             block: Builder.() -> Unit
         ): ConstructDefinition {
             return Builder(
-                layerName = layer?.name,
+                layerName = null,
                 constructName = constructName,
             )
                 .apply(block)
