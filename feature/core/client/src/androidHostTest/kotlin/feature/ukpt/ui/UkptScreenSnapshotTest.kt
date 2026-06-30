@@ -7,8 +7,9 @@ import platform.snapshot.SnapshotRule
 
 /**
  * Snapshot test for [UkptScreenContent]. Screens are paired with an `internal [Name]ScreenContent`
- * composable (architecture rule R-UI-11) so their visual states can be snapshot-tested without a
- * ViewModel. Add a `@Test` per meaningful state (loaded, empty, error, …) as the screen grows.
+ * composable (architecture rule `uiLayer.screen.screenContentCompanion`) so their visual states can
+ * be snapshot-tested without a ViewModel. Add a `@Test` per meaningful state (loaded, empty, error,
+ * …) as the screen grows, exercising `uiLayer.composable.screenContentSnapshotTest`.
  */
 class UkptScreenSnapshotTest {
 

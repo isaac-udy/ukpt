@@ -95,10 +95,29 @@ val servicesLayer by rules(inPackage = "feature..services..") {
                 and services.internal, not sideways into the domain interfaces a client would consume.
                 """.trimIndent(),
             )
-            note("README §4.4.2 marks R-SVC-07 as `🔶 construct`; it is surfaced here as guidance because forbidding domain-interface injection is a prohibition, not a classification shape, and re-expressing it would require resolving the domain-interface classifier from another layer.")
+            note("Surfaced as guidance rather than a construct requirement: forbidding domain-interface injection is a prohibition, not a classification shape, and re-expressing it would require resolving the domain-interface classifier from another layer.")
             guidance()
         }
         val mayInjectStorageAndInternal by rule("May inject `services.storage` Storage classes and `services.internal` orchestrators of the same feature, plus other features' Service contracts via `:api`") { guidance() }
+
+        val noUiDependency by rule("Service implementations must not depend on the `ui` package") {
+            rationale(
+                """
+                ServiceImpls run on the server and have no Compose runtime — a UI import here would
+                either fail to compile in `:server` or mean a UI type has been pulled out of `ui` and
+                is being treated as data, both of which are wrong (§4.4.2, §3.4.4). If you need a
+                shared shape with the UI, put it in the feature's `:api` domain or services package.
+                """.trimIndent(),
+            )
+            constrain { decl, _ ->
+                val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
+                if (cls.containingFile.imports.any { it.name.containsPackageSegment("ui") }) {
+                    listOf(Violation(decl, "service implementation imports the `ui` package"))
+                } else {
+                    emptyList()
+                }
+            }
+        }
     }
 
     // ---- §4.4.3 `services.internal` package (`:server`) ---------------------------------------
@@ -367,7 +386,7 @@ val servicesLayer by rules(inPackage = "feature..services..") {
             """
             Tools are AI-callable wrappers around the Service contract — they should consume the `:api`
             Service interface only, not reach into Postgres tables or internal orchestrators directly. The
-            isolation rule is enforced now even though the package is empty. Covers both R-SVC-02 and R-SVC-25.
+            isolation rule is enforced now even though the package is empty.
             """.trimIndent(),
         )
         scope { scope, exempt ->
@@ -423,7 +442,8 @@ private fun KoBaseDeclaration.isInServicesSubAxis(segment: String): Boolean =
     servicesSubpath()?.isUnderSegment(segment) == true
 
 /**
- * Allowed return-type bases for a `services.storage` Storage method (R-SVC-13): Row-shaped types,
+ * Allowed return-type bases for a `services.storage` Storage method
+ * (`servicesLayer.storageClass.returnsRowTypesOnly`): Row-shaped types,
  * primitives, value-class identifiers, container wrappers, time types, and `Unit`/`Nothing` — never
  * a bare domain type. Copied from the original `DataLayerTests` predicate.
  */

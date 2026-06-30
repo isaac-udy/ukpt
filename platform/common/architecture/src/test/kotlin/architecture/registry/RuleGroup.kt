@@ -2,9 +2,7 @@ package architecture.registry
 
 import architecture.definitions.ConstructDefinition
 import architecture.definitions.DefinitionPredicate
-import architecture.definitions.containingFilePackage
 import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
-import com.lemonappdev.konsist.core.util.LocationUtil
 import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
 
@@ -159,7 +157,7 @@ class ConstructScope internal constructor(
             // declarations in that layer's package — mirrors the legacy `define`'s "Is in package"
             // requirement, so cross-layer reuse + the global membership union don't false-match.
             if (pkg != null) {
-                rule("Resides in `$pkg`") { any { LocationUtil.resideInLocation(pkg, it.containingFilePackage()) } }
+                rule("Resides in `$pkg`") { any { it.residesIn(pkg) } }
             }
             predicates.forEach { (name, predicateInstance) -> rule(name) { predicateInstance } }
         }

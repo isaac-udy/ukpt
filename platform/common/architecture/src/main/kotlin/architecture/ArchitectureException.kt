@@ -23,8 +23,9 @@ package architecture
  *  * **File-level**: use `@file:ArchitectureException(...)` at the top of the
  *    file, before the `package` line.
  *
- * @param ruleIds The architecture rule IDs this declaration is exempt from
- *   (e.g. `["R-MOD-04", "R-MOD-06"]`). At least one ID is required.
+ * @param ruleIds The architecture rule path ids this declaration is exempt from
+ *   (e.g. `["servicesLayer.internalHierarchicalVisibility"]`). At least one id is
+ *   required. See the architecture README "Rule IDs" section.
  * @param reason Free-form explanation of *why* the exemption is justified.
  *   Should be specific enough to read on its own without context.
  * @param trackingIssue Optional issue number / URL where the cleanup work is

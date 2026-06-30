@@ -2,7 +2,6 @@ package architecture.registry
 
 import architecture.ArchitectureExceptions
 import architecture.definitions.ConstructDefinition
-import architecture.definitions.containingFilePackage
 import architecture.definitions.isFeatureModule
 import architecture.definitions.isInsideFunction
 import architecture.definitions.isPrivate
@@ -14,7 +13,6 @@ import com.lemonappdev.konsist.api.declaration.KoFunctionDeclaration
 import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
 import com.lemonappdev.konsist.api.declaration.KoObjectDeclaration
 import com.lemonappdev.konsist.api.declaration.KoPropertyDeclaration
-import com.lemonappdev.konsist.core.util.LocationUtil
 import kotlin.test.fail
 
 /**
@@ -26,14 +24,21 @@ fun verify(catalog: List<RuleGroup>, exclude: Set<String> = emptySet()) {
     integrityChecks(catalog)
     val ctx = RunContext(projectScope, ModuleGraph.parse())
 
-    // Every catalog rule, plus the cross-layer membership rule (every feature declaration must
-    // belong to exactly one construct across ALL layers — catches orphans not in any layer package).
-    val findings = (catalog.flatMap { it.rules } + membershipRule(catalog))
+    val findings = enforcedRules(catalog)
         .filter { it.status is Status.Active && it.id !in exclude }
         .flatMap { rule -> rule.run(ctx) }
 
     if (findings.isNotEmpty()) fail(render(findings))
 }
+
+/**
+ * Every rule the catalog enforces, in document order: each group's rules (constructs' requirements
+ * + functionality rules + each layer's exhaustiveness rule) plus the cross-layer membership rule
+ * (every feature declaration must belong to exactly one construct across ALL layers — catches
+ * orphans not in any single layer package). The single source for both [verify] and the rule index.
+ */
+internal fun enforcedRules(catalog: List<RuleGroup>): List<Rule> =
+    catalog.flatMap { it.rules } + membershipRule(catalog)
 
 private class RunContext(val scope: KoScope, val graph: ModuleGraph)
 
@@ -107,7 +112,7 @@ internal fun exhaustivenessCheck(pkg: String, constructs: List<Construct>): Scop
                 it is KoClassDeclaration || it is KoInterfaceDeclaration || it is KoObjectDeclaration ||
                     it is KoFunctionDeclaration || it is KoPropertyDeclaration
             }
-            .filter { LocationUtil.resideInLocation(pkg, it.containingFilePackage()) }
+            .filter { it.residesIn(pkg) }
             .filterNot { it.isPrivate() }
             .filterNot { it.isInsideFunction() }
             .filterNot { exempt(it) || ArchitectureExceptions.isIgnored(it) }

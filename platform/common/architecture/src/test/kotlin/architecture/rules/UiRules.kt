@@ -1,6 +1,5 @@
 package architecture.rules
 
-import architecture.definitions.containingFilePackage
 import architecture.definitions.containsPackageSegment
 import architecture.definitions.isFeatureModule
 import architecture.registry.Violation
@@ -14,7 +13,6 @@ import com.lemonappdev.konsist.api.declaration.KoPropertyDeclaration
 import com.lemonappdev.konsist.api.provider.KoAnnotationProvider
 import com.lemonappdev.konsist.api.provider.KoContainingFileProvider
 import com.lemonappdev.konsist.api.provider.KoNameProvider
-import com.lemonappdev.konsist.core.util.LocationUtil
 
 /**
  * The `ui` layer (§3.2, §4.2) — the single, self-contained definition of every UI rule.
@@ -161,7 +159,7 @@ val uiLayer by rules(inPackage = "feature..ui..") {
             constrain { decl, _ ->
                 val fn = decl as? KoFunctionDeclaration ?: return@constrain emptyList()
                 if (!fn.name.endsWith("ScreenContent")) return@constrain emptyList()
-                if (!LocationUtil.resideInLocation("feature..ui..", fn.containingFilePackage())) return@constrain emptyList()
+                if (!fn.resideInPackage("feature..ui..")) return@constrain emptyList()
                 // Snapshot tests live under `src/androidHostTest/`, which `projectScope` excludes —
                 // scan those files directly for a reference to each ScreenContent.
                 val tested = snapshotTestSources.any { source -> source.contains("${fn.name}(") }
@@ -378,7 +376,7 @@ val uiLayer by rules(inPackage = "feature..ui..") {
         scope { scope, exempt ->
             scope.files
                 .filter { it.isFeatureModule() }
-                .filter { LocationUtil.resideInLocation("feature..ui..", it.containingFilePackage()) }
+                .filter { it.packagee?.name?.containsPackageSegment("ui") == true }
                 .filterNot { exempt(it) }
                 .filter { file -> file.imports.any { it.name.contains("koinInject") } }
                 .map { Violation(it.path, "UI file uses `koinInject`; inject through a ViewModel instead") }
@@ -388,8 +386,8 @@ val uiLayer by rules(inPackage = "feature..ui..") {
 
 /**
  * Snapshot tests live under `src/androidHostTest/`, which `projectScope` deliberately excludes, so
- * R-UI-38 scans those source files directly. Computed once, lazily, and reused across every
- * `[Name]ScreenContent` checked by [uiLayer]'s `composable.screenContentSnapshotTest` rule.
+ * `composable.screenContentSnapshotTest` scans those source files directly. Computed once, lazily,
+ * and reused across every `[Name]ScreenContent` checked by that rule.
  */
 private val snapshotTestSources: List<String> by lazy {
     Konsist

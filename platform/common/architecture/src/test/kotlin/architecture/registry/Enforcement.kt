@@ -5,6 +5,7 @@ import com.lemonappdev.konsist.api.container.KoScope
 import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
 import com.lemonappdev.konsist.api.provider.KoLocationProvider
 import com.lemonappdev.konsist.api.provider.KoNameProvider
+import com.lemonappdev.konsist.api.provider.KoResideInPackageProvider
 
 /**
  * The four enforcement tags from the architecture README legend. The tag is *derived* from a
@@ -31,6 +32,14 @@ internal fun KoBaseDeclaration.sourceLocation(): String =
     (this as? KoLocationProvider)?.location
         ?: (this as? KoNameProvider)?.name
         ?: toString()
+
+/**
+ * Does this declaration reside in [pkg] (Konsist's `..`-glob package syntax)? Uses the public
+ * [KoResideInPackageProvider]; top-level declarations always implement it, so a declaration that
+ * doesn't (shouldn't occur for the shapes the catalog classifies) is treated as not matching.
+ */
+internal fun KoBaseDeclaration.residesIn(pkg: String): Boolean =
+    (this as? KoResideInPackageProvider)?.resideInPackage(pkg) == true
 
 /** ✅ tested over the whole Konsist scope. `exempt` is pre-keyed to the rule's id by the runner. */
 fun interface ScopeCheck {

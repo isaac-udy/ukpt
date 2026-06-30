@@ -1,25 +1,75 @@
 package architecture
 
 import architecture.registry.Violation
+import architecture.registry.renderRuleIndex
 import architecture.registry.rules
 import architecture.registry.verify
 import architecture.rules.UkptArchitecture
+import java.io.File
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 /**
  * The single entry point for the registry-driven architecture rules: runs every rule in the
  * catalog (constructs + exhaustiveness + scope/module-graph constraints) and fails once with a
- * report grouped by rule id.
- *
- * During the 2a migration this runs *alongside* the legacy per-rule tests as a cross-check; once
- * the catalog reproduces them, the legacy tests are deleted (sub-commit "cut over").
+ * report grouped by rule id. [ruleIndexMatchesReadme] keeps the README's published rule index in
+ * lock-step with the catalog.
  */
 class RegistryArchitectureTest {
 
     @Test
     fun architecture() = verify(UkptArchitecture.all)
+
+    /**
+     * Doc↔registry sync: the README's `RULE-INDEX` block must list exactly the rules the catalog
+     * enforces (id, enforcement tag, statement), so the documented index can never silently drift
+     * from what runs. Regenerate after changing rules with:
+     *
+     *     UPDATE_RULE_INDEX=true ./gradlew :platform:common:architecture:test
+     */
+    @Test
+    fun ruleIndexMatchesReadme() {
+        val readme = readmeFile()
+        val text = readme.readText()
+        val start = "<!-- RULE-INDEX:START -->"
+        val end = "<!-- RULE-INDEX:END -->"
+        val startIdx = text.indexOf(start)
+        val endIdx = text.indexOf(end)
+        require(startIdx >= 0 && endIdx > startIdx) {
+            "README ${readme.path} is missing the rule-index markers ($start … $end)"
+        }
+
+        val expectedBlock = "$start\n\n${renderRuleIndex(UkptArchitecture.all)}\n\n$end"
+        val currentBlock = text.substring(startIdx, endIdx + end.length)
+
+        if (System.getenv("UPDATE_RULE_INDEX") == "true") {
+            if (currentBlock != expectedBlock) {
+                readme.writeText(text.substring(0, startIdx) + expectedBlock + text.substring(endIdx + end.length))
+                println("RULE-INDEX block regenerated in ${readme.path}")
+            }
+            return
+        }
+
+        assertEquals(
+            expectedBlock,
+            currentBlock,
+            "The README rule index is stale relative to the registry. Regenerate it with:\n" +
+                "  UPDATE_RULE_INDEX=true ./gradlew :platform:common:architecture:test",
+        )
+    }
+
+    /** Locate the architecture module's README from the test working directory. */
+    private fun readmeFile(): File {
+        File("README.md").let { if (it.exists()) return it }
+        var dir: File? = File("").absoluteFile
+        while (dir != null) {
+            File(dir, "platform/common/architecture/README.md").let { if (it.exists()) return it }
+            dir = dir.parentFile
+        }
+        error("Could not locate platform/common/architecture/README.md from ${File("").absolutePath}")
+    }
 
     /**
      * Self-check: proves the runner actually detects and reports violations (so a green

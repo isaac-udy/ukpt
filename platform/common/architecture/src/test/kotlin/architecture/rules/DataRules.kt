@@ -199,7 +199,7 @@ val dataLayer by rules(inPackage = "feature..data..") {
         }
     }
 
-    val storageInternalVisibility by rule("`data.storage` classes use `internal` visibility where the language allows (see R-DATA-14 for the canonical statement, incl. the `expect`/`actual` nuance)") { guidance() }
+    val storageInternalVisibility by rule("`data.storage` classes use `internal` visibility where the language allows (see `dataLayer.clientStorage.internalVisibility` for the canonical statement, incl. the `expect`/`actual` nuance)") { guidance() }
 
     val noUiDeps by rule("Must not depend on the `ui` package") {
         rationale(

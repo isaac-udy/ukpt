@@ -1,10 +1,9 @@
 package architecture.rules
 
-import architecture.definitions.containingFilePackage
 import architecture.definitions.isFeatureModule
 import architecture.registry.Violation
 import architecture.registry.rules
-import com.lemonappdev.konsist.core.util.LocationUtil
+import com.lemonappdev.konsist.api.provider.KoResideInPackageProvider
 
 /**
  * Project-wide code rules (§5) and the architecture-exception sign-off rules (§6.3) — the
@@ -56,7 +55,7 @@ val projectRules by rules {
         scope { scope, exempt ->
             scope.classes(includeNested = true)
                 .filter { it.isFeatureModule() }
-                .filter { isInServicesContractPackage(it.containingFilePackage()) }
+                .filter { isInServicesContractPackage(it) }
                 .filter { clazz ->
                     clazz.parents().any { parent ->
                         parent.name == "RuntimeException" ||
@@ -134,14 +133,14 @@ val projectRules by rules {
 }
 
 /**
- * Re-expression of `ServicesLayer.inLayerPackage`: the cross-the-wire `services` contract package
- * (`feature..services..`), excluding the server-only `internal`/`storage`/`tools` sub-axes.
+ * The cross-the-wire `services` contract package (`feature..services..`), excluding the server-only
+ * `internal`/`storage`/`tools` sub-axes.
  */
-private fun isInServicesContractPackage(pkg: String): Boolean {
-    if (!LocationUtil.resideInLocation("feature..services..", pkg)) return false
+private fun isInServicesContractPackage(declaration: KoResideInPackageProvider): Boolean {
+    if (!declaration.resideInPackage("feature..services..")) return false
     return listOf(
         "feature..services..internal..",
         "feature..services..storage..",
         "feature..services..tools..",
-    ).none { LocationUtil.resideInLocation(it, pkg) }
+    ).none { declaration.resideInPackage(it) }
 }

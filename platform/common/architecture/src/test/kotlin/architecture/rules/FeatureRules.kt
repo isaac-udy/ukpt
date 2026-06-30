@@ -4,12 +4,9 @@ import architecture.definitions.containingFilePackage
 import architecture.definitions.containsPackageSegment
 import architecture.definitions.featureName
 import architecture.definitions.isFeatureModule
-import architecture.definitions.isServerModule
 import architecture.registry.Violation
 import architecture.registry.rules
 import com.lemonappdev.konsist.api.KoModifier
-import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
-import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
 import com.lemonappdev.konsist.api.declaration.KoPropertyDeclaration
 
@@ -97,53 +94,10 @@ val featureRules by rules {
         }
     }
 
-    // ---- §4.4 Service implementations (server) -----------------------------------------------
-    val serviceImplementation by construct {
-        val declaredAsClass by requirement("A service implementation is a class") {
-            isClass()
-        }
-        val serviceImplSuffix by requirement("A service implementation is named `[Name]ServiceImpl`") {
-            hasNameEndingWith("ServiceImpl")
-        }
-        val inServerModule by requirement("A service implementation is defined in a `:server` module") {
-            cls { it.isServerModule() }
-        }
-        val internalVisibility by requirement("A service implementation is `internal` visibility") {
-            hasModifier(KoModifier.INTERNAL)
-        }
-        val implementsServiceInterface by requirement("A service implementation implements a `services` interface") {
-            cls { declaration ->
-                declaration.parents().any { Classifiers.serviceInterface.test(it) }
-            }
-        }
-        val noDomainInterfaceInjection by requirement("A service implementation must not inject domain interfaces") {
-            cls { declaration ->
-                declaration.primaryConstructor?.parameters.orEmpty().none { param ->
-                    val source = param.type.sourceDeclaration as? KoBaseDeclaration
-                    source != null && Classifiers.domainInterface.test(source)
-                }
-            }
-        }
-
-        val noUiDependency by rule("Service implementations must not depend on the `ui` package") {
-            rationale(
-                """
-                ServiceImpls run on the server and have no Compose runtime — a UI import here would
-                either fail to compile in `:server` or mean a UI type has been pulled out of `ui` and
-                is being treated as data, both of which are wrong (§4.4.2, §3.4.4). If you need a
-                shared shape with the UI, put it in the feature's `:api` domain or services package.
-                """.trimIndent(),
-            )
-            constrain { decl, _ ->
-                val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
-                if (cls.containingFile.imports.any { it.name.containsPackageSegment("ui") }) {
-                    listOf(Violation(decl, "service implementation imports the `ui` package"))
-                } else {
-                    emptyList()
-                }
-            }
-        }
-    }
+    // §4.4.2 Service implementations (`:server`) are classified by the `services` axis as
+    // `servicesLayer.serviceImpl` (they live in `feature.[name].services`, not the top-level
+    // feature package), so there is no ServiceImpl construct here — that would double-classify
+    // every ServiceImpl and break the global layer-membership check.
 
     // ---- §4.5.1 DI binding style (layer-level — not tied to one construct) --------------------
     val constructorReferenceBindings by rule("DI bindings must use the constructor reference style `singleOf(::Constructor).bind(BindingType::class)`, not the lambda style `single<BindingType> { Constructor(get()) }`") {
