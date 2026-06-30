@@ -13,7 +13,7 @@ LOG="$(mktemp)"
 ./gradlew :app:client:web:wasmJsBrowserDevelopmentWebpack 2>&1 | tee "$LOG"
 STATUS=${PIPESTATUS[0]}
 
-if grep -qE "UnhandledSchemeError|node:" "$LOG"; then
+if grep -qE "UnhandledSchemeError|Unhandled scheme|Can't resolve 'node:" "$LOG"; then
   echo ""
   echo ">> mode 1 — 'node:' import: a JVM/native dep (e.g. ktor-client-cio) leaked into"
   echo "   common/wasm. Web must use ktor-client-js only (see app/client/web/build.gradle.kts)."
