@@ -93,28 +93,28 @@ Every enforced rule, generated from the catalog by `RegistryArchitectureTest.rul
 | `UiLayer.Screen.overlayViewModel` | 📋 guidance | Dialog/overlay screens that need a ViewModel should call `viewModel()` inside the `navigationDestination` block |
 | `UiLayer.Screen.screenContentCompanion` | ✅ tested | Screen functions must be paired with an `internal [Name]ScreenContent` composable in the same file |
 | `UiLayer.Screen.viewModelInjection` | ✅ tested | ViewModels must be injected into screens using `viewModel()`, not `koinViewModel()` |
-| `UiLayer.Composable` | 🔶 construct | resides in `feature..ui..` · Is not a Screen · Is a `@Composable` function |
+| `UiLayer.Composable` | 🔶 construct | resides in `feature..ui..` · Is not a Screen · annotated `@Composable` |
 | `UiLayer.Composable.screenContentSnapshotTest` | ✅ tested | Every `[Name]ScreenContent` composable must be exercised by at least one snapshot test |
-| `UiLayer.Destination` | 🔶 construct | resides in `feature..ui..` · is a class or object · Destinations must implement `dev.enro.NavigationKey` or `NavigationKey.WithResult<T>` · Destinations must be named `[Name]Destination` · Destinations must be serializable and annotated with `@Serializable` · Destinations are declared in a file matching their name |
+| `UiLayer.Destination` | 🔶 construct | resides in `feature..ui..` · is a class or object · Destinations must implement `dev.enro.NavigationKey` or `NavigationKey.WithResult<T>` · name ends with `Destination` · annotated `@Serializable` · is declared in a file matching its name |
 | `UiLayer.Destination.minimalData` | 📋 guidance | Destinations should accept the minimal data required to initialise the associated Screen |
 | `UiLayer.Destination.definedInApiOrClient` | 📋 guidance | Destinations may live in `:api` (shared entry point / server-driven) or `:client` (internal only) |
-| `UiLayer.ViewModel` | 🔶 construct | resides in `feature..ui..` · ViewModels extend `androidx.lifecycle.ViewModel` · ViewModels must be named `[Name]ViewModel` · ViewModels expose a single public `state` property, or no public properties at all · The `state` property is a `ViewModelState<[Name]State>` (1:1 with the ViewModel's State type) · ViewModels have a `private val navigation` obtained via `navigationHandle<[Name]Destination>()` · `public`/`internal` functions on a ViewModel must only return `Unit` (or omit a return type) · ViewModels must be defined in their own file (`[Name]ViewModel.kt`) |
+| `UiLayer.ViewModel` | 🔶 construct | resides in `feature..ui..` · ViewModels extend `androidx.lifecycle.ViewModel` · ViewModels must be named `[Name]ViewModel` · ViewModels expose a single public `state` property, or no public properties at all · The `state` property is a `ViewModelState<[Name]State>` (1:1 with the ViewModel's State type) · ViewModels have a `private val navigation` obtained via `navigationHandle<[Name]Destination>()` · `public`/`internal` functions on a ViewModel must only return `Unit` (or omit a return type) · is declared in a file matching its name |
 | `UiLayer.ViewModel.injectsDomainInterfaces` | 📋 guidance | ViewModels should inject domain interfaces to load and manipulate domain objects |
 | `UiLayer.ViewModel.usesJobManager` | ✅ tested | ViewModels must use `JobManager` to manage coroutines — never hold `var job: Job?` references |
-| `UiLayer.ViewModelState` | 🔶 construct | resides in `feature..ui..` · is a class · is a `data class` · name ends with `State` · ViewModel State objects must be immutable (val properties only) · ViewModel State objects must be defined in their own file (`[Name]State.kt`) |
+| `UiLayer.ViewModelState` | 🔶 construct | resides in `feature..ui..` · is a class · is a `data class` · name ends with `State` · ViewModel State objects must be immutable (val properties only) · is declared in a file matching its name |
 | `UiLayer.ViewModelState.viewModelRelationship` | 📋 guidance | ViewModel State objects have a 1:1 relationship with a ViewModel type |
 | `UiLayer.ViewModelState.usesAsyncState` | 📋 guidance | ViewModel State objects must use `AsyncState<T>` / `UpdatableState<T>` for asynchronously loaded data and action progress |
 | `UiLayer.ViewModelState.noCustomAsyncSealedTypes` | 📋 guidance | ViewModel State objects must not define custom sealed types for loading/success/error — use `AsyncState<T>` |
 | `UiLayer.ViewModelState.transparentContainer` | 📋 guidance | ViewModel State objects should be a transparent container for domain objects, not lossy UI-level mappings |
 | `UiLayer.ViewModelState.invariantInitBlocks` | 📋 guidance | ViewModel State objects should include `init` blocks that enforce invariants |
 | `UiLayer.ViewModelState.formattingInScreen` | 📋 guidance | Formatting and visual representation must be handled by the Screen or specialized `@Composable` properties/functions |
-| `UiLayer.UiValueType` | 🔶 construct | resides in `feature..ui..` · Is an enum, sealed class, or sealed interface · Has no member functions |
+| `UiLayer.UiValueType` | 🔶 construct | resides in `feature..ui..` · one of {is an `enum class`, is `sealed`} · Has no member functions |
 | `UiLayer.mayDependOnDomain` | 📋 guidance | May depend on `domain` |
 | `UiLayer.noImplementingDomainInterfaces` | ✅ tested | Forbidden from implementing `domain` interfaces |
 | `UiLayer.noDataServicesDeps` | ✅ tested | Forbidden from depending on `data` or `services` |
 | `UiLayer.noKoinInject` | ✅ tested | Must not use `koinInject` — all dependencies are injected through ViewModels |
 | `UiLayer.exhaustive` | ✅ tested | Every top-level declaration in `feature..ui..` matches exactly one construct |
-| `DataLayer.Repository` | 🔶 construct | resides in `feature..data..` · is a class · name ends with `Repository` · is `internal` · A Repository is declared in a file whose name matches the class · Repositories must not implement domain interfaces directly · Repositories must expose domain interfaces as `public val` properties · Repositories are forbidden from injecting domain interfaces · Repositories are forbidden from injecting other Repositories |
+| `DataLayer.Repository` | 🔶 construct | resides in `feature..data..` · is a class · name ends with `Repository` · is `internal` · is declared in a file matching its name · Repositories must not implement domain interfaces directly · Repositories must expose domain interfaces as `public val` properties · Repositories are forbidden from injecting domain interfaces · Repositories are forbidden from injecting other Repositories |
 | `DataLayer.Repository.propertiesEagerlyInitialized` | ✅ tested | Repository domain-interface properties must be initialized immediately — no `by lazy`, no custom getter |
 | `DataLayer.Repository.mayInjectServicesStorageOrClients` | 📋 guidance | May inject Services, client-side `data.storage` Storage objects, or database clients to fulfill their domain properties |
 | `DataLayer.ClientDataInterface` | 🔶 construct | resides in `feature..data..` · is an interface · Must live in `feature.[name].data` (not `data.storage`) |
@@ -640,9 +640,9 @@ val changeRoleScreen = navigationDestination<ChangeRoleDestination>(
 * **Construct** `UiLayer.Destination` (`🔶 construct`) — a declaration is this construct when it satisfies all of:
     * A Destination is a class or object.
     * Destinations must implement `dev.enro.NavigationKey` or `NavigationKey.WithResult<T>`, depending on whether the Destination returns a result.
-    * Destinations must be named `[Name]Destination`.
-    * Destinations must be serializable and annotated with `@Serializable`.
-    * Destinations are declared in a file matching their name.
+    * name ends with `Destination`.
+    * annotated `@Serializable`.
+    * is declared in a file matching its name.
 * **Rules**:
     * **`UiLayer.Destination.minimalData`** `📋 guidance` — Should accept the minimal data required to initialise the associated Screen.
         * **Example**: A Destination should accept a `User.Id`, and then the Screen should use this to load the associated `User`, rather than the Destination accepting an entire `User`.
@@ -657,7 +657,7 @@ val changeRoleScreen = navigationDestination<ChangeRoleDestination>(
     * The `state` property is a `ViewModelState<[Name]State>` (1:1 with the ViewModel's State type).
     * ViewModels have a `private val navigation` obtained via `navigationHandle<[Name]Destination>()`, used to read Destination parameters and perform navigation.
     * `public`/`internal` functions on a ViewModel must only return `Unit` (or omit a return type).
-    * ViewModels must be defined in their own file (`[Name]ViewModel.kt`).
+    * is declared in a file matching its name.
 * **Rules**:
     * **`UiLayer.ViewModel.injectsDomainInterfaces`** `📋 guidance` — Should inject domain interfaces to load and manipulate domain objects.
     * **`UiLayer.ViewModel.usesJobManager`** `✅ tested` — Must use `JobManager` to manage coroutines — never hold `var job: Job?` references.
@@ -670,7 +670,7 @@ val changeRoleScreen = navigationDestination<ChangeRoleDestination>(
     * ViewModel State objects must be a `data class`.
     * ViewModel State objects are named `[Name]State`.
     * ViewModel State objects must be immutable (val properties only).
-    * ViewModel State objects must be defined in their own file (`[Name]State.kt`).
+    * is declared in a file matching its name.
 * **Rules**:
     * **`UiLayer.ViewModelState.viewModelRelationship`** `📋 guidance` — Have a 1:1 relationship with a [ViewModel](#423-viewmodels) type.
     * **`UiLayer.ViewModelState.usesAsyncState`** `📋 guidance` — Must use `AsyncState<T>` / `UpdatableState<T>` for asynchronously loaded data and action progress (e.g. a "save" action as `AsyncState<Unit>`).
@@ -704,7 +704,7 @@ val changeRoleScreen = navigationDestination<ChangeRoleDestination>(
 * **Definition**: A `@Composable` function defined in the `..ui..` package that is **not** a [Screen](#421-screens) — typically a sub-component used by one or more screens, an inline editor, or a feature-specific overlay.
 * **Construct** `UiLayer.Composable` (`🔶 construct`) — a declaration is this construct when it satisfies all of:
     * Is not a Screen.
-    * Is a `@Composable` function.
+    * annotated `@Composable`.
 * **Note**: The `screenContentSnapshotTest` rule (see [§4.2.1.2](#4212-snapshot-tests)) belongs to this construct — `[Name]ScreenContent` is a non-Screen composable. For reusable design-system primitives (buttons, fields, marks), prefer a Parchment composable in `:platform:client:ui`. Feature-local composables live alongside the Screen they support, and may be `internal` so snapshot tests can drive them.
 
 #### **4.2.6 UI value types**
@@ -724,7 +724,7 @@ The `data` axis is **client-only**. Server-side persistence and service implemen
     * A Repository is a class.
     * Repositories must be named `[Name]Repository`.
     * Repositories must be marked as `internal`.
-    * A Repository is declared in a file whose name matches the class.
+    * is declared in a file matching its name.
     * Repositories must not implement domain interfaces directly.
     * Repositories must expose domain interfaces as `public val` properties.
     * Repositories are forbidden from injecting domain interfaces.

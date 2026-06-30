@@ -7,8 +7,6 @@ import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
 import com.lemonappdev.konsist.api.declaration.KoParentDeclaration
-import com.lemonappdev.konsist.api.provider.KoContainingFileProvider
-import com.lemonappdev.konsist.api.provider.KoNameProvider
 
 /**
  * The `data` layer (§3.3, §4.3) in the object style. The `data` axis is **client-only**: Repositories
@@ -27,11 +25,7 @@ object DataLayer : RuleGroup(inPackage = "feature..data..") {
         isClass,
         hasNameEndingWith("Repository"),
         isInternal,
-        predicate("A Repository is declared in a file whose name matches the class") {
-            require(it is KoContainingFileProvider)
-            require(it is KoNameProvider)
-            it.name == it.containingFile.name
-        },
+        hasFileNameMatchingDeclaration,
         isClassWhere("Repositories must not implement domain interfaces directly") { declaration ->
             declaration.parents().none { parent -> isDomainInterfaceInDomainPackage(parent) }
         },

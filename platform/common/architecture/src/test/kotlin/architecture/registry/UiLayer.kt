@@ -1,6 +1,5 @@
 package architecture.registry
 
-import architecture.definitions.containingFilePath
 import architecture.definitions.containsPackageSegment
 import architecture.definitions.isFeatureModule
 import com.lemonappdev.konsist.api.Konsist
@@ -126,10 +125,7 @@ object UiLayer : RuleGroup(inPackage = "feature..ui..") {
     // §4.2 Composables (non-Screen @Composable functions)
     object Composable : Construct(
         predicate("Is not a Screen") { declaration -> !UiLayer.Screen.test(declaration) },
-        predicate("Is a `@Composable` function") { declaration ->
-            require(declaration is KoAnnotationProvider)
-            declaration.hasAnnotation { it.name == "Composable" }
-        },
+        isAnnotatedWith("Composable"),
     ) {
         // §4.2.1.2 — the snapshot rule lives here because `[Name]ScreenContent` is a (non-Screen)
         // composable, not a Screen.
@@ -160,18 +156,9 @@ object UiLayer : RuleGroup(inPackage = "feature..ui..") {
             (d is KoClassDeclaration || d is KoObjectDeclaration) &&
                 d.parents().any { parent -> parent.name.contains("NavigationKey") }
         },
-        predicate("Destinations must be named `[Name]Destination`") { d ->
-            (d is KoClassDeclaration || d is KoObjectDeclaration) && d.name.endsWith("Destination")
-        },
-        predicate("Destinations must be serializable and annotated with `@Serializable`") { d ->
-            (d is KoClassDeclaration || d is KoObjectDeclaration) && d.hasAnnotationWithName("Serializable")
-        },
-        predicate("Destinations are declared in a file matching their name") { declaration ->
-            require(declaration is KoNameProvider)
-            val filePath = declaration.containingFilePath()
-            val fileName = filePath.substringAfterLast("/").removeSuffix(".kt")
-            fileName == declaration.name
-        },
+        hasNameEndingWith("Destination"),
+        isAnnotatedWith("Serializable"),
+        hasFileNameMatchingDeclaration,
     ) {
         val minimalData by rule("Destinations should accept the minimal data required to initialise the associated Screen") { guidance() }
         val definedInApiOrClient by rule("Destinations may live in `:api` (shared entry point / server-driven) or `:client` (internal only)") { guidance() }
@@ -220,12 +207,7 @@ object UiLayer : RuleGroup(inPackage = "feature..ui..") {
                 .filter { func -> !func.hasOverrideModifier }
                 .all { func -> func.returnType?.name == "Unit" || func.returnType == null }
         },
-        predicate("ViewModels must be defined in their own file (`[Name]ViewModel.kt`)") { declaration ->
-            require(declaration is KoNameProvider)
-            val filePath = declaration.containingFilePath()
-            val fileName = filePath.substringAfterLast("/").removeSuffix(".kt")
-            fileName == declaration.name
-        },
+        hasFileNameMatchingDeclaration,
     ) {
         val injectsDomainInterfaces by rule("ViewModels should inject domain interfaces to load and manipulate domain objects") { guidance() }
 
@@ -258,12 +240,7 @@ object UiLayer : RuleGroup(inPackage = "feature..ui..") {
         isClassWhere("ViewModel State objects must be immutable (val properties only)") { declaration ->
             declaration.properties().all { it.isVal }
         },
-        predicate("ViewModel State objects must be defined in their own file (`[Name]State.kt`)") { declaration ->
-            require(declaration is KoNameProvider)
-            val filePath = declaration.containingFilePath()
-            val fileName = filePath.substringAfterLast("/").removeSuffix(".kt")
-            fileName == declaration.name
-        },
+        hasFileNameMatchingDeclaration,
     ) {
         val viewModelRelationship by rule("ViewModel State objects have a 1:1 relationship with a ViewModel type") { guidance() }
         val usesAsyncState by rule("ViewModel State objects must use `AsyncState<T>` / `UpdatableState<T>` for asynchronously loaded data and action progress") { guidance() }
@@ -275,13 +252,7 @@ object UiLayer : RuleGroup(inPackage = "feature..ui..") {
 
     // §4.2 UI value types (enum / sealed flow tags)
     object UiValueType : Construct(
-        predicate("Is an enum, sealed class, or sealed interface") { declaration ->
-            when (declaration) {
-                is KoClassDeclaration -> declaration.hasEnumModifier || declaration.hasSealedModifier
-                is KoInterfaceDeclaration -> declaration.hasSealedModifier
-                else -> false
-            }
-        },
+        oneOf(isEnum, isSealed),
         predicate("Has no member functions") { declaration ->
             when (declaration) {
                 is KoClassDeclaration -> declaration.functions().isEmpty()
