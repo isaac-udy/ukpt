@@ -1,9 +1,16 @@
 package architecture.spike
 
+import architecture.registry.ConstructCheck
+import architecture.registry.DelegatedConstraint
 import architecture.registry.Enforcement
+import architecture.registry.ModuleGraphCheck
+import architecture.registry.ModuleGraphConstraint
+import architecture.registry.NotEnforced
 import architecture.registry.Rule
-import architecture.registry.RuleScope
+import architecture.registry.ScopeCheck
+import architecture.registry.ScopeConstraint
 import architecture.registry.Status
+import architecture.registry.Tag
 import architecture.registry.residesIn
 import com.lemonappdev.konsist.api.KoModifier
 import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
@@ -19,22 +26,30 @@ import kotlin.properties.PropertyDelegateProvider
 import kotlin.properties.ReadOnlyProperty
 
 /*
- * SPIKE — an object-based take on the rule registry, to compare against the live `architecture.rules`
- * catalog. The live engine is untouched; this is parallel and demonstrative.
+ * Object-based rule registry.
  *
- * Two ideas being tried:
- *   1. Groups and constructs are `object`s (`object DataLayer : RuleGroup { object Repository : Construct }`),
- *      so cross-layer references are direct compile-time calls (`DomainLayer.DomainInterface.test(x)`) —
- *      the `Classifiers` indirection disappears.
- *   2. Requirements are a composable predicate list passed to the `Construct` constructor (no individual
- *      ids — they classify, AND-composed). Rules ("what it DOES") stay `val x by rule(...)` in the body
- *      and keep their ids. Rule ids use the exact object/property names: `DomainLayer.DomainObject.immutable`.
+ *   object DataLayer : RuleGroup(inPackage = "feature..data..") {
+ *       object Repository : Construct(isClass, hasNameEndingWith("Repository"), internal) {
+ *           val propertiesEagerlyInitialized by rule("…") { constrain { decl, _ -> … } }
+ *       }
+ *       val noUiDeps by rule("…") { scope { scope, exempt -> … } }
+ *   }
  *
- * Constructs are discovered by reflection (kotlin-reflect) — no explicit `listOf`.
+ * Groups/constructs are `object`s, so cross-layer references are direct compile-time calls
+ * (`DomainLayer.DomainInterface.test(x)`). Requirements (the `🔶 construct` classification) are the
+ * composable predicate list in the `Construct(...)` header — AND-composed, no ids. Rules ("what it
+ * DOES") are `val x by rule(...)` and take their id from the exact object/property names. Constructs
+ * are discovered by reflection — no explicit list.
  */
 
-/** A classification predicate with a human description. AND-composed into a [Construct]; never an id. */
-class Requirement(val description: String, val predicate: (KoBaseDeclaration) -> Boolean)
+/**
+ * A classification predicate with a human description. AND-composed into a [Construct]; never an id.
+ * [matches] evaluates the predicate defensively: a predicate that uses `require(decl is X)` as a type
+ * guard throws when the declaration is the wrong kind — that means "not this construct", i.e. `false`.
+ */
+class Requirement(val description: String, val predicate: (KoBaseDeclaration) -> Boolean) {
+    fun matches(declaration: KoBaseDeclaration): Boolean = runCatching { predicate(declaration) }.getOrDefault(false)
+}
 
 /** "DataLayer.Repository.ruleName" / "DataLayer.Repository" / "DataLayer.ruleName" — exact names. */
 private fun pathOf(owner: Any, leaf: String?): String {
@@ -43,30 +58,46 @@ private fun pathOf(owner: Any, leaf: String?): String {
     return listOfNotNull(enclosing, self, leaf).joinToString(".")
 }
 
-/** Shared base for anything that declares `val x by rule("…") { … }` (a group or a construct). */
-abstract class RuleContainer {
-    internal val declaredRules = mutableListOf<Rule>()
+// ---- Rule scopes (the `rule { … }` block receivers) --------------------------------------------
 
-    protected fun rule(
-        statement: String,
-        block: RuleScope.() -> Enforcement,
-    ): PropertyDelegateProvider<RuleContainer, ReadOnlyProperty<RuleContainer, Rule>> {
-        val owner = this
-        return PropertyDelegateProvider { _, property ->
-            val scope = RuleScope()
-            val enforcement = scope.block()
-            val rule = Rule(
-                id = pathOf(owner, property.name),
-                title = statement,
-                rationale = scope.rationaleText,
-                enforcement = enforcement,
-                status = Status.Active,
-                notes = scope.notes.toList(),
-            )
-            owner.declaredRules += rule
-            ReadOnlyProperty { _, _ -> rule }
-        }
+abstract class BaseRuleScope internal constructor() {
+    internal var rationaleText: String = ""
+    internal val notes = mutableListOf<String>()
+
+    /** The "why" — surfaced in failure messages and the README. */
+    fun rationale(text: String) { rationaleText = text }
+    fun note(text: String) { notes += text }
+
+    /** ✅ tested over the whole Konsist scope. */
+    fun scope(check: ScopeCheck): Enforcement = ScopeConstraint(check)
+    /** ✅ tested, but enforced transitively by the rules it names. */
+    fun enforcedBy(vararg ruleIds: String): Enforcement = DelegatedConstraint(ruleIds.toList())
+    fun enforcedBy(vararg rules: Rule): Enforcement = DelegatedConstraint(rules.map { it.id })
+    fun guidance(): Enforcement = NotEnforced(Tag.GUIDANCE)
+    fun codegen(): Enforcement = NotEnforced(Tag.CODEGEN)
+}
+
+/** Block receiver for a group-level `rule { }`. */
+class RuleScope internal constructor() : BaseRuleScope() {
+    /** ✅ tested over the parsed module dependency graph. */
+    fun moduleGraph(check: ModuleGraphCheck): Enforcement = ModuleGraphConstraint(check)
+}
+
+/** Block receiver for a construct's `rule { }` — adds [constrain], scoped to the construct's population. */
+class ConstructRuleScope internal constructor(private val construct: Construct) : BaseRuleScope() {
+    /** A check over only the declarations this construct classifies. */
+    fun constrain(check: ConstructCheck): Enforcement = ScopeConstraint { scope, exempt ->
+        scope.declarations(includeNested = false)
+            .filter { construct.test(it) }
+            .filterNot { exempt(it) }
+            .flatMap { check.run(it, exempt) }
     }
+}
+
+// ---- Group / construct base classes ------------------------------------------------------------
+
+abstract class RuleContainer internal constructor() {
+    internal val declaredRules = mutableListOf<Rule>()
 }
 
 /** A classifying construct: `object Repository : Construct(isClass, hasNameEndingWith("Repository"))`. */
@@ -83,7 +114,19 @@ abstract class Construct(vararg requirements: Requirement) : RuleContainer() {
         get() = listOfNotNull(packageGate?.let { isInPackage(it) }) + ownRequirements
 
     fun test(declaration: KoBaseDeclaration?): Boolean =
-        declaration != null && requirements.all { it.predicate(declaration) }
+        declaration != null && requirements.all { it.matches(declaration) }
+
+    protected fun rule(
+        statement: String,
+        block: ConstructRuleScope.() -> Enforcement,
+    ): PropertyDelegateProvider<Construct, ReadOnlyProperty<Construct, Rule>> =
+        PropertyDelegateProvider { _, property ->
+            val scope = ConstructRuleScope(this)
+            val enforcement = scope.block()
+            val rule = Rule(pathOf(this, property.name), statement, scope.rationaleText, enforcement, Status.Active, scope.notes.toList())
+            declaredRules += rule
+            ReadOnlyProperty { _, _ -> rule }
+        }
 }
 
 /** A rule group / layer: `object DataLayer : RuleGroup(inPackage = "feature..data..")`. */
@@ -92,22 +135,25 @@ abstract class RuleGroup(val inPackage: String? = null) : RuleContainer() {
 
     /** Nested `object`s that are [Construct]s, discovered by reflection — no explicit list. */
     val constructs: List<Construct> by lazy {
-        this::class.nestedClasses
-            .mapNotNull { it.objectInstance }
-            .filterIsInstance<Construct>()
+        this::class.nestedClasses.mapNotNull { it.objectInstance }.filterIsInstance<Construct>()
     }
+
+    protected fun rule(
+        statement: String,
+        block: RuleScope.() -> Enforcement,
+    ): PropertyDelegateProvider<RuleGroup, ReadOnlyProperty<RuleGroup, Rule>> =
+        PropertyDelegateProvider { _, property ->
+            val scope = RuleScope()
+            val enforcement = scope.block()
+            val rule = Rule(pathOf(this, property.name), statement, scope.rationaleText, enforcement, Status.Active, scope.notes.toList())
+            declaredRules += rule
+            ReadOnlyProperty { _, _ -> rule }
+        }
 }
 
-/**
- * Wire each group's `inPackage` gate into its constructs (forcing construct discovery + rule
- * registration) and return every rule in declaration order: group-level rules, then each
- * construct's rules.
- */
-fun assemble(groups: List<RuleGroup>): List<Rule> {
+/** Force construct discovery + rule registration, and wire each group's `inPackage` gate. */
+internal fun prepare(groups: List<RuleGroup>) {
     groups.forEach { group -> group.constructs.forEach { it.packageGate = group.inPackage } }
-    return groups.flatMap { group ->
-        group.declaredRules + group.constructs.flatMap { it.declaredRules }
-    }
 }
 
 // ---- Requirement vocabulary --------------------------------------------------------------------
@@ -128,10 +174,15 @@ private fun KoBaseDeclaration.hasMod(modifier: KoModifier): Boolean = when (this
 val isClass = Requirement("is a class") { it is KoClassDeclaration }
 val isInterface = Requirement("is an interface") { it is KoInterfaceDeclaration }
 val isObject = Requirement("is an object") { it is KoObjectDeclaration }
+val isFunction = Requirement("is a function") { it is KoFunctionDeclaration }
+val isProperty = Requirement("is a property") { it is KoPropertyDeclaration }
+val isClassOrObject = Requirement("is a class or object") { it is KoClassDeclaration || it is KoObjectDeclaration }
+val isClassOrInterface = Requirement("is a class or interface") { it is KoClassDeclaration || it is KoInterfaceDeclaration }
 val isDataClass = Requirement("is a `data class`") { it.hasMod(KoModifier.DATA) }
 val isEnum = Requirement("is an `enum class`") { it.hasMod(KoModifier.ENUM) }
 val isSealed = Requirement("is `sealed`") { it.hasMod(KoModifier.SEALED) }
 val isValueClass = Requirement("is a `value class`") { it.hasMod(KoModifier.VALUE) }
+val isAbstract = Requirement("is `abstract`") { it.hasMod(KoModifier.ABSTRACT) }
 val isInternal = Requirement("is `internal`") { it.hasMod(KoModifier.INTERNAL) }
 val isFunInterface = Requirement("is a `fun interface`") { it is KoInterfaceDeclaration && it.hasMod(KoModifier.FUN) }
 
@@ -147,10 +198,22 @@ fun extends(parentName: String) =
     Requirement("extends `$parentName`") { d -> (d as? KoParentProvider)?.parents()?.any { it.name == parentName } == true }
 
 fun oneOf(vararg options: Requirement) =
-    Requirement("one of {${options.joinToString(", ") { it.description }}}") { d -> options.any { it.predicate(d) } }
+    Requirement("one of {${options.joinToString(", ") { it.description }}}") { d -> options.any { it.matches(d) } }
 
 fun not(requirement: Requirement) =
-    Requirement("not ${requirement.description}") { !requirement.predicate(it) }
+    Requirement("not ${requirement.description}") { !requirement.matches(it) }
 
 /** Escape hatch for a one-off classification predicate the vocabulary doesn't cover. */
 fun predicate(description: String, test: (KoBaseDeclaration) -> Boolean) = Requirement(description, test)
+
+// Typed escape hatches — the predicate only matches (and only runs) for that declaration kind.
+fun cls(description: String, test: (KoClassDeclaration) -> Boolean) =
+    Requirement(description) { (it as? KoClassDeclaration)?.let(test) == true }
+fun iface(description: String, test: (KoInterfaceDeclaration) -> Boolean) =
+    Requirement(description) { (it as? KoInterfaceDeclaration)?.let(test) == true }
+fun obj(description: String, test: (KoObjectDeclaration) -> Boolean) =
+    Requirement(description) { (it as? KoObjectDeclaration)?.let(test) == true }
+fun function(description: String, test: (KoFunctionDeclaration) -> Boolean) =
+    Requirement(description) { (it as? KoFunctionDeclaration)?.let(test) == true }
+fun property(description: String, test: (KoPropertyDeclaration) -> Boolean) =
+    Requirement(description) { (it as? KoPropertyDeclaration)?.let(test) == true }
