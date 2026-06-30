@@ -179,13 +179,13 @@ object UiLayer : RuleGroup(inPackage = "feature..ui..") {
 
     // §4.2.3 ViewModels
     object ViewModel : Construct(
-        cls("ViewModels extend `androidx.lifecycle.ViewModel`") { declaration ->
+        isClassWhere("ViewModels extend `androidx.lifecycle.ViewModel`") { declaration ->
             declaration.parents().any { parent -> parent.name == "ViewModel" }
         },
-        cls("ViewModels must be named `[Name]ViewModel`") { declaration ->
+        isClassWhere("ViewModels must be named `[Name]ViewModel`") { declaration ->
             declaration.name.endsWith("ViewModel")
         },
-        cls("ViewModels expose a single public `state` property, or no public properties at all") { declaration ->
+        isClassWhere("ViewModels expose a single public `state` property, or no public properties at all") { declaration ->
             // includeNested = false: only the ViewModel's OWN properties count toward its
             // public surface — a private nested helper's public `val`s aren't part of the API.
             val publicProperties = declaration.properties(includeNested = false)
@@ -196,25 +196,25 @@ object UiLayer : RuleGroup(inPackage = "feature..ui..") {
                 else -> false
             }
         },
-        cls("The `state` property is a `ViewModelState<[Name]State>` (1:1 with the ViewModel's State type)") { declaration ->
+        isClassWhere("The `state` property is a `ViewModelState<[Name]State>` (1:1 with the ViewModel's State type)") { declaration ->
             val stateProperty = declaration.properties()
                 .filter { it.hasPublicOrDefaultModifier || it.hasInternalModifier }
                 .singleOrNull { it.name == "state" }
-                ?: return@cls true
+                ?: return@isClassWhere true
             stateProperty.text.contains("viewModelState") &&
                 stateProperty.text.contains(declaration.name.replace("ViewModel", "State"))
         },
-        cls("ViewModels have a `private val navigation` obtained via `navigationHandle<[Name]Destination>()`") { declaration ->
+        isClassWhere("ViewModels have a `private val navigation` obtained via `navigationHandle<[Name]Destination>()`") { declaration ->
             val navigationProperty = declaration.properties()
                 .filter { it.hasPrivateModifier }
                 .singleOrNull { it.name == "navigation" }
-                ?: return@cls false
+                ?: return@isClassWhere false
             val destinationName = declaration.name.replace("ViewModel", "Destination")
             // Regex (not exact string match) to tolerate whitespace/line-break differences.
             Regex("""by\s+navigationHandle\s*<\s*${Regex.escape(destinationName)}\s*>""")
                 .containsMatchIn(navigationProperty.text)
         },
-        cls("`public`/`internal` functions on a ViewModel must only return `Unit` (or omit a return type)") { declaration ->
+        isClassWhere("`public`/`internal` functions on a ViewModel must only return `Unit` (or omit a return type)") { declaration ->
             declaration.functions()
                 .filter { func -> func.hasPublicModifier || func.hasInternalModifier }
                 .filter { func -> !func.hasOverrideModifier }
@@ -255,7 +255,7 @@ object UiLayer : RuleGroup(inPackage = "feature..ui..") {
         isClass,
         isDataClass,
         hasNameEndingWith("State"),
-        cls("ViewModel State objects must be immutable (val properties only)") { declaration ->
+        isClassWhere("ViewModel State objects must be immutable (val properties only)") { declaration ->
             declaration.properties().all { it.isVal }
         },
         predicate("ViewModel State objects must be defined in their own file (`[Name]State.kt`)") { declaration ->

@@ -78,7 +78,7 @@ object FeatureRules : RuleGroup() {
     object DependencyModuleHelper : Construct(
         isFunction,
         isInternal,
-        function("A DI registration helper has a Koin `Module` receiver") { declaration -> declaration.receiverType?.name == "Module" },
+        isFunctionWhere("A DI registration helper has a Koin `Module` receiver") { declaration -> declaration.receiverType?.name == "Module" },
     )
 
     // §4.4.2 Service implementations (`:server`) are classified by the `services` axis as

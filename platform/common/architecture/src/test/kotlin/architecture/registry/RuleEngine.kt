@@ -195,13 +195,13 @@ fun not(requirement: Requirement) =
 fun predicate(description: String, test: (KoBaseDeclaration) -> Boolean) = Requirement(description, test)
 
 // Typed escape hatches — the predicate only matches (and only runs) for that declaration kind.
-fun cls(description: String, test: (KoClassDeclaration) -> Boolean) =
+fun isClassWhere(description: String, test: (KoClassDeclaration) -> Boolean) =
     Requirement(description) { (it as? KoClassDeclaration)?.let(test) == true }
-fun iface(description: String, test: (KoInterfaceDeclaration) -> Boolean) =
+fun isInterfaceWhere(description: String, test: (KoInterfaceDeclaration) -> Boolean) =
     Requirement(description) { (it as? KoInterfaceDeclaration)?.let(test) == true }
-fun obj(description: String, test: (KoObjectDeclaration) -> Boolean) =
+fun isObjectWhere(description: String, test: (KoObjectDeclaration) -> Boolean) =
     Requirement(description) { (it as? KoObjectDeclaration)?.let(test) == true }
-fun function(description: String, test: (KoFunctionDeclaration) -> Boolean) =
+fun isFunctionWhere(description: String, test: (KoFunctionDeclaration) -> Boolean) =
     Requirement(description) { (it as? KoFunctionDeclaration)?.let(test) == true }
-fun property(description: String, test: (KoPropertyDeclaration) -> Boolean) =
+fun isPropertyWhere(description: String, test: (KoPropertyDeclaration) -> Boolean) =
     Requirement(description) { (it as? KoPropertyDeclaration)?.let(test) == true }

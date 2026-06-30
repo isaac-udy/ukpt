@@ -33,7 +33,7 @@ object ServicesLayer : RuleGroup(inPackage = "feature..services..") {
     // ---- §4.4.1 Services (the cross-the-wire contract, `:api`) --------------------------------
     object ServiceInterface : Construct(
         // what it is
-        iface("A service is an `interface` annotated `@Urpc`") { decl -> decl.annotations.any { it.name == "Urpc" } },
+        isInterfaceWhere("A service is an `interface` annotated `@Urpc`") { decl -> decl.annotations.any { it.name == "Urpc" } },
         hasNameEndingWith("Service"),
         predicate("Resides in the top-level `feature.[name].services` package") { it.isInServicesRoot() },
     ) {
@@ -69,7 +69,7 @@ object ServicesLayer : RuleGroup(inPackage = "feature..services..") {
 
     // ---- §4.4.2 Service implementations (`:server`) -------------------------------------------
     object ServiceImpl : Construct(
-        cls("For a service named `[Name]Service` the implementation is a class named `[Name]ServiceImpl`") { it.name.endsWith("ServiceImpl") },
+        isClassWhere("For a service named `[Name]Service` the implementation is a class named `[Name]ServiceImpl`") { it.name.endsWith("ServiceImpl") },
         isInternal,
         predicate("Resides in `feature.[name].services` of the `:server` module (dual-life with the contract)") { it.isInServicesRoot() },
     ) {
@@ -107,7 +107,7 @@ object ServicesLayer : RuleGroup(inPackage = "feature..services..") {
 
     // ---- §4.4.3 `services.internal` package (`:server`) ---------------------------------------
     object InternalCoordinator : Construct(
-        cls("A coordinator is a concrete (non-`abstract`, non-`data`) class that is not a `Job` or `Exception`") { decl ->
+        isClassWhere("A coordinator is a concrete (non-`abstract`, non-`data`) class that is not a `Job` or `Exception`") { decl ->
             !decl.hasAbstractModifier &&
                 !decl.hasDataModifier &&
                 !decl.name.endsWith("Job") &&
@@ -117,7 +117,7 @@ object ServicesLayer : RuleGroup(inPackage = "feature..services..") {
     )
 
     object InternalDataCarrier : Construct(
-        cls("A data carrier is a `data class` payload that flows between subsystems through the orchestrator") { it.hasDataModifier },
+        isClassWhere("A data carrier is a `data class` payload that flows between subsystems through the orchestrator") { it.hasDataModifier },
         predicate("Resides in `feature.[name].services.internal`") { it.isInServicesSubAxis("internal") },
     )
 
@@ -127,7 +127,7 @@ object ServicesLayer : RuleGroup(inPackage = "feature..services..") {
     )
 
     object InternalException : Construct(
-        cls("An internal exception is a class named `[Name]Exception`, thrown only by internal helpers") { it.name.endsWith("Exception") },
+        isClassWhere("An internal exception is a class named `[Name]Exception`, thrown only by internal helpers") { it.name.endsWith("Exception") },
         predicate("Resides in `feature.[name].services.internal`") { it.isInServicesSubAxis("internal") },
     )
 
@@ -138,8 +138,8 @@ object ServicesLayer : RuleGroup(inPackage = "feature..services..") {
 
     // ---- §4.4.4 `services.storage` package (`:server`) ----------------------------------------
     object StorageClass : Construct(
-        cls("Named `[Name]Storage` (or `[Name]Store` where the broader name fits)") { it.name.endsWith("Storage") || it.name.endsWith("Store") },
-        cls("Not abstract, not a `data class`") { !it.hasAbstractModifier && !it.hasDataModifier },
+        isClassWhere("Named `[Name]Storage` (or `[Name]Store` where the broader name fits)") { it.name.endsWith("Storage") || it.name.endsWith("Store") },
+        isClassWhere("Not abstract, not a `data class`") { !it.hasAbstractModifier && !it.hasDataModifier },
         isInternal,
         predicate("Resides in `feature.[name].services.storage`") { it.isInServicesSubAxis("storage") },
     ) {
@@ -175,7 +175,7 @@ object ServicesLayer : RuleGroup(inPackage = "feature..services..") {
     }
 
     object StorageRecord : Construct(
-        cls("Is a `data class`") { it.hasDataModifier },
+        isClassWhere("Is a `data class`") { it.hasDataModifier },
         oneOf(hasNameEndingWith("Row"), hasNameEndingWith("Record"), hasNameEndingWith("Insert")),
         predicate("Resides in `feature.[name].services.storage`") { it.isInServicesSubAxis("storage") },
     )

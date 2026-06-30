@@ -32,10 +32,10 @@ object DataLayer : RuleGroup(inPackage = "feature..data..") {
             require(it is KoNameProvider)
             it.name == it.containingFile.name
         },
-        cls("Repositories must not implement domain interfaces directly") { declaration ->
+        isClassWhere("Repositories must not implement domain interfaces directly") { declaration ->
             declaration.parents().none { parent -> isDomainInterfaceInDomainPackage(parent) }
         },
-        cls("Repositories must expose domain interfaces as `public val` properties") { declaration ->
+        isClassWhere("Repositories must expose domain interfaces as `public val` properties") { declaration ->
             val domainImports = declaration.containingFile.imports
                 .filter { it.name.contains(".domain.") }
                 .map { it.name.substringAfterLast(".") }
@@ -47,14 +47,14 @@ object DataLayer : RuleGroup(inPackage = "feature..data..") {
                     domainImports.any { domainName -> prop.text.contains(domainName) }
                 }
         },
-        cls("Repositories are forbidden from injecting domain interfaces") { declaration ->
+        isClassWhere("Repositories are forbidden from injecting domain interfaces") { declaration ->
             declaration.primaryConstructor?.parameters.orEmpty().none { param ->
                 @Suppress("UNCHECKED_CAST")
                 val source = param.type.sourceDeclaration as? KoBaseDeclaration
                 source != null && isDomainInterfaceInDomainPackage(source)
             }
         },
-        cls("Repositories are forbidden from injecting other Repositories") { declaration ->
+        isClassWhere("Repositories are forbidden from injecting other Repositories") { declaration ->
             declaration.primaryConstructor?.parameters.orEmpty().none { param ->
                 param.type.name.endsWith("Repository")
             }
@@ -91,7 +91,7 @@ object DataLayer : RuleGroup(inPackage = "feature..data..") {
 
     object ClientDataImplementation : Construct(
         isClass,
-        cls("Must not be named `Repository`") { !it.name.endsWith("Repository") },
+        isClassWhere("Must not be named `Repository`") { !it.name.endsWith("Repository") },
         predicate("Must live in `feature.[name].data` (not `data.storage`)") { decl ->
             val pkg = decl.containingFilePackage()
             pkg.containsPackageSegment("data") && !pkg.containsPackageSegment("storage")
@@ -102,8 +102,8 @@ object DataLayer : RuleGroup(inPackage = "feature..data..") {
     object ClientStorage : Construct(
         isClass,
         hasNameEndingWith("Storage"),
-        cls("Storage classes must not be abstract") { !it.hasAbstractModifier },
-        cls("Storage classes must not be `data class`") { !it.hasDataModifier },
+        isClassWhere("Storage classes must not be abstract") { !it.hasAbstractModifier },
+        isClassWhere("Storage classes must not be `data class`") { !it.hasDataModifier },
         predicate("Storage classes must reside in the `data.storage` package on `:client`") { decl ->
             val pkg = decl.containingFilePackage()
             pkg.containsPackageSegment("data") && pkg.containsPackageSegment("storage")

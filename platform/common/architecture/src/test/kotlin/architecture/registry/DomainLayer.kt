@@ -21,16 +21,16 @@ object DomainLayer : RuleGroup(inPackage = "feature..domain..") {
 
     // §4.1.1 Domain Interfaces
     object DomainInterface : Construct(
-        iface("Domain interfaces must be a `fun interface`") { it.hasFunModifier && !it.hasSealedModifier },
-        iface("The primary function of a domain interface must be an `operator fun invoke`") { decl ->
+        isInterfaceWhere("Domain interfaces must be a `fun interface`") { it.hasFunModifier && !it.hasSealedModifier },
+        isInterfaceWhere("The primary function of a domain interface must be an `operator fun invoke`") { decl ->
             decl.functions().any { it.name == "invoke" && it.hasOperatorModifier }
         },
-        iface("All functions in a domain interface must be `suspend` or return a `Flow<T>`") { decl ->
+        isInterfaceWhere("All functions in a domain interface must be `suspend` or return a `Flow<T>`") { decl ->
             decl.functions()
                 .filter { it.name == "invoke" || !it.text.contains("=") }
                 .all { it.hasSuspendModifier || it.returnType?.name?.contains("Flow") == true }
         },
-        iface("Flow-returning domain interfaces are prefixed with `FlowOf`") { decl ->
+        isInterfaceWhere("Flow-returning domain interfaces are prefixed with `FlowOf`") { decl ->
             val hasFlowReturn = decl.functions().any { it.name == "invoke" && it.returnType?.name?.contains("Flow") == true }
             !hasFlowReturn || decl.name.startsWith("FlowOf")
         },
@@ -85,12 +85,12 @@ object DomainLayer : RuleGroup(inPackage = "feature..domain..") {
 
     // §4.1.3 UseCases
     object UseCase : Construct(
-        cls("A UseCase is a non-sealed/data/enum/value class named `[DomainInterface]Impl`") { decl ->
+        isClassWhere("A UseCase is a non-sealed/data/enum/value class named `[DomainInterface]Impl`") { decl ->
             !decl.hasSealedModifier && !decl.hasDataModifier && !decl.hasEnumModifier && !decl.hasValueModifier &&
                 decl.name == "${decl.associatedDomainInterfaceName()}Impl"
         },
-        cls("A UseCase must implement exactly one domain interface") { it.associatedDomainInterfaceName() != null },
-        cls("A UseCase must not contain mutable state — all properties are `val`") { decl ->
+        isClassWhere("A UseCase must implement exactly one domain interface") { it.associatedDomainInterfaceName() != null },
+        isClassWhere("A UseCase must not contain mutable state — all properties are `val`") { decl ->
             decl.properties().all { !it.isMutable() }
         },
     ) {
@@ -116,19 +116,19 @@ object DomainLayer : RuleGroup(inPackage = "feature..domain..") {
 
     // §4.1 Domain exceptions, constants, extensions
     object DomainException : Construct(
-        cls("A domain exception is a class extending RuntimeException/Exception/PresentableException") { decl ->
+        isClassWhere("A domain exception is a class extending RuntimeException/Exception/PresentableException") { decl ->
             decl.parents().any { it.name == "RuntimeException" || it.name == "Exception" || it.name == "PresentableException" }
         },
     )
 
     object DomainConstants : Construct(
-        obj("Domain constants are an `object` with only `val` properties and no functions") { decl ->
+        isObjectWhere("Domain constants are an `object` with only `val` properties and no functions") { decl ->
             decl.functions().isEmpty() && decl.properties().all { it.isVal && !it.isMutable() }
         },
     )
 
     object DomainExtensionFunction : Construct(
-        function("Receiver/return/parameter types are domain objects, primitives, or collections of those") { decl ->
+        isFunctionWhere("Receiver/return/parameter types are domain objects, primitives, or collections of those") { decl ->
             val receiverOk = decl.receiverType?.let { isDomainCompatibleType(it.name, decl.containingFile) } ?: true
             val returnOk = decl.returnType?.let { isDomainCompatibleType(it.name, decl.containingFile) } ?: true
             val parametersOk = decl.parameters.all { isDomainCompatibleType(it.type.name, decl.containingFile) }
@@ -139,7 +139,7 @@ object DomainLayer : RuleGroup(inPackage = "feature..domain..") {
     }
 
     object DomainExtensionProperty : Construct(
-        property("Receiver/type is a domain object, primitive, or collection of those") { decl ->
+        isPropertyWhere("Receiver/type is a domain object, primitive, or collection of those") { decl ->
             val receiverOk = decl.receiverType?.let { isDomainCompatibleType(it.name, decl.containingFile) } ?: true
             val typeOk = decl.type?.let { isDomainCompatibleType(it.name, decl.containingFile) } ?: true
             receiverOk && typeOk
