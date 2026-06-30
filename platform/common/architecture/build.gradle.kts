@@ -5,6 +5,7 @@ plugins {
 dependencies {
     testImplementation(libs.kotlin.test)
     testImplementation(libs.konsist)
+    testImplementation(libs.kotlin.reflect)
 }
 
 tasks.withType<Test> {
