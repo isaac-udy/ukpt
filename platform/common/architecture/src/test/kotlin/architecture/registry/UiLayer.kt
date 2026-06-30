@@ -1,4 +1,4 @@
-package architecture.spike
+package architecture.registry
 
 import architecture.definitions.containingFilePath
 import architecture.definitions.containsPackageSegment
@@ -12,7 +12,6 @@ import com.lemonappdev.konsist.api.declaration.KoPropertyDeclaration
 import com.lemonappdev.konsist.api.provider.KoAnnotationProvider
 import com.lemonappdev.konsist.api.provider.KoContainingFileProvider
 import com.lemonappdev.konsist.api.provider.KoNameProvider
-import architecture.registry.Violation
 
 /**
  * The `ui` layer (§3.2, §4.2) in the object style. Each construct's requirements (the

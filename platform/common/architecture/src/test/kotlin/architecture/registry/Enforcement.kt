@@ -1,6 +1,5 @@
 package architecture.registry
 
-import architecture.definitions.DefinitionPredicate
 import com.lemonappdev.konsist.api.container.KoScope
 import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
 import com.lemonappdev.konsist.api.provider.KoLocationProvider
@@ -63,25 +62,6 @@ fun interface ModuleGraphCheck {
  */
 sealed interface Enforcement {
     val tag: Tag
-}
-
-/** 🔶 construct — a classifying shape requirement (a predicate over one declaration), never a verdict. */
-class ShapeRequirement(
-    val predicate: DefinitionPredicate<KoBaseDeclaration>,
-) : Enforcement {
-    override val tag get() = Tag.CONSTRUCT
-}
-
-/**
- * ✅ tested, scoped to the population a [Construct] classifies. The construct is resolved lazily so
- * a rule declared *inside* a construct can target the construct currently being defined.
- */
-class ConstructConstraint(
-    private val constructProvider: () -> Construct,
-    val check: ConstructCheck,
-) : Enforcement {
-    val construct: Construct get() = constructProvider()
-    override val tag get() = Tag.TESTED
 }
 
 /** ✅ tested, free over the whole Konsist scope. */

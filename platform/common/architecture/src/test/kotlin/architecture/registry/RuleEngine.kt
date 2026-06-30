@@ -1,17 +1,5 @@
-package architecture.spike
+package architecture.registry
 
-import architecture.registry.ConstructCheck
-import architecture.registry.DelegatedConstraint
-import architecture.registry.Enforcement
-import architecture.registry.ModuleGraphCheck
-import architecture.registry.ModuleGraphConstraint
-import architecture.registry.NotEnforced
-import architecture.registry.Rule
-import architecture.registry.ScopeCheck
-import architecture.registry.ScopeConstraint
-import architecture.registry.Status
-import architecture.registry.Tag
-import architecture.registry.residesIn
 import com.lemonappdev.konsist.api.KoModifier
 import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration

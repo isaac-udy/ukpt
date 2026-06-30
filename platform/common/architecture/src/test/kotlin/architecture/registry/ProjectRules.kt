@@ -1,7 +1,6 @@
-package architecture.spike
+package architecture.registry
 
 import architecture.definitions.isFeatureModule
-import architecture.registry.Violation
 import com.lemonappdev.konsist.api.provider.KoResideInPackageProvider
 
 /**

@@ -1,14 +1,13 @@
 package architecture.registry
 
 import architecture.ArchitectureExceptions
-import architecture.definitions.ConstructDefinition
 import architecture.definitions.isFeatureModule
 import architecture.definitions.isInsideFunction
 import architecture.definitions.isPrivate
 import architecture.projectScope
 import com.lemonappdev.konsist.api.container.KoScope
+import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
-import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
 import com.lemonappdev.konsist.api.declaration.KoFunctionDeclaration
 import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
 import com.lemonappdev.konsist.api.declaration.KoObjectDeclaration
@@ -16,137 +15,169 @@ import com.lemonappdev.konsist.api.declaration.KoPropertyDeclaration
 import kotlin.test.fail
 
 /**
- * The single architecture entry point. Builds each input once (the Konsist scope + the parsed
- * module graph), runs every active rule's enforcement, aggregates all violations keyed by rule id,
- * and fails once with a grouped report. [exclude] drops rules by id (e.g. a downstream overlay).
+ * The single architecture entry point for the object registry. Builds each input once (the Konsist
+ * scope + parsed module graph), runs every active rule, and fails once with a grouped report.
  */
-fun verify(catalog: List<RuleGroup>, exclude: Set<String> = emptySet()) {
-    integrityChecks(catalog)
+fun verify(groups: List<RuleGroup>, exclude: Set<String> = emptySet()) {
+    val rules = enforcedRules(groups)
+    integrityChecks(rules)
     val ctx = RunContext(projectScope, ModuleGraph.parse())
-
-    val findings = enforcedRules(catalog)
+    val findings = rules
         .filter { it.status is Status.Active && it.id !in exclude }
         .flatMap { rule -> rule.run(ctx) }
-
     if (findings.isNotEmpty()) fail(render(findings))
 }
 
 /**
- * Every rule the catalog enforces, in document order: each group's rules (constructs' requirements
- * + functionality rules + each layer's exhaustiveness rule) plus the cross-layer membership rule
- * (every feature declaration must belong to exactly one construct across ALL layers — catches
- * orphans not in any single layer package). The single source for both [verify] and the rule index.
+ * Every rule the catalog enforces, in document order: per group the group-level rules, then each
+ * construct's rules, then the layer's exhaustiveness rule; finally the global membership rule. The
+ * single source for both [verify] and [renderRuleIndex].
  */
-internal fun enforcedRules(catalog: List<RuleGroup>): List<Rule> =
-    catalog.flatMap { it.rules } + membershipRule(catalog)
+internal fun enforcedRules(groups: List<RuleGroup>): List<Rule> {
+    prepare(groups)
+    val rules = mutableListOf<Rule>()
+    groups.forEach { group ->
+        rules += group.declaredRules
+        group.constructs.forEach { rules += it.declaredRules }
+        if (group.inPackage != null) rules += exhaustiveRule(group)
+    }
+    rules += membershipRule(groups)
+    return rules
+}
 
 private class RunContext(val scope: KoScope, val graph: ModuleGraph)
 
 private data class Finding(val rule: Rule, val where: String, val message: String)
 
 private fun Rule.run(ctx: RunContext): List<Finding> = when (val e = enforcement) {
-    is NotEnforced -> emptyList()
-    is DelegatedConstraint -> emptyList() // enforced transitively by the rules it names
-    is ShapeRequirement -> emptyList() // a classification bit, consumed only by exhaustiveness
     is ScopeConstraint ->
-        e.check.run(ctx.scope) { decl -> Exemptions.isExempt(id, decl) }
-            .map { Finding(this, it.where, it.message) }
-    is ConstructConstraint ->
-        ctx.scope.declarations(includeNested = false)
-            .filter { e.construct.test(it) }
-            .filterNot { Exemptions.isExempt(id, it) }
-            .flatMap { decl -> e.check.run(decl) { d -> Exemptions.isExempt(id, d) } }
-            .map { Finding(this, it.where, it.message) }
+        e.check.run(ctx.scope) { decl -> Exemptions.isExempt(id, decl) }.map { Finding(this, it.where, it.message) }
     is ModuleGraphConstraint ->
-        e.check.run(ctx.graph) { edge -> Exemptions.isExempt(id, edge) }
-            .map { Finding(this, it.where, it.message) }
+        e.check.run(ctx.graph) { edge -> Exemptions.isExempt(id, edge) }.map { Finding(this, it.where, it.message) }
+    else -> emptyList() // DelegatedConstraint (enforced transitively) / NotEnforced (guidance / codegen)
 }
 
-/**
- * The cross-layer membership rule — every feature-module top-level declaration must match exactly
- * one construct across ALL layers' constructs. Reproduces the original
- * `validateAllDeclarationsBelongToDefinedLayer`, which (unlike a per-layer `<layer>.exhaustive`)
- * also covers declarations that aren't in any single layer's package — e.g. a feature's DI module.
- */
-private fun membershipRule(catalog: List<RuleGroup>): Rule = Rule(
-    id = "architecture.everyDeclarationBelongsToALayer",
-    title = "Every feature-module declaration matches exactly one construct across all layers",
+// ---- exhaustiveness + membership ---------------------------------------------------------------
+
+private fun exhaustiveRule(group: RuleGroup): Rule = Rule(
+    id = "${group.id}.exhaustive",
+    title = "Every top-level declaration in `${group.inPackage}` matches exactly one construct",
     rationale = """
-        A class/interface/object/function/property in a feature module that matches no construct
-        (or more than one) is mis-placed or an unrecognised shape.
+        A declaration here that matches no construct (or more than one) is either mis-placed or a shape
+        the architecture doesn't recognise. Make it conform to a construct, or add one.
     """.trimIndent(),
-    enforcement = ScopeConstraint(membershipCheck(catalog.flatMap { it.constructs })),
+    enforcement = ScopeConstraint(membershipCheck(group.constructs, group.inPackage)),
     status = Status.Active,
     notes = emptyList(),
 )
 
-private fun membershipCheck(allConstructs: List<Construct>): ScopeCheck =
-    ScopeCheck { scope, exempt ->
-        scope.declarations(includeNested = false)
-            .filterNot { it is KoFileDeclaration }
-            .filter {
-                it is KoClassDeclaration || it is KoInterfaceDeclaration || it is KoObjectDeclaration ||
-                    it is KoFunctionDeclaration || it is KoPropertyDeclaration
-            }
-            .filter { it.isFeatureModule() }
-            .filterNot { it.isPrivate() }
-            .filterNot { it.isInsideFunction() }
-            .filterNot { exempt(it) || ArchitectureExceptions.isIgnored(it) }
-            .map { decl -> decl to allConstructs.map { it.evaluate(decl) } }
-            .filterNot { (_, evals) -> evals.count { it.isAllRequirementsMet } == 1 }
-            .map { (decl, evals) -> Violation(decl, ConstructDefinition.createDebugMessage(decl, evals)) }
-    }
+private fun membershipRule(groups: List<RuleGroup>): Rule = Rule(
+    id = "architecture.everyDeclarationBelongsToALayer",
+    title = "Every feature-module declaration matches exactly one construct across all layers",
+    rationale = """
+        A class/interface/object/function/property in a feature module that matches no construct (or
+        more than one) is mis-placed or an unrecognised shape. Covers declarations that aren't in any
+        single layer package (e.g. a feature's DI module).
+    """.trimIndent(),
+    enforcement = ScopeConstraint(membershipCheck(groups.flatMap { it.constructs }, pkg = null)),
+    status = Status.Active,
+    notes = emptyList(),
+)
 
 /**
- * The exhaustiveness check for a layer, expressed as a [ScopeCheck]. Mirrors the original
- * `KoScope.validateLayer`: every top-level declaration in [pkg] must match exactly one construct;
- * partial matches get the rich `createDebugMessage` breakdown.
+ * Shared classification check: every classifiable declaration (optionally restricted to [pkg], else
+ * any feature module) must match exactly one of [constructs]; partial matches get a rich breakdown.
  */
-internal fun exhaustivenessCheck(pkg: String, constructs: List<Construct>): ScopeCheck =
+private fun membershipCheck(constructs: List<Construct>, pkg: String?): ScopeCheck =
     ScopeCheck { scope, exempt ->
-        scope.declarations(includeNested = false)
-            .filterNot { it is KoFileDeclaration }
-            // Only class/interface/object/function/property declarations are classified by
-            // constructs — imports, package directives etc. are not (mirrors the original).
-            .filter {
-                it is KoClassDeclaration || it is KoInterfaceDeclaration || it is KoObjectDeclaration ||
-                    it is KoFunctionDeclaration || it is KoPropertyDeclaration
-            }
-            .filter { it.residesIn(pkg) }
-            .filterNot { it.isPrivate() }
-            .filterNot { it.isInsideFunction() }
+        classifiableDeclarations(scope)
+            .filter { if (pkg != null) it.residesIn(pkg) else it.isFeatureModule() }
             .filterNot { exempt(it) || ArchitectureExceptions.isIgnored(it) }
-            .map { decl -> decl to constructs.map { it.evaluate(decl) } }
-            .filterNot { (_, evals) -> evals.count { it.isAllRequirementsMet } == 1 }
-            .map { (decl, evals) -> Violation(decl, ConstructDefinition.createDebugMessage(decl, evals)) }
+            .filter { decl -> constructs.count { it.test(decl) } != 1 }
+            .map { Violation(it, classifyMessage(it, constructs)) }
     }
 
-private fun integrityChecks(catalog: List<RuleGroup>) {
-    val all = catalog.flatMap { it.rules }
-    val duplicates = all.groupingBy { it.id }.eachCount().filterValues { it > 1 }.keys
-    if (duplicates.isNotEmpty()) fail("Duplicate rule ids in the catalog: ${duplicates.sorted()}")
+private fun classifiableDeclarations(scope: KoScope): List<KoBaseDeclaration> =
+    scope.declarations(includeNested = false)
+        .filter {
+            it is KoClassDeclaration || it is KoInterfaceDeclaration || it is KoObjectDeclaration ||
+                it is KoFunctionDeclaration || it is KoPropertyDeclaration
+        }
+        .filterNot { it.isPrivate() }
+        .filterNot { it.isInsideFunction() }
 
-    val known = all.map { it.id }.toSet()
-    val dangling = all.mapNotNull { rule ->
-        (rule.enforcement as? DelegatedConstraint)?.by
-            ?.filterNot { it in known }
-            ?.takeIf { it.isNotEmpty() }
-            ?.let { rule.id to it }
+/** Human breakdown for a declaration that matched no construct (or several). */
+private fun classifyMessage(declaration: KoBaseDeclaration, constructs: List<Construct>): String {
+    val location = declaration.sourceLocation()
+    val matched = constructs.filter { it.test(declaration) }
+    return when {
+        matched.size > 1 -> "$location matches multiple constructs: ${matched.joinToString { it.id }}"
+        else -> buildString {
+            val scored = constructs
+                .map { c -> c to c.requirements.count { it.matches(declaration) }.toDouble() / c.requirements.size }
+                .filter { it.second > 0.0 }
+            val best = scored.maxOfOrNull { it.second } ?: 0.0
+            val closest = scored.filter { best - it.second < 0.15 }.sortedByDescending { it.second }
+            append("$location matches no construct")
+            if (closest.isNotEmpty()) {
+                appendLine("; closest:")
+                closest.forEach { (construct, pct) ->
+                    appendLine("    ${construct.id} (${(pct * 100).toInt()}%)")
+                    construct.requirements.forEach { req ->
+                        appendLine("        [${if (req.matches(declaration)) "✓" else " "}] ${req.description}")
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ---- integrity + report ------------------------------------------------------------------------
+
+private fun integrityChecks(rules: List<Rule>) {
+    val duplicates = rules.groupingBy { it.id }.eachCount().filterValues { it > 1 }.keys
+    if (duplicates.isNotEmpty()) fail("Duplicate rule ids in the catalog: ${duplicates.sorted()}")
+    val known = rules.map { it.id }.toSet()
+    val dangling = rules.mapNotNull { rule ->
+        (rule.enforcement as? architecture.registry.DelegatedConstraint)?.by
+            ?.filterNot { it in known }?.takeIf { it.isNotEmpty() }?.let { rule.id to it }
     }
     if (dangling.isNotEmpty()) fail("enforcedBy(...) references unknown rule ids: $dangling")
 }
 
 private fun render(findings: List<Finding>): String = buildString {
     appendLine("Architecture verification failed — ${findings.size} violation(s):")
-    findings.groupBy { it.rule }
-        .toList()
-        .sortedBy { (rule, _) -> rule.id }
-        .forEach { (rule, group) ->
-            appendLine()
-            appendLine("[${rule.id}] ${rule.title}")
-            if (rule.rationale.isNotBlank()) {
-                appendLine(rule.rationale.trim().prependIndent("    "))
-            }
-            group.forEach { appendLine("  - ${it.where}: ${it.message}") }
+    findings.groupBy { it.rule }.toList().sortedBy { (rule, _) -> rule.id }.forEach { (rule, group) ->
+        appendLine()
+        appendLine("[${rule.id}] ${rule.title}")
+        if (rule.rationale.isNotBlank()) appendLine(rule.rationale.trim().prependIndent("    "))
+        group.forEach { appendLine("  - ${it.where}: ${it.message}") }
+    }
+}
+
+// ---- README rule index -------------------------------------------------------------------------
+
+/**
+ * The canonical catalog index, in document order: per group, each construct (a `🔶 construct`
+ * classification row whose statement is its AND-composed requirements) with its functionality rules,
+ * then the group-level rules, then the layer's exhaustiveness rule; finally the membership rule.
+ */
+internal fun renderRuleIndex(groups: List<RuleGroup>): String {
+    prepare(groups)
+    val rows = mutableListOf<Triple<String, String, String>>()
+    fun add(id: String, marker: String, statement: String) = rows.add(Triple(id, marker, statement))
+    groups.forEach { group ->
+        group.constructs.forEach { construct ->
+            add(construct.id, Tag.CONSTRUCT.marker, construct.requirements.joinToString(" · ") { it.description })
+            construct.declaredRules.filter { it.status is Status.Active }.forEach { add(it.id, it.tag.marker, it.title) }
         }
+        group.declaredRules.filter { it.status is Status.Active }.forEach { add(it.id, it.tag.marker, it.title) }
+        if (group.inPackage != null) exhaustiveRule(group).let { add(it.id, it.tag.marker, it.title) }
+    }
+    membershipRule(groups).let { add(it.id, it.tag.marker, it.title) }
+    return buildString {
+        appendLine("| Rule | Enforcement | Statement |")
+        appendLine("| --- | --- | --- |")
+        rows.forEach { (id, marker, statement) -> appendLine("| `$id` | $marker | ${statement.replace("|", "\\|")} |") }
+    }.trimEnd()
 }

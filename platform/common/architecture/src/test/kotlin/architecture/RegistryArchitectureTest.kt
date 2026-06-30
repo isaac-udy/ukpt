@@ -1,10 +1,10 @@
 package architecture
 
+import architecture.registry.RuleGroup
+import architecture.registry.UkptArchitecture
 import architecture.registry.Violation
 import architecture.registry.renderRuleIndex
-import architecture.registry.rules
 import architecture.registry.verify
-import architecture.rules.UkptArchitecture
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -12,10 +12,9 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 /**
- * The single entry point for the registry-driven architecture rules: runs every rule in the
- * catalog (constructs + exhaustiveness + scope/module-graph constraints) and fails once with a
- * report grouped by rule id. [ruleIndexMatchesReadme] keeps the README's published rule index in
- * lock-step with the catalog.
+ * The single entry point for the architecture rules: runs every rule in the object catalog
+ * ([UkptArchitecture]) and fails once with a report grouped by rule id. [ruleIndexMatchesReadme]
+ * keeps the README's published rule index in lock-step with the catalog.
  */
 class RegistryArchitectureTest {
 
@@ -23,9 +22,9 @@ class RegistryArchitectureTest {
     fun architecture() = verify(UkptArchitecture.all)
 
     /**
-     * Doc↔registry sync: the README's `RULE-INDEX` block must list exactly the rules the catalog
-     * enforces (id, enforcement tag, statement), so the documented index can never silently drift
-     * from what runs. Regenerate after changing rules with:
+     * Doc↔registry sync: the README's `RULE-INDEX` block must list exactly the catalog's constructs
+     * and rules (id, enforcement tag, statement), so the documented index can never silently drift.
+     * Regenerate after changing rules with:
      *
      *     UPDATE_RULE_INDEX=true ./gradlew :platform:common:architecture:test
      */
@@ -60,6 +59,19 @@ class RegistryArchitectureTest {
         )
     }
 
+    /**
+     * Self-check: proves the runner actually detects and reports violations (so a green
+     * [architecture] run means "no violations", not "nothing ran"), and that the module-graph
+     * provider parses real edges (so the module rules aren't passing vacuously).
+     */
+    @Test
+    fun runnerDetectsViolationsAndParsesGraph() {
+        val error = assertFailsWith<AssertionError> { verify(listOf(Sentinel)) }
+        val message = error.message.orEmpty()
+        assertTrue("Sentinel.alwaysFails" in message, "the runner should report the violation by id; was:\n$message")
+        assertTrue("Sentinel.graphParses" !in message, "the module graph should parse real edges; was:\n$message")
+    }
+
     /** Locate the architecture module's README from the test working directory. */
     private fun readmeFile(): File {
         File("README.md").let { if (it.exists()) return it }
@@ -70,30 +82,19 @@ class RegistryArchitectureTest {
         }
         error("Could not locate platform/common/architecture/README.md from ${File("").absolutePath}")
     }
+}
 
-    /**
-     * Self-check: proves the runner actually detects and reports violations (so a green
-     * [architecture] run means "no violations", not "nothing ran"), and that the module-graph
-     * provider parses real edges (so the module rules aren't passing vacuously).
-     */
-    @Test
-    fun runnerDetectsViolationsAndParsesGraph() {
-        val sentinel by rules {
-            @Suppress("unused")
-            val alwaysFails by rule("Always reports a violation") {
-                scope { _, _ -> listOf(Violation("sentinel", "intentional self-check violation")) }
-            }
-            @Suppress("unused")
-            val graphParses by rule("The module graph parses at least one module edge") {
-                moduleGraph { graph, _ ->
-                    if (graph.edges.isEmpty()) listOf(Violation("graph", "no module edges were parsed")) else emptyList()
-                }
-            }
+/** Sentinel group for [RegistryArchitectureTest.runnerDetectsViolationsAndParsesGraph]. */
+private object Sentinel : RuleGroup() {
+    @Suppress("unused")
+    val alwaysFails by rule("Always reports a violation") {
+        scope { _, _ -> listOf(Violation("sentinel", "intentional self-check violation")) }
+    }
+
+    @Suppress("unused")
+    val graphParses by rule("The module graph parses at least one module edge") {
+        moduleGraph { graph, _ ->
+            if (graph.edges.isEmpty()) listOf(Violation("graph", "no module edges were parsed")) else emptyList()
         }
-
-        val error = assertFailsWith<AssertionError> { verify(listOf(sentinel)) }
-        val message = error.message.orEmpty()
-        assertTrue("sentinel.alwaysFails" in message, "the runner should report the violation by id; was:\n$message")
-        assertTrue("sentinel.graphParses" !in message, "the module graph should parse real edges; was:\n$message")
     }
 }

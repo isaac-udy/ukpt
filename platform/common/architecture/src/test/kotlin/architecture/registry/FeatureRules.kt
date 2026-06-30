@@ -1,12 +1,9 @@
-package architecture.rules
+package architecture.registry
 
 import architecture.definitions.containingFilePackage
 import architecture.definitions.containsPackageSegment
 import architecture.definitions.featureName
 import architecture.definitions.isFeatureModule
-import architecture.registry.Violation
-import architecture.registry.rules
-import com.lemonappdev.konsist.api.KoModifier
 import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
 import com.lemonappdev.konsist.api.declaration.KoPropertyDeclaration
 
@@ -24,29 +21,25 @@ import com.lemonappdev.konsist.api.declaration.KoPropertyDeclaration
  * `inPackage` (no exclude support) cannot express — so there is no exhaustiveness rule, and each
  * construct carries its own package boundary instead.
  *
- * Rule ids are the `by val` path, e.g. `featureRules.dependencyModule.ownFeatureBindingsOnly`.
+ * Rule ids are the exact object/property names, e.g. `FeatureRules.DependencyModule.ownFeatureBindingsOnly`.
  */
-val featureRules by rules {
+object FeatureRules : RuleGroup() {
 
     // ---- §4.5.1 Dependency modules -----------------------------------------------------------
-    val dependencyModule by construct {
-        // what it is
-        val inTopLevelFeaturePackage by requirement("DI modules must be defined in the top-level `feature.[name]` package of the `:client` and `:server` modules") {
-            any { decl ->
-                decl.isFeatureModule() &&
-                    decl.containingFilePackage().let { pkg ->
-                        pkg.startsWith("feature.") &&
-                            !pkg.containsPackageSegment("data") &&
-                            !pkg.containsPackageSegment("domain") &&
-                            !pkg.containsPackageSegment("services") &&
-                            !pkg.containsPackageSegment("ui")
-                    }
-            }
-        }
-        val koinValModule by requirement("DI modules are Koin `val` modules whose names end in `Dependencies`") {
-            isProperty().and(hasNameEndingWith("Dependencies"))
-        }
-
+    object DependencyModule : Construct(
+        predicate("DI modules must be defined in the top-level `feature.[name]` package of the `:client` and `:server` modules") { decl ->
+            decl.isFeatureModule() &&
+                decl.containingFilePackage().let { pkg ->
+                    pkg.startsWith("feature.") &&
+                        !pkg.containsPackageSegment("data") &&
+                        !pkg.containsPackageSegment("domain") &&
+                        !pkg.containsPackageSegment("services") &&
+                        !pkg.containsPackageSegment("ui")
+                }
+        },
+        isProperty,
+        hasNameEndingWith("Dependencies"),
+    ) {
         // what it must do
         val ownFeatureBindingsOnly by rule("The DI module for a feature must only bind/provide dependencies that are both defined and implemented in that feature") {
             rationale(
@@ -82,17 +75,11 @@ val featureRules by rules {
     }
 
     // ---- §4.5.1 DI registration helper (unnumbered construct) --------------------------------
-    val dependencyModuleHelper by construct {
-        val declaredAsFunction by requirement("A DI registration helper is a function") {
-            isFunction()
-        }
-        val internalVisibility by requirement("A DI registration helper is `internal` visibility") {
-            hasModifier(KoModifier.INTERNAL)
-        }
-        val moduleReceiver by requirement("A DI registration helper has a Koin `Module` receiver") {
-            function { declaration -> declaration.receiverType?.name == "Module" }
-        }
-    }
+    object DependencyModuleHelper : Construct(
+        isFunction,
+        isInternal,
+        function("A DI registration helper has a Koin `Module` receiver") { declaration -> declaration.receiverType?.name == "Module" },
+    )
 
     // §4.4.2 Service implementations (`:server`) are classified by the `services` axis as
     // `servicesLayer.serviceImpl` (they live in `feature.[name].services`, not the top-level

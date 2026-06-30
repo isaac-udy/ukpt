@@ -1,11 +1,10 @@
-package architecture.spike
+package architecture.registry
 
 import architecture.definitions.containingFilePackage
 import architecture.definitions.containsPackageSegment
 import architecture.definitions.isFeatureModule
 import architecture.definitions.isMutable
 import architecture.definitions.primitiveTypeNames
-import architecture.registry.Violation
 import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration

@@ -1,14 +1,12 @@
-package architecture.rules
+package architecture.registry
 
-import architecture.registry.Violation
-import architecture.registry.rules
 
 /**
  * §2 Gradle module dependency rules. These are module-graph rules: their input is the parsed
  * `build.gradle.kts` dependency edges, not the Konsist scope. The `// architecture-exception:`
  * comment channel is honoured via `ModuleEdge.exemptRuleIds`. No `inPackage`, so no exhaustiveness.
  */
-val moduleRules by rules {
+object ModuleRules : RuleGroup() {
 
     val featureNotApp by rule("`:feature` modules must never depend on `:app` modules") {
         moduleGraph { graph, exempt ->
