@@ -82,7 +82,7 @@ object FeatureRules : RuleGroup() {
     )
 
     // §4.4.2 Service implementations (`:server`) are classified by the `services` axis as
-    // `servicesLayer.serviceImpl` (they live in `feature.[name].services`, not the top-level
+    // `ServicesLayer.ServiceImpl` (they live in `feature.[name].services`, not the top-level
     // feature package), so there is no ServiceImpl construct here — that would double-classify
     // every ServiceImpl and break the global layer-membership check.
 

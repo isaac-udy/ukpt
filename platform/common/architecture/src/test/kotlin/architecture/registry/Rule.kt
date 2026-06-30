@@ -1,15 +1,15 @@
 package architecture.registry
 
 /**
- * A single architecture rule. Its [id] is the dotted *path* of the property names that declare it
- * (e.g. `domainLayer.domainInterface.operatorInvoke`), so identity is derived from the `by val`
- * structure — no axis, no numbers, no lockfile, unique by construction. [tag] is derived from
- * [enforcement] and so can never disagree with reality.
+ * A single architecture rule. Its [id] is the dotted *path* of the object/property names that
+ * declare it (e.g. `DomainLayer.UseCase.noOverridingDefaults`), so identity is derived from the
+ * `object`/`val` structure — no axis, no numbers, no lockfile, unique by construction. [tag] is
+ * derived from [enforcement] and so can never disagree with reality.
  */
 class Rule internal constructor(
-    val id: String,                 // dotted path, e.g. "domainLayer.domainInterface.operatorInvoke"
+    val id: String,                 // dotted path, e.g. "DomainLayer.UseCase.noOverridingDefaults"
     val title: String,              // the canonical one-line statement (README + failure header)
-    val rationale: String,          // the "why" (failure body + README); blank for shape requirements
+    val rationale: String,          // the "why" (failure body + README); blank when none
     val enforcement: Enforcement,
     val status: Status,
     val notes: List<String>,        // authored sub-bullets carried into the README
