@@ -174,17 +174,6 @@ object UiLayer : RuleGroup(inPackage = "feature..ui..") {
         isClassWhere("ViewModels must be named `[Name]ViewModel`") { declaration ->
             declaration.name.endsWith("ViewModel")
         },
-        isClassWhere("ViewModels expose a single public `state` property, or no public properties at all") { declaration ->
-            // includeNested = false: only the ViewModel's OWN properties count toward its
-            // public surface — a private nested helper's public `val`s aren't part of the API.
-            val publicProperties = declaration.properties(includeNested = false)
-                .filter { it.hasPublicOrDefaultModifier || it.hasInternalModifier }
-            when (publicProperties.size) {
-                0 -> true // Stateless view model — pure command handler. Allowed.
-                1 -> publicProperties.single().name == "state"
-                else -> false
-            }
-        },
         isClassWhere("The `state` property is a `ViewModelState<[Name]State>` (1:1 with the ViewModel's State type)") { declaration ->
             val stateProperty = declaration.properties()
                 .filter { it.hasPublicOrDefaultModifier || it.hasInternalModifier }
@@ -203,14 +192,33 @@ object UiLayer : RuleGroup(inPackage = "feature..ui..") {
             Regex("""by\s+navigationHandle\s*<\s*${Regex.escape(destinationName)}\s*>""")
                 .containsMatchIn(navigationProperty.text)
         },
-        isClassWhere("`public`/`internal` functions on a ViewModel must only return `Unit` (or omit a return type)") { declaration ->
-            declaration.functions()
-                .filter { func -> func.hasPublicModifier || func.hasInternalModifier }
-                .filter { func -> !func.hasOverrideModifier }
-                .all { func -> func.returnType?.name == "Unit" || func.returnType == null }
-        },
         hasFileNameMatchingDeclaration,
     ) {
+        val singlePublicStateProperty by rule("ViewModels expose a single public `state` property, or no public properties at all") {
+            constrain { decl, _ ->
+                val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
+                // includeNested = false: only the ViewModel's OWN properties count toward its public surface.
+                val publicProperties = cls.properties(includeNested = false)
+                    .filter { it.hasPublicOrDefaultModifier || it.hasInternalModifier }
+                val ok = when (publicProperties.size) {
+                    0 -> true
+                    1 -> publicProperties.single().name == "state"
+                    else -> false
+                }
+                if (ok) emptyList() else listOf(Violation(cls, "ViewModel must expose only a single public `state` property (found: ${publicProperties.joinToString { it.name }})"))
+            }
+        }
+
+        val publicFunctionsReturnUnit by rule("`public`/`internal` functions on a ViewModel must only return `Unit` (or omit a return type)") {
+            constrain { decl, _ ->
+                val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
+                cls.functions()
+                    .filter { (it.hasPublicModifier || it.hasInternalModifier) && !it.hasOverrideModifier }
+                    .filterNot { it.returnType?.name == "Unit" || it.returnType == null }
+                    .map { Violation(it, "ViewModel function `${it.name}` returns `${it.returnType?.name}` — public/internal ViewModel functions must return `Unit`") }
+            }
+        }
+
         val injectsDomainInterfaces by rule("ViewModels should inject domain interfaces to load and manipulate domain objects") { guidance() }
 
         val usesJobManager by rule("ViewModels must use `JobManager` to manage coroutines — never hold `var job: Job?` references") {
@@ -239,11 +247,15 @@ object UiLayer : RuleGroup(inPackage = "feature..ui..") {
         isClass,
         isDataClass,
         hasNameEndingWith("State"),
-        isClassWhere("ViewModel State objects must be immutable (val properties only)") { declaration ->
-            declaration.properties().all { it.isVal }
-        },
         hasFileNameMatchingDeclaration,
     ) {
+        val immutable by rule("ViewModel State objects must be immutable (val properties only)") {
+            constrain { decl, _ ->
+                val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
+                cls.properties().filterNot { it.isVal }.map { Violation(it, "ViewModel State property `${it.name}` is a `var` — State objects must be immutable") }
+            }
+        }
+
         val viewModelRelationship by rule("ViewModel State objects have a 1:1 relationship with a ViewModel type") { guidance() }
         val usesAsyncState by rule("ViewModel State objects must use `AsyncState<T>` / `UpdatableState<T>` for asynchronously loaded data and action progress") { guidance() }
         val noCustomAsyncSealedTypes by rule("ViewModel State objects must not define custom sealed types for loading/success/error — use `AsyncState<T>`") { guidance() }

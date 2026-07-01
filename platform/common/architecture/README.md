@@ -66,12 +66,14 @@ Every enforced rule, generated from the catalog by `RegistryArchitectureTest.rul
 | `DomainLayer.DomainInterface.primaryReturnType` | 📋 guidance | Primary-function return type must be domain objects, nested types, primitives, collections of those, or no value |
 | `DomainLayer.DomainInterface.implementedByRepositoryOrUseCase` | 📋 guidance | Must be implemented by a Repository (as a property) or by a UseCase |
 | `DomainLayer.DomainInterface.errorsViaExceptions` | ✅ tested | Functions propagate errors via thrown exceptions, never via the return type |
-| `DomainLayer.DomainObject` | 🔶 construct | resides in `feature..domain..` · is a class or interface · one of {is `sealed`, is a `data class`, is an `enum class`, is a `value class`} · Domain objects must be immutable (val properties only) · Domain objects must be annotated with `@Serializable` |
+| `DomainLayer.DomainObject` | 🔶 construct | resides in `feature..domain..` · is a class or interface · one of {is `sealed`, is a `data class`, is an `enum class`, is a `value class`} · Domain objects must be annotated with `@Serializable` |
+| `DomainLayer.DomainObject.immutable` | ✅ tested | Domain objects must be immutable (val properties only) |
 | `DomainLayer.DomainObject.nestedValueClassIds` | 📋 guidance | Should use nested value classes for identifiers where appropriate |
 | `DomainLayer.DomainObject.sealedHierarchies` | 📋 guidance | Should use sealed interface hierarchies to model polymorphic data where appropriate |
 | `DomainLayer.DomainObject.invariantInitBlocks` | 📋 guidance | Should include `init` blocks that enforce invariants |
 | `DomainLayer.DomainObject.nestedTypes` | 📋 guidance | Should use nested types when conceptually inseparable from the parent |
-| `DomainLayer.UseCase` | 🔶 construct | resides in `feature..domain..` · A UseCase is a non-sealed/data/enum/value class named `[DomainInterface]Impl` · A UseCase must implement exactly one domain interface · A UseCase must not contain mutable state — all properties are `val` |
+| `DomainLayer.UseCase` | 🔶 construct | resides in `feature..domain..` · A UseCase is a non-sealed/data/enum/value class named `[DomainInterface]Impl` · A UseCase must implement exactly one domain interface |
+| `DomainLayer.UseCase.noMutableState` | ✅ tested | A UseCase must not contain mutable state — all properties are `val` |
 | `DomainLayer.UseCase.noOverridingDefaults` | ✅ tested | Must not override any default function of its domain interface |
 | `DomainLayer.UseCase.mayInjectDomainInterfaces` | 📋 guidance | May inject domain interfaces to perform its logic |
 | `DomainLayer.UseCase.breakDownComplexUseCases` | 📋 guidance | If it becomes too complex, break it into private/file-private/nested parts |
@@ -98,10 +100,13 @@ Every enforced rule, generated from the catalog by `RegistryArchitectureTest.rul
 | `UiLayer.Destination` | 🔶 construct | resides in `feature..ui..` · is a class or object · Destinations must implement `dev.enro.NavigationKey` or `NavigationKey.WithResult<T>` · name ends with `Destination` · annotated `@Serializable` · is declared in a file matching its name |
 | `UiLayer.Destination.minimalData` | 📋 guidance | Destinations should accept the minimal data required to initialise the associated Screen |
 | `UiLayer.Destination.definedInApiOrClient` | 📋 guidance | Destinations may live in `:api` (shared entry point / server-driven) or `:client` (internal only) |
-| `UiLayer.ViewModel` | 🔶 construct | resides in `feature..ui..` · ViewModels extend `androidx.lifecycle.ViewModel` · ViewModels must be named `[Name]ViewModel` · ViewModels expose a single public `state` property, or no public properties at all · The `state` property is a `ViewModelState<[Name]State>` (1:1 with the ViewModel's State type) · ViewModels have a `private val navigation` obtained via `navigationHandle<[Name]Destination>()` · `public`/`internal` functions on a ViewModel must only return `Unit` (or omit a return type) · is declared in a file matching its name |
+| `UiLayer.ViewModel` | 🔶 construct | resides in `feature..ui..` · ViewModels extend `androidx.lifecycle.ViewModel` · ViewModels must be named `[Name]ViewModel` · The `state` property is a `ViewModelState<[Name]State>` (1:1 with the ViewModel's State type) · ViewModels have a `private val navigation` obtained via `navigationHandle<[Name]Destination>()` · is declared in a file matching its name |
+| `UiLayer.ViewModel.singlePublicStateProperty` | ✅ tested | ViewModels expose a single public `state` property, or no public properties at all |
+| `UiLayer.ViewModel.publicFunctionsReturnUnit` | ✅ tested | `public`/`internal` functions on a ViewModel must only return `Unit` (or omit a return type) |
 | `UiLayer.ViewModel.injectsDomainInterfaces` | 📋 guidance | ViewModels should inject domain interfaces to load and manipulate domain objects |
 | `UiLayer.ViewModel.usesJobManager` | ✅ tested | ViewModels must use `JobManager` to manage coroutines — never hold `var job: Job?` references |
-| `UiLayer.ViewModelState` | 🔶 construct | resides in `feature..ui..` · is a class · is a `data class` · name ends with `State` · ViewModel State objects must be immutable (val properties only) · is declared in a file matching its name |
+| `UiLayer.ViewModelState` | 🔶 construct | resides in `feature..ui..` · is a class · is a `data class` · name ends with `State` · is declared in a file matching its name |
+| `UiLayer.ViewModelState.immutable` | ✅ tested | ViewModel State objects must be immutable (val properties only) |
 | `UiLayer.ViewModelState.viewModelRelationship` | 📋 guidance | ViewModel State objects have a 1:1 relationship with a ViewModel type |
 | `UiLayer.ViewModelState.usesAsyncState` | 📋 guidance | ViewModel State objects must use `AsyncState<T>` / `UpdatableState<T>` for asynchronously loaded data and action progress |
 | `UiLayer.ViewModelState.noCustomAsyncSealedTypes` | 📋 guidance | ViewModel State objects must not define custom sealed types for loading/success/error — use `AsyncState<T>` |
@@ -114,7 +119,12 @@ Every enforced rule, generated from the catalog by `RegistryArchitectureTest.rul
 | `UiLayer.noDataServicesDeps` | ✅ tested | Forbidden from depending on `data` or `services` |
 | `UiLayer.noKoinInject` | ✅ tested | Must not use `koinInject` — all dependencies are injected through ViewModels |
 | `UiLayer.exhaustive` | ✅ tested | Every top-level declaration in `feature..ui..` matches exactly one construct |
-| `DataLayer.Repository` | 🔶 construct | resides in `feature..data..` · is a class · name ends with `Repository` · is `internal` · is declared in a file matching its name · Repositories must not implement domain interfaces directly · Repositories must expose domain interfaces as `public val` properties · Repositories are forbidden from injecting domain interfaces · Repositories are forbidden from injecting other Repositories |
+| `DataLayer.Repository` | 🔶 construct | resides in `feature..data..` · is a class · name ends with `Repository` · is declared in a file matching its name |
+| `DataLayer.Repository.internalVisibility` | ✅ tested | Repositories must be marked as `internal` |
+| `DataLayer.Repository.doesNotImplementDomainInterfaces` | ✅ tested | Repositories must not implement domain interfaces directly |
+| `DataLayer.Repository.exposesDomainInterfacesAsProperties` | ✅ tested | Repositories must expose domain interfaces as `public val` properties |
+| `DataLayer.Repository.doesNotInjectDomainInterfaces` | ✅ tested | Repositories are forbidden from injecting domain interfaces |
+| `DataLayer.Repository.doesNotInjectRepositories` | ✅ tested | Repositories are forbidden from injecting other Repositories |
 | `DataLayer.Repository.propertiesEagerlyInitialized` | ✅ tested | Repository domain-interface properties must be initialized immediately — no `by lazy`, no custom getter |
 | `DataLayer.Repository.mayInjectServicesStorageOrClients` | 📋 guidance | May inject Services, client-side `data.storage` Storage objects, or database clients to fulfill their domain properties |
 | `DataLayer.ClientDataInterface` | 🔶 construct | resides in `feature..data..` · is an interface · Must live in `feature.[name].data` (not `data.storage`) |
@@ -133,7 +143,8 @@ Every enforced rule, generated from the catalog by `RegistryArchitectureTest.rul
 | `ServicesLayer.ServiceInterface.nestedRequestResponseTypes` | 📋 guidance | Each function's `Request`/`Response` types are nested `@Serializable` types grouped under a per-function `object` namespace |
 | `ServicesLayer.ServiceInterface.contractLivesInApi` | 📋 guidance | Service interfaces live in `feature.[name].services` of the `:api` module |
 | `ServicesLayer.ServiceInterface.errorsViaExceptions` | ✅ tested | Service functions propagate errors via thrown exceptions; the return type only ever represents a successful result |
-| `ServicesLayer.ServiceImpl` | 🔶 construct | resides in `feature..services..` · For a service named `[Name]Service` the implementation is a class named `[Name]ServiceImpl` · is `internal` · Resides in `feature.[name].services` of the `:server` module (dual-life with the contract) |
+| `ServicesLayer.ServiceImpl` | 🔶 construct | resides in `feature..services..` · For a service named `[Name]Service` the implementation is a class named `[Name]ServiceImpl` · Resides in `feature.[name].services` of the `:server` module (dual-life with the contract) |
+| `ServicesLayer.ServiceImpl.internalVisibility` | ✅ tested | Service implementations must be `internal` |
 | `ServicesLayer.ServiceImpl.noInjectingDomainInterfaces` | 📋 guidance | Service implementations are forbidden from injecting domain interfaces |
 | `ServicesLayer.ServiceImpl.mayInjectStorageAndInternal` | 📋 guidance | May inject `services.storage` Storage classes and `services.internal` orchestrators of the same feature, plus other features' Service contracts via `:api` |
 | `ServicesLayer.ServiceImpl.noUiDependency` | ✅ tested | Service implementations must not depend on the `ui` package |
@@ -142,7 +153,8 @@ Every enforced rule, generated from the catalog by `RegistryArchitectureTest.rul
 | `ServicesLayer.InternalInterface` | 🔶 construct | resides in `feature..services..` · is an interface · Resides in `feature.[name].services.internal` |
 | `ServicesLayer.InternalException` | 🔶 construct | resides in `feature..services..` · An internal exception is a class named `[Name]Exception`, thrown only by internal helpers · Resides in `feature.[name].services.internal` |
 | `ServicesLayer.InternalObjectHelper` | 🔶 construct | resides in `feature..services..` · is an object · Resides in `feature.[name].services.internal` |
-| `ServicesLayer.StorageClass` | 🔶 construct | resides in `feature..services..` · Named `[Name]Storage` (or `[Name]Store` where the broader name fits) · Not abstract, not a `data class` · is `internal` · Resides in `feature.[name].services.storage` |
+| `ServicesLayer.StorageClass` | 🔶 construct | resides in `feature..services..` · Named `[Name]Storage` (or `[Name]Store` where the broader name fits) · Not abstract, not a `data class` · Resides in `feature.[name].services.storage` |
+| `ServicesLayer.StorageClass.internalVisibility` | ✅ tested | Storage classes must be `internal` |
 | `ServicesLayer.StorageClass.returnsRowTypesOnly` | ✅ tested | Storage classes must take/return `XxxRow` types only — never domain types |
 | `ServicesLayer.StorageClass.partialUpdatesByHand` | 📋 guidance | When an operation touches only a subset of columns, keep the hand-written `update { … it[col] = value … }` block — `setFromRow` writes every column and is wrong here |
 | `ServicesLayer.StorageRecord` | 🔶 construct | resides in `feature..services..` · Is a `data class` · one of {name ends with `Row`, name ends with `Record`, name ends with `Insert`} · Resides in `feature.[name].services.storage` |
@@ -459,9 +471,9 @@ The `domain` package must only contain [domain interfaces](#411-domain-interface
 * **Definition**: An immutable type representing data at the domain-level.
 * **Construct** `DomainLayer.DomainObject` (`🔶 construct`) — a declaration is this construct when it satisfies all of:
     * A domain object is a sealed/data/enum/value class or interface.
-    * Domain objects must be immutable (val properties only).
     * Domain objects must be annotated with `@Serializable`.
 * **Rules**:
+    * **`DomainLayer.DomainObject.immutable`** `✅ tested` — Domain objects must be immutable (val properties only).
     * **`DomainLayer.DomainObject.nestedValueClassIds`** `📋 guidance` — Should use nested value classes for identifiers where appropriate (e.g. `value class Id(val value: String)`).
     * **`DomainLayer.DomainObject.sealedHierarchies`** `📋 guidance` — Should use sealed interface hierarchies to model polymorphic data where appropriate.
     * **`DomainLayer.DomainObject.invariantInitBlocks`** `📋 guidance` — Should include `init` blocks that enforce invariants.
@@ -538,8 +550,8 @@ The `domain` package must only contain [domain interfaces](#411-domain-interface
 * **Construct** `DomainLayer.UseCase` (`🔶 construct`) — a declaration is this construct when it satisfies all of:
     * A UseCase is a non-sealed/data/enum/value class named `[DomainInterface]Impl`.
     * A UseCase must implement exactly one domain interface.
-    * A UseCase must not contain mutable state — all properties are `val`. Immutable helper properties (e.g., loggers) are permitted.
 * **Rules**:
+    * **`DomainLayer.UseCase.noMutableState`** `✅ tested` — A UseCase must not contain mutable state — all properties are `val`. Immutable helper properties (e.g., loggers) are permitted.
     * **`DomainLayer.UseCase.noOverridingDefaults`** `✅ tested` — Must not override any default function of its domain interface.
         * **Why**: The only abstract member is the primary `operator fun invoke`; every other function is a default. Overriding a default per-implementation defeats the point of the interface helpers.
     * **`DomainLayer.UseCase.mayInjectDomainInterfaces`** `📋 guidance` — May inject domain interfaces to perform its logic.
@@ -653,12 +665,12 @@ val changeRoleScreen = navigationDestination<ChangeRoleDestination>(
 * **Construct** `UiLayer.ViewModel` (`🔶 construct`) — a declaration is this construct when it satisfies all of:
     * ViewModels extend `androidx.lifecycle.ViewModel`.
     * ViewModels must be named `[Name]ViewModel`.
-    * ViewModels expose a single public `state` property, or no public properties at all.
     * The `state` property is a `ViewModelState<[Name]State>` (1:1 with the ViewModel's State type).
     * ViewModels have a `private val navigation` obtained via `navigationHandle<[Name]Destination>()`, used to read Destination parameters and perform navigation.
-    * `public`/`internal` functions on a ViewModel must only return `Unit` (or omit a return type).
     * is declared in a file matching its name.
 * **Rules**:
+    * **`UiLayer.ViewModel.singlePublicStateProperty`** `✅ tested` — ViewModels expose a single public `state` property, or no public properties at all.
+    * **`UiLayer.ViewModel.publicFunctionsReturnUnit`** `✅ tested` — `public`/`internal` functions on a ViewModel must only return `Unit` (or omit a return type).
     * **`UiLayer.ViewModel.injectsDomainInterfaces`** `📋 guidance` — Should inject domain interfaces to load and manipulate domain objects.
     * **`UiLayer.ViewModel.usesJobManager`** `✅ tested` — Must use `JobManager` to manage coroutines — never hold `var job: Job?` references.
         * **Why**: Manual `var job: Job?` tracking is error-prone: the previous job leaks if a new one starts before the old one completes, and lifecycle cancellation is easy to forget. `dev.isaacudy.udytils.coroutines.JobManager` handles cancel-then-replace and ties everything to `viewModelScope`.
@@ -669,9 +681,9 @@ val changeRoleScreen = navigationDestination<ChangeRoleDestination>(
 * **Construct** `UiLayer.ViewModelState` (`🔶 construct`) — a declaration is this construct when it satisfies all of:
     * ViewModel State objects must be a `data class`.
     * ViewModel State objects are named `[Name]State`.
-    * ViewModel State objects must be immutable (val properties only).
     * is declared in a file matching its name.
 * **Rules**:
+    * **`UiLayer.ViewModelState.immutable`** `✅ tested` — ViewModel State objects must be immutable (val properties only).
     * **`UiLayer.ViewModelState.viewModelRelationship`** `📋 guidance` — Have a 1:1 relationship with a [ViewModel](#423-viewmodels) type.
     * **`UiLayer.ViewModelState.usesAsyncState`** `📋 guidance` — Must use `AsyncState<T>` / `UpdatableState<T>` for asynchronously loaded data and action progress (e.g. a "save" action as `AsyncState<Unit>`).
         * **Note**: Never directly construct `AsyncState.Loading`/`Success`/`Error` — use `AsyncState.fromSuspending`/`fromFlow`. That prohibition is enforced project-wide by `ProjectRules.noDirectAsyncStateConstruction` (`✅ tested`).
@@ -723,13 +735,13 @@ The `data` axis is **client-only**. Server-side persistence and service implemen
 * **Construct** `DataLayer.Repository` (`🔶 construct`) — a declaration is this construct when it satisfies all of:
     * A Repository is a class.
     * Repositories must be named `[Name]Repository`.
-    * Repositories must be marked as `internal`.
     * is declared in a file matching its name.
-    * Repositories must not implement domain interfaces directly.
-    * Repositories must expose domain interfaces as `public val` properties.
-    * Repositories are forbidden from injecting domain interfaces.
-    * Repositories are forbidden from injecting other Repositories.
 * **Rules**:
+    * **`DataLayer.Repository.internalVisibility`** `✅ tested` — Repositories must be marked as `internal`.
+    * **`DataLayer.Repository.doesNotImplementDomainInterfaces`** `✅ tested` — Repositories must not implement domain interfaces directly.
+    * **`DataLayer.Repository.exposesDomainInterfacesAsProperties`** `✅ tested` — Repositories must expose domain interfaces as `public val` properties.
+    * **`DataLayer.Repository.doesNotInjectDomainInterfaces`** `✅ tested` — Repositories are forbidden from injecting domain interfaces. Logic requiring multiple domain interfaces must be moved to a UseCase.
+    * **`DataLayer.Repository.doesNotInjectRepositories`** `✅ tested` — Repositories are forbidden from injecting other Repositories.
     * **`DataLayer.Repository.propertiesEagerlyInitialized`** `✅ tested` — Domain-interface properties must be initialized immediately — no `by lazy`, no custom getter.
         * **Why**: Eager initialisation lets Koin's graph validation catch missing or cyclic dependencies at startup instead of at the first injection at runtime, and it makes the wiring obvious from a quick read of the constructor.
     * **`DataLayer.Repository.mayInjectServicesStorageOrClients`** `📋 guidance` — May inject [Services](#441-services-the-cross-the-wire-contract), client-side `data.storage` Storage objects, or database clients to fulfill their domain properties.
@@ -824,9 +836,9 @@ interface UserService {
 * **Definition**: Implementations of `Service` interfaces (see [§4.4.1](#441-services-the-cross-the-wire-contract)). Modelled by the `ServicesLayer.ServiceImpl` construct (a ServiceImpl lives in `feature.[name].services` of `:server`, so it belongs to the `services` axis, not the top-level feature group).
 * **Construct** `ServicesLayer.ServiceImpl` (`🔶 construct`) — a declaration is this construct when it satisfies all of:
     * For a service named `[Name]Service` the implementation is a class named `[Name]ServiceImpl`.
-    * Service implementations must be `internal`.
     * Resides in `feature.[name].services` of the `:server` module (dual-life with the contract).
 * **Rules**:
+    * **`ServicesLayer.ServiceImpl.internalVisibility`** `✅ tested` — Service implementations must be `internal`.
     * **`ServicesLayer.ServiceImpl.noInjectingDomainInterfaces`** `📋 guidance` — Service implementations are forbidden from injecting domain interfaces.
         * **Why**: A ServiceImpl is the server-side request handler; it reaches *down* into `services.storage` and `services.internal`, not sideways into the domain interfaces a client would consume.
         * **Note**: Surfaced as guidance rather than a construct shape, because forbidding domain-interface injection is a prohibition (not a classification) and re-expressing it would require resolving the domain-interface classifier from another layer.
@@ -857,9 +869,9 @@ interface UserService {
 * **Construct** `ServicesLayer.StorageClass` (`🔶 construct`) — a declaration is this construct when it satisfies all of:
     * Named `[Name]Storage` (or `[Name]Store` where the broader name fits).
     * Not abstract, not a `data class`.
-    * `internal` visibility.
     * Resides in `feature.[name].services.storage`.
 * **Rules**:
+    * **`ServicesLayer.StorageClass.internalVisibility`** `✅ tested` — Storage classes must be `internal`.
     * **`ServicesLayer.StorageClass.returnsRowTypesOnly`** `✅ tested` — Must take/return `XxxRow` types only — never domain types.
         * **Why**: Domain conversion lives in mapping functions (`XxxRow.toDomain()`). A Storage method that returns a domain type embeds mapping logic in the persistence layer; the ServiceImpl should do the Row→Domain conversion instead.
     * **`ServicesLayer.StorageClass.partialUpdatesByHand`** `📋 guidance` — When an operation touches only a subset of columns, keep the hand-written `update { … it[col] = value … }` block — `setFromRow` writes every column and is wrong here (see [§4.4.4.5](#4445-partial-updates)).

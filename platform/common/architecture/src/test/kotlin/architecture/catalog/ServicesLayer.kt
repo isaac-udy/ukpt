@@ -72,9 +72,15 @@ object ServicesLayer : RuleGroup(inPackage = "feature..services..") {
     // ---- §4.4.2 Service implementations (`:server`) -------------------------------------------
     object ServiceImpl : Construct(
         isClassWhere("For a service named `[Name]Service` the implementation is a class named `[Name]ServiceImpl`") { it.name.endsWith("ServiceImpl") },
-        isInternal,
         predicate("Resides in `feature.[name].services` of the `:server` module (dual-life with the contract)") { it.isInServicesRoot() },
     ) {
+        val internalVisibility by rule("Service implementations must be `internal`") {
+            constrain { decl, _ ->
+                val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
+                if (cls.hasInternalModifier) emptyList() else listOf(Violation(cls, "Service implementation must be `internal`"))
+            }
+        }
+
         val noInjectingDomainInterfaces by rule("Service implementations are forbidden from injecting domain interfaces") {
             rationale(
                 """
@@ -142,9 +148,15 @@ object ServicesLayer : RuleGroup(inPackage = "feature..services..") {
     object StorageClass : Construct(
         isClassWhere("Named `[Name]Storage` (or `[Name]Store` where the broader name fits)") { it.name.endsWith("Storage") || it.name.endsWith("Store") },
         isClassWhere("Not abstract, not a `data class`") { !it.hasAbstractModifier && !it.hasDataModifier },
-        isInternal,
         predicate("Resides in `feature.[name].services.storage`") { it.isInServicesSubAxis("storage") },
     ) {
+        val internalVisibility by rule("Storage classes must be `internal`") {
+            constrain { decl, _ ->
+                val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
+                if (cls.hasInternalModifier) emptyList() else listOf(Violation(cls, "Storage class must be `internal`"))
+            }
+        }
+
         val returnsRowTypesOnly by rule("Storage classes must take/return `XxxRow` types only — never domain types") {
             rationale(
                 """

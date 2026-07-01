@@ -26,36 +26,60 @@ object DataLayer : RuleGroup(inPackage = "feature..data..") {
     object Repository : Construct(
         isClass,
         hasNameEndingWith("Repository"),
-        isInternal,
         hasFileNameMatchingDeclaration,
-        isClassWhere("Repositories must not implement domain interfaces directly") { declaration ->
-            declaration.parents().none { parent -> isDomainInterfaceInDomainPackage(parent) }
-        },
-        isClassWhere("Repositories must expose domain interfaces as `public val` properties") { declaration ->
-            val domainImports = declaration.containingFile.imports
-                .filter { it.name.contains(".domain.") }
-                .map { it.name.substringAfterLast(".") }
-                .toSet()
-            declaration.properties()
-                .filter { it.isVal }
-                .filter { it.hasPublicOrDefaultModifier }
-                .any { prop ->
-                    domainImports.any { domainName -> prop.text.contains(domainName) }
-                }
-        },
-        isClassWhere("Repositories are forbidden from injecting domain interfaces") { declaration ->
-            declaration.primaryConstructor?.parameters.orEmpty().none { param ->
-                @Suppress("UNCHECKED_CAST")
-                val source = param.type.sourceDeclaration as? KoBaseDeclaration
-                source != null && isDomainInterfaceInDomainPackage(source)
-            }
-        },
-        isClassWhere("Repositories are forbidden from injecting other Repositories") { declaration ->
-            declaration.primaryConstructor?.parameters.orEmpty().none { param ->
-                param.type.name.endsWith("Repository")
-            }
-        },
     ) {
+        val internalVisibility by rule("Repositories must be marked as `internal`") {
+            constrain { decl, _ ->
+                val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
+                if (cls.hasInternalModifier) emptyList() else listOf(Violation(cls, "Repository must be `internal`"))
+            }
+        }
+
+        val doesNotImplementDomainInterfaces by rule("Repositories must not implement domain interfaces directly") {
+            constrain { decl, _ ->
+                val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
+                cls.parents()
+                    .filter { isDomainInterfaceInDomainPackage(it) }
+                    .map { Violation(cls, "Repository implements domain interface `${it.name}` directly — expose it as a property instead") }
+            }
+        }
+
+        val exposesDomainInterfacesAsProperties by rule("Repositories must expose domain interfaces as `public val` properties") {
+            constrain { decl, _ ->
+                val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
+                val domainImports = cls.containingFile.imports
+                    .filter { it.name.contains(".domain.") }
+                    .map { it.name.substringAfterLast(".") }
+                    .toSet()
+                val exposes = cls.properties()
+                    .filter { it.isVal && it.hasPublicOrDefaultModifier }
+                    .any { prop -> domainImports.any { prop.text.contains(it) } }
+                if (exposes) emptyList() else listOf(Violation(cls, "Repository must expose at least one domain interface as a `public val` property"))
+            }
+        }
+
+        val doesNotInjectDomainInterfaces by rule("Repositories are forbidden from injecting domain interfaces") {
+            rationale("Logic requiring multiple domain interfaces must be moved to a UseCase in the `domain` package.")
+            constrain { decl, _ ->
+                val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
+                cls.primaryConstructor?.parameters.orEmpty()
+                    .filter { param ->
+                        val source = param.type.sourceDeclaration as? KoBaseDeclaration
+                        source != null && isDomainInterfaceInDomainPackage(source)
+                    }
+                    .map { Violation(cls, "Repository injects domain interface `${it.type.name}` — move multi-interface logic to a UseCase") }
+            }
+        }
+
+        val doesNotInjectRepositories by rule("Repositories are forbidden from injecting other Repositories") {
+            constrain { decl, _ ->
+                val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
+                cls.primaryConstructor?.parameters.orEmpty()
+                    .filter { it.type.name.endsWith("Repository") }
+                    .map { Violation(cls, "Repository injects another Repository `${it.type.name}`") }
+            }
+        }
+
         val propertiesEagerlyInitialized by rule("Repository domain-interface properties must be initialized immediately — no `by lazy`, no custom getter") {
             rationale(
                 """

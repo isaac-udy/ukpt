@@ -70,15 +70,19 @@ object DomainLayer : RuleGroup(inPackage = "feature..domain..") {
     object DomainObject : Construct(
         isClassOrInterface,
         oneOf(isSealed, isDataClass, isEnum, isValueClass),
-        predicate("Domain objects must be immutable (val properties only)") { d ->
-            when (d) {
-                is KoClassDeclaration -> d.properties().none { it.isMutable() }
-                is KoInterfaceDeclaration -> d.properties().none { it.isMutable() }
-                else -> false
-            }
-        },
         predicate("Domain objects must be annotated with `@Serializable`") { it.isKotlinxSerializable() },
     ) {
+        val immutable by rule("Domain objects must be immutable (val properties only)") {
+            constrain { decl, _ ->
+                val props = when (decl) {
+                    is KoClassDeclaration -> decl.properties()
+                    is KoInterfaceDeclaration -> decl.properties()
+                    else -> return@constrain emptyList()
+                }
+                props.filter { it.isMutable() }.map { Violation(it, "Domain object has a mutable (`var`) property — domain objects must be immutable") }
+            }
+        }
+
         val nestedValueClassIds by rule("Should use nested value classes for identifiers where appropriate") { guidance() }
         val sealedHierarchies by rule("Should use sealed interface hierarchies to model polymorphic data where appropriate") { guidance() }
         val invariantInitBlocks by rule("Should include `init` blocks that enforce invariants") { guidance() }
@@ -92,10 +96,14 @@ object DomainLayer : RuleGroup(inPackage = "feature..domain..") {
                 decl.name == "${decl.associatedDomainInterfaceName()}Impl"
         },
         isClassWhere("A UseCase must implement exactly one domain interface") { it.associatedDomainInterfaceName() != null },
-        isClassWhere("A UseCase must not contain mutable state — all properties are `val`") { decl ->
-            decl.properties().all { !it.isMutable() }
-        },
     ) {
+        val noMutableState by rule("A UseCase must not contain mutable state — all properties are `val`") {
+            constrain { decl, _ ->
+                val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
+                cls.properties().filter { it.isMutable() }.map { Violation(it, "UseCase has a mutable (`var`) property — all UseCase properties must be `val`") }
+            }
+        }
+
         val noOverridingDefaults by rule("Must not override any default function of its domain interface") {
             rationale(
                 """
