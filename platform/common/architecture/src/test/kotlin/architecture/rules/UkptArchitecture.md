@@ -1,9 +1,3 @@
-<!--
-  GENERATED FILE — do not edit.
-  Narrative source: src/test/kotlin/architecture/rules/UkptArchitecture.md (structured blocks come from the rule catalog).
-  Regenerate: UPDATE_ARCHITECTURE_DOCS=true ./gradlew :platform:common:architecture:test
--->
-
 # UKPT Architecture
 
 This is the entry point to the UKPT architecture rules. The rules themselves are **not maintained by hand**: they are a machine-readable catalog in [`src/test/kotlin/architecture/rules/`](src/test/kotlin/architecture/rules) — each layer a `RuleGroup` object, each construct a nested `Construct` object, each rule a property on one of them. `RegistryArchitectureTest` enforces the rules, and every document listed below (including this README) is **generated** from the catalog plus a narrative source that lives next to each layer's rules, kept in lock-step by `ArchitectureDocsTest`.
@@ -28,15 +22,7 @@ ukpt doesn't wire this into CI yet; when you want it enforced automatically, run
 
 ## The documents
 
-- [Module structure & dependency rules](docs/module.md)
-- [The `domain` layer](docs/domain.md)
-- [The `ui` layer](docs/ui.md)
-- [The `data` layer](docs/data.md)
-- [The `services` layer](docs/services.md)
-- [Feature wiring (top-level package & DI)](docs/feature.md)
-- [Project-wide code rules](docs/project.md)
-- [Architecture exceptions](docs/exceptions.md)
-- [Rule index](docs/rule-index.md)
+{{toc}}
 
 To change a document, edit its narrative source (each generated file's header comment names it) or the rule catalog itself, then regenerate — hand-edits to generated files fail `ArchitectureDocsTest`.
 
@@ -77,4 +63,3 @@ Each rule's enforcement tag is **derived from how it is declared in the catalog*
 | `⚙️ codegen` | `codegen()` | Guaranteed by the `dev.isaacudy.udytils.postgres` code generator — the shape is generated from the migrated schema, so there is nothing in `src/` for Konsist to scan. |
 
 So `✅ tested` rules have a check citing their id; `🔶 construct` constructs are enforced through the exhaustiveness / membership check; `📋 guidance` and `⚙️ codegen` rules are not machine-checked in `src/`.
-
