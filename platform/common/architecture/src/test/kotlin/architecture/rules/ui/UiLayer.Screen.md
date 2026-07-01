@@ -1,6 +1,6 @@
 # Screens
 
-* **Definition**: A Composable function (or property-based `navigationDestination`) that defines the layout and visual representation of a feature or portion of a feature.
+A Composable function (or property-based `navigationDestination`) that defines the layout and visual representation of a feature or portion of a feature.
 
 ### Dialog / Overlay Screens
 

@@ -8,9 +8,10 @@ import java.io.File
  * fragment authors never decide where generated content is embedded.
  *
  *  1. `# <title>` + narrative from the group fragment (`rules/<layer>/<Group>.md`)
- *  2. `## Layer rules` — every group-level rule, generated from the catalog
+ *  2. `## Rules` / `## Guidance` — the group-level rules and guidance, generated from the catalog
  *  3. one `## <title>` section per construct (catalog order): narrative from the construct fragment
- *     (`rules/<layer>/<Group>.<Construct>.md`, optional), then the generated requirements + rules block
+ *     (`rules/<layer>/<Group>.<Construct>.md`, optional), then the generated
+ *     Definition/Rules/Guidance blocks
  */
 internal fun renderLayerDoc(
     layer: DocSources.LayerSource,
@@ -26,10 +27,18 @@ internal fun renderLayerDoc(
             appendLine()
         }
     }
-    if (group.declaredRules.any { it.status is Status.Active }) {
-        appendLine("## Layer rules")
+    val rules = groupRules(group)
+    val guidance = groupGuidance(group)
+    if (rules.isNotEmpty()) {
+        appendLine("## Rules")
         appendLine()
-        append(renderGroupRules(group))
+        rules.forEach { append(renderRuleBullet(it)) }
+        appendLine()
+    }
+    if (guidance.isNotEmpty()) {
+        appendLine("## Guidance")
+        appendLine()
+        guidance.forEach { append(renderRuleBullet(it)) }
         appendLine()
     }
     group.constructs.forEach { construct ->

@@ -7,14 +7,14 @@ import com.lemonappdev.konsist.api.provider.KoNameProvider
 import com.lemonappdev.konsist.api.provider.KoResideInPackageProvider
 
 /**
- * The four enforcement tags from the architecture README legend. The tag is *derived* from a
+ * The four enforcement statuses from the architecture README legend. The tag is *derived* from a
  * rule's [Enforcement], never set by hand.
  */
 enum class Tag(val marker: String) {
-    TESTED("✅ tested"),
-    CONSTRUCT("🔶 construct"),
-    GUIDANCE("📋 guidance"),
-    CODEGEN("⚙️ codegen"),
+    TESTED("tested"),
+    CONSTRUCT("construct"),
+    GUIDANCE("guidance"),
+    CODEGEN("codegen"),
 }
 
 /** A single violation: where it is + why. The runner stamps the rule id on top for reporting. */
@@ -40,17 +40,17 @@ internal fun KoBaseDeclaration.sourceLocation(): String =
 internal fun KoBaseDeclaration.residesIn(pkg: String): Boolean =
     (this as? KoResideInPackageProvider)?.resideInPackage(pkg) == true
 
-/** ✅ tested over the whole Konsist scope. `exempt` is pre-keyed to the rule's id by the runner. */
+/** tested over the whole Konsist scope. `exempt` is pre-keyed to the rule's id by the runner. */
 fun interface ScopeCheck {
     fun run(scope: KoScope, exempt: (KoBaseDeclaration) -> Boolean): List<Violation>
 }
 
-/** ✅ tested over a single declaration the owning [Construct] classifies. `exempt` is pre-keyed to the rule id. */
+/** tested over a single declaration the owning [Construct] classifies. `exempt` is pre-keyed to the rule id. */
 fun interface ConstructCheck {
     fun run(declaration: KoBaseDeclaration, exempt: (KoBaseDeclaration) -> Boolean): List<Violation>
 }
 
-/** ✅ tested over the parsed module dependency graph (build.gradle.kts edges), not the Konsist scope. */
+/** tested over the parsed module dependency graph (build.gradle.kts edges), not the Konsist scope. */
 fun interface ModuleGraphCheck {
     fun run(graph: ModuleGraph, exempt: (ModuleEdge) -> Boolean): List<Violation>
 }
@@ -64,14 +64,14 @@ sealed interface Enforcement {
     val tag: Tag
 }
 
-/** ✅ tested, free over the whole Konsist scope. */
+/** tested, free over the whole Konsist scope. */
 class ScopeConstraint(
     val check: ScopeCheck,
 ) : Enforcement {
     override val tag get() = Tag.TESTED
 }
 
-/** ✅ tested, over the module dependency graph parsed from build files. */
+/** tested, over the module dependency graph parsed from build files. */
 class ModuleGraphConstraint(
     val check: ModuleGraphCheck,
 ) : Enforcement {
@@ -79,7 +79,7 @@ class ModuleGraphConstraint(
 }
 
 /**
- * ✅ tested, but enforced *transitively* by the rules it names (e.g. cross-feature domain access is
+ * tested, but enforced *transitively* by the rules it names (e.g. cross-feature domain access is
  * enforced by the cross-feature module rules). Runs nothing; [by] documents the enforcing rule ids.
  */
 class DelegatedConstraint(
@@ -88,7 +88,7 @@ class DelegatedConstraint(
     override val tag get() = Tag.TESTED
 }
 
-/** 📋 guidance / ⚙️ codegen — no executable body. Distinct from a vacuous `scope { emptyList() }`. */
+/** guidance / codegen — no executable body. Distinct from a vacuous `scope { emptyList() }`. */
 class NotEnforced(
     override val tag: Tag,
 ) : Enforcement

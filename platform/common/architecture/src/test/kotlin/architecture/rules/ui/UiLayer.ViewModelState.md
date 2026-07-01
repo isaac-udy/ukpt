@@ -1,6 +1,6 @@
 # ViewModel State
 
-* **Definition**: The complete, immutable representation of a Screen's data at a single point in time.
+The complete, immutable representation of a Screen's data at a single point in time.
 * **Note**: `AsyncState` covers action progress as well as loads — e.g. a "save" action as `AsyncState<Unit>`. Never directly construct `AsyncState.Loading`/`Success`/`Error` — use `AsyncState.fromSuspending`/`fromFlow`; that prohibition is enforced project-wide by `ProjectRules.noDirectAsyncStateConstruction`.
 * **Example**:
 ```kotlin

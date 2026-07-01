@@ -40,10 +40,10 @@ object ServicesLayer : RuleGroup(inPackage = "feature..services..") {
         predicate("Resides in the top-level `feature.[name].services` package") { it.isInServicesRoot() },
     ) {
         // what it must do
-        val noClientOnlyServices by rule("Always implement services as urpc service functions in the appropriate server module — do not build client-only local services") { guidance() }
-        val plainFunctionShapes by rule("Functions are plain `suspend fun f(req): Res`, `fun f(req): Flow<Res>`, or `fun f(reqs: Flow<Req>): Flow<Res>`, each taking 0 or 1 parameter") { guidance() }
-        val nestedRequestResponseTypes by rule("Each function's `Request`/`Response` types are nested `@Serializable` types grouped under a per-function `object` namespace") { guidance() }
-        val contractLivesInApi by rule("Service interfaces live in `feature.[name].services` of the `:api` module") { guidance() }
+        val noClientOnlyServices by guidance("Always implement services as urpc service functions in the appropriate server module — do not build client-only local services")
+        val plainFunctionShapes by guidance("Functions are plain `suspend fun f(req): Res`, `fun f(req): Flow<Res>`, or `fun f(reqs: Flow<Req>): Flow<Res>`, each taking 0 or 1 parameter")
+        val nestedRequestResponseTypes by guidance("Each function's `Request`/`Response` types are nested `@Serializable` types grouped under a per-function `object` namespace")
+        val contractLivesInApi by guidance("Service interfaces live in `feature.[name].services` of the `:api` module")
 
         val errorsViaExceptions by rule("Service functions propagate errors via thrown exceptions; the return type only ever represents a successful result") {
             rationale(
@@ -81,7 +81,7 @@ object ServicesLayer : RuleGroup(inPackage = "feature..services..") {
             }
         }
 
-        val noInjectingDomainInterfaces by rule("Service implementations are forbidden from injecting domain interfaces") {
+        val noInjectingDomainInterfaces by guidance("Service implementations are forbidden from injecting domain interfaces") {
             rationale(
                 """
                 A ServiceImpl is the server-side request handler; it reaches *down* into services.storage
@@ -89,9 +89,8 @@ object ServicesLayer : RuleGroup(inPackage = "feature..services..") {
                 """.trimIndent(),
             )
             note("Surfaced as guidance rather than a construct requirement: forbidding domain-interface injection is a prohibition, not a classification shape, and re-expressing it would require resolving the domain-interface classifier from another layer.")
-            guidance()
         }
-        val mayInjectStorageAndInternal by rule("May inject `services.storage` Storage classes and `services.internal` orchestrators of the same feature, plus other features' Service contracts via `:api`") { guidance() }
+        val mayInjectStorageAndInternal by guidance("May inject `services.storage` Storage classes and `services.internal` orchestrators of the same feature, plus other features' Service contracts via `:api`")
 
         val noUiDependency by rule("Service implementations must not depend on the `ui` package") {
             rationale(
@@ -185,7 +184,7 @@ object ServicesLayer : RuleGroup(inPackage = "feature..services..") {
             }
         }
 
-        val partialUpdatesByHand by rule("When an operation touches only a subset of columns, keep the hand-written `update { … it[col] = value … }` block — `setFromRow` writes every column and is wrong here") { guidance() }
+        val partialUpdatesByHand by guidance("When an operation touches only a subset of columns, keep the hand-written `update { … it[col] = value … }` block — `setFromRow` writes every column and is wrong here")
     }
 
     object StorageRecord : Construct(
@@ -198,15 +197,15 @@ object ServicesLayer : RuleGroup(inPackage = "feature..services..") {
         isFunction,
         predicate("Resides in `feature.[name].services.storage`") { it.isInServicesSubAxis("storage") },
     ) {
-        val mappersInStorage by rule("Conversions between a generated `XxxRow` and a domain type live in `services.storage` as plain `internal fun` declarations, conventionally collected in `[Name]Mappers.kt`") { guidance() }
-        val multiTableLoadHelpers by rule("Where storage operations span multiple tables to assemble a richer record, define those higher-level helpers as `suspend fun [Name]Storage.loadXxx(…)` extensions in `services.storage`") { guidance() }
+        val mappersInStorage by guidance("Conversions between a generated `XxxRow` and a domain type live in `services.storage` as plain `internal fun` declarations, conventionally collected in `[Name]Mappers.kt`")
+        val multiTableLoadHelpers by guidance("Where storage operations span multiple tables to assemble a richer record, define those higher-level helpers as `suspend fun [Name]Storage.loadXxx(…)` extensions in `services.storage`")
     }
 
     object CodecObject : Construct(
         isObject,
         predicate("Lives in `services.storage` alongside the Row + mapping functions for the table that uses it") { it.isInServicesSubAxis("storage") },
     ) {
-        val keyedToColumn by rule("Codecs encapsulate the read/write asymmetry `setFromRow` can't express — keep them small and keyed to the column they serve") { guidance() }
+        val keyedToColumn by guidance("Codecs encapsulate the read/write asymmetry `setFromRow` can't express — keep them small and keyed to the column they serve")
     }
 
     // §4.4.5 `services.tools` is intentionally empty (reserved for AI tool-use subclasses), so it

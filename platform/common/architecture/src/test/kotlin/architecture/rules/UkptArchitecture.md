@@ -37,7 +37,7 @@ Every rule and construct has a stable ID: the **path of the object/property name
 
 | ID | Reads as |
 | --- | --- |
-| `DomainLayer.DomainInterface` | the `DomainInterface` construct (a `🔶 construct` classification) in the `DomainLayer` group |
+| `DomainLayer.DomainInterface` | the `DomainInterface` construct (a classification) in the `DomainLayer` group |
 | `DomainLayer.DomainInterface.errorsViaExceptions` | the `errorsViaExceptions` rule of the `DomainInterface` construct |
 | `DomainLayer.noPlatformDeps` | a layer-level rule (not tied to a construct) |
 | `ModuleRules.platformNotFeature` | a group-level module-graph rule |
@@ -60,11 +60,11 @@ The groups:
 
 ## Enforcement status
 
-Each rule's tag is **derived from how it is declared in the catalog**, so it can never disagree with reality:
+Each entry's status is **derived from how it is declared in the catalog**, so it can never disagree with reality:
 
-| Tag | Declared as | Meaning |
+| Status | Declared as | Meaning |
 | --- | --- | --- |
-| `✅ tested` | `scope { }` / `constrain { }` / `moduleGraph { }` / `enforcedBy(...)` | A Konsist check enforces the rule and fails citing its id. `enforcedBy(...)` rules are enforced transitively by the rules they name. |
-| `🔶 construct` | a `Construct(...)`'s requirement predicates | A classification. A declaration matching no construct (or more than one) fails the layer exhaustiveness / membership check. |
-| `📋 guidance` | `guidance()` | A convention static analysis can't reliably check. Enforced by review. |
-| `⚙️ codegen` | `codegen()` | Guaranteed by the `dev.isaacudy.udytils.postgres` code generator — nothing in `src/` for Konsist to scan. |
+| `tested` | a `rule` ending in `scope { }` / `constrain { }` / `moduleGraph { }` / `enforcedBy(...)` | A Konsist check enforces the rule and fails citing its id. `enforcedBy(...)` rules are enforced transitively by the rules they name. |
+| `construct` | a `Construct(...)`'s requirement predicates | A classification. A declaration matching no construct (or more than one) fails the layer exhaustiveness / membership check. |
+| `guidance` | `val x by guidance("…")` | A convention static analysis can't reliably check. Enforced by review. Renders under **Guidance** in the docs, separate from **Rules**. |
+| `codegen` | a `rule` ending in `codegen()` | Guaranteed by the `dev.isaacudy.udytils.postgres` code generator — nothing in `src/` for Konsist to scan. |

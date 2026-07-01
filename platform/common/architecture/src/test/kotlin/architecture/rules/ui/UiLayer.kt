@@ -17,7 +17,7 @@ import com.lemonappdev.konsist.api.provider.KoNameProvider
 
 /**
  * The `ui` layer (§3.2, §4.2) in the object style. Each construct's requirements (the
- * `🔶 construct` classification) are the predicate list in its `Construct(...)` header; its rules
+ * `construct` classification) are the predicate list in its `Construct(...)` header; its rules
  * ("what the construct must do") are `val x by rule(...)` in the body. Only the cross-cutting
  * package-dependency rules (§3.2), which aren't tied to a single construct, live at the layer level.
  * Rule ids are the exact object/property names, e.g. `UiLayer.ViewModel.usesJobManager`.
@@ -75,12 +75,12 @@ object UiLayer : RuleGroup(inPackage = "feature..ui..") {
             }
         },
     ) {
-        val composableFunction by rule("Screen functions must be annotated with `@Composable`") { guidance() }
-        val viewModelStateRelationship by rule("Screen functions have a 1:1 relationship with a ViewModel and ViewModel State") { guidance() }
-        val observesState by rule("Screen functions must observe the ViewModel's `state` property and use it to drive the UI") { guidance() }
-        val delegatesInteraction by rule("Screen functions should delegate all user interaction handling to the ViewModel") { guidance() }
-        val overlayViaDsl by rule("Dialog/overlay screens must use the `navigationDestination` DSL with `metadata = { directOverlay() }`") { guidance() }
-        val overlayViewModel by rule("Dialog/overlay screens that need a ViewModel should call `viewModel()` inside the `navigationDestination` block") { guidance() }
+        val composableFunction by guidance("Screen functions must be annotated with `@Composable`")
+        val viewModelStateRelationship by guidance("Screen functions have a 1:1 relationship with a ViewModel and ViewModel State")
+        val observesState by guidance("Screen functions must observe the ViewModel's `state` property and use it to drive the UI")
+        val delegatesInteraction by guidance("Screen functions should delegate all user interaction handling to the ViewModel")
+        val overlayViaDsl by guidance("Dialog/overlay screens must use the `navigationDestination` DSL with `metadata = { directOverlay() }`")
+        val overlayViewModel by guidance("Dialog/overlay screens that need a ViewModel should call `viewModel()` inside the `navigationDestination` block")
 
         val screenContentCompanion by rule("Screen functions must be paired with an `internal [Name]ScreenContent` composable in the same file") {
             rationale(
@@ -163,8 +163,8 @@ object UiLayer : RuleGroup(inPackage = "feature..ui..") {
         isAnnotatedWith("Serializable"),
         hasFileNameMatchingDeclaration,
     ) {
-        val minimalData by rule("Destinations should accept the minimal data required to initialise the associated Screen") { guidance() }
-        val definedInApiOrClient by rule("Destinations may live in `:api` (shared entry point / server-driven) or `:client` (internal only)") { guidance() }
+        val minimalData by guidance("Destinations should accept the minimal data required to initialise the associated Screen")
+        val definedInApiOrClient by guidance("Destinations may live in `:api` (shared entry point / server-driven) or `:client` (internal only)")
     }
 
     // §4.2.3 ViewModels
@@ -220,7 +220,7 @@ object UiLayer : RuleGroup(inPackage = "feature..ui..") {
             }
         }
 
-        val injectsDomainInterfaces by rule("ViewModels should inject domain interfaces to load and manipulate domain objects") { guidance() }
+        val injectsDomainInterfaces by guidance("ViewModels should inject domain interfaces to load and manipulate domain objects")
 
         val usesJobManager by rule("ViewModels must use `JobManager` to manage coroutines — never hold `var job: Job?` references") {
             rationale(
@@ -257,12 +257,12 @@ object UiLayer : RuleGroup(inPackage = "feature..ui..") {
             }
         }
 
-        val viewModelRelationship by rule("ViewModel State objects have a 1:1 relationship with a ViewModel type") { guidance() }
-        val usesAsyncState by rule("ViewModel State objects must use `AsyncState<T>` / `UpdatableState<T>` for asynchronously loaded data and action progress") { guidance() }
-        val noCustomAsyncSealedTypes by rule("ViewModel State objects must not define custom sealed types for loading/success/error — use `AsyncState<T>`") { guidance() }
-        val transparentContainer by rule("ViewModel State objects should be a transparent container for domain objects, not lossy UI-level mappings") { guidance() }
-        val invariantInitBlocks by rule("ViewModel State objects should include `init` blocks that enforce invariants") { guidance() }
-        val formattingInScreen by rule("Formatting and visual representation must be handled by the Screen or specialized `@Composable` properties/functions") { guidance() }
+        val viewModelRelationship by guidance("ViewModel State objects have a 1:1 relationship with a ViewModel type")
+        val usesAsyncState by guidance("ViewModel State objects must use `AsyncState<T>` / `UpdatableState<T>` for asynchronously loaded data and action progress")
+        val noCustomAsyncSealedTypes by guidance("ViewModel State objects must not define custom sealed types for loading/success/error — use `AsyncState<T>`")
+        val transparentContainer by guidance("ViewModel State objects should be a transparent container for domain objects, not lossy UI-level mappings")
+        val invariantInitBlocks by guidance("ViewModel State objects should include `init` blocks that enforce invariants")
+        val formattingInScreen by guidance("Formatting and visual representation must be handled by the Screen or specialized `@Composable` properties/functions")
     }
 
     // §4.2 UI value types (enum / sealed flow tags)
@@ -278,7 +278,7 @@ object UiLayer : RuleGroup(inPackage = "feature..ui..") {
     )
 
     // §3.2 ui package dependencies (layer-level — not tied to one construct)
-    val mayDependOnDomain by rule("May depend on `domain`") { guidance() }
+    val mayDependOnDomain by guidance("May depend on `domain`")
 
     val noImplementingDomainInterfaces by rule("Forbidden from implementing `domain` interfaces") {
         rationale(

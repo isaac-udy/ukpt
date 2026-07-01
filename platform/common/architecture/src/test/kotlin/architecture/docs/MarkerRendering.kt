@@ -2,6 +2,7 @@ package architecture.docs
 
 import architecture.registry.Construct
 import architecture.registry.DelegatedConstraint
+import architecture.registry.NotEnforced
 import architecture.registry.Rule
 import architecture.registry.RuleGroup
 import architecture.registry.Status
@@ -51,7 +52,7 @@ internal fun expandMarkers(
             }
             "rule" -> when (val rule = catalog.rulesById[arg]) {
                 null -> errors += "$where: {{rule:$arg}} does not match any rule in the catalog"
-                else -> out.append(renderRuleBullet(rule, indent = ""))
+                else -> out.append(renderRuleBullet(rule))
             }
             "toc" -> when (toc) {
                 null -> errors += "$where: {{toc}} is only supported in the README template"
@@ -63,26 +64,66 @@ internal fun expandMarkers(
     return out.toString()
 }
 
+/**
+ * A construct section's generated tail: the **Definition** (classification requirements), then the
+ * enforced **Rules**, then the advisory **Guidance** — each block only when non-empty.
+ */
 internal fun renderConstructBlock(construct: Construct): String = buildString {
-    appendLine("* **Construct** `${construct.id}` (`${Tag.CONSTRUCT.marker}`) — a declaration is this construct when it satisfies all of:")
-    construct.requirements.forEach { appendLine("    * ${it.description}") }
-    val rules = construct.declaredRules.filter { it.status is Status.Active }
+    appendLine("**Definition** — a declaration is a `${construct.id}` when it satisfies all of:")
+    appendLine()
+    construct.requirements.forEach { appendLine("* ${it.description}") }
+    val (guidance, rules) = construct.declaredRules
+        .filter { it.status is Status.Active }
+        .partition { it.tag == Tag.GUIDANCE }
     if (rules.isNotEmpty()) {
-        appendLine("* **Rules**:")
-        rules.forEach { append(renderRuleBullet(it, indent = "    ")) }
+        appendLine()
+        appendLine("**Rules**:")
+        appendLine()
+        rules.forEach { append(renderRuleBullet(it)) }
+    }
+    if (guidance.isNotEmpty()) {
+        appendLine()
+        appendLine("**Guidance**:")
+        appendLine()
+        guidance.forEach { append(renderRuleBullet(it)) }
     }
 }
 
+internal fun groupRules(group: RuleGroup): List<Rule> =
+    group.declaredRules.filter { it.status is Status.Active && it.tag != Tag.GUIDANCE }
+
+internal fun groupGuidance(group: RuleGroup): List<Rule> =
+    group.declaredRules.filter { it.status is Status.Active && it.tag == Tag.GUIDANCE }
+
+/** For the `{{rules:Group}}` marker: the enforced rules, then the guidance, with labels. */
 internal fun renderGroupRules(group: RuleGroup): String = buildString {
-    group.declaredRules.filter { it.status is Status.Active }.forEach { append(renderRuleBullet(it, indent = "")) }
+    val rules = groupRules(group)
+    val guidance = groupGuidance(group)
+    if (rules.isNotEmpty()) {
+        appendLine("**Rules**:")
+        appendLine()
+        rules.forEach { append(renderRuleBullet(it)) }
+    }
+    if (guidance.isNotEmpty()) {
+        if (rules.isNotEmpty()) appendLine()
+        appendLine("**Guidance**:")
+        appendLine()
+        guidance.forEach { append(renderRuleBullet(it)) }
+    }
 }
 
-private fun renderRuleBullet(rule: Rule, indent: String): String = buildString {
-    appendLine("$indent* **`${rule.id}`** `${rule.tag.marker}` — ${rule.title}")
-    if (rule.rationale.isNotBlank()) appendLine("$indent    * **Why**: ${collapse(rule.rationale)}")
-    rule.notes.forEach { appendLine("$indent    * **Note**: ${collapse(it)}") }
-    (rule.enforcement as? DelegatedConstraint)?.let { delegated ->
-        appendLine("$indent    * **Enforced by**: ${delegated.by.joinToString(", ") { "`$it`" }}")
+/** Statement first; the id and any context sit underneath, so the rule itself is what you read. */
+internal fun renderRuleBullet(rule: Rule): String = buildString {
+    appendLine("* ${rule.title}")
+    appendLine("    * **ID**: `${rule.id}`")
+    if (rule.rationale.isNotBlank()) appendLine("    * **Why**: ${collapse(rule.rationale)}")
+    rule.notes.forEach { appendLine("    * **Note**: ${collapse(it)}") }
+    when (val enforcement = rule.enforcement) {
+        is DelegatedConstraint -> appendLine("    * **Enforced by**: ${enforcement.by.joinToString(", ") { "`$it`" }}")
+        is NotEnforced -> if (enforcement.tag == Tag.CODEGEN) {
+            appendLine("    * **Enforced by**: the `dev.isaacudy.udytils.postgres` code generator")
+        }
+        else -> {}
     }
 }
 

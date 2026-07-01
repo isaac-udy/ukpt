@@ -53,8 +53,12 @@ The exemption applies to the immediately-following dependency line. Multiple `ar
 
 ## Rules for adding exceptions
 
-* **`ProjectRules.exceptionsNeedHumanSignOff`** `📋 guidance` — Architecture exceptions may only be added after discussing the exception with a human author
-* **`ProjectRules.exceptionNotForFailingTests`** `📋 guidance` — Adding an architecture exception is not a valid way to resolve an immediate architecture-test failure without user feedback — fix the code or the rule first
-* **`ProjectRules.exceptionNeedsKdoc`** `📋 guidance` — Every architecture exception must include a KDoc-style (`/** ... */`) comment explaining why it exists and the intended resolution
-* **`ProjectRules.exceptionsAreTemporary`** `📋 guidance` — Architecture exceptions are temporary — revisit them periodically and remove them once the underlying issue is resolved
+* Architecture exceptions may only be added after discussing the exception with a human author
+    * **ID**: `ProjectRules.exceptionsNeedHumanSignOff`
+* Adding an architecture exception is not a valid way to resolve an immediate architecture-test failure without user feedback — fix the code or the rule first
+    * **ID**: `ProjectRules.exceptionNotForFailingTests`
+* Every architecture exception must include a KDoc-style (`/** ... */`) comment explaining why it exists and the intended resolution
+    * **ID**: `ProjectRules.exceptionNeedsKdoc`
+* Architecture exceptions are temporary — revisit them periodically and remove them once the underlying issue is resolved
+    * **ID**: `ProjectRules.exceptionsAreTemporary`
 

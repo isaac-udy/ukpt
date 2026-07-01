@@ -15,7 +15,7 @@ import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
 
 /**
  * The `domain` layer (§3.1, §4.1) in the object style. Each construct's requirements (the
- * `🔶 construct` classification) are the predicate list in its `Construct(...)` header; its rules
+ * `construct` classification) are the predicate list in its `Construct(...)` header; its rules
  * ("what it must do") are `val x by rule(...)` in the body. Layer-level package rules live on the
  * group. Rule ids are the exact object/property names, e.g. `DomainLayer.UseCase.noOverridingDefaults`.
  */
@@ -37,10 +37,10 @@ object DomainLayer : RuleGroup(inPackage = "feature..domain..") {
             !hasFlowReturn || decl.name.startsWith("FlowOf")
         },
     ) {
-        val interfaceDefaults by rule("May define additional default functions that call the primary function") { guidance() }
-        val primaryParameterTypes by rule("Primary-function parameters must be domain objects, nested types, primitives, or collections of those") { guidance() }
-        val primaryReturnType by rule("Primary-function return type must be domain objects, nested types, primitives, collections of those, or no value") { guidance() }
-        val implementedByRepositoryOrUseCase by rule("Must be implemented by a Repository (as a property) or by a UseCase") { guidance() }
+        val interfaceDefaults by guidance("May define additional default functions that call the primary function")
+        val primaryParameterTypes by guidance("Primary-function parameters must be domain objects, nested types, primitives, or collections of those")
+        val primaryReturnType by guidance("Primary-function return type must be domain objects, nested types, primitives, collections of those, or no value")
+        val implementedByRepositoryOrUseCase by guidance("Must be implemented by a Repository (as a property) or by a UseCase")
 
         val errorsViaExceptions by rule("Functions propagate errors via thrown exceptions, never via the return type") {
             rationale(
@@ -83,10 +83,10 @@ object DomainLayer : RuleGroup(inPackage = "feature..domain..") {
             }
         }
 
-        val nestedValueClassIds by rule("Should use nested value classes for identifiers where appropriate") { guidance() }
-        val sealedHierarchies by rule("Should use sealed interface hierarchies to model polymorphic data where appropriate") { guidance() }
-        val invariantInitBlocks by rule("Should include `init` blocks that enforce invariants") { guidance() }
-        val nestedTypes by rule("Should use nested types when conceptually inseparable from the parent") { guidance() }
+        val nestedValueClassIds by guidance("Should use nested value classes for identifiers where appropriate")
+        val sealedHierarchies by guidance("Should use sealed interface hierarchies to model polymorphic data where appropriate")
+        val invariantInitBlocks by guidance("Should include `init` blocks that enforce invariants")
+        val nestedTypes by guidance("Should use nested types when conceptually inseparable from the parent")
     }
 
     // §4.1.3 UseCases
@@ -120,8 +120,8 @@ object DomainLayer : RuleGroup(inPackage = "feature..domain..") {
             }
         }
 
-        val mayInjectDomainInterfaces by rule("May inject domain interfaces to perform its logic") { guidance() }
-        val breakDownComplexUseCases by rule("If it becomes too complex, break it into private/file-private/nested parts") { guidance() }
+        val mayInjectDomainInterfaces by guidance("May inject domain interfaces to perform its logic")
+        val breakDownComplexUseCases by guidance("If it becomes too complex, break it into private/file-private/nested parts")
     }
 
     // §4.1 Domain exceptions, constants, extensions
@@ -145,7 +145,7 @@ object DomainLayer : RuleGroup(inPackage = "feature..domain..") {
             receiverOk && returnOk && parametersOk
         },
     ) {
-        val noPlatformDeps by rule("Domain extension functions must not introduce platform-specific dependencies") { guidance() }
+        val noPlatformDeps by guidance("Domain extension functions must not introduce platform-specific dependencies")
     }
 
     object DomainExtensionProperty : Construct(

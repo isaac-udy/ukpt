@@ -12,7 +12,7 @@ import com.lemonappdev.konsist.api.provider.KoResideInPackageProvider
  * Unlike the other groups this is **not** a package layer: there is no `ProjectLayer` of
  * classifying constructs, so every rule here is layer-level (project-wide) and there is no
  * `inPackage`, hence no exhaustiveness rule. The tested rules are expressed with `scope { }`
- * over the whole Konsist scope; the §6 sign-off rules are 📋 guidance enforced by human review.
+ * over the whole Konsist scope; the §6 sign-off rules are guidance enforced by human review.
  *
  * Rule ids are the object/property path, e.g. `ProjectRules.noCatchException`.
  */
@@ -110,7 +110,7 @@ object ProjectRules : RuleGroup() {
     }
 
     // ---- §5.3 Action and request types -------------------------------------------------------
-    val sealedActionVariants by rule(
+    val sealedActionVariants by guidance(
         "Model action/request variants as a `sealed interface`/`sealed class` (each variant a `data class`), not a single type with an `enum` discriminator and nullable fields",
     ) {
         rationale(
@@ -120,25 +120,24 @@ object ProjectRules : RuleGroup() {
             """.trimIndent(),
         )
         note("Enforced by review, not a static test — \"an enum that should be a sealed class\" can't be detected reliably by Konsist.")
-        guidance()
     }
 
-    // ---- §6.3 Architecture-exception sign-off (all 📋 guidance — enforced by human review) ----
-    val exceptionsNeedHumanSignOff by rule(
+    // ---- §6.3 Architecture-exception sign-off (all guidance — enforced by human review) ----
+    val exceptionsNeedHumanSignOff by guidance(
         "Architecture exceptions may only be added after discussing the exception with a human author",
-    ) { guidance() }
+    )
 
-    val exceptionNotForFailingTests by rule(
+    val exceptionNotForFailingTests by guidance(
         "Adding an architecture exception is not a valid way to resolve an immediate architecture-test failure without user feedback — fix the code or the rule first",
-    ) { guidance() }
+    )
 
-    val exceptionNeedsKdoc by rule(
+    val exceptionNeedsKdoc by guidance(
         "Every architecture exception must include a KDoc-style (`/** ... */`) comment explaining why it exists and the intended resolution",
-    ) { guidance() }
+    )
 
-    val exceptionsAreTemporary by rule(
+    val exceptionsAreTemporary by guidance(
         "Architecture exceptions are temporary — revisit them periodically and remove them once the underlying issue is resolved",
-    ) { guidance() }
+    )
 }
 
 /**

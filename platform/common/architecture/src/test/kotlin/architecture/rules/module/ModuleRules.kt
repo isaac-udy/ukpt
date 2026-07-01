@@ -18,7 +18,7 @@ object ModuleRules : RuleGroup() {
         }
     }
 
-    val featureMayUsePlatform by rule("`:feature` modules may depend on `:platform` modules") { guidance() }
+    val featureMayUsePlatform by guidance("`:feature` modules may depend on `:platform` modules")
 
     val clientApiOnly by rule("`:feature:[name]:client` must never depend on another `:client`/`:server` module") {
         rationale("A feature's client may only reach other features through their `:api` contract, or `:platform`.")
@@ -48,14 +48,12 @@ object ModuleRules : RuleGroup() {
         enforcedBy(serverApiOnly)
     }
 
-    val apiMayUseApi by rule("`:feature:[name]:api` may depend on another feature's `:api` module to share models") {
+    val apiMayUseApi by guidance("`:feature:[name]:api` may depend on another feature's `:api` module to share models") {
         note("`:api` to `:api` dependencies are allowed, but should be used sparingly, treated with caution, and minimised where possible.")
-        guidance()
     }
 
-    val featuresMayBeGrouped by rule("`:feature` modules may be grouped (`:feature:[group]:[name]:…`)") {
+    val featuresMayBeGrouped by guidance("`:feature` modules may be grouped (`:feature:[group]:[name]:…`)") {
         note("A module that serves as a group should exist only as a group, and should not itself contain `:api`, `:server` or `:client` modules.")
-        guidance()
     }
 
     val platformNotApp by rule("`:platform` modules must never depend on `:app` modules") {
@@ -74,9 +72,8 @@ object ModuleRules : RuleGroup() {
         }
     }
 
-    val platformMayUsePlatform by rule("`:platform` modules may depend on other `:platform` modules") {
+    val platformMayUsePlatform by guidance("`:platform` modules may depend on other `:platform` modules") {
         note("`:platform` to `:platform` dependencies are allowed, but should be used sparingly, treated with caution, and minimised where possible.")
-        guidance()
     }
 }
 

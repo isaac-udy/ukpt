@@ -15,7 +15,7 @@ import com.lemonappdev.konsist.api.declaration.KoParentDeclaration
  * that fan out across Services and client-side local persistence (`data.storage`). Server-side
  * persistence lives in the `services` axis, not here.
  *
- * Each construct's requirements (the `🔶 construct` classification) are the predicate list in its
+ * Each construct's requirements (the `construct` classification) are the predicate list in its
  * `Construct(...)` header; its rules ("what the construct must do") are `val x by rule(...)` in the
  * body. Only the package-dependency rules, which aren't tied to a single construct, live at the layer
  * level. Rule ids are the exact object/property names, e.g. `DataLayer.Repository.doesNotInjectRepositories`.
@@ -97,7 +97,7 @@ object DataLayer : RuleGroup(inPackage = "feature..data..") {
             }
         }
 
-        val mayInjectServicesStorageOrClients by rule("May inject Services, client-side `data.storage` Storage objects, or database clients to fulfill their domain properties") { guidance() }
+        val mayInjectServicesStorageOrClients by guidance("May inject Services, client-side `data.storage` Storage objects, or database clients to fulfill their domain properties")
     }
 
     // §4.3.1.1 Non-Repository client data abstractions
@@ -129,7 +129,7 @@ object DataLayer : RuleGroup(inPackage = "feature..data..") {
             pkg.containsPackageSegment("data") && pkg.containsPackageSegment("storage")
         },
     ) {
-        val internalVisibility by rule("Storage classes must be marked as `internal` (the `expect` declaration may be public, but `actual` implementations should be `internal` where the language allows)") { guidance() }
+        val internalVisibility by guidance("Storage classes must be marked as `internal` (the `expect` declaration may be public, but `actual` implementations should be `internal` where the language allows)")
 
         val doesNotInjectDomainRepositoriesOrServices by rule("Storage classes are forbidden from injecting domain interfaces, Repositories, or Services") {
             rationale(
@@ -154,9 +154,8 @@ object DataLayer : RuleGroup(inPackage = "feature..data..") {
     }
 
     // §3.3 `data` package dependencies (layer-level — not tied to one construct)
-    val providesDomainImplementations by rule("Provides implementations of `domain` interfaces — by exposing them as properties, not by inheriting them") {
+    val providesDomainImplementations by guidance("Provides implementations of `domain` interfaces — by exposing them as properties, not by inheriting them") {
         note("Enforced via the `DataLayer.Repository` construct's classification: a class that implements a domain interface (or doesn't expose one as a `public val`) isn't recognised as a Repository.")
-        guidance()
     }
 
     val noInjectingDomainInterfaces by rule("Forbidden from injecting `domain` interfaces — logic requiring multiple domain interfaces must be moved to a UseCase") {
@@ -183,7 +182,7 @@ object DataLayer : RuleGroup(inPackage = "feature..data..") {
         }
     }
 
-    val storageInternalVisibility by rule("`data.storage` classes use `internal` visibility where the language allows (see `DataLayer.ClientStorage.internalVisibility` for the canonical statement, incl. the `expect`/`actual` nuance)") { guidance() }
+    val storageInternalVisibility by guidance("`data.storage` classes use `internal` visibility where the language allows (see `DataLayer.ClientStorage.internalVisibility` for the canonical statement, incl. the `expect`/`actual` nuance)")
 
     val noUiDeps by rule("Must not depend on the `ui` package") {
         rationale(

@@ -1,6 +1,6 @@
 # Dependency modules
 
-* **Definition**: The configuration for Dependency Injection (DI) that wires the feature together.
+The configuration for Dependency Injection (DI) that wires the feature together.
 * **Note**: The naming convention is `[name]ClientDependencies` in `:client` and `[name]ServerDependencies` in `:server` — the construct enforces the `Dependencies` suffix; the `Client`/`Server` infix is convention.
 * **Note**: It is the responsibility of `:app` level modules (application shells) to collect all of the DI modules provided by feature modules and create the final dependency graph. When a new dependency module is added, it must be registered in both `:app:client:shared` and `:app:server`; when a new Service is added, it must be registered in `:app:server`.
 * **Example** (registering a urpc service in `:server`, per `FeatureRules.DependencyModule.urpcServiceBinding`):

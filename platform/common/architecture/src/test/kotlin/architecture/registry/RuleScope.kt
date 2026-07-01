@@ -2,7 +2,8 @@ package architecture.registry
 
 /**
  * Common `rule { … }` block receiver. Each builder RETURNS the [Enforcement], so a rule block ends in
- * exactly one of `scope`/`moduleGraph`/`constrain`/`enforcedBy`/`guidance`/`codegen`.
+ * exactly one of `scope`/`moduleGraph`/`constrain`/`enforcedBy`/`codegen`. Advisory conventions are
+ * not rules — declare them with the `guidance(…)` delegate instead.
  */
 abstract class BaseRuleScope internal constructor() {
     internal var rationaleText: String = ""
@@ -17,20 +18,35 @@ abstract class BaseRuleScope internal constructor() {
         notes += text
     }
 
-    /** ✅ tested over the whole Konsist scope. */
+    /** Tested over the whole Konsist scope. */
     fun scope(check: ScopeCheck): Enforcement = ScopeConstraint(check)
 
-    /** ✅ tested, but enforced transitively by the rules it names. */
+    /** Tested, but enforced transitively by the rules it names. */
     fun enforcedBy(vararg ruleIds: String): Enforcement = DelegatedConstraint(ruleIds.toList())
     fun enforcedBy(vararg rules: Rule): Enforcement = DelegatedConstraint(rules.map { it.id })
-    fun guidance(): Enforcement = NotEnforced(Tag.GUIDANCE)
+
+    /** Guaranteed by the postgres code generator — nothing in `src/` for Konsist to scan. */
     fun codegen(): Enforcement = NotEnforced(Tag.CODEGEN)
 }
 
 /** Block receiver for a group-level `rule { }`. */
 class RuleScope internal constructor() : BaseRuleScope() {
-    /** ✅ tested over the parsed module dependency graph. */
+    /** Tested over the parsed module dependency graph. */
     fun moduleGraph(check: ModuleGraphCheck): Enforcement = ModuleGraphConstraint(check)
+}
+
+/** Block receiver for a `guidance(…) { }` declaration — context only, no enforcement to choose. */
+class GuidanceScope internal constructor() {
+    internal var rationaleText: String = ""
+    internal val notes = mutableListOf<String>()
+
+    fun rationale(text: String) {
+        rationaleText = text
+    }
+
+    fun note(text: String) {
+        notes += text
+    }
 }
 
 /** Block receiver for a construct's `rule { }` — adds [constrain], scoped to the construct's population. */

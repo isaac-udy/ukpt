@@ -1,6 +1,6 @@
 # Client-side Storage classes (`data.storage`)
 
-* **Definition**: A class responsible for local-device data persistence and retrieval (e.g., credentials, preferences, cached data on disk) — `expect`/`actual` `Storage` classes backed by Keychain (iOS), SharedPreferences (Android), DataStore, etc.
+A class responsible for local-device data persistence and retrieval (e.g., credentials, preferences, cached data on disk) — `expect`/`actual` `Storage` classes backed by Keychain (iOS), SharedPreferences (Android), DataStore, etc.
 * **Note**: Client-side Storage classes may be `expect`/`actual` classes when the underlying storage mechanism is platform-specific (e.g., Keychain on iOS, SharedPreferences on Android).
 * **Example**:
 ```kotlin

@@ -15,10 +15,10 @@ import kotlin.properties.ReadOnlyProperty
  *   }
  *
  * Groups/constructs are `object`s, so cross-layer references are direct compile-time calls
- * (`DomainLayer.DomainInterface.test(x)`). Requirements (the `🔶 construct` classification) are the
+ * (`DomainLayer.DomainInterface.test(x)`). Requirements (the construct classification) are the
  * composable predicate list in the `Construct(...)` header — AND-composed, no ids. Rules ("what it
- * DOES") are `val x by rule(...)` and take their id from the exact object/property names. Constructs
- * are discovered by reflection — no explicit list.
+ * DOES") are `val x by rule(...)`; advisory conventions are `val x by guidance(...)`. Both take
+ * their id from the exact object/property names. Constructs are discovered by reflection.
  */
 
 /** "DataLayer.Repository.ruleName" / "DataLayer.Repository" / "DataLayer.ruleName" — exact names. */
@@ -59,6 +59,18 @@ abstract class Construct(vararg requirements: Requirement) : RuleContainer() {
             declaredRules += rule
             ReadOnlyProperty { _, _ -> rule }
         }
+
+    /** An advisory convention — documented and reviewed, never machine-checked. */
+    protected fun guidance(
+        statement: String,
+        block: GuidanceScope.() -> Unit = {},
+    ): PropertyDelegateProvider<Construct, ReadOnlyProperty<Construct, Rule>> =
+        PropertyDelegateProvider { _, property ->
+            val scope = GuidanceScope().apply(block)
+            val rule = Rule(pathOf(this, property.name), statement, scope.rationaleText, NotEnforced(Tag.GUIDANCE), Status.Active, scope.notes.toList())
+            declaredRules += rule
+            ReadOnlyProperty { _, _ -> rule }
+        }
 }
 
 /** A rule group / layer: `object DataLayer : RuleGroup(inPackage = "feature..data..")`. */
@@ -78,6 +90,18 @@ abstract class RuleGroup(val inPackage: String? = null) : RuleContainer() {
             val scope = RuleScope()
             val enforcement = scope.block()
             val rule = Rule(pathOf(this, property.name), statement, scope.rationaleText, enforcement, Status.Active, scope.notes.toList())
+            declaredRules += rule
+            ReadOnlyProperty { _, _ -> rule }
+        }
+
+    /** An advisory convention — documented and reviewed, never machine-checked. */
+    protected fun guidance(
+        statement: String,
+        block: GuidanceScope.() -> Unit = {},
+    ): PropertyDelegateProvider<RuleGroup, ReadOnlyProperty<RuleGroup, Rule>> =
+        PropertyDelegateProvider { _, property ->
+            val scope = GuidanceScope().apply(block)
+            val rule = Rule(pathOf(this, property.name), statement, scope.rationaleText, NotEnforced(Tag.GUIDANCE), Status.Active, scope.notes.toList())
             declaredRules += rule
             ReadOnlyProperty { _, _ -> rule }
         }

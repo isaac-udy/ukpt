@@ -4,6 +4,6 @@ The `domain` axis is the deepest layer of a feature and appears in all three mod
 
 The `domain` package must only contain [domain interfaces](#domain-interfaces), [domain objects](#domain-objects), [UseCases](#usecases), [domain exceptions](#domain-exceptions), [domain constants](#domain-constants), [domain extension functions](#domain-extension-functions), and [domain extension properties](#domain-extension-properties).
 
-The [Layer rules](#layer-rules) below apply across the whole `feature.[name].domain` package.
+The [Rules](#rules) below apply across the whole `feature.[name].domain` package.
 
 * **Note**: Cross-feature domain dependencies should be minimised where possible, but are permitted because real-world domains have genuine dependencies between them. The important thing is getting the direction of dependencies correct and avoiding circular dependencies.

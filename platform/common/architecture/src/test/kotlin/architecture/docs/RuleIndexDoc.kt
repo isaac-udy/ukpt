@@ -9,7 +9,7 @@ import architecture.registry.prepare
 
 /**
  * The `docs/rule-index.md` page: every construct and rule in the catalog, in document order — per
- * group, each construct (a `🔶 construct` classification row whose statement is its AND-composed
+ * group, each construct (a `construct` classification row whose statement is its AND-composed
  * requirements) with its rules, then the group-level rules, then the layer's exhaustiveness rule;
  * finally the global membership rule.
  */
@@ -18,8 +18,8 @@ internal fun renderRuleIndexDoc(groups: List<RuleGroup>): String = buildString {
     appendLine()
     appendLine(
         "The complete catalog, one row per construct or rule. Ids are object/property paths " +
-            "(see the [README](../README.md)). `✅ tested` = executable check · `🔶 construct` = " +
-            "classification requirements · `📋 guidance` = documented convention · `⚙️ codegen` = " +
+            "(see the [README](../README.md)). `tested` = executable check · `construct` = " +
+            "classification requirements · `guidance` = documented convention · `codegen` = " +
             "delegated to code generation.",
     )
     appendLine()

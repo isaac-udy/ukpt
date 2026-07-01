@@ -37,23 +37,37 @@ The project is organized into three root-level module groups — `:app`, `:featu
     * **`:client`**: Client-only infrastructure (e.g., Design System, local DB drivers).
     * **`:server`**: Server-only infrastructure (e.g., Ktor plugins, and `:platform:server:postgres` — which owns the Flyway SQL migrations + `schema.sql` and applies the `dev.isaacudy.udytils.postgres` codegen plugin; the DB runtime itself lives in that udytils library).
 
-## Layer rules
+## Rules
 
-* **`ModuleRules.featureNotApp`** `✅ tested` — `:feature` modules must never depend on `:app` modules
-* **`ModuleRules.featureMayUsePlatform`** `📋 guidance` — `:feature` modules may depend on `:platform` modules
-* **`ModuleRules.clientApiOnly`** `✅ tested` — `:feature:[name]:client` must never depend on another `:client`/`:server` module
+* `:feature` modules must never depend on `:app` modules
+    * **ID**: `ModuleRules.featureNotApp`
+* `:feature:[name]:client` must never depend on another `:client`/`:server` module
+    * **ID**: `ModuleRules.clientApiOnly`
     * **Why**: A feature's client may only reach other features through their `:api` contract, or `:platform`.
-* **`ModuleRules.clientMayUseApi`** `✅ tested` — `:feature:[name]:client` may depend on any `:feature:[name]:api` module
+* `:feature:[name]:client` may depend on any `:feature:[name]:api` module
+    * **ID**: `ModuleRules.clientMayUseApi`
     * **Enforced by**: `ModuleRules.clientApiOnly`
-* **`ModuleRules.serverApiOnly`** `✅ tested` — `:feature:[name]:server` must never depend on another `:client`/`:server` module
+* `:feature:[name]:server` must never depend on another `:client`/`:server` module
+    * **ID**: `ModuleRules.serverApiOnly`
     * **Why**: A feature's server may only reach other features through their `:api` contract, or `:platform`.
-* **`ModuleRules.serverMayUseApi`** `✅ tested` — `:feature:[name]:server` may depend on any `:feature:[name]:api` module
+* `:feature:[name]:server` may depend on any `:feature:[name]:api` module
+    * **ID**: `ModuleRules.serverMayUseApi`
     * **Enforced by**: `ModuleRules.serverApiOnly`
-* **`ModuleRules.apiMayUseApi`** `📋 guidance` — `:feature:[name]:api` may depend on another feature's `:api` module to share models
+* `:platform` modules must never depend on `:app` modules
+    * **ID**: `ModuleRules.platformNotApp`
+* `:platform` modules must never depend on `:feature` modules
+    * **ID**: `ModuleRules.platformNotFeature`
+
+## Guidance
+
+* `:feature` modules may depend on `:platform` modules
+    * **ID**: `ModuleRules.featureMayUsePlatform`
+* `:feature:[name]:api` may depend on another feature's `:api` module to share models
+    * **ID**: `ModuleRules.apiMayUseApi`
     * **Note**: `:api` to `:api` dependencies are allowed, but should be used sparingly, treated with caution, and minimised where possible.
-* **`ModuleRules.featuresMayBeGrouped`** `📋 guidance` — `:feature` modules may be grouped (`:feature:[group]:[name]:…`)
+* `:feature` modules may be grouped (`:feature:[group]:[name]:…`)
+    * **ID**: `ModuleRules.featuresMayBeGrouped`
     * **Note**: A module that serves as a group should exist only as a group, and should not itself contain `:api`, `:server` or `:client` modules.
-* **`ModuleRules.platformNotApp`** `✅ tested` — `:platform` modules must never depend on `:app` modules
-* **`ModuleRules.platformNotFeature`** `✅ tested` — `:platform` modules must never depend on `:feature` modules
-* **`ModuleRules.platformMayUsePlatform`** `📋 guidance` — `:platform` modules may depend on other `:platform` modules
+* `:platform` modules may depend on other `:platform` modules
+    * **ID**: `ModuleRules.platformMayUsePlatform`
     * **Note**: `:platform` to `:platform` dependencies are allowed, but should be used sparingly, treated with caution, and minimised where possible.
