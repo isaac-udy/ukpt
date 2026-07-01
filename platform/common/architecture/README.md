@@ -192,7 +192,7 @@ Every enforced rule, generated from the catalog by `RegistryArchitectureTest.rul
 
 <!-- RULE-INDEX:END -->
 
-## CI enforcement
+## Running the checks
 
 Run the full architecture suite with `--rerun-tasks` so Konsist's project-scope cache is bypassed — that's load-bearing, because Konsist scans the source tree and a stale cache can mask new violations:
 
@@ -200,7 +200,15 @@ Run the full architecture suite with `--rerun-tasks` so Konsist's project-scope 
 ./gradlew :platform:common:architecture:test --rerun-tasks
 ```
 
-This runs both `architecture()` (every catalog rule) and `ruleIndexMatchesReadme()` (the index above stays in sync). ukpt does not yet wire this into CI. When you want it enforced automatically, add a workflow (e.g. `.github/workflows/pr-verification.yml`) that runs the command above on pull requests.
+`architecture()` reports **one nested test per rule** — `<Layer> › <Construct> › <rule>` — so a failure names the exact rule (e.g. `DataLayer › Repository › doesNotInjectDomainInterfaces`) instead of a single aggregate pass/fail. The same run also checks `ruleIndexMatchesReadme()` (the [rule index](#rule-index) stays in sync) and a sentinel self-check.
+
+After adding or changing a rule, regenerate the index block:
+
+```
+UPDATE_RULE_INDEX=true ./gradlew :platform:common:architecture:test
+```
+
+ukpt does not yet wire this into CI. When you want it enforced automatically, add a workflow (e.g. `.github/workflows/pr-verification.yml`) that runs the first command on pull requests.
 
 ## **1. Gradle Project Structure**
 

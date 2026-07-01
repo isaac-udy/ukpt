@@ -12,7 +12,7 @@ Follow the rules in [`platform/common/architecture/README.md`](./platform/common
 
 - **Module groups**: `:app` (executable shells + DI wiring), `:feature` (vertical slices — `:api` contract, `:client` UI/logic, `:server` implementation), `:platform` (reusable infrastructure).
 - **Feature axes**: `domain`, `ui` (client), `data` (client), `services` (`@Urpc` contracts in `:api`; `ServiceImpl`s + `services.internal` + `services.storage` on `:server`).
-- Every rule has a stable ID (`R-<axis>-NN`) and an enforcement tag — search the README for an ID to find its canonical text. Exempt a declaration that genuinely can't conform with `@ArchitectureException` (README §6), only with human sign-off.
+- The rules are a machine-readable **object catalog** in [`platform/common/architecture/src/test/kotlin/architecture/catalog/`](./platform/common/architecture/src/test/kotlin/architecture/catalog) (a `RuleGroup` object per layer, a nested `Construct` per construct, a rule per property; the engine is in the sibling `registry/`). Every rule has a stable **path ID** — the object/property path, e.g. `DomainLayer.UseCase.noOverridingDefaults` — and an enforcement tag; the README's rule index lists them all. Exempt a declaration that genuinely can't conform with `@ArchitectureException(ruleIds = ["…"])` (README §6), only with human sign-off.
 
 ## Toolchain & constraints
 
@@ -56,8 +56,8 @@ The shared module's Android / JVM / wasm targets compile transitively via the pe
 
 ## Testing
 
-- **Architecture rules**: `./gradlew :platform:common:architecture:test --rerun-tasks`. `--rerun-tasks` is load-bearing — Konsist caches the project scope and a stale cache hides new violations.
-- **UI snapshots** (enforced per screen by `R-UI-38`): record then verify Paparazzi goldens, per client module:
+- **Architecture rules**: `./gradlew :platform:common:architecture:test --rerun-tasks`. `--rerun-tasks` is load-bearing — Konsist caches the project scope and a stale cache hides new violations. The suite reports **one nested test per rule** (`<Layer> › <Construct> › <rule>`), so a failure names the exact rule. After adding or changing a rule, regenerate the README's rule index: `UPDATE_RULE_INDEX=true ./gradlew :platform:common:architecture:test`.
+- **UI snapshots** (enforced per screen by `UiLayer.Composable.screenContentSnapshotTest`): record then verify Paparazzi goldens, per client module:
 ```
 ./gradlew :feature:core:client:recordPaparazzi
 ./gradlew :feature:core:client:verifyPaparazzi
