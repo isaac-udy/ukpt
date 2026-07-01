@@ -7,23 +7,20 @@ import architecture.registry.Rule
 import architecture.registry.RuleGroup
 import architecture.registry.ScopeConstraint
 import architecture.registry.Violation
-import architecture.registry.renderRuleIndex
 import architecture.registry.verify
 import org.junit.jupiter.api.DynamicContainer.dynamicContainer
 import org.junit.jupiter.api.DynamicNode
 import org.junit.jupiter.api.DynamicTest.dynamicTest
 import org.junit.jupiter.api.TestFactory
-import java.io.File
 import kotlin.test.Test
-import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 import kotlin.test.fail
 
 /**
  * The architecture rules. [architecture] reports **every enforced rule as its own nested test**
- * (`layer › construct › rule`) off a single Konsist scan; [ruleIndexMatchesReadme] keeps the
- * README's published index in lock-step with the catalog.
+ * (`layer › construct › rule`) off a single Konsist scan; [ArchitectureDocsTest] keeps the
+ * generated docs in lock-step with the catalog.
  */
 class RegistryArchitectureTest {
 
@@ -65,43 +62,6 @@ class RegistryArchitectureTest {
     }
 
     /**
-     * Doc↔registry sync: the README's `RULE-INDEX` block must list exactly the catalog's constructs
-     * and rules. Regenerate after changing rules with:
-     *
-     *     UPDATE_RULE_INDEX=true ./gradlew :platform:common:architecture:test
-     */
-    @Test
-    fun ruleIndexMatchesReadme() {
-        val readme = readmeFile()
-        val text = readme.readText()
-        val start = "<!-- RULE-INDEX:START -->"
-        val end = "<!-- RULE-INDEX:END -->"
-        val startIdx = text.indexOf(start)
-        val endIdx = text.indexOf(end)
-        require(startIdx >= 0 && endIdx > startIdx) {
-            "README ${readme.path} is missing the rule-index markers ($start … $end)"
-        }
-
-        val expectedBlock = "$start\n\n${renderRuleIndex(UkptArchitecture.all)}\n\n$end"
-        val currentBlock = text.substring(startIdx, endIdx + end.length)
-
-        if (System.getenv("UPDATE_RULE_INDEX") == "true") {
-            if (currentBlock != expectedBlock) {
-                readme.writeText(text.substring(0, startIdx) + expectedBlock + text.substring(endIdx + end.length))
-                println("RULE-INDEX block regenerated in ${readme.path}")
-            }
-            return
-        }
-
-        assertEquals(
-            expectedBlock,
-            currentBlock,
-            "The README rule index is stale relative to the registry. Regenerate it with:\n" +
-                "  UPDATE_RULE_INDEX=true ./gradlew :platform:common:architecture:test",
-        )
-    }
-
-    /**
      * Self-check: proves the runner actually detects and reports violations (so a green
      * [architecture] run means "no violations", not "nothing ran"), and that the module-graph
      * provider parses real edges (so the module rules aren't passing vacuously).
@@ -112,17 +72,6 @@ class RegistryArchitectureTest {
         val message = error.message.orEmpty()
         assertTrue("Sentinel.alwaysFails" in message, "the runner should report the violation by id; was:\n$message")
         assertTrue("Sentinel.graphParses" !in message, "the module graph should parse real edges; was:\n$message")
-    }
-
-    /** Locate the architecture module's README from the test working directory. */
-    private fun readmeFile(): File {
-        File("README.md").let { if (it.exists()) return it }
-        var dir: File? = File("").absoluteFile
-        while (dir != null) {
-            File(dir, "platform/common/architecture/README.md").let { if (it.exists()) return it }
-            dir = dir.parentFile
-        }
-        error("Could not locate platform/common/architecture/README.md from ${File("").absolutePath}")
     }
 }
 
