@@ -3,6 +3,24 @@ This document describes the architecture that should be used for the UKPT projec
 
 These rules are **not maintained by hand**. They are a projection of the machine-readable catalog in [`src/test/kotlin/architecture/catalog/`](src/test/kotlin/architecture/catalog), which is the single source of truth: each layer is a `RuleGroup` object, each construct a nested `Construct` object, and each rule a property on one of them. `RegistryArchitectureTest` both enforces the rules and keeps the [rule index](#rule-index) below in lock-step with them.
 
+## Running the checks
+
+Run the architecture tests — the whole suite, no device or server needed:
+
+```
+./gradlew :platform:common:architecture:test --rerun-tasks
+```
+
+Expect `BUILD SUCCESSFUL`. `architecture()` reports **one nested test per rule** (`<Layer> › <Construct> › <rule>`), so the IDE test runner — or the HTML report at `platform/common/architecture/build/reports/tests/test/index.html` — shows the tree, and a failure names the exact rule (e.g. `DataLayer › Repository › doesNotInjectDomainInterfaces`) rather than one aggregate pass/fail. `--rerun-tasks` is load-bearing: Konsist caches the project scope and a stale cache hides new violations.
+
+After adding or changing a rule, regenerate this document's [rule index](#rule-index):
+
+```
+UPDATE_RULE_INDEX=true ./gradlew :platform:common:architecture:test
+```
+
+ukpt doesn't wire this into CI yet; when you want it enforced automatically, run the first command on pull requests (e.g. a `.github/workflows/pr-verification.yml`).
+
 ## Rule IDs
 
 Every rule and construct has a stable ID that is the **path of the object/property names that declare it**:
@@ -191,24 +209,6 @@ Every enforced rule, generated from the catalog by `RegistryArchitectureTest.rul
 | `architecture.everyDeclarationBelongsToALayer` | ✅ tested | Every feature-module declaration matches exactly one construct across all layers |
 
 <!-- RULE-INDEX:END -->
-
-## Running the checks
-
-Run the full architecture suite with `--rerun-tasks` so Konsist's project-scope cache is bypassed — that's load-bearing, because Konsist scans the source tree and a stale cache can mask new violations:
-
-```
-./gradlew :platform:common:architecture:test --rerun-tasks
-```
-
-`architecture()` reports **one nested test per rule** — `<Layer> › <Construct> › <rule>` — so a failure names the exact rule (e.g. `DataLayer › Repository › doesNotInjectDomainInterfaces`) instead of a single aggregate pass/fail. The same run also checks `ruleIndexMatchesReadme()` (the [rule index](#rule-index) stays in sync) and a sentinel self-check.
-
-After adding or changing a rule, regenerate the index block:
-
-```
-UPDATE_RULE_INDEX=true ./gradlew :platform:common:architecture:test
-```
-
-ukpt does not yet wire this into CI. When you want it enforced automatically, add a workflow (e.g. `.github/workflows/pr-verification.yml`) that runs the first command on pull requests.
 
 ## **1. Gradle Project Structure**
 
