@@ -42,10 +42,10 @@ package feature.<name>.services
 
 import kotlinx.coroutines.flow.Flow
 
-// internal (R-SVC-05); name = <Name>ServiceImpl (R-SVC-04); package feature.<name>.services (R-SVC-06).
+// ServicesLayer.ServiceImpl construct: internal, named <Name>ServiceImpl, in feature.<name>.services on :server.
 internal class <Name>ServiceImpl(
     // inject services.storage / services.internal of THIS feature, or other features' :api contracts.
-    // Never inject a domain interface (R-SVC-07).
+    // Never inject a domain interface (ServicesLayer.ServiceImpl.noInjectingDomainInterfaces).
 ) : <Name>Service {
     override suspend fun create(request: <Name>Service.Create.Request): <Name>Service.Create.Response {
         TODO("implement")

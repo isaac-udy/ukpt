@@ -29,8 +29,8 @@ also stands up the host (Step 5). Copy-paste skeletons are in `templates.md`.
 2. **Generate** — run the compile sweep (see CLAUDE.md §Compiling) so KSP emits `<Name>ServiceUrpcBinding`
    + the client before Steps 3–4 reference them.
 3. **Implement** (`:server`, `feature.<name>.services`): `internal class <Name>ServiceImpl(...) : <Name>Service`
-   (R-SVC-04/05/06). Orchestrate only — inject this feature's `services.storage`/`services.internal` or other
-   features' `:api` contracts; **never domain interfaces** (R-SVC-07). Skip `services.storage` unless the
+   (the `ServicesLayer.ServiceImpl` construct). Orchestrate only — inject this feature's `services.storage`/`services.internal` or other
+   features' `:api` contracts; **never domain interfaces** (`ServicesLayer.ServiceImpl.noInjectingDomainInterfaces`). Skip `services.storage` unless the
    feature truly persists (that needs the `:platform:server:postgres` setup — flag it, don't auto-scaffold).
 4. **Bind in DI** (`:server`, `feature.<name>`): a `<name>ServerDependencies` Koin module (templates.md §3):
    ```kotlin
@@ -42,7 +42,7 @@ also stands up the host (Step 5). Copy-paste skeletons are in `templates.md`.
    binding to the single `UrpcService` type, so registering a second service overwrites the first and the host's
    `getAll<UrpcService>()` returns only one → **every other service 404s**. `bindService`/`urpcService` register
    each binding under its own concrete type and add `UrpcService` as a *secondary* type, so all coexist.
-   (R-FEAT-04: use constructor-reference binding style, not `single<T> { … }` lambdas.)
+   (`FeatureRules.constructorReferenceBindings`: use constructor-reference binding style, not `single<T> { … }` lambdas.)
 5. **First service only — stand up the host** (idempotent; skip if already wired):
    - `Server.kt` → `install(Koin) { modules(<name>ServerDependencies) }`, `install(WebSockets)` (**required even
      for unary calls**), `routing { urpcWithKoin() }` (templates.md §4).
@@ -50,20 +50,20 @@ also stands up the host (Step 5). Copy-paste skeletons are in `templates.md`.
      `gradle/libs.versions.toml`, then `implementation(libs.urpc.koin)` + `implementation(libs.koin.ktor)` to
      `app/server/build.gradle.kts` (templates.md §5).
    - Register each later feature's `<name>ServerDependencies` in the host's `modules(...)` list.
-6. **Errors** — service exceptions must be `@Serializable` (R-PROJ-02) so urpc carries type + message to the
+6. **Errors** — service exceptions must be `@Serializable` (`ProjectRules.serviceExceptionsSerializable`) so urpc carries type + message to the
    client; prefer subclassing `PresentableException` with a deliberate `retryable` flag (templates.md §6). Never
    `catch (Exception)` — deserialized urpc errors may not extend `Exception`; use `catch (t: Throwable)` or a
-   specific type (R-PROJ-01).
+   specific type (`ProjectRules.noCatchException`).
 7. **Verify** — the full compile sweep (all 6 targets) + `./gradlew :platform:common:architecture:test --rerun-tasks`
    (`--rerun-tasks` is load-bearing). If a web client consumes the service, also run the `verify-web` skill.
 
-## Rule cheat-sheet (canonical text lives in the architecture README — search the ID)
-- **R-SVC-04/05/06** — impl is `<Name>ServiceImpl`, `internal`, in `feature.<name>.services` on `:server`.
-- **R-SVC-07/08** — impls don't inject domain interfaces; may inject storage/internal + other features' `:api`.
-- **R-SVC-09** — a `services.internal.<subsystem>` island may not import a different sibling subsystem.
-- **R-SVC-13** — storage classes take/return `XxxRow` only, never domain types.
-- **R-FEAT-01/02/04/05** — DI is a `val <name>ServerDependencies` module in `feature.<name>`; constructor-ref bindings; the `scope<UrpcCall> { … bindService(…) }` form above.
-- **R-PROJ-01/02** — no `catch (Exception)`; `@Serializable` service exceptions.
+## Rule cheat-sheet (canonical text lives in `platform/common/architecture/docs/` — search the ID)
+- **`ServicesLayer.ServiceImpl`** (construct) + **`ServicesLayer.ServiceImpl.internalVisibility`** — impl is `<Name>ServiceImpl`, `internal`, in `feature.<name>.services` on `:server`.
+- **`ServicesLayer.ServiceImpl.noInjectingDomainInterfaces`** / **`ServicesLayer.ServiceImpl.mayInjectStorageAndInternal`** — impls don't inject domain interfaces; may inject storage/internal + other features' `:api`.
+- **`ServicesLayer.internalHierarchicalVisibility`** — a `services.internal.<subsystem>` island may not import a different sibling subsystem.
+- **`ServicesLayer.StorageClass.returnsRowTypesOnly`** — storage classes take/return `XxxRow` only, never domain types.
+- **`FeatureRules.DependencyModule`** (construct) + **`FeatureRules.constructorReferenceBindings`** + **`FeatureRules.DependencyModule.urpcServiceBinding`** — DI is a `val <name>ServerDependencies` module in `feature.<name>`; constructor-ref bindings; the `scope<UrpcCall> { … bindService(…) }` form above.
+- **`ProjectRules.noCatchException`** / **`ProjectRules.serviceExceptionsSerializable`** — no `catch (Exception)`; `@Serializable` service exceptions.
 
 ## Reference — real, compiling examples (read, don't copy-into-the-repo)
 - Contract shape + the 3 function forms — `embedded-udytils/urpc/sample/src/main/kotlin/dev/isaacudy/udytils/urpc/sample/ExampleService.kt`

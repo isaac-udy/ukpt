@@ -222,13 +222,13 @@ import dev.enro.annotations.NavigationDestination
 @Composable
 @NavigationDestination(<Name>Destination::class)
 fun <Name>Screen(
-    viewModel: <Name>ViewModel = viewModel(),   // R-UI-27: viewModel(), NOT koinViewModel()
+    viewModel: <Name>ViewModel = viewModel(),   // UiLayer.Screen.viewModelInjection: viewModel(), NOT koinViewModel()
 ) {
     val state by viewModel.state.collectAsState()
     <Name>ScreenContent(state)
 }
 
-// R-UI-11: internal ScreenContent takes state (+ callbacks) so it's snapshot-testable without a ViewModel.
+// UiLayer.Screen.screenContentCompanion: internal ScreenContent takes state (+ callbacks) so it's snapshot-testable without a ViewModel.
 @Composable
 internal fun <Name>ScreenContent(state: <Name>State) {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -251,7 +251,7 @@ import dev.isaacudy.udytils.state.viewModelState
 class <Name>ViewModel : ViewModel() {
     private val navigation by navigationHandle<<Name>Destination>()
     val state: ViewModelState<<Name>State> = viewModelState(<Name>State())
-    // R-UI-28: if this VM launches coroutines, use dev.isaacudy.udytils.coroutines.JobManager, never `var job: Job?`.
+    // UiLayer.ViewModel.usesJobManager: if this VM launches coroutines, use dev.isaacudy.udytils.coroutines.JobManager, never `var job: Job?`.
 }
 ```
 

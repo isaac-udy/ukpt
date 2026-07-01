@@ -33,8 +33,8 @@ Do **not** copy the literal `ukpt`/`Ukpt` from core — substitute `<name>`/`<Na
    `:client` (templates.md §5).
 4. **Snapshot test** — copy `feature/core/client/src/androidHostTest/kotlin/platform/snapshot/SnapshotRule.kt`
    **verbatim** into the new module's `androidHostTest/.../platform/snapshot/`, then add a
-   `<Name>ScreenSnapshotTest` that calls `<Name>ScreenContent` (templates.md §6). R-UI-38 requires every
-   ScreenContent to be exercised by an `androidHostTest` snapshot test.
+   `<Name>ScreenSnapshotTest` that calls `<Name>ScreenContent` (templates.md §6). `UiLayer.Composable.screenContentSnapshotTest`
+   requires every ScreenContent to be exercised by an `androidHostTest` snapshot test.
 5. **Wire it up** — the easy-to-forget edits to existing files (templates.md §7 checklist):
    - `app/client/shared/build.gradle.kts` → `implementation(projects.feature.<name>.client)`.
    - `app/client/shared/.../App.kt` → add `<name>ClientDependencies` to `modules(...)` + its import.
@@ -59,12 +59,14 @@ Do **not** copy the literal `ukpt`/`Ukpt` from core — substitute `<name>`/`<Na
   `<name>ClientDependencies`, or web throws `Factory.create … not implemented` at runtime (the Koin-backed
   factory is installed once in `app/client/shared/.../UkptNavigation.kt` — don't regenerate it per feature).
 
-## Rule cheat-sheet (canonical text in the architecture README — search the ID)
-- **R-UI-11** — `<Name>Screen` pairs with an `internal <Name>ScreenContent(state, …)`; **R-UI-27** — inject the
-  VM with `viewModel()` (not `koinViewModel()`); **R-UI-28** — VMs use udytils `JobManager`, never `var job: Job?`;
-  **R-UI-38** — every ScreenContent is called from an `androidHostTest` snapshot test.
-- **R-FEAT-01/02/04** — DI is a `val <name>…Dependencies` module in `feature.<name>`; constructor-ref bindings.
-- **R-SVC-04/05/06** — server-side services follow the `urpc-service` skill.
+## Rule cheat-sheet (canonical text in `platform/common/architecture/docs/` — search the ID)
+- **`UiLayer.Screen.screenContentCompanion`** — `<Name>Screen` pairs with an `internal <Name>ScreenContent(state, …)`;
+  **`UiLayer.Screen.viewModelInjection`** — inject the VM with `viewModel()` (not `koinViewModel()`);
+  **`UiLayer.ViewModel.usesJobManager`** — VMs use udytils `JobManager`, never `var job: Job?`;
+  **`UiLayer.Composable.screenContentSnapshotTest`** — every ScreenContent is called from an `androidHostTest` snapshot test.
+- **`FeatureRules.DependencyModule`** (construct) — DI is a `val <name>…Dependencies` module in `feature.<name>`;
+  **`FeatureRules.constructorReferenceBindings`** — constructor-ref bindings.
+- **`ServicesLayer.ServiceImpl`** (construct) — server-side services follow the `urpc-service` skill.
 
 ## Reference
 - The living template: `feature/core/{api,client,server}` (build files + `src/.../feature/ukpt/...`).

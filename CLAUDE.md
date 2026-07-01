@@ -12,7 +12,9 @@ Follow the rules in [`platform/common/architecture/README.md`](./platform/common
 
 - **Module groups**: `:app` (executable shells + DI wiring), `:feature` (vertical slices — `:api` contract, `:client` UI/logic, `:server` implementation), `:platform` (reusable infrastructure).
 - **Feature axes**: `domain`, `ui` (client), `data` (client), `services` (`@Urpc` contracts in `:api`; `ServiceImpl`s + `services.internal` + `services.storage` on `:server`).
-- The rules are a machine-readable **object catalog** in [`platform/common/architecture/src/test/kotlin/architecture/catalog/`](./platform/common/architecture/src/test/kotlin/architecture/catalog) (a `RuleGroup` object per layer, a nested `Construct` per construct, a rule per property; the engine is in the sibling `registry/`). Every rule has a stable **path ID** — the object/property path, e.g. `DomainLayer.UseCase.noOverridingDefaults` — and an enforcement tag; the README's rule index lists them all. Exempt a declaration that genuinely can't conform with `@ArchitectureException(ruleIds = ["…"])` (README §6), only with human sign-off.
+- The rules are a machine-readable **object catalog** in [`platform/common/architecture/src/test/kotlin/architecture/rules/`](./platform/common/architecture/src/test/kotlin/architecture/rules) (a `RuleGroup` object per layer in its own sub-package, a nested `Construct` per construct, a rule per property; the engine is in the sibling `registry/`). Every rule has a stable **path ID** — the object/property path, e.g. `DomainLayer.UseCase.noOverridingDefaults` — and an enforcement tag; [`docs/rule-index.md`](./platform/common/architecture/docs/rule-index.md) lists them all.
+- The README and everything under `platform/common/architecture/docs/` are **generated**: narrative comes from the `.md` sidecar next to each layer's rules (e.g. `rules/data/DataLayer.md`), structured blocks from the catalog. Edit the sidecar or the catalog — never the generated files — then regenerate (see Testing).
+- Exempt a declaration that genuinely can't conform with `@ArchitectureException(ruleIds = ["…"])` ([docs/exceptions.md](./platform/common/architecture/docs/exceptions.md)), only with human sign-off.
 
 ## Toolchain & constraints
 
@@ -56,7 +58,7 @@ The shared module's Android / JVM / wasm targets compile transitively via the pe
 
 ## Testing
 
-- **Architecture rules**: `./gradlew :platform:common:architecture:test --rerun-tasks`. `--rerun-tasks` is load-bearing — Konsist caches the project scope and a stale cache hides new violations. The suite reports **one nested test per rule** (`<Layer> › <Construct> › <rule>`), so a failure names the exact rule. After adding or changing a rule, regenerate the README's rule index: `UPDATE_RULE_INDEX=true ./gradlew :platform:common:architecture:test`.
+- **Architecture rules**: `./gradlew :platform:common:architecture:test --rerun-tasks`. `--rerun-tasks` is load-bearing — Konsist caches the project scope and a stale cache hides new violations. The suite reports **one nested test per rule** (`<Layer> › <Construct> › <rule>`), so a failure names the exact rule. After changing a rule or a doc sidecar, regenerate the generated docs (README + `docs/`): `UPDATE_ARCHITECTURE_DOCS=true ./gradlew :platform:common:architecture:test`.
 - **UI snapshots** (enforced per screen by `UiLayer.Composable.screenContentSnapshotTest`): record then verify Paparazzi goldens, per client module:
 ```
 ./gradlew :feature:core:client:recordPaparazzi
@@ -66,4 +68,4 @@ The shared module's Android / JVM / wasm targets compile transitively via the pe
 
 ## Server persistence (Postgres)
 
-Server persistence uses the `dev.isaacudy.udytils.postgres` toolkit (Exposed + Flyway); conventions are in README §4.4.4. The `:platform:server:postgres` module (Flyway migrations + codegen) is created when the first server feature needs persistence — until then the `services.storage` rules pass vacuously.
+Server persistence uses the `dev.isaacudy.udytils.postgres` toolkit (Exposed + Flyway); conventions are in [docs/services.md](./platform/common/architecture/docs/services.md) (the `services.storage` section). The `:platform:server:postgres` module (Flyway migrations + codegen) is created when the first server feature needs persistence — until then the `services.storage` rules pass vacuously.

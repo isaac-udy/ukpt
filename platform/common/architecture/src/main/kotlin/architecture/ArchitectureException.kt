@@ -11,7 +11,8 @@ package architecture
  *
  * Use sparingly. An exemption is an admission that the code does not meet the
  * rule and that the right resolution has not yet been agreed. The architecture
- * README §6 lists the rules around adding exemptions; the short version:
+ * module's `docs/exceptions.md` lists the rules around adding exemptions; the
+ * short version:
  *
  * 1. Get human sign-off before adding one.
  * 2. Every entry must explain *why* it exists.
@@ -24,7 +25,7 @@ package architecture
  *    file, before the `package` line.
  *
  * @param ruleIds The architecture rule path ids this declaration is exempt from
- *   (e.g. `["servicesLayer.internalHierarchicalVisibility"]`). At least one id is
+ *   (e.g. `["ServicesLayer.internalHierarchicalVisibility"]`). At least one id is
  *   required. See the architecture README "Rule IDs" section.
  * @param reason Free-form explanation of *why* the exemption is justified.
  *   Should be specific enough to read on its own without context.
