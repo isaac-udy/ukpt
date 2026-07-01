@@ -32,23 +32,3 @@ The project is organized into three root-level module groups — `:app`, `:featu
     * **`:client`**: Client-only infrastructure (e.g., Design System, local DB drivers).
     * **`:server`**: Server-only infrastructure (e.g., Ktor plugins, and `:platform:server:postgres` — which owns the Flyway SQL migrations + `schema.sql` and applies the `dev.isaacudy.udytils.postgres` codegen plugin; the DB runtime itself lives in that udytils library).
 
-## Feature dependency constraints
-
-{{rule:ModuleRules.featureNotApp}}
-{{rule:ModuleRules.featureMayUsePlatform}}
-{{rule:ModuleRules.clientApiOnly}}
-{{rule:ModuleRules.clientMayUseApi}}
-{{rule:ModuleRules.serverApiOnly}}
-{{rule:ModuleRules.serverMayUseApi}}
-{{rule:ModuleRules.apiMayUseApi}}
-* **Note**: `:api` to `:api` dependencies are allowed, but should be used sparingly, treated with caution, and minimised where possible.
-
-{{rule:ModuleRules.featuresMayBeGrouped}}
-* **Note**: A module that serves as a group should exist only as a group, and should not itself contain `:api`, `:server` or `:client` modules.
-
-## Platform dependency constraints
-
-{{rule:ModuleRules.platformNotApp}}
-{{rule:ModuleRules.platformNotFeature}}
-{{rule:ModuleRules.platformMayUsePlatform}}
-* **Note**: `:platform` to `:platform` dependencies are allowed, but should be used sparingly, treated with caution, and minimised where possible.

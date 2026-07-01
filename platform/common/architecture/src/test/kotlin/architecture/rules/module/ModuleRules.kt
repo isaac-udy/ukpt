@@ -48,8 +48,15 @@ object ModuleRules : RuleGroup() {
         enforcedBy(serverApiOnly)
     }
 
-    val apiMayUseApi by rule("`:feature:[name]:api` may depend on another feature's `:api` module to share models") { guidance() }
-    val featuresMayBeGrouped by rule("`:feature` modules may be grouped (`:feature:[group]:[name]:…`)") { guidance() }
+    val apiMayUseApi by rule("`:feature:[name]:api` may depend on another feature's `:api` module to share models") {
+        note("`:api` to `:api` dependencies are allowed, but should be used sparingly, treated with caution, and minimised where possible.")
+        guidance()
+    }
+
+    val featuresMayBeGrouped by rule("`:feature` modules may be grouped (`:feature:[group]:[name]:…`)") {
+        note("A module that serves as a group should exist only as a group, and should not itself contain `:api`, `:server` or `:client` modules.")
+        guidance()
+    }
 
     val platformNotApp by rule("`:platform` modules must never depend on `:app` modules") {
         moduleGraph { graph, exempt ->
@@ -67,7 +74,10 @@ object ModuleRules : RuleGroup() {
         }
     }
 
-    val platformMayUsePlatform by rule("`:platform` modules may depend on other `:platform` modules") { guidance() }
+    val platformMayUsePlatform by rule("`:platform` modules may depend on other `:platform` modules") {
+        note("`:platform` to `:platform` dependencies are allowed, but should be used sparingly, treated with caution, and minimised where possible.")
+        guidance()
+    }
 }
 
 private fun isApp(path: String) = path.startsWith(":app:") || path == ":app"

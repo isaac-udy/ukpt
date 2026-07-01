@@ -6,7 +6,7 @@ The `services` axis defines the contract that crosses the wire between client an
 
 The cross-the-wire mechanism is **urpc** (`dev.isaacudy.udytils:urpc-*`): a service is an `@Urpc` interface, and KSP generates the client, the server binding, and the wire descriptors — see [Services (the cross-the-wire contract)](#services-the-cross-the-wire-contract).
 
-## Layer rules
+## Cross-axis dependencies
 
 Within a feature, the cross-axis dependency rules are:
 
@@ -24,70 +24,17 @@ Reading these as a directed graph:
 
 `domain` is the centre of gravity on both sides. `services` is a sibling of `data` (not an outer shell above it) — the wire-crossing contract that `data` consumes on the client and `services` itself implements on the server.
 
-Two layer-level rules pin the axis's place in that graph:
-
-{{rule:ServicesLayer.mustNotDependOnData}}
-
-{{rule:ServicesLayer.crossFeatureViaApi}}
-
-## Services (the cross-the-wire contract)
-
-* **Definition**: The client-server contract (in `:api`) and its implementation (in `:server`). Services use **urpc** (`dev.isaacudy.udytils:urpc-*`): KSP generates the client, the `UrpcService` server binding, and the wire descriptors from the annotated interface.
-{{construct:ServicesLayer.ServiceInterface}}
-* **Note**: Service-level exception conventions — dedicated `@Serializable` exception types, `PresentableException`, and the deliberate `retryable` flag — are covered in [exception handling](exceptions.md).
-* **Example**:
-```kotlin
-// feature.user.services.UserService.kt (:api)
-@Urpc
-interface UserService {
-    suspend fun createUser(request: CreateUser.Request): CreateUser.Response
-    suspend fun getUser(request: GetUser.Request): GetUser.Response
-    fun observeUsers(): Flow<ObserveUsers.Response>
-
-    object CreateUser {
-        @Serializable data class Request(val name: String, val email: String)
-        @Serializable data class Response(val user: User)
-    }
-    // ...
-}
-```
-
-## Service implementations (`:server`)
-
-* **Definition**: Implementations of `Service` interfaces (see [Services](#services-the-cross-the-wire-contract)). A ServiceImpl lives in `feature.[name].services` of `:server` — dual-life with the contract — so it belongs to the `services` axis, not the top-level feature group.
-{{construct:ServicesLayer.ServiceImpl}}
+Two layer-level rules pin the axis's place in that graph — `ServicesLayer.mustNotDependOnData` and `ServicesLayer.crossFeatureViaApi`, in the [layer rules](#layer-rules) below.
 
 ## `services.internal`
 
-* **Definition**: Server-side coordinator and helper classes — the things that do the work the ServiceImpl orchestrates. The bare `services.internal` package holds the top-level orchestrators (e.g. `SessionProcessingManager`) that compose multiple subsystems, plus the shared-payload data types they thread between them; each `services.internal.<subsystem>` package is a sealed island under [hierarchical visibility](#hierarchical-visibility-within-servicesinternal).
+Server-side coordinator and helper classes — the things that do the work the ServiceImpl orchestrates. The bare `services.internal` package holds the top-level orchestrators (e.g. `SessionProcessingManager`) that compose multiple subsystems, plus the shared-payload data types they thread between them; each `services.internal.<subsystem>` package is a sealed island under [hierarchical visibility](#hierarchical-visibility-within-servicesinternal).
 
-The package is modelled by five constructs, each requiring its shape plus residence in `feature.[name].services.internal`.
+The package is modelled by five constructs — [Coordinators](#coordinators-servicesinternal), [data carriers](#data-carriers-servicesinternal), [internal interfaces](#internal-interfaces-servicesinternal), [internal exceptions](#internal-exceptions-servicesinternal), and [object helpers](#object-helpers-servicesinternal) — each requiring its shape plus residence in `feature.[name].services.internal`.
 
-**Coordinators** — the orchestrators that compose subsystems:
+## Hierarchical visibility within `services.internal`
 
-{{construct:ServicesLayer.InternalCoordinator}}
-
-**Data carriers** — payloads that flow from one subsystem through the orchestrator into another. A carrier lives at the bare `services.internal` ancestor so both producer and consumer can name it under the data-shape carve-out:
-
-{{construct:ServicesLayer.InternalDataCarrier}}
-
-**Internal interfaces** — abstractions used inside a subsystem (e.g. a strategy contract whose implementations live in the same subpackage):
-
-{{construct:ServicesLayer.InternalInterface}}
-
-**Internal exceptions** — thrown only by internal helpers; service-level exceptions belong on the `Service` interface (see [Services](#services-the-cross-the-wire-contract)):
-
-{{construct:ServicesLayer.InternalException}}
-
-**Object helpers** — `object`s holding pure helper functions:
-
-{{construct:ServicesLayer.InternalObjectHelper}}
-
-### Hierarchical visibility within `services.internal`
-
-{{rule:ServicesLayer.internalHierarchicalVisibility}}
-
-Inside `feature.[name].services.internal.**`, an import is allowed only if it points to:
+`ServicesLayer.internalHierarchicalVisibility` (in the [layer rules](#layer-rules)) seals each subsystem. Inside `feature.[name].services.internal.**`, an import is allowed only if it points to:
 
 * the **same package**, or
 * a **descendant** package, or
@@ -107,45 +54,20 @@ A subsystem may subdivide into deeper subpackages — the rule applies recursive
 
 ## `services.storage` — Postgres persistence
 
-> **ukpt status**: the Postgres toolkit lives in the `embedded-udytils` submodule (`:postgres-core/koin/codegen/gradle-plugin/embedded`), so these rules are the documented persistence standard. The `:platform:server:postgres` module that applies the codegen plugin and owns the Flyway migrations is **created when the first server feature needs persistence** — until then the `services.storage` rules below pass vacuously (no storage code exists yet).
+> **ukpt status**: the Postgres toolkit lives in the `embedded-udytils` submodule (`:postgres-core/koin/codegen/gradle-plugin/embedded`), so these rules are the documented persistence standard. The `:platform:server:postgres` module that applies the codegen plugin and owns the Flyway migrations is **created when the first server feature needs persistence** — until then the `services.storage` rules pass vacuously (no storage code exists yet).
 
 * **Definition**: A feature's persistence storage classes and mappings, built on **[Exposed](https://github.com/JetBrains/Exposed)** and the **`dev.isaacudy.udytils.postgres`** runtime. That runtime (in the `embedded-udytils` submodule, re-exported by `:platform:server:postgres` via `api(libs.udytils.postgres.core)`) provides `PostgresConfig`, `PostgresMigrator`, `PgNotificationBus`, and the custom Exposed column types (`JsonbColumnType`, `JsonColumnType`, `TextArrayColumnType`, `TimestampColumnType`) — do **not** hand-roll these in feature code; extend the library instead.
-* **Contents (hand-written, in the feature)**: `[Name]Storage` classes, mapping functions (conventionally collected in `[Name]Mappers.kt`), and codec objects.
-* **Contents (generated, NOT in the feature)**: the Exposed `Table` objects and `XxxRow` data classes are generated into the **shared `platform.server.postgres.tables` package** (`:platform:server:postgres`) and imported by each feature's storage code — see [`Table` objects (generated)](#table-objects-generated) and [the codegen pipeline](#postgres-codegen-pipeline--runtime).
+* **Contents (hand-written, in the feature)**: [Storage classes](#storage-classes-servicesstorage) (`[Name]Storage`), [storage records](#storage-records-servicesstorage), [mapping functions](#mapping-functions-servicesstorage) (conventionally collected in `[Name]Mappers.kt`), and [codec objects](#codec-objects-servicesstorage).
+* **Contents (generated, NOT in the feature)**: the Exposed `Table` objects and `XxxRow` data classes are generated into the **shared `platform.server.postgres.tables` package** (`:platform:server:postgres`) and imported by each feature's storage code — see [generated `Table`/`Row` sources](#generated-tablerow-sources) and [the codegen pipeline](#postgres-codegen-pipeline--runtime).
 
-Storage sits at the bottom of the `services` axis — the dependency direction is `internal → storage`, never the reverse:
+Storage sits at the bottom of the `services` axis — the dependency direction is `internal → storage`, never the reverse (`ServicesLayer.storageMustNotDependOnInternal`, in the [layer rules](#layer-rules)).
 
-{{rule:ServicesLayer.storageMustNotDependOnInternal}}
+### Generated `Table`/`Row` sources
 
-### Storage classes
-
-The hand-written entry point to a feature's persistence:
-
-{{construct:ServicesLayer.StorageClass}}
-
-### `Table` objects (generated)
-
-> All `Table`/`Row` rules in this and the next section are `⚙️ codegen` — guaranteed by the `dev.isaacudy.udytils.postgres` plugin, not by Konsist (the generated sources live under `build/generated/` and are never scanned). They live in the shared `platform.server.postgres.tables` package, not in any feature's `services.storage`, so they are declared as group-level codegen rules rather than feature constructs.
-
-{{rule:ServicesLayer.generatedTableRowSources}}
+> All `Table`/`Row` codegen rules (`ServicesLayer.generatedTableRowSources` through `ServicesLayer.rowFakeConstructorAndSetFromRow` in the [layer rules](#layer-rules)) are `⚙️ codegen` — guaranteed by the `dev.isaacudy.udytils.postgres` plugin, not by Konsist (the generated sources live under `build/generated/` and are never scanned). They live in the shared `platform.server.postgres.tables` package, not in any feature's `services.storage`, so they are declared as group-level codegen rules rather than feature constructs.
 
 * **Note**: The plugin registers two tasks — `generatePostgresTables` (the Exposed sources) and `exportPostgresSchema` (the committed `schema.sql` snapshot). Generated files live under `build/generated/source/postgres-tables/`, carry a `Generated by the dev.isaacudy.udytils.postgres Gradle plugin` header, and are not committed.
-
-{{rule:ServicesLayer.generatedTableObjects}}
-
-{{rule:ServicesLayer.everyColumnOnTable}}
-
-### `Row` data classes (generated)
-
-{{rule:ServicesLayer.rowDataClassPrimitives}}
-
-{{rule:ServicesLayer.rowFakeConstructorAndSetFromRow}}
-
-The hand-written persistence record shapes (the `XxxRow`/`XxxRecord`/`XxxInsert` `data class`es that live in a feature's `services.storage`) are classified by their own construct:
-
-{{construct:ServicesLayer.StorageRecord}}
-
-* **Example**:
+* **Example** (a Storage class reading via the generated fake-constructor and writing via `setFromRow`):
 ```kotlin
 // Read
 val row: UserProfileRow? = UserProfilesTable
@@ -159,17 +81,6 @@ UserProfilesTable.upsert(UserProfilesTable.userId) {
     it.setFromRow(row)
 }
 ```
-
-### Mapping functions
-
-{{construct:ServicesLayer.MappingFunction}}
-
-* **Convention**: `XxxRow.toDomain()` for `Row → Domain`; `Domain.toRow(...)` for the inverse.
-
-### Codec objects
-
-* **Definition**: The read/write codec for a column whose on-disk shape differs from the domain shape — either an `object` holding discriminator constants (e.g. `ChatMessageContentTypeCodec`, `ProcessingStatusCodec`) or file-private `Json` + `encode`/`decode` helpers in the `[Name]Mappers.kt` file.
-{{construct:ServicesLayer.CodecObject}}
 
 ### Postgres codegen pipeline & runtime
 
@@ -187,8 +98,6 @@ A `[Name]Storage` class may expose `Flow` reads that re-query when a Postgres `N
 
 * **Definition**: Reserved for AI tool-use subclasses (e.g. `AssistantTool` wrappers around a service). ukpt has no AI subsystem, so `services.tools` is intentionally **empty** — it defines no construct, so any declaration placed here fails the layer-exhaustiveness check until a construct is defined for it.
 
-Its isolation is enforced now, even though the package is empty:
-
-{{rule:ServicesLayer.toolsApiContractOnly}}
+Its isolation is enforced now, even though the package is empty — `ServicesLayer.toolsApiContractOnly` in the [layer rules](#layer-rules).
 
 * **Note**: If an AI subsystem is added later, reintroduce an `assistantTool` construct (extends `AssistantTool`, named `[Action][Entity]Tool`) on the `ServicesLayer` group to populate this layer.

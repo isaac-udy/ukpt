@@ -112,7 +112,16 @@ object ProjectRules : RuleGroup() {
     // ---- §5.3 Action and request types -------------------------------------------------------
     val sealedActionVariants by rule(
         "Model action/request variants as a `sealed interface`/`sealed class` (each variant a `data class`), not a single type with an `enum` discriminator and nullable fields",
-    ) { guidance() }
+    ) {
+        rationale(
+            """
+            A sealed hierarchy makes illegal field combinations unrepresentable and lets `when`
+            exhaustiveness drive handling, so adding a variant surfaces every site that must handle it.
+            """.trimIndent(),
+        )
+        note("Enforced by review, not a static test — \"an enum that should be a sealed class\" can't be detected reliably by Konsist.")
+        guidance()
+    }
 
     // ---- §6.3 Architecture-exception sign-off (all 📋 guidance — enforced by human review) ----
     val exceptionsNeedHumanSignOff by rule(

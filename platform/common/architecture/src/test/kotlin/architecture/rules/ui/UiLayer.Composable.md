@@ -1,0 +1,18 @@
+# UI Composables (non-screen)
+
+* **Definition**: A `@Composable` function defined in the `..ui..` package that is **not** a Screen — typically a sub-component used by one or more screens, an inline editor, or a feature-specific overlay.
+* **Note**: `[Name]ScreenContent` companions (see `UiLayer.Screen.screenContentCompanion`) are non-Screen composables, which is why the snapshot-test rule lives on this construct. For reusable design-system primitives (buttons, fields, marks), prefer a shared composable in `:platform:client:ui`. Feature-local composables live alongside the Screen they support, and may be `internal` so snapshot tests can drive them.
+
+### Snapshot tests
+
+A [Paparazzi](https://github.com/cashapp/paparazzi) host-side test that renders a Screen's `[Name]ScreenContent` and records a golden image, catching visual regressions without a device or emulator — enforced by `UiLayer.Composable.screenContentSnapshotTest` below.
+
+* **Note**: Snapshot tests live in `feature/.../src/androidHostTest/` (the host-test source set under AGP 9.0's KMP library plugin) and use the `SnapshotRule` helper (`platform.snapshot.SnapshotRule`):
+    * `snapshot.screen { ... }` — screen content / composables needing bounded layout constraints (`fillMaxSize()` etc.); renders in a fixed-size container.
+    * `snapshot.component { ... }` — small, self-sizing composables; renders at content size with padding.
+* **Note**: The composable under test must be `internal` (not `private`) so the host-test source set can reach it — the same constraint `UiLayer.Screen.screenContentCompanion` enforces. Add a `@Test` per meaningful state (loaded, empty, error, …) as a screen grows.
+* **Note**: Record golden images after adding or changing a snapshot test, then verify they match (goldens are committed under `src/androidHostTest/snapshots/images/`):
+```
+./gradlew :feature:core:client:recordPaparazzi
+./gradlew :feature:core:client:verifyPaparazzi
+```

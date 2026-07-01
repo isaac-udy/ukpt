@@ -1,8 +1,7 @@
-<!--
-  GENERATED FILE — do not edit.
-  Narrative source: src/test/kotlin/architecture/rules/module/ModuleRules.md (structured blocks come from the rule catalog).
-  Regenerate: UPDATE_ARCHITECTURE_DOCS=true ./gradlew :platform:common:architecture:test
--->
+> [!NOTE]
+> **This file is generated — do not edit it by hand.**
+> Narrative sources: the `ModuleRules*.md` fragments in `src/test/kotlin/architecture/rules/module/`; structure and rule content come from the rule catalog.
+> Regenerate with `UPDATE_ARCHITECTURE_DOCS=true ./gradlew :platform:common:architecture:test`.
 
 # Module structure & dependency rules
 
@@ -38,7 +37,7 @@ The project is organized into three root-level module groups — `:app`, `:featu
     * **`:client`**: Client-only infrastructure (e.g., Design System, local DB drivers).
     * **`:server`**: Server-only infrastructure (e.g., Ktor plugins, and `:platform:server:postgres` — which owns the Flyway SQL migrations + `schema.sql` and applies the `dev.isaacudy.udytils.postgres` codegen plugin; the DB runtime itself lives in that udytils library).
 
-## Feature dependency constraints
+## Layer rules
 
 * **`ModuleRules.featureNotApp`** `✅ tested` — `:feature` modules must never depend on `:app` modules
 * **`ModuleRules.featureMayUsePlatform`** `📋 guidance` — `:feature` modules may depend on `:platform` modules
@@ -51,15 +50,10 @@ The project is organized into three root-level module groups — `:app`, `:featu
 * **`ModuleRules.serverMayUseApi`** `✅ tested` — `:feature:[name]:server` may depend on any `:feature:[name]:api` module
     * **Enforced by**: `ModuleRules.serverApiOnly`
 * **`ModuleRules.apiMayUseApi`** `📋 guidance` — `:feature:[name]:api` may depend on another feature's `:api` module to share models
-* **Note**: `:api` to `:api` dependencies are allowed, but should be used sparingly, treated with caution, and minimised where possible.
-
+    * **Note**: `:api` to `:api` dependencies are allowed, but should be used sparingly, treated with caution, and minimised where possible.
 * **`ModuleRules.featuresMayBeGrouped`** `📋 guidance` — `:feature` modules may be grouped (`:feature:[group]:[name]:…`)
-* **Note**: A module that serves as a group should exist only as a group, and should not itself contain `:api`, `:server` or `:client` modules.
-
-## Platform dependency constraints
-
+    * **Note**: A module that serves as a group should exist only as a group, and should not itself contain `:api`, `:server` or `:client` modules.
 * **`ModuleRules.platformNotApp`** `✅ tested` — `:platform` modules must never depend on `:app` modules
 * **`ModuleRules.platformNotFeature`** `✅ tested` — `:platform` modules must never depend on `:feature` modules
 * **`ModuleRules.platformMayUsePlatform`** `📋 guidance` — `:platform` modules may depend on other `:platform` modules
-* **Note**: `:platform` to `:platform` dependencies are allowed, but should be used sparingly, treated with caution, and minimised where possible.
-
+    * **Note**: `:platform` to `:platform` dependencies are allowed, but should be used sparingly, treated with caution, and minimised where possible.

@@ -1,8 +1,7 @@
-<!--
-  GENERATED FILE — do not edit.
-  Generated entirely from the rule catalog.
-  Regenerate: UPDATE_ARCHITECTURE_DOCS=true ./gradlew :platform:common:architecture:test
--->
+> [!NOTE]
+> **This file is generated — do not edit it by hand.**
+> Generated entirely from the rule catalog.
+> Regenerate with `UPDATE_ARCHITECTURE_DOCS=true ./gradlew :platform:common:architecture:test`.
 
 # Rule index
 

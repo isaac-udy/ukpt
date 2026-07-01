@@ -8,17 +8,15 @@ import architecture.registry.Status
 import architecture.registry.Tag
 
 /**
- * Marker expansion: a sidecar `.md` source holds the narrative, and structured blocks are injected
- * from the catalog wherever a marker sits alone on a line (outside code fences):
+ * Marker expansion for **standalone docs and the README template** (layer docs are compiled with a
+ * fixed structure instead — see [renderLayerDoc]). A marker sits alone on a line, outside code fences:
  *
- *  - `{{construct:Group.Construct}}` — the construct's classification requirements + its rules
+ *  - `{{rule:Full.Rule.Id}}` — one rule bullet (id, tag, statement, rationale/notes)
  *  - `{{rules:Group}}` — every group-level rule as a bullet
- *  - `{{rule:Full.Rule.Id}}` — one rule bullet, for narrative placement
+ *  - `{{construct:Group.Construct}}` — a construct's classification requirements + its rules
  *  - `{{toc}}` — links to every generated doc (README template only)
  */
-internal class ExpandResult(val content: String, val constructIds: Set<String>, val ruleIds: Set<String>)
-
-private val markerLine = Regex("""^\{\{([a-z]+)(?::([A-Za-z0-9_.]+))?}}$""")
+internal val markerLine = Regex("""^\{\{([a-z]+)(?::([A-Za-z0-9_.]+))?}}$""")
 
 internal fun expandMarkers(
     source: String,
@@ -26,9 +24,7 @@ internal fun expandMarkers(
     where: String,
     errors: MutableList<String>,
     toc: List<Pair<String, String>>? = null,
-): ExpandResult {
-    val constructIds = mutableSetOf<String>()
-    val ruleIds = mutableSetOf<String>()
+): String {
     val out = StringBuilder()
     var inFence = false
     source.lineSequence().forEach { line ->
@@ -47,25 +43,15 @@ internal fun expandMarkers(
         when (kind) {
             "construct" -> when (val construct = catalog.constructsById[arg]) {
                 null -> errors += "$where: {{construct:$arg}} does not match any construct in the catalog"
-                else -> {
-                    out.append(renderConstructBlock(construct))
-                    constructIds += construct.id
-                    ruleIds += construct.declaredRules.map { it.id }
-                }
+                else -> out.append(renderConstructBlock(construct))
             }
             "rules" -> when (val group = catalog.groupsById[arg]) {
                 null -> errors += "$where: {{rules:$arg}} does not match any group in the catalog"
-                else -> {
-                    out.append(renderGroupRules(group))
-                    ruleIds += group.declaredRules.map { it.id }
-                }
+                else -> out.append(renderGroupRules(group))
             }
             "rule" -> when (val rule = catalog.rulesById[arg]) {
                 null -> errors += "$where: {{rule:$arg}} does not match any rule in the catalog"
-                else -> {
-                    out.append(renderRuleBullet(rule, indent = ""))
-                    ruleIds += rule.id
-                }
+                else -> out.append(renderRuleBullet(rule, indent = ""))
             }
             "toc" -> when (toc) {
                 null -> errors += "$where: {{toc}} is only supported in the README template"
@@ -74,10 +60,10 @@ internal fun expandMarkers(
             else -> errors += "$where: unknown marker {{$kind}}"
         }
     }
-    return ExpandResult(out.toString(), constructIds, ruleIds)
+    return out.toString()
 }
 
-private fun renderConstructBlock(construct: Construct): String = buildString {
+internal fun renderConstructBlock(construct: Construct): String = buildString {
     appendLine("* **Construct** `${construct.id}` (`${Tag.CONSTRUCT.marker}`) — a declaration is this construct when it satisfies all of:")
     construct.requirements.forEach { appendLine("    * ${it.description}") }
     val rules = construct.declaredRules.filter { it.status is Status.Active }
@@ -87,7 +73,7 @@ private fun renderConstructBlock(construct: Construct): String = buildString {
     }
 }
 
-private fun renderGroupRules(group: RuleGroup): String = buildString {
+internal fun renderGroupRules(group: RuleGroup): String = buildString {
     group.declaredRules.filter { it.status is Status.Active }.forEach { append(renderRuleBullet(it, indent = "")) }
 }
 
