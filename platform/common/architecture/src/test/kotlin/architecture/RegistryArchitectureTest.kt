@@ -1,7 +1,7 @@
 package architecture
 
+import architecture.catalog.UkptArchitecture
 import architecture.registry.RuleGroup
-import architecture.registry.UkptArchitecture
 import architecture.registry.Violation
 import architecture.registry.renderRuleIndex
 import architecture.registry.verify

@@ -1,4 +1,6 @@
-package architecture.registry
+package architecture.catalog
+
+import architecture.registry.*
 
 import architecture.definitions.containsPackageSegment
 import architecture.definitions.isFeatureModule

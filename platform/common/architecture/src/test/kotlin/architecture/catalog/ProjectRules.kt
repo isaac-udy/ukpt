@@ -1,4 +1,6 @@
-package architecture.registry
+package architecture.catalog
+
+import architecture.registry.*
 
 import architecture.definitions.isFeatureModule
 import com.lemonappdev.konsist.api.provider.KoResideInPackageProvider

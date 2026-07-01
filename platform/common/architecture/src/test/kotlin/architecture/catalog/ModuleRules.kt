@@ -1,4 +1,6 @@
-package architecture.registry
+package architecture.catalog
+
+import architecture.registry.*
 
 
 /**

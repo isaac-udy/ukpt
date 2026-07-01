@@ -1,7 +1,7 @@
 # UKPT Architecture
 This document describes the architecture that should be used for the UKPT project.
 
-These rules are **not maintained by hand**. They are a projection of the machine-readable catalog in [`src/test/kotlin/architecture/registry/`](src/test/kotlin/architecture/registry), which is the single source of truth: each layer is a `RuleGroup` object, each construct a nested `Construct` object, and each rule a property on one of them. `RegistryArchitectureTest` both enforces the rules and keeps the [rule index](#rule-index) below in lock-step with them.
+These rules are **not maintained by hand**. They are a projection of the machine-readable catalog in [`src/test/kotlin/architecture/catalog/`](src/test/kotlin/architecture/catalog), which is the single source of truth: each layer is a `RuleGroup` object, each construct a nested `Construct` object, and each rule a property on one of them. `RegistryArchitectureTest` both enforces the rules and keeps the [rule index](#rule-index) below in lock-step with them.
 
 ## Rule IDs
 
@@ -14,7 +14,7 @@ Every rule and construct has a stable ID that is the **path of the object/proper
 | `DomainLayer.noPlatformDeps` | a layer-level rule (not tied to a construct) |
 | `ModuleRules.platformNotFeature` | a group-level module-graph rule |
 
-Groups and constructs are PascalCase `object`s; rules are the camelCase properties on them. A construct's **requirements** — the predicates that decide whether a declaration *is* that construct — are not individually identified; the construct itself is the unit (its `🔶 construct` row in the index lists them, AND-composed). Test failures, the [rule index](#rule-index), and [architecture exceptions](#6-architecture-exceptions) reference rules and constructs by this path. Search the [catalog sources](src/test/kotlin/architecture/registry) for an id.
+Groups and constructs are PascalCase `object`s; rules are the camelCase properties on them. A construct's **requirements** — the predicates that decide whether a declaration *is* that construct — are not individually identified; the construct itself is the unit (its `🔶 construct` row in the index lists them, AND-composed). Test failures, the [rule index](#rule-index), and [architecture exceptions](#6-architecture-exceptions) reference rules and constructs by this path. Search the [catalog sources](src/test/kotlin/architecture/catalog) for an id.
 
 The groups are:
 
