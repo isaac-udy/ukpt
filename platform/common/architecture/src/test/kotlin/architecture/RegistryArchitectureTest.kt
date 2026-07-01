@@ -1,6 +1,6 @@
 package architecture
 
-import architecture.catalog.UkptArchitecture
+import architecture.rules.UkptArchitecture
 import architecture.registry.ArchitectureRun
 import architecture.registry.ModuleGraphConstraint
 import architecture.registry.Rule

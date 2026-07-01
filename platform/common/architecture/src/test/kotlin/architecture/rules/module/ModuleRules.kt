@@ -1,4 +1,4 @@
-package architecture.catalog
+package architecture.rules.module
 
 import architecture.registry.*
 

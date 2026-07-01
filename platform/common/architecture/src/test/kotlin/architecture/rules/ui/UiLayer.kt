@@ -1,6 +1,7 @@
-package architecture.catalog
+package architecture.rules.ui
 
 import architecture.registry.*
+import architecture.rules.domain.DomainLayer
 
 import architecture.definitions.containsPackageSegment
 import architecture.definitions.isFeatureModule
