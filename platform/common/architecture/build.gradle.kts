@@ -3,11 +3,13 @@ plugins {
 }
 
 dependencies {
-    testImplementation(libs.kotlin.test)
+    testImplementation(libs.kotlin.testJunit5)
+    testImplementation(libs.junit.jupiter)
     testImplementation(libs.konsist)
     testImplementation(libs.kotlin.reflect)
 }
 
 tasks.withType<Test> {
+    useJUnitPlatform()
     outputs.upToDateWhen { false }
 }
