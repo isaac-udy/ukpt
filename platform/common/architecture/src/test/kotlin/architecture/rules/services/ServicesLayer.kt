@@ -13,39 +13,218 @@ import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
 import com.lemonappdev.konsist.api.declaration.KoObjectDeclaration
 import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
 
-/**
- * The `services` axis (§3.4, §4.4) — the single, self-contained definition of every services rule.
- *
- * `services` is the cross-the-wire contract (the `@Urpc` interface in `:api`) plus the entire
- * `:server` implementation surface: the `ServiceImpl`, the `services.internal.*` orchestrators /
- * subsystems, and the `services.storage` Postgres persistence. All of these live under the one
- * `feature..services..` package tree, so they are folded into a single rule group here; each
- * construct's package-membership requirement keeps the sub-axes disjoint for the exhaustiveness
- * check (the registry equivalent of the old per-sub-layer `inLayerPackage` gate).
- *
- * A construct owns both its **requirements** (classification — what it means to *be* the construct)
- * and its **rules** (functionality — what the construct must *do*). Layer-level rules that aren't
- * tied to a single construct (the cross-axis import bans and the codegen pipeline) live at the
- * group level.
- *
- * Rule ids are the exact object/property names, e.g. `ServicesLayer.StorageClass.returnsRowTypesOnly`.
- */
+@Describe("""
+    The `services` axis defines the contract that crosses the wire between client and server. The
+    contract lives in `:api` (so both sides see it); the server-side implementation lives in
+    `:server` under the same package name (dual-life). The axis covers both the `:api` Service
+    contract and the entire `:server` implementation surface — ServiceImpls, internal
+    helpers/orchestrators, and Postgres storage. All of it lives under the one `feature..services..`
+    package tree, so the axis is a single rule group whose constructs' package-membership
+    requirements keep the sub-axes (`internal`, `storage`, `tools`) disjoint for the exhaustiveness
+    check.
+
+    `services` is **not** a UI-equivalent outer layer — it sits *parallel* to the `data` axis and is
+    consumed by it. On the client, [Repositories](data.md#repository) (in `data`) inject Service
+    contracts to call the server. On the server, `services` is where the request-handling
+    implementation lives, and reaches down into `services.storage` for persistence and
+    `services.internal.*` for sub-tasks.
+
+    The cross-the-wire mechanism is **urpc** (`dev.isaacudy.udytils:urpc-*`): a service is an
+    `@Urpc` interface, and KSP generates the client, the server binding, and the wire descriptors —
+    see [Service Interface](#service-interface).
+
+    ## Cross-axis dependencies
+
+    Within a feature, the cross-axis dependency rules are:
+
+    * `domain` may not depend on any other axis. It is the deepest layer.
+    * `services` may depend on `domain`.
+    * `data` (client only) may depend on `domain` and on `services` contracts (so Repositories can
+      call the server).
+    * `ui` (client only) may depend on `domain` only. It must not depend on `data` or `services`
+      directly — calling the server goes through Repositories, which expose
+      [domain interfaces](domain.md#domain-interface) for the UI to consume.
+    * No axis may depend on `ui`.
+    * Inside `services`, the dependency direction is `internal → storage` — see
+      [`services.storage`](#servicesstorage--postgres-persistence).
+
+    Reading these as a directed graph:
+
+    * On the client: `ui → domain ← services ← data` (and `data → domain`).
+    * On the server: `domain ← services` (with `services` reaching internally into
+      `services.storage` and `services.internal`).
+
+    `domain` is the centre of gravity on both sides. `services` is a sibling of `data` (not an
+    outer shell above it) — the wire-crossing contract that `data` consumes on the client and
+    `services` itself implements on the server.
+
+    Two layer-level rules pin the axis's place in that graph — `ServicesLayer.mustNotDependOnData`
+    and `ServicesLayer.crossFeatureViaApi`, in the [rules](#rules) below.
+
+    ## `services.internal`
+
+    Server-side coordinator and helper classes — the things that do the work the ServiceImpl
+    orchestrates. The bare `services.internal` package holds the top-level orchestrators (e.g.
+    `SessionProcessingManager`) that compose multiple subsystems, plus the shared-payload data
+    types they thread between them; each `services.internal.<subsystem>` package is a sealed island
+    under [hierarchical visibility](#hierarchical-visibility-within-servicesinternal).
+
+    The package is modelled by five constructs — [coordinators](#internal-coordinator),
+    [data carriers](#internal-data-carrier), [internal interfaces](#internal-interface),
+    [internal exceptions](#internal-exception), and [object helpers](#internal-object-helper) —
+    each requiring its shape plus residence in `feature.[name].services.internal`.
+
+    ### Hierarchical visibility within `services.internal`
+
+    `ServicesLayer.internalHierarchicalVisibility` (in the [rules](#rules)) seals each subsystem.
+    Inside `feature.[name].services.internal.**`, an import is allowed only if it points to:
+
+    * the **same package**, or
+    * a **descendant** package, or
+    * an **ancestor** package, **and only when the imported declaration is a pure data shape**.
+
+    Lateral / cousin imports are forbidden outright. Ancestor imports of behaviour-bearing types
+    (regular classes, regular interfaces, top-level functions, objects with member functions) are
+    forbidden too — those would let a subsystem reach back up to *invoke* its parent or use
+    behaviour from a higher level, which re-introduces the cross-subsystem coupling the rule is
+    designed to prevent.
+
+    The carve-out for data shapes lets the orchestrator-mediated composition pattern work: a
+    payload type that flows from one subsystem through the orchestrator into another can live at a
+    common ancestor (typically bare `services.internal`), and both subsystems may name it without
+    invoking any behaviour.
+
+    A "data shape" is any of:
+
+    * `data class`, `enum class`, `value class`, `data object`,
+    * `sealed class` / `sealed interface`,
+    * an `object` that holds only `val` constants (no functions).
+
+    A subsystem may subdivide into deeper subpackages — the rule applies recursively, so each new
+    subpackage inherits the same sealing rules.
+
+    ## `services.storage` — Postgres persistence
+
+    > **ukpt status**: the Postgres toolkit lives in the `embedded-udytils` submodule
+    > (`:postgres-core/koin/codegen/gradle-plugin/embedded`), so these rules are the documented
+    > persistence standard. The `:platform:server:postgres` module that applies the codegen plugin
+    > and owns the Flyway migrations is **created when the first server feature needs
+    > persistence** — until then the `services.storage` rules pass vacuously (no storage code
+    > exists yet).
+
+    * **Definition**: A feature's persistence storage classes and mappings, built on
+      **[Exposed](https://github.com/JetBrains/Exposed)** and the **`dev.isaacudy.udytils.postgres`**
+      runtime. That runtime (in the `embedded-udytils` submodule, re-exported by
+      `:platform:server:postgres` via `api(libs.udytils.postgres.core)`) provides `PostgresConfig`,
+      `PostgresMigrator`, `PgNotificationBus`, and the custom Exposed column types
+      (`JsonbColumnType`, `JsonColumnType`, `TextArrayColumnType`, `TimestampColumnType`) — do
+      **not** hand-roll these in feature code; extend the library instead.
+    * **Contents (hand-written, in the feature)**: [Storage classes](#storage-class)
+      (`[Name]Storage`), [storage records](#storage-record),
+      [mapping functions](#mapping-function) (conventionally collected in `[Name]Mappers.kt`), and
+      [codec objects](#codec-object).
+    * **Contents (generated, NOT in the feature)**: the Exposed `Table` objects and `XxxRow` data
+      classes are generated into the **shared `platform.server.postgres.tables` package**
+      (`:platform:server:postgres`) and imported by each feature's storage code — see
+      [generated `Table`/`Row` sources](#generated-tablerow-sources) and
+      [the codegen pipeline](#postgres-codegen-pipeline--runtime).
+
+    Storage sits at the bottom of the `services` axis — the dependency direction is
+    `internal → storage`, never the reverse (`ServicesLayer.storageMustNotDependOnInternal`, in the
+    [rules](#rules)).
+
+    ### Generated `Table`/`Row` sources
+
+    > All `Table`/`Row` codegen rules (`ServicesLayer.generatedTableRowSources` through
+    > `ServicesLayer.rowFakeConstructorAndSetFromRow` in the [rules](#rules)) are codegen rules —
+    > guaranteed by the `dev.isaacudy.udytils.postgres` plugin, not by Konsist (the generated
+    > sources live under `build/generated/` and are never scanned). They live in the shared
+    > `platform.server.postgres.tables` package, not in any feature's `services.storage`, so they
+    > are declared as group-level codegen rules rather than feature constructs.
+
+    * **Note**: The plugin registers two tasks — `generatePostgresTables` (the Exposed sources) and
+      `exportPostgresSchema` (the committed `schema.sql` snapshot). Generated files live under
+      `build/generated/source/postgres-tables/`, carry a
+      `Generated by the dev.isaacudy.udytils.postgres Gradle plugin` header, and are not committed.
+
+    A Storage class reads via the generated fake-constructor and writes via the `setFromRow`
+    extension — see the layer examples after the [rules](#rules).
+
+    ### Postgres codegen pipeline & runtime
+
+    The persistence stack is built on the **`dev.isaacudy.udytils.postgres`** library (developed in
+    the `embedded-udytils` submodule) plus **Exposed**, **Flyway**, and a **Zonky** embedded
+    Postgres:
+
+    * **Schema** lives only in `:platform:server:postgres/src/main/resources/db/migration/` as
+      Flyway scripts — versioned `V<n>__snake_name.sql` (run once, in order) and repeatable
+      `R__name.sql` (re-run whenever their checksum changes, e.g. `R__notify_triggers.sql`). A
+      schema change is a **new** `V<n>` file; existing `V<n>` files are never edited in place.
+    * **`exportPostgresSchema`** Flyway-migrates a throwaway Zonky Postgres and writes a normalised
+      `schema.sql` snapshot; **`generatePostgresTables`** then emits the Exposed `Table`/`Row`
+      sources from it into `platform.server.postgres.tables`. Both tasks are registered by the
+      `dev.isaacudy.udytils.postgres` Gradle plugin and run before `compileKotlin`.
+    * **Runtime ownership**: the DB primitives (`PostgresConfig`, `PostgresMigrator`,
+      `PgNotificationBus`, the column types) live in the udytils library;
+      `:platform:server:postgres` owns only the SQL migrations + codegen wiring and re-exports the
+      runtime; the **application** (`:app:server`) owns its connection config
+      (`ukptPostgresConfigFromEnv()`), wires `postgresDependencies(config)` (from
+      `dev.isaacudy.udytils.postgres.koin`), and runs `PostgresMigrator.migrate()` before it starts
+      serving.
+
+    ### Reactive storage flows (`PgNotificationBus`)
+
+    A `[Name]Storage` class may expose `Flow` reads that re-query when a Postgres `NOTIFY` fires,
+    by injecting `dev.isaacudy.udytils.postgres.PgNotificationBus`. The channel name is a
+    `companion object const val CHANNEL` and **must** match a `pg_notify(...)` trigger in the
+    migrations (e.g. `R__notify_triggers.sql`). The shape is: emit an initial query, then
+    `bus.listen(CHANNEL).filter { it == key }.collect { emit(query()) }`. This is convention, not a
+    statically-enforced rule.
+
+    ## `services.tools` (reserved)
+
+    * **Definition**: Reserved for AI tool-use subclasses (e.g. `AssistantTool` wrappers around a
+      service). ukpt has no AI subsystem, so `services.tools` is intentionally **empty** — it
+      defines no construct, so any declaration placed here fails the layer-exhaustiveness check
+      until a construct is defined for it.
+
+    Its isolation is enforced now, even though the package is empty —
+    `ServicesLayer.toolsApiContractOnly` in the [rules](#rules).
+
+    * **Note**: If an AI subsystem is added later, reintroduce an `assistantTool` construct
+      (extends `AssistantTool`, named `[Action][Entity]Tool`) on the `ServicesLayer` group to
+      populate this layer.
+""")
 object ServicesLayer : RuleGroup(inPackage = "feature..services..") {
 
     // ---- §4.4.1 Services (the cross-the-wire contract, `:api`) --------------------------------
-    object ServiceInterface : Construct(
-        // what it is
-        isInterfaceWhere("A service is an `interface` annotated `@Urpc`") { decl -> decl.annotations.any { it.name == "Urpc" } },
-        hasNameEndingWith("Service"),
-        predicate("Resides in the top-level `feature.[name].services` package") { it.isInServicesRoot() },
-    ) {
-        // what it must do
-        val noClientOnlyServices by guidance("Always implement services as urpc service functions in the appropriate server module — do not build client-only local services")
-        val plainFunctionShapes by guidance("Functions are plain `suspend fun f(req): Res`, `fun f(req): Flow<Res>`, or `fun f(reqs: Flow<Req>): Flow<Res>`, each taking 0 or 1 parameter")
-        val nestedRequestResponseTypes by guidance("Each function's `Request`/`Response` types are nested `@Serializable` types grouped under a per-function `object` namespace")
-        val contractLivesInApi by guidance("Service interfaces live in `feature.[name].services` of the `:api` module")
+    @Describe("""
+        The client-server contract (in `:api`) and its implementation (in `:server`). Services use
+        **urpc** (`dev.isaacudy.udytils:urpc-*`): KSP generates the client, the `UrpcService`
+        server binding, and the wire descriptors from the annotated interface.
 
-        val errorsViaExceptions by rule("Service functions propagate errors via thrown exceptions; the return type only ever represents a successful result") {
+        * **Note**: Service-level exception conventions — dedicated `@Serializable` exception
+          types, `PresentableException`, and the deliberate `retryable` flag — are covered in
+          [exception handling](exceptions.md).
+    """)
+    object ServiceInterface : Construct(
+        requirements = listOf(
+            isInterfaceWhere("A service is an `interface` annotated `@Urpc`") { decl -> decl.annotations.any { it.name == "Urpc" } },
+            hasNameEndingWith("Service"),
+            predicate("Resides in the top-level `feature.[name].services` package") { it.isInServicesRoot() },
+        ),
+    ) {
+        @Describe("Always implement services as urpc service functions in the appropriate server module — do not build client-only local services")
+        val noClientOnlyServices by guidance
+        @Describe("Functions are plain `suspend fun f(req): Res`, `fun f(req): Flow<Res>`, or `fun f(reqs: Flow<Req>): Flow<Res>`, each taking 0 or 1 parameter")
+        val plainFunctionShapes by guidance
+        @Describe("Each function's `Request`/`Response` types are nested `@Serializable` types grouped under a per-function `object` namespace")
+        val nestedRequestResponseTypes by guidance
+        @Describe("Service interfaces live in `feature.[name].services` of the `:api` module")
+        val contractLivesInApi by guidance
+
+        @Describe("Service functions propagate errors via thrown exceptions; the return type only ever represents a successful result")
+        val errorsViaExceptions by rule {
             rationale(
                 """
                 @Throws on suspend functions must include CancellationException (or a superclass like
@@ -70,18 +249,27 @@ object ServicesLayer : RuleGroup(inPackage = "feature..services..") {
     }
 
     // ---- §4.4.2 Service implementations (`:server`) -------------------------------------------
+    @Describe("""
+        Implementations of `Service` interfaces (see [Services](#service-interface)). A ServiceImpl
+        lives in `feature.[name].services` of `:server` — dual-life with the contract — so it
+        belongs to the `services` axis, not the top-level feature group.
+    """)
     object ServiceImpl : Construct(
-        isClassWhere("For a service named `[Name]Service` the implementation is a class named `[Name]ServiceImpl`") { it.name.endsWith("ServiceImpl") },
-        predicate("Resides in `feature.[name].services` of the `:server` module (dual-life with the contract)") { it.isInServicesRoot() },
+        requirements = listOf(
+            isClassWhere("For a service named `[Name]Service` the implementation is a class named `[Name]ServiceImpl`") { it.name.endsWith("ServiceImpl") },
+            predicate("Resides in `feature.[name].services` of the `:server` module (dual-life with the contract)") { it.isInServicesRoot() },
+        ),
     ) {
-        val internalVisibility by rule("Service implementations must be `internal`") {
+        @Describe("Service implementations must be `internal`")
+        val internalVisibility by rule {
             constrain { decl, _ ->
                 val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
                 if (cls.hasInternalModifier) emptyList() else listOf(Violation(cls, "Service implementation must be `internal`"))
             }
         }
 
-        val noInjectingDomainInterfaces by guidance("Service implementations are forbidden from injecting domain interfaces") {
+        @Describe("Service implementations are forbidden from injecting domain interfaces")
+        val noInjectingDomainInterfaces by guidance {
             rationale(
                 """
                 A ServiceImpl is the server-side request handler; it reaches *down* into services.storage
@@ -90,9 +278,11 @@ object ServicesLayer : RuleGroup(inPackage = "feature..services..") {
             )
             note("Surfaced as guidance rather than a construct requirement: forbidding domain-interface injection is a prohibition, not a classification shape, and re-expressing it would require resolving the domain-interface classifier from another layer.")
         }
-        val mayInjectStorageAndInternal by guidance("May inject `services.storage` Storage classes and `services.internal` orchestrators of the same feature, plus other features' Service contracts via `:api`")
+        @Describe("May inject `services.storage` Storage classes and `services.internal` orchestrators of the same feature, plus other features' Service contracts via `:api`")
+        val mayInjectStorageAndInternal by guidance
 
-        val noUiDependency by rule("Service implementations must not depend on the `ui` package") {
+        @Describe("Service implementations must not depend on the `ui` package")
+        val noUiDependency by rule {
             rationale(
                 """
                 ServiceImpls run on the server and have no Compose runtime — a UI import here would
@@ -113,50 +303,88 @@ object ServicesLayer : RuleGroup(inPackage = "feature..services..") {
     }
 
     // ---- §4.4.3 `services.internal` package (`:server`) ---------------------------------------
+    @Describe("""
+        The orchestrators that compose subsystems (e.g. `SessionProcessingManager`) — see the
+        [`services.internal` overview](#servicesinternal). Cross-subsystem composition belongs
+        here, at bare `services.internal`, not to imports between sibling subsystems.
+    """)
     object InternalCoordinator : Construct(
-        isClassWhere("A coordinator is a concrete (non-`abstract`, non-`data`) class that is not a `Job` or `Exception`") { decl ->
-            !decl.hasAbstractModifier &&
-                !decl.hasDataModifier &&
-                !decl.name.endsWith("Job") &&
-                !decl.name.endsWith("Exception")
-        },
-        predicate("Resides in `feature.[name].services.internal`") { it.isInServicesSubAxis("internal") },
+        requirements = listOf(
+            isClassWhere("A coordinator is a concrete (non-`abstract`, non-`data`) class that is not a `Job` or `Exception`") { decl ->
+                !decl.hasAbstractModifier &&
+                    !decl.hasDataModifier &&
+                    !decl.name.endsWith("Job") &&
+                    !decl.name.endsWith("Exception")
+            },
+            predicate("Resides in `feature.[name].services.internal`") { it.isInServicesSubAxis("internal") },
+        ),
     )
 
+    @Describe("""
+        Payloads that flow from one subsystem through the orchestrator into another. A carrier
+        lives at the bare `services.internal` ancestor so both producer and consumer can name it
+        under the data-shape carve-out (see
+        [hierarchical visibility](#hierarchical-visibility-within-servicesinternal)).
+    """)
     object InternalDataCarrier : Construct(
-        isClassWhere("A data carrier is a `data class` payload that flows between subsystems through the orchestrator") { it.hasDataModifier },
-        predicate("Resides in `feature.[name].services.internal`") { it.isInServicesSubAxis("internal") },
+        requirements = listOf(
+            isClassWhere("A data carrier is a `data class` payload that flows between subsystems through the orchestrator") { it.hasDataModifier },
+            predicate("Resides in `feature.[name].services.internal`") { it.isInServicesSubAxis("internal") },
+        ),
     )
 
+    @Describe("""
+        Abstractions used inside a subsystem (e.g. a strategy contract whose implementations live
+        in the same subpackage).
+    """)
     object InternalInterface : Construct(
-        isInterface,
-        predicate("Resides in `feature.[name].services.internal`") { it.isInServicesSubAxis("internal") },
+        requirements = listOf(
+            isInterface,
+            predicate("Resides in `feature.[name].services.internal`") { it.isInServicesSubAxis("internal") },
+        ),
     )
 
+    @Describe("""
+        Exceptions thrown only by internal helpers; service-level exceptions belong on the
+        `Service` interface (see [Services](#service-interface)).
+    """)
     object InternalException : Construct(
-        isClassWhere("An internal exception is a class named `[Name]Exception`, thrown only by internal helpers") { it.name.endsWith("Exception") },
-        predicate("Resides in `feature.[name].services.internal`") { it.isInServicesSubAxis("internal") },
+        requirements = listOf(
+            isClassWhere("An internal exception is a class named `[Name]Exception`, thrown only by internal helpers") { it.name.endsWith("Exception") },
+            predicate("Resides in `feature.[name].services.internal`") { it.isInServicesSubAxis("internal") },
+        ),
     )
 
+    @Describe("`object`s holding pure helper functions.")
     object InternalObjectHelper : Construct(
-        isObject,
-        predicate("Resides in `feature.[name].services.internal`") { it.isInServicesSubAxis("internal") },
+        requirements = listOf(
+            isObject,
+            predicate("Resides in `feature.[name].services.internal`") { it.isInServicesSubAxis("internal") },
+        ),
     )
 
     // ---- §4.4.4 `services.storage` package (`:server`) ----------------------------------------
+    @Describe("""
+        The hand-written entry point to a feature's persistence — see the
+        [`services.storage` overview](#servicesstorage--postgres-persistence).
+    """)
     object StorageClass : Construct(
-        isClassWhere("Named `[Name]Storage` (or `[Name]Store` where the broader name fits)") { it.name.endsWith("Storage") || it.name.endsWith("Store") },
-        isClassWhere("Not abstract, not a `data class`") { !it.hasAbstractModifier && !it.hasDataModifier },
-        predicate("Resides in `feature.[name].services.storage`") { it.isInServicesSubAxis("storage") },
+        requirements = listOf(
+            isClassWhere("Named `[Name]Storage` (or `[Name]Store` where the broader name fits)") { it.name.endsWith("Storage") || it.name.endsWith("Store") },
+            isClassWhere("Not abstract, not a `data class`") { !it.hasAbstractModifier && !it.hasDataModifier },
+            predicate("Resides in `feature.[name].services.storage`") { it.isInServicesSubAxis("storage") },
+        ),
     ) {
-        val internalVisibility by rule("Storage classes must be `internal`") {
+        @Describe("Storage classes must be `internal`")
+        val internalVisibility by rule {
             constrain { decl, _ ->
                 val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
                 if (cls.hasInternalModifier) emptyList() else listOf(Violation(cls, "Storage class must be `internal`"))
             }
         }
 
-        val returnsRowTypesOnly by rule("Storage classes must take/return `XxxRow` types only — never domain types") {
+        @Describe("Storage classes must take/return `XxxRow` types only — never domain types")
+        val returnsRowTypesOnly by rule {
             rationale(
                 """
                 Domain conversion lives in mapping functions (`XxxRow.toDomain()`). A Storage method that
@@ -184,28 +412,56 @@ object ServicesLayer : RuleGroup(inPackage = "feature..services..") {
             }
         }
 
-        val partialUpdatesByHand by guidance("When an operation touches only a subset of columns, keep the hand-written `update { … it[col] = value … }` block — `setFromRow` writes every column and is wrong here")
+        @Describe("When an operation touches only a subset of columns, keep the hand-written `update { … it[col] = value … }` block — `setFromRow` writes every column and is wrong here")
+        val partialUpdatesByHand by guidance
     }
 
+    @Describe("""
+        The hand-written persistence record shapes — the `XxxRow`/`XxxRecord`/`XxxInsert`
+        `data class`es that live in a feature's `services.storage`. The *generated* `XxxRow`
+        classes live in `platform.server.postgres.tables` instead — see
+        [generated `Table`/`Row` sources](#generated-tablerow-sources).
+    """)
     object StorageRecord : Construct(
-        isClassWhere("Is a `data class`") { it.hasDataModifier },
-        oneOf(hasNameEndingWith("Row"), hasNameEndingWith("Record"), hasNameEndingWith("Insert")),
-        predicate("Resides in `feature.[name].services.storage`") { it.isInServicesSubAxis("storage") },
+        requirements = listOf(
+            isClassWhere("Is a `data class`") { it.hasDataModifier },
+            oneOf(hasNameEndingWith("Row"), hasNameEndingWith("Record"), hasNameEndingWith("Insert")),
+            predicate("Resides in `feature.[name].services.storage`") { it.isInServicesSubAxis("storage") },
+        ),
     )
 
+    @Describe("""
+        Plain `internal fun` conversions between the storage `Row` shapes and domain types.
+
+        * **Convention**: `XxxRow.toDomain()` for `Row → Domain`; `Domain.toRow(...)` for the
+          inverse.
+    """)
     object MappingFunction : Construct(
-        isFunction,
-        predicate("Resides in `feature.[name].services.storage`") { it.isInServicesSubAxis("storage") },
+        requirements = listOf(
+            isFunction,
+            predicate("Resides in `feature.[name].services.storage`") { it.isInServicesSubAxis("storage") },
+        ),
     ) {
-        val mappersInStorage by guidance("Conversions between a generated `XxxRow` and a domain type live in `services.storage` as plain `internal fun` declarations, conventionally collected in `[Name]Mappers.kt`")
-        val multiTableLoadHelpers by guidance("Where storage operations span multiple tables to assemble a richer record, define those higher-level helpers as `suspend fun [Name]Storage.loadXxx(…)` extensions in `services.storage`")
+        @Describe("Conversions between a generated `XxxRow` and a domain type live in `services.storage` as plain `internal fun` declarations, conventionally collected in `[Name]Mappers.kt`")
+        val mappersInStorage by guidance
+        @Describe("Where storage operations span multiple tables to assemble a richer record, define those higher-level helpers as `suspend fun [Name]Storage.loadXxx(…)` extensions in `services.storage`")
+        val multiTableLoadHelpers by guidance
     }
 
+    @Describe("""
+        The read/write codec for a column whose on-disk shape differs from the domain shape —
+        either an `object` holding discriminator constants (e.g. `ChatMessageContentTypeCodec`,
+        `ProcessingStatusCodec`) or file-private `Json` + `encode`/`decode` helpers in the
+        `[Name]Mappers.kt` file.
+    """)
     object CodecObject : Construct(
-        isObject,
-        predicate("Lives in `services.storage` alongside the Row + mapping functions for the table that uses it") { it.isInServicesSubAxis("storage") },
+        requirements = listOf(
+            isObject,
+            predicate("Lives in `services.storage` alongside the Row + mapping functions for the table that uses it") { it.isInServicesSubAxis("storage") },
+        ),
     ) {
-        val keyedToColumn by guidance("Codecs encapsulate the read/write asymmetry `setFromRow` can't express — keep them small and keyed to the column they serve")
+        @Describe("Codecs encapsulate the read/write asymmetry `setFromRow` can't express — keep them small and keyed to the column they serve")
+        val keyedToColumn by guidance
     }
 
     // §4.4.5 `services.tools` is intentionally empty (reserved for AI tool-use subclasses), so it
@@ -213,7 +469,8 @@ object ServicesLayer : RuleGroup(inPackage = "feature..services..") {
     // `assistantTool` construct is reintroduced. Its isolation rule lives at the layer level below.
 
     // ---- §3.4.4 cross-axis dependency rules (layer-level — not tied to one construct) ---------
-    val mustNotDependOnData by rule("`services` may depend on `domain` and on other features' `:api` `services` contracts; it must not depend on `data`") {
+    @Describe("`services` may depend on `domain` and on other features' `:api` `services` contracts; it must not depend on `data`")
+    val mustNotDependOnData by rule {
         rationale(
             """
             The server has no `data` layer, and the client's `data` depends on `services`, not the other
@@ -233,11 +490,13 @@ object ServicesLayer : RuleGroup(inPackage = "feature..services..") {
         }
     }
 
-    val crossFeatureViaApi by rule("May depend on another feature's `services` only via that feature's `:api` module") {
+    @Describe("May depend on another feature's `services` only via that feature's `:api` module")
+    val crossFeatureViaApi by rule {
         enforcedBy("ModuleRules.clientApiOnly", "ModuleRules.serverApiOnly")
     }
 
-    val internalHierarchicalVisibility by rule("A class in `services.internal.<subsystem>.**` may not import from a different subsystem under `services.internal` (ancestor data-shape imports are allowed)") {
+    @Describe("A class in `services.internal.<subsystem>.**` may not import from a different subsystem under `services.internal` (ancestor data-shape imports are allowed)")
+    val internalHierarchicalVisibility by rule {
         rationale(
             """
             Each direct child of `services.internal` is a sealed island. You can see your children freely,
@@ -324,7 +583,8 @@ object ServicesLayer : RuleGroup(inPackage = "feature..services..") {
         }
     }
 
-    val storageMustNotDependOnInternal by rule("Files in `services.storage` must not import from `services.internal` — the dependency direction inside `services` is `internal → storage`") {
+    @Describe("Files in `services.storage` must not import from `services.internal` — the dependency direction inside `services` is `internal → storage`")
+    val storageMustNotDependOnInternal by rule {
         scope { scope, exempt ->
             scope.files
                 .filter { it.isFeatureModule() }
@@ -337,7 +597,8 @@ object ServicesLayer : RuleGroup(inPackage = "feature..services..") {
         }
     }
 
-    val toolsApiContractOnly by rule("Anything placed in `services.tools` may depend on the Service contract via `:api`-defined types only — never on `services.storage` or `services.internal`") {
+    @Describe("Anything placed in `services.tools` may depend on the Service contract via `:api`-defined types only — never on `services.storage` or `services.internal`")
+    val toolsApiContractOnly by rule {
         rationale(
             """
             Tools are AI-callable wrappers around the Service contract — they should consume the `:api`
@@ -364,11 +625,16 @@ object ServicesLayer : RuleGroup(inPackage = "feature..services..") {
     // These describe sources generated by the `dev.isaacudy.udytils.postgres` Gradle plugin; they
     // live in a shared platform package, are never committed, and are not scanned by Konsist — so
     // they are layer-level `codegen` rules, not feature constructs.
-    val generatedTableRowSources by rule("`Table`/`Row` sources are generated by the `dev.isaacudy.udytils.postgres` plugin from the Flyway-migrated schema, into the shared package `platform.server.postgres.tables`") { codegen() }
-    val generatedTableObjects by rule("Each persisted entity has a generated `object XxxTable : Table(\"xxx\")` (plural); custom columns use the udytils column types (`JsonbColumnType`, `TextArrayColumnType`, …)") { codegen() }
-    val everyColumnOnTable by rule("Every column on the SQL table is declared on the `Table` object, with no omissions; the UUID primary key is `uuid(\"id\").autoGenerate()` but the write path always supplies the id explicitly") { codegen() }
-    val rowDataClassPrimitives by rule("The in-memory persistence shape is a top-level `data class XxxRow` (singular) whose fields use only primitive types — no domain wrappers, enums, or sealed hierarchies") { codegen() }
-    val rowFakeConstructorAndSetFromRow by rule("Each generated file exposes a fake-constructor `fun XxxRow(row: ResultRow): XxxRow` for reads, and a `fun UpdateBuilder<*>.setFromRow(row: XxxRow)` extension for writes") { codegen() }
+    @Describe("`Table`/`Row` sources are generated by the `dev.isaacudy.udytils.postgres` plugin from the Flyway-migrated schema, into the shared package `platform.server.postgres.tables`")
+    val generatedTableRowSources by rule { codegen() }
+    @Describe("Each persisted entity has a generated `object XxxTable : Table(\"xxx\")` (plural); custom columns use the udytils column types (`JsonbColumnType`, `TextArrayColumnType`, …)")
+    val generatedTableObjects by rule { codegen() }
+    @Describe("Every column on the SQL table is declared on the `Table` object, with no omissions; the UUID primary key is `uuid(\"id\").autoGenerate()` but the write path always supplies the id explicitly")
+    val everyColumnOnTable by rule { codegen() }
+    @Describe("The in-memory persistence shape is a top-level `data class XxxRow` (singular) whose fields use only primitive types — no domain wrappers, enums, or sealed hierarchies")
+    val rowDataClassPrimitives by rule { codegen() }
+    @Describe("Each generated file exposes a fake-constructor `fun XxxRow(row: ResultRow): XxxRow` for reads, and a `fun UpdateBuilder<*>.setFromRow(row: XxxRow)` extension for writes")
+    val rowFakeConstructorAndSetFromRow by rule { codegen() }
 }
 
 /**

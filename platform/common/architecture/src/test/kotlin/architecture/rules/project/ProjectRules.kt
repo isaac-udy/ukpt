@@ -5,21 +5,24 @@ import architecture.registry.*
 import architecture.definitions.isFeatureModule
 import com.lemonappdev.konsist.api.provider.KoResideInPackageProvider
 
-/**
- * Project-wide code rules (§5) and the architecture-exception sign-off rules (§6.3) — the
- * `R-PROJ` family.
- *
- * Unlike the other groups this is **not** a package layer: there is no `ProjectLayer` of
- * classifying constructs, so every rule here is layer-level (project-wide) and there is no
- * `inPackage`, hence no exhaustiveness rule. The tested rules are expressed with `scope { }`
- * over the whole Konsist scope; the §6 sign-off rules are guidance enforced by human review.
- *
- * Rule ids are the object/property path, e.g. `ProjectRules.noCatchException`.
+/*
+ * Not a package layer: no classifying constructs, no `inPackage`, hence no exhaustiveness rule.
  */
+@Describe("""
+    These rules are not tied to a construct or a single package — they apply across every feature
+    module. The guidance entries govern the process for [architecture exceptions](exceptions.md);
+    the mechanism itself is documented there.
+
+    Context for the exception-handling rules: exceptions defined in the
+    [services contract](services.md#service-interface) cross the client/server wire as serialised
+    payloads, and the deserialised types don't always extend `Exception`. `AsyncState` is the
+    async-result wrapper that [ViewModels](ui.md#view-model) consume.
+""")
 object ProjectRules : RuleGroup() {
 
     // ---- §5.1 Exception handling -------------------------------------------------------------
-    val noCatchException by rule("`try/catch` blocks must never catch `Exception` — use `catch (t: Throwable)` or a specific exception type") {
+    @Describe("`try/catch` blocks must never catch `Exception` — use `catch (t: Throwable)` or a specific exception type")
+    val noCatchException by rule {
         rationale(
             """
             The urpc transport (`dev.isaacudy.udytils:urpc-*`) deserialises server-side exceptions
@@ -42,7 +45,8 @@ object ProjectRules : RuleGroup() {
         }
     }
 
-    val serviceExceptionsSerializable by rule("Exception types defined in `services` (the cross-the-wire contract) must be annotated with `@Serializable`") {
+    @Describe("Exception types defined in `services` (the cross-the-wire contract) must be annotated with `@Serializable`")
+    val serviceExceptionsSerializable by rule {
         rationale(
             """
             The urpc transport (`dev.isaacudy.udytils:urpc-*`) deserialises server-side exceptions
@@ -70,7 +74,8 @@ object ProjectRules : RuleGroup() {
     }
 
     // ---- §5.2 Imports ------------------------------------------------------------------------
-    val noWildcardImports by rule("Imports must not use wildcards — always list the explicit symbols") {
+    @Describe("Imports must not use wildcards — always list the explicit symbols")
+    val noWildcardImports by rule {
         rationale(
             """
             Wildcards hide which symbols a file depends on, break a number of architecture-test
@@ -87,9 +92,8 @@ object ProjectRules : RuleGroup() {
         }
     }
 
-    val noDirectAsyncStateConstruction by rule(
-        "`AsyncState.Loading`/`Success`/`Error` must not be constructed directly — use `AsyncState.fromSuspending`/`fromFlow`",
-    ) {
+    @Describe("`AsyncState.Loading`/`Success`/`Error` must not be constructed directly — use `AsyncState.fromSuspending`/`fromFlow`")
+    val noDirectAsyncStateConstruction by rule {
         rationale(
             """
             Direct construction skips the exception capture, cancellation, and state-flow protocol
@@ -110,9 +114,8 @@ object ProjectRules : RuleGroup() {
     }
 
     // ---- §5.3 Action and request types -------------------------------------------------------
-    val sealedActionVariants by guidance(
-        "Model action/request variants as a `sealed interface`/`sealed class` (each variant a `data class`), not a single type with an `enum` discriminator and nullable fields",
-    ) {
+    @Describe("Model action/request variants as a `sealed interface`/`sealed class` (each variant a `data class`), not a single type with an `enum` discriminator and nullable fields")
+    val sealedActionVariants by guidance {
         rationale(
             """
             A sealed hierarchy makes illegal field combinations unrepresentable and lets `when`
@@ -123,21 +126,17 @@ object ProjectRules : RuleGroup() {
     }
 
     // ---- §6.3 Architecture-exception sign-off (all guidance — enforced by human review) ----
-    val exceptionsNeedHumanSignOff by guidance(
-        "Architecture exceptions may only be added after discussing the exception with a human author",
-    )
+    @Describe("Architecture exceptions may only be added after discussing the exception with a human author")
+    val exceptionsNeedHumanSignOff by guidance
 
-    val exceptionNotForFailingTests by guidance(
-        "Adding an architecture exception is not a valid way to resolve an immediate architecture-test failure without user feedback — fix the code or the rule first",
-    )
+    @Describe("Adding an architecture exception is not a valid way to resolve an immediate architecture-test failure without user feedback — fix the code or the rule first")
+    val exceptionNotForFailingTests by guidance
 
-    val exceptionNeedsKdoc by guidance(
-        "Every architecture exception must include a KDoc-style (`/** ... */`) comment explaining why it exists and the intended resolution",
-    )
+    @Describe("Every architecture exception must include a KDoc-style (`/** ... */`) comment explaining why it exists and the intended resolution")
+    val exceptionNeedsKdoc by guidance
 
-    val exceptionsAreTemporary by guidance(
-        "Architecture exceptions are temporary — revisit them periodically and remove them once the underlying issue is resolved",
-    )
+    @Describe("Architecture exceptions are temporary — revisit them periodically and remove them once the underlying issue is resolved")
+    val exceptionsAreTemporary by guidance
 }
 
 /**

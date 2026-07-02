@@ -1,17 +1,19 @@
 package architecture.docs
 
-import architecture.registry.Status
+import architecture.registry.RuleContainer
+import architecture.registry.RuleGroup
+import architecture.registry.describeText
 import java.io.File
 
 /**
  * Layer docs are **compiled, not assembled by hand**: every layer doc has the same fixed shape, so
- * fragment authors never decide where generated content is embedded.
+ * nothing is embedded by hand and nothing can be missed.
  *
- *  1. `# <title>` + narrative from the group fragment (`rules/<layer>/<Group>.md`)
- *  2. `## Rules` / `## Guidance` — the group-level rules and guidance, generated from the catalog
- *  3. one `## <title>` section per construct (catalog order): narrative from the construct fragment
- *     (`rules/<layer>/<Group>.<Construct>.md`, optional), then the generated
- *     Definition/Rules/Guidance blocks
+ *  1. `# <Group Name>` (PascalCase spaced) + the group's `@Describe` text
+ *  2. `## Rules` / `## Guidance` — the group-level rules and guidance, from the catalog
+ *  3. `**Examples**` — the group's `<Group>.examples.md`, when present
+ *  4. one `## <Construct Name>` section per construct (catalog order): its `@Describe` text, the
+ *     generated Definition/Rules/Guidance blocks, then its `<Group.Construct>.examples.md`
  */
 internal fun renderLayerDoc(
     layer: DocSources.LayerSource,
@@ -19,13 +21,11 @@ internal fun renderLayerDoc(
     errors: MutableList<String>,
 ): String = buildString {
     val group = layer.group
-    parseFragment(layer.groupFragment, sourcePath(layer.groupFragment), errors)?.let { fragment ->
-        appendLine("# ${fragment.title}")
+    appendLine("# ${spacedName(group.id)}")
+    appendLine()
+    description(group, errors)?.let {
+        appendLine(it)
         appendLine()
-        if (fragment.body.isNotBlank()) {
-            appendLine(fragment.body)
-            appendLine()
-        }
     }
     val rules = groupRules(group)
     val guidance = groupGuidance(group)
@@ -41,35 +41,42 @@ internal fun renderLayerDoc(
         guidance.forEach { append(renderRuleBullet(it)) }
         appendLine()
     }
+    layer.groupExamples?.let { append(renderExamples(it, sourcePath(it), errors)) }
     group.constructs.forEach { construct ->
-        val fragment = layer.constructFragments[construct.id]
-            ?.let { parseFragment(it, sourcePath(it), errors) }
-        appendLine("## ${fragment?.title ?: construct.id.substringAfterLast('.')}")
+        appendLine("## ${spacedName(construct.id.substringAfterLast('.'))}")
         appendLine()
-        if (fragment != null && fragment.body.isNotBlank()) {
-            appendLine(fragment.body)
+        description(construct, errors)?.let {
+            appendLine(it)
             appendLine()
         }
         append(renderConstructBlock(construct))
         appendLine()
+        layer.constructExamples[construct.id]?.let { append(renderExamples(it, sourcePath(it), errors)) }
     }
 }.trimEnd() + "\n"
 
-private class Fragment(val title: String, val body: String)
+/** "DataLayer" → "Data Layer", "DomainInterface" → "Domain Interface". */
+internal fun spacedName(name: String): String = name.replace(Regex("(?<=[a-z0-9])(?=[A-Z])"), " ")
 
-/** A fragment is plain narrative: it must open with a `# Title` heading and may not use markers. */
-private fun parseFragment(file: File, where: String, errors: MutableList<String>): Fragment? {
-    val lines = file.readText().lines()
-    forEachProseLine(lines.joinToString("\n")) { line ->
+/** A group/construct's narrative is its `@Describe` text — required. */
+private fun description(container: RuleContainer, errors: MutableList<String>): String? {
+    val text = container::class.describeText()
+    val group = container as? RuleGroup
+    val id = group?.id ?: (container as architecture.registry.Construct).id
+    if (text == null) errors += "$id: the object needs a @Describe(\"…\") with its narrative description"
+    return text
+}
+
+/** An `<Id>.examples.md` file: raw markdown, no markers, rendered under an **Examples** label. */
+private fun renderExamples(file: File, where: String, errors: MutableList<String>): String = buildString {
+    val content = file.readText().trim()
+    forEachProseLine(content) { line ->
         if (markerLine.matches(line.trim())) {
-            errors += "$where: markers are not supported in layer fragments — layer docs are compiled automatically"
+            errors += "$where: markers are not supported in examples files"
         }
     }
-    val heading = lines.firstOrNull { it.isNotBlank() }
-    if (heading == null || !heading.startsWith("# ")) {
-        errors += "$where: a fragment must open with a `# Title` heading"
-        return null
-    }
-    val body = lines.drop(lines.indexOf(heading) + 1).joinToString("\n").trim()
-    return Fragment(heading.removePrefix("# ").trim(), body)
+    appendLine("**Examples**:")
+    appendLine()
+    appendLine(content)
+    appendLine()
 }

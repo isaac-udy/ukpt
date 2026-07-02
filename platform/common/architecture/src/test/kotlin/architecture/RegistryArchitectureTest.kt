@@ -2,6 +2,7 @@ package architecture
 
 import architecture.rules.UkptArchitecture
 import architecture.registry.ArchitectureRun
+import architecture.registry.Describe
 import architecture.registry.ModuleGraphConstraint
 import architecture.registry.Rule
 import architecture.registry.RuleGroup
@@ -78,12 +79,14 @@ class RegistryArchitectureTest {
 /** Sentinel group for [RegistryArchitectureTest.runnerDetectsViolationsAndParsesGraph]. */
 private object Sentinel : RuleGroup() {
     @Suppress("unused")
-    val alwaysFails by rule("Always reports a violation") {
+    @Describe("Always reports a violation")
+    val alwaysFails by rule {
         scope { _, _ -> listOf(Violation("sentinel", "intentional self-check violation")) }
     }
 
     @Suppress("unused")
-    val graphParses by rule("The module graph parses at least one module edge") {
+    @Describe("The module graph parses at least one module edge")
+    val graphParses by rule {
         moduleGraph { graph, _ ->
             if (graph.edges.isEmpty()) listOf(Violation("graph", "no module edges were parsed")) else emptyList()
         }

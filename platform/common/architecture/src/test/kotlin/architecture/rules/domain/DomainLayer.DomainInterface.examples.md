@@ -1,10 +1,3 @@
-# Domain interfaces
-
-A functional interface representing domain-level functionality/business logic.
-* **Note**: Default functions don't need to be `operator fun invoke` and should use expressive names; they should provide commonly used functionality (e.g. handling a particular exception type) or simplify calling the primary function with particular parameters.
-* **Note**: Implementations must never override an interface's default functions; convenience functions belong as default members, not top-level extensions, so they're discoverable and co-located with the interface.
-* **Note**: Generic/unknown errors don't need their own exception type or `@Throws` entry.
-* **Examples**:
 ```kotlin
 fun interface CreateUser {
     @Throws(UserAlreadyExistsException::class, CancellationException::class)

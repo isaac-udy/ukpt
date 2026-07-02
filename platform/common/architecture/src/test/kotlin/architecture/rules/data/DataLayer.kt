@@ -10,32 +10,40 @@ import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
 import com.lemonappdev.konsist.api.declaration.KoParentDeclaration
 
-/**
- * The `data` layer (§3.3, §4.3) in the object style. The `data` axis is **client-only**: Repositories
- * that fan out across Services and client-side local persistence (`data.storage`). Server-side
- * persistence lives in the `services` axis, not here.
- *
- * Each construct's requirements (the `construct` classification) are the predicate list in its
- * `Construct(...)` header; its rules ("what the construct must do") are `val x by rule(...)` in the
- * body. Only the package-dependency rules, which aren't tied to a single construct, live at the layer
- * level. Rule ids are the exact object/property names, e.g. `DataLayer.Repository.doesNotInjectRepositories`.
- */
+@Describe("""
+    The `data` axis is **client-only**: Repository implementations and client-side local persistence
+    (Keychain, SharedPreferences, etc.). Server-side persistence and service implementations live in
+    the `services` axis — the server has no `data.*` package (see [the services layer](services.md)).
+    Repositories fan out across [Services](services.md#service-interface) (the `:api` contract) and
+    client-side local storage, and expose [domain interfaces](domain.md#domain-interface) for the
+    rest of the feature to consume.
+""")
 object DataLayer : RuleGroup(inPackage = "feature..data..") {
 
-    // §4.3.1 Repositories
+    @Describe("""
+        A class that provides implementations for [domain interfaces](domain.md#domain-interface),
+        providing the "edge" of the domain layer.
+
+        * **Note**: The property name must match the interface name using `lowerCamelCase`
+          (e.g., `val createUser = CreateUser { ... }`).
+    """)
     object Repository : Construct(
-        isClass,
-        hasNameEndingWith("Repository"),
-        hasFileNameMatchingDeclaration,
+        requirements = listOf(
+            isClass,
+            hasNameEndingWith("Repository"),
+            hasFileNameMatchingDeclaration,
+        ),
     ) {
-        val internalVisibility by rule("Repositories must be marked as `internal`") {
+        @Describe("Repositories must be marked as `internal`")
+        val internalVisibility by rule {
             constrain { decl, _ ->
                 val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
                 if (cls.hasInternalModifier) emptyList() else listOf(Violation(cls, "Repository must be `internal`"))
             }
         }
 
-        val doesNotImplementDomainInterfaces by rule("Repositories must not implement domain interfaces directly") {
+        @Describe("Repositories must not implement domain interfaces directly")
+        val doesNotImplementDomainInterfaces by rule {
             constrain { decl, _ ->
                 val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
                 cls.parents()
@@ -44,7 +52,8 @@ object DataLayer : RuleGroup(inPackage = "feature..data..") {
             }
         }
 
-        val exposesDomainInterfacesAsProperties by rule("Repositories must expose domain interfaces as `public val` properties") {
+        @Describe("Repositories must expose domain interfaces as `public val` properties")
+        val exposesDomainInterfacesAsProperties by rule {
             constrain { decl, _ ->
                 val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
                 val domainImports = cls.containingFile.imports
@@ -58,7 +67,8 @@ object DataLayer : RuleGroup(inPackage = "feature..data..") {
             }
         }
 
-        val doesNotInjectDomainInterfaces by rule("Repositories are forbidden from injecting domain interfaces") {
+        @Describe("Repositories are forbidden from injecting domain interfaces")
+        val doesNotInjectDomainInterfaces by rule {
             rationale("Logic requiring multiple domain interfaces must be moved to a UseCase in the `domain` package.")
             constrain { decl, _ ->
                 val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
@@ -71,7 +81,8 @@ object DataLayer : RuleGroup(inPackage = "feature..data..") {
             }
         }
 
-        val doesNotInjectRepositories by rule("Repositories are forbidden from injecting other Repositories") {
+        @Describe("Repositories are forbidden from injecting other Repositories")
+        val doesNotInjectRepositories by rule {
             constrain { decl, _ ->
                 val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
                 cls.primaryConstructor?.parameters.orEmpty()
@@ -80,7 +91,8 @@ object DataLayer : RuleGroup(inPackage = "feature..data..") {
             }
         }
 
-        val propertiesEagerlyInitialized by rule("Repository domain-interface properties must be initialized immediately — no `by lazy`, no custom getter") {
+        @Describe("Repository domain-interface properties must be initialized immediately — no `by lazy`, no custom getter")
+        val propertiesEagerlyInitialized by rule {
             rationale(
                 """
                 Eager initialisation lets Koin's graph validation catch missing or cyclic dependencies
@@ -97,41 +109,70 @@ object DataLayer : RuleGroup(inPackage = "feature..data..") {
             }
         }
 
-        val mayInjectServicesStorageOrClients by guidance("May inject Services, client-side `data.storage` Storage objects, or database clients to fulfill their domain properties")
+        @Describe("May inject Services, client-side `data.storage` Storage objects, or database clients to fulfill their domain properties")
+        val mayInjectServicesStorageOrClients by guidance
     }
 
-    // §4.3.1.1 Non-Repository client data abstractions
+    @Describe("""
+        A client-side interface declared in `..data..` (but not `data.storage`) that is **not** a
+        Repository — typically the contract for a low-level concern with platform-specific actuals
+        (e.g., `BinaryUploadClient` for chunked file upload).
+
+        * **Note**: These exist to give Repositories a clean abstraction over a concrete platform
+          capability. If you find yourself writing one, ask whether it belongs in `:platform:client`
+          instead — feature-local data abstractions are appropriate when the contract is
+          feature-specific.
+    """)
     object ClientDataInterface : Construct(
-        isInterface,
-        predicate("Must live in `feature.[name].data` (not `data.storage`)") { decl ->
-            val pkg = decl.containingFilePackage()
-            pkg.containsPackageSegment("data") && !pkg.containsPackageSegment("storage")
-        },
+        requirements = listOf(
+            isInterface,
+            predicate("Must live in `feature.[name].data` (not `data.storage`)") { decl ->
+                val pkg = decl.containingFilePackage()
+                pkg.containsPackageSegment("data") && !pkg.containsPackageSegment("storage")
+            },
+        ),
     )
 
+    @Describe("""
+        A client-side class in `..data..` (but not `data.storage`) that is **not** a Repository —
+        usually a platform-specific implementation of a [client data interface](#client-data-interface).
+    """)
     object ClientDataImplementation : Construct(
-        isClass,
-        isClassWhere("Must not be named `Repository`") { !it.name.endsWith("Repository") },
-        predicate("Must live in `feature.[name].data` (not `data.storage`)") { decl ->
-            val pkg = decl.containingFilePackage()
-            pkg.containsPackageSegment("data") && !pkg.containsPackageSegment("storage")
-        },
+        requirements = listOf(
+            isClass,
+            isClassWhere("Must not be named `Repository`") { !it.name.endsWith("Repository") },
+            predicate("Must live in `feature.[name].data` (not `data.storage`)") { decl ->
+                val pkg = decl.containingFilePackage()
+                pkg.containsPackageSegment("data") && !pkg.containsPackageSegment("storage")
+            },
+        ),
     )
 
-    // §4.3.2.1 Client-side Storage classes
-    object ClientStorage : Construct(
-        isClass,
-        hasNameEndingWith("Storage"),
-        isClassWhere("Storage classes must not be abstract") { !it.hasAbstractModifier },
-        isClassWhere("Storage classes must not be `data class`") { !it.hasDataModifier },
-        predicate("Storage classes must reside in the `data.storage` package on `:client`") { decl ->
-            val pkg = decl.containingFilePackage()
-            pkg.containsPackageSegment("data") && pkg.containsPackageSegment("storage")
-        },
-    ) {
-        val internalVisibility by guidance("Storage classes must be marked as `internal` (the `expect` declaration may be public, but `actual` implementations should be `internal` where the language allows)")
+    @Describe("""
+        A class responsible for local-device data persistence and retrieval (e.g., credentials,
+        preferences, cached data on disk) — `expect`/`actual` `Storage` classes backed by Keychain
+        (iOS), SharedPreferences (Android), DataStore, etc.
 
-        val doesNotInjectDomainRepositoriesOrServices by rule("Storage classes are forbidden from injecting domain interfaces, Repositories, or Services") {
+        * **Note**: Client-side Storage classes may be `expect`/`actual` classes when the underlying
+          storage mechanism is platform-specific (e.g., Keychain on iOS, SharedPreferences on Android).
+    """)
+    object ClientStorage : Construct(
+        requirements = listOf(
+            isClass,
+            hasNameEndingWith("Storage"),
+            isClassWhere("Storage classes must not be abstract") { !it.hasAbstractModifier },
+            isClassWhere("Storage classes must not be `data class`") { !it.hasDataModifier },
+            predicate("Storage classes must reside in the `data.storage` package on `:client`") { decl ->
+                val pkg = decl.containingFilePackage()
+                pkg.containsPackageSegment("data") && pkg.containsPackageSegment("storage")
+            },
+        ),
+    ) {
+        @Describe("Storage classes must be marked as `internal` (the `expect` declaration may be public, but `actual` implementations should be `internal` where the language allows)")
+        val internalVisibility by guidance
+
+        @Describe("Storage classes are forbidden from injecting domain interfaces, Repositories, or Services")
+        val doesNotInjectDomainRepositoriesOrServices by rule {
             rationale(
                 """
                 Storage is the lowest layer of the stack — it should depend on the database/keychain
@@ -154,11 +195,13 @@ object DataLayer : RuleGroup(inPackage = "feature..data..") {
     }
 
     // §3.3 `data` package dependencies (layer-level — not tied to one construct)
-    val providesDomainImplementations by guidance("Provides implementations of `domain` interfaces — by exposing them as properties, not by inheriting them") {
+    @Describe("Provides implementations of `domain` interfaces — by exposing them as properties, not by inheriting them")
+    val providesDomainImplementations by guidance {
         note("Enforced via the `DataLayer.Repository` construct's classification: a class that implements a domain interface (or doesn't expose one as a `public val`) isn't recognised as a Repository.")
     }
 
-    val noInjectingDomainInterfaces by rule("Forbidden from injecting `domain` interfaces — logic requiring multiple domain interfaces must be moved to a UseCase") {
+    @Describe("Forbidden from injecting `domain` interfaces — logic requiring multiple domain interfaces must be moved to a UseCase")
+    val noInjectingDomainInterfaces by rule {
         rationale(
             """
             Repositories *implement* domain interfaces — if one injects a domain interface, it's calling
@@ -182,9 +225,11 @@ object DataLayer : RuleGroup(inPackage = "feature..data..") {
         }
     }
 
-    val storageInternalVisibility by guidance("`data.storage` classes use `internal` visibility where the language allows (see `DataLayer.ClientStorage.internalVisibility` for the canonical statement, incl. the `expect`/`actual` nuance)")
+    @Describe("`data.storage` classes use `internal` visibility where the language allows (see `DataLayer.ClientStorage.internalVisibility` for the canonical statement, incl. the `expect`/`actual` nuance)")
+    val storageInternalVisibility by guidance
 
-    val noUiDeps by rule("Must not depend on the `ui` package") {
+    @Describe("Must not depend on the `ui` package")
+    val noUiDeps by rule {
         rationale(
             """
             UI is the outermost layer; `data` sits beneath it and supplies the domain interfaces the UI

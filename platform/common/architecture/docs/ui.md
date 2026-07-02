@@ -1,11 +1,16 @@
 > [!NOTE]
 > **This file is generated — do not edit it by hand.**
-> Narrative sources: the `UiLayer*.md` fragments in `src/test/kotlin/architecture/rules/ui/`; structure and rule content come from the rule catalog.
+> Sources: @Describe annotations in `src/test/kotlin/architecture/rules/ui/UiLayer.kt` (narrative + rules) and the `*.examples.md` files beside it.
 > Regenerate with `UPDATE_ARCHITECTURE_DOCS=true ./gradlew :platform:common:architecture:test`.
 
-# The `ui` layer
+# Ui Layer
 
-The `ui` axis spans `:api` and `:client`. **`:api` contents**: serializable Navigation Keys (Destinations) — a feature's shared navigation entry points. **`:client` contents**: Compose UI (Screens and supporting composables), ViewModels, and UI-state models. Everything the UI loads or mutates arrives through [domain interfaces](domain.md#domain-interfaces), implemented by [Repositories](data.md#repositories) in `data` — which is also how server calls (via [Services](services.md#services-the-cross-the-wire-contract)) reach the screen.
+The `ui` axis spans `:api` and `:client`. **`:api` contents**: serializable Navigation Keys
+(Destinations) — a feature's shared navigation entry points. **`:client` contents**: Compose UI
+(Screens and supporting composables), ViewModels, and UI-state models. Everything the UI loads
+or mutates arrives through [domain interfaces](domain.md#domain-interface), implemented by
+[Repositories](data.md#repository) in `data` — which is also how server calls (via
+[Services](services.md#service-interface)) reach the screen.
 
 The layer rules below apply across the whole `feature.[name].ui` package.
 
@@ -26,40 +31,21 @@ The layer rules below apply across the whole `feature.[name].ui` package.
 * May depend on `domain`
     * **ID**: `UiLayer.mayDependOnDomain`
 
-## Screens
+## Screen
 
-A Composable function (or property-based `navigationDestination`) that defines the layout and visual representation of a feature or portion of a feature.
+A Composable function (or property-based `navigationDestination`) that defines the layout
+and visual representation of a feature or portion of a feature.
 
 ### Dialog / Overlay Screens
 
-A Screen that is presented as a dialog or overlay on top of the current screen, rather than pushing onto the navigation backstack — governed by the `UiLayer.Screen.overlayViaDsl` and `UiLayer.Screen.overlayViewModel` rules below. Regular screens that push to the backstack should use the standard `@Composable fun` pattern; the property-based `navigationDestination` DSL is specifically for screens that need to declare custom metadata (such as `directOverlay()`). The property name may end in `Screen` or `Destination` — both are accepted because the property *is* the destination declaration site.
-
-* **Example**:
-```kotlin
-// Destination (in :api)
-@Serializable
-data class ChangeRoleDestination(
-    val memberName: String,
-    val currentRole: CampaignRole,
-) : NavigationKey.WithResult<CampaignRole>
-
-// Screen (in :client) — property-based with directOverlay metadata
-@NavigationDestination(ChangeRoleDestination::class)
-val changeRoleScreen = navigationDestination<ChangeRoleDestination>(
-    metadata = { directOverlay() }
-) {
-    val viewModel: ChangeRoleViewModel = viewModel()
-    val state by viewModel.state.collectAsState()
-
-    ChangeRoleDialog(
-        memberName = state.memberName,
-        selectedRole = state.selectedRole,
-        onRoleSelected = viewModel::onRoleSelected,
-        onConfirm = viewModel::onConfirm,
-        onDismiss = viewModel::onDismiss,
-    )
-}
-```
+A Screen that is presented as a dialog or overlay on top of the current screen, rather
+than pushing onto the navigation backstack — governed by the `UiLayer.Screen.overlayViaDsl`
+and `UiLayer.Screen.overlayViewModel` rules below. Regular screens that push to the
+backstack should use the standard `@Composable fun` pattern; the property-based
+`navigationDestination` DSL is specifically for screens that need to declare custom
+metadata (such as `directOverlay()`). The property name may end in `Screen` or
+`Destination` — both are accepted because the property *is* the destination declaration
+site.
 
 **Definition** — a declaration is a `UiLayer.Screen` when it satisfies all of:
 
@@ -92,24 +78,71 @@ val changeRoleScreen = navigationDestination<ChangeRoleDestination>(
 * Dialog/overlay screens that need a ViewModel should call `viewModel()` inside the `navigationDestination` block
     * **ID**: `UiLayer.Screen.overlayViewModel`
 
-## UI Composables (non-screen)
+**Examples**:
 
-A `@Composable` function defined in the `..ui..` package that is **not** a Screen — typically a sub-component used by one or more screens, an inline editor, or a feature-specific overlay.
-* **Note**: `[Name]ScreenContent` companions (see `UiLayer.Screen.screenContentCompanion`) are non-Screen composables, which is why the snapshot-test rule lives on this construct. For reusable design-system primitives (buttons, fields, marks), prefer a shared composable in `:platform:client:ui`. Feature-local composables live alongside the Screen they support, and may be `internal` so snapshot tests can drive them.
+A dialog/overlay screen: the Destination lives in `:api`, and the property-based `navigationDestination` in `:client` declares `directOverlay()` metadata and resolves its ViewModel via `viewModel()` inside the block.
+
+```kotlin
+// Destination (in :api)
+@Serializable
+data class ChangeRoleDestination(
+    val memberName: String,
+    val currentRole: CampaignRole,
+) : NavigationKey.WithResult<CampaignRole>
+
+// Screen (in :client) — property-based with directOverlay metadata
+@NavigationDestination(ChangeRoleDestination::class)
+val changeRoleScreen = navigationDestination<ChangeRoleDestination>(
+    metadata = { directOverlay() }
+) {
+    val viewModel: ChangeRoleViewModel = viewModel()
+    val state by viewModel.state.collectAsState()
+
+    ChangeRoleDialog(
+        memberName = state.memberName,
+        selectedRole = state.selectedRole,
+        onRoleSelected = viewModel::onRoleSelected,
+        onConfirm = viewModel::onConfirm,
+        onDismiss = viewModel::onDismiss,
+    )
+}
+```
+
+## Composable
+
+A `@Composable` function defined in the `..ui..` package that is **not** a Screen —
+typically a sub-component used by one or more screens, an inline editor, or a
+feature-specific overlay.
+
+* **Note**: `[Name]ScreenContent` companions (see `UiLayer.Screen.screenContentCompanion`)
+  are non-Screen composables, which is why the snapshot-test rule lives on this construct.
+  For reusable design-system primitives (buttons, fields, marks), prefer a shared
+  composable in `:platform:client:ui`. Feature-local composables live alongside the Screen
+  they support, and may be `internal` so snapshot tests can drive them.
 
 ### Snapshot tests
 
-A [Paparazzi](https://github.com/cashapp/paparazzi) host-side test that renders a Screen's `[Name]ScreenContent` and records a golden image, catching visual regressions without a device or emulator — enforced by `UiLayer.Composable.screenContentSnapshotTest` below.
+A [Paparazzi](https://github.com/cashapp/paparazzi) host-side test that renders a Screen's
+`[Name]ScreenContent` and records a golden image, catching visual regressions without a
+device or emulator — enforced by `UiLayer.Composable.screenContentSnapshotTest` below.
 
-* **Note**: Snapshot tests live in `feature/.../src/androidHostTest/` (the host-test source set under AGP 9.0's KMP library plugin) and use the `SnapshotRule` helper (`platform.snapshot.SnapshotRule`):
-    * `snapshot.screen { ... }` — screen content / composables needing bounded layout constraints (`fillMaxSize()` etc.); renders in a fixed-size container.
-    * `snapshot.component { ... }` — small, self-sizing composables; renders at content size with padding.
-* **Note**: The composable under test must be `internal` (not `private`) so the host-test source set can reach it — the same constraint `UiLayer.Screen.screenContentCompanion` enforces. Add a `@Test` per meaningful state (loaded, empty, error, …) as a screen grows.
-* **Note**: Record golden images after adding or changing a snapshot test, then verify they match (goldens are committed under `src/androidHostTest/snapshots/images/`):
-```
-./gradlew :feature:core:client:recordPaparazzi
-./gradlew :feature:core:client:verifyPaparazzi
-```
+* **Note**: Snapshot tests live in `feature/.../src/androidHostTest/` (the host-test
+  source set under AGP 9.0's KMP library plugin) and use the `SnapshotRule` helper
+  (`platform.snapshot.SnapshotRule`):
+    * `snapshot.screen { ... }` — screen content / composables needing bounded layout
+      constraints (`fillMaxSize()` etc.); renders in a fixed-size container.
+    * `snapshot.component { ... }` — small, self-sizing composables; renders at content
+      size with padding.
+* **Note**: The composable under test must be `internal` (not `private`) so the host-test
+  source set can reach it — the same constraint `UiLayer.Screen.screenContentCompanion`
+  enforces. Add a `@Test` per meaningful state (loaded, empty, error, …) as a screen grows.
+* **Note**: Record golden images after adding or changing a snapshot test, then verify they
+  match (goldens are committed under `src/androidHostTest/snapshots/images/`):
+
+  ```
+  ./gradlew :feature:core:client:recordPaparazzi
+  ./gradlew :feature:core:client:verifyPaparazzi
+  ```
 
 **Definition** — a declaration is a `UiLayer.Composable` when it satisfies all of:
 
@@ -123,10 +156,15 @@ A [Paparazzi](https://github.com/cashapp/paparazzi) host-side test that renders 
     * **ID**: `UiLayer.Composable.screenContentSnapshotTest`
     * **Why**: `ScreenContent` exists specifically so the screen body can be rendered from state + callbacks. Enforced softly — the test only checks that each ScreenContent is *called* from a `@Test` in an `androidHostTest` source set, not a minimum number of snapshots.
 
-## Destinations (NavigationKeys)
+## Destination
 
-A serializable data class or object representing the navigation contract for a particular screen; the input parameters required by that screen (if any) and the output result type provided by that screen (if any).
-* **Note**: "Minimal data" means identifiers, not payloads — a Destination should accept a `User.Id` and let the Screen load the associated `User`, rather than accepting an entire `User`.
+A serializable data class or object representing the navigation contract for a particular
+screen; the input parameters required by that screen (if any) and the output result type
+provided by that screen (if any).
+
+* **Note**: "Minimal data" means identifiers, not payloads — a Destination should accept a
+  `User.Id` and let the Screen load the associated `User`, rather than accepting an entire
+  `User`.
 
 **Definition** — a declaration is a `UiLayer.Destination` when it satisfies all of:
 
@@ -144,10 +182,15 @@ A serializable data class or object representing the navigation contract for a p
 * Destinations may live in `:api` (shared entry point / server-driven) or `:client` (internal only)
     * **ID**: `UiLayer.Destination.definedInApiOrClient`
 
-## ViewModels
+## View Model
 
-A class that manages the UI state for a Screen and orchestrates calls to domain interfaces to load data and perform side effects based on user actions.
-* **Note**: The `navigation` handle is used to read Destination parameters and perform navigation. When closing/completing a screen, use `NavigationHandle.close` when the user is cancelling or backing out, and `NavigationHandle.complete` when the user has successfully performed an action.
+A class that manages the UI state for a Screen and orchestrates calls to domain interfaces
+to load data and perform side effects based on user actions.
+
+* **Note**: The `navigation` handle is used to read Destination parameters and perform
+  navigation. When closing/completing a screen, use `NavigationHandle.close` when the user
+  is cancelling or backing out, and `NavigationHandle.complete` when the user has
+  successfully performed an action.
 
 **Definition** — a declaration is a `UiLayer.ViewModel` when it satisfies all of:
 
@@ -173,30 +216,14 @@ A class that manages the UI state for a Screen and orchestrates calls to domain 
 * ViewModels should inject domain interfaces to load and manipulate domain objects
     * **ID**: `UiLayer.ViewModel.injectsDomainInterfaces`
 
-## ViewModel State
+## View Model State
 
 The complete, immutable representation of a Screen's data at a single point in time.
-* **Note**: `AsyncState` covers action progress as well as loads — e.g. a "save" action as `AsyncState<Unit>`. Never directly construct `AsyncState.Loading`/`Success`/`Error` — use `AsyncState.fromSuspending`/`fromFlow`; that prohibition is enforced project-wide by `ProjectRules.noDirectAsyncStateConstruction`.
-* **Example**:
-```kotlin
-// feature.user.ui.UserDetailState.kt
-data class UserDetailState(
-    val user: User,
-    val isEditing: Boolean,
-) {
-    // Calculated property for logic
-    val canEditName: Boolean get() = user.isVerified && isEditing
-}
 
-// feature.user.ui.UserDetailScreen.kt
-// Extension property for display
-val User.displayRole: String
-    @Composable
-    get() = when(role) {
-        User.Role.Admin -> stringResource(Res.string.role_admin)
-        User.Role.Member -> stringResource(Res.string.role_member)
-    }
-```
+* **Note**: `AsyncState` covers action progress as well as loads — e.g. a "save" action as
+  `AsyncState<Unit>`. Never directly construct `AsyncState.Loading`/`Success`/`Error` — use
+  `AsyncState.fromSuspending`/`fromFlow`; that prohibition is enforced project-wide by
+  `ProjectRules.noDirectAsyncStateConstruction`.
 
 **Definition** — a declaration is a `UiLayer.ViewModelState` when it satisfies all of:
 
@@ -226,10 +253,38 @@ val User.displayRole: String
 * Formatting and visual representation must be handled by the Screen or specialized `@Composable` properties/functions
     * **ID**: `UiLayer.ViewModelState.formattingInScreen`
 
-## UI value types
+**Examples**:
 
-A small closed value type (enum, sealed class, or sealed interface) that lives in `..ui..` and crosses feature boundaries — e.g. a `Slot` tag that one feature's ViewModel passes back to another feature's screen.
-* **Note**: If a value type grows behaviour, it stops being a value type — promote it into a State, Destination, or domain object as appropriate.
+A State that is a transparent container for domain objects plus calculated properties; display formatting lives with the Screen as a `@Composable` extension property, not in the State.
+
+```kotlin
+// feature.user.ui.UserDetailState.kt
+data class UserDetailState(
+    val user: User,
+    val isEditing: Boolean,
+) {
+    // Calculated property for logic
+    val canEditName: Boolean get() = user.isVerified && isEditing
+}
+
+// feature.user.ui.UserDetailScreen.kt
+// Extension property for display
+val User.displayRole: String
+    @Composable
+    get() = when(role) {
+        User.Role.Admin -> stringResource(Res.string.role_admin)
+        User.Role.Member -> stringResource(Res.string.role_member)
+    }
+```
+
+## Ui Value Type
+
+A small closed value type (enum, sealed class, or sealed interface) that lives in `..ui..`
+and crosses feature boundaries — e.g. a `Slot` tag that one feature's ViewModel passes back
+to another feature's screen.
+
+* **Note**: If a value type grows behaviour, it stops being a value type — promote it into
+  a State, Destination, or domain object as appropriate.
 
 **Definition** — a declaration is a `UiLayer.UiValueType` when it satisfies all of:
 

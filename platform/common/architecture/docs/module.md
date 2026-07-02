@@ -1,11 +1,15 @@
 > [!NOTE]
 > **This file is generated — do not edit it by hand.**
-> Narrative sources: the `ModuleRules*.md` fragments in `src/test/kotlin/architecture/rules/module/`; structure and rule content come from the rule catalog.
+> Sources: @Describe annotations in `src/test/kotlin/architecture/rules/module/ModuleRules.kt` (narrative + rules) and the `*.examples.md` files beside it.
 > Regenerate with `UPDATE_ARCHITECTURE_DOCS=true ./gradlew :platform:common:architecture:test`.
 
-# Module structure & dependency rules
+# Module Rules
 
-The project is organized into three root-level module groups — `:app`, `:feature`, and `:platform`. The dependency rules between them are **module-graph rules**: they are checked against the module dependency graph parsed from the `build.gradle.kts` files (`moduleGraph { }`), not against Kotlin source. Build-file exemptions use the `// architecture-exception:` comment (see [architecture exceptions](exceptions.md)).
+The project is organized into three root-level module groups — `:app`, `:feature`, and
+`:platform`. The dependency rules between them are **module-graph rules**: they are checked
+against the module dependency graph parsed from the `build.gradle.kts` files, not against Kotlin
+source. Build-file exemptions use the `// architecture-exception:` comment (see
+[architecture exceptions](exceptions.md)).
 
 ## `:app` (Application shells)
 

@@ -1,8 +1,3 @@
-# Domain objects
-
-An immutable type representing data at the domain-level.
-* **Note**: Nested types (enums, value classes, sealed interfaces/classes) belong nested only when conceptually inseparable from the parent — like `User.Id` or `Transport.Car.FuelType` below; otherwise model them as their own domain objects.
-* **Examples**:
 ```kotlin
 @Serializable
 data class User(

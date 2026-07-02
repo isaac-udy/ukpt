@@ -2,9 +2,10 @@
 
 How this works:
 
-- The **rules** are Kotlin (Konsist tests), maintained by hand: one `RuleGroup` object per layer, a nested `Construct` object per code shape, a rule per property. They live in [`src/test/kotlin/architecture/rules/`](src/test/kotlin/architecture/rules).
-- The **narrative** is markdown, also maintained by hand: fragment files next to the rules they describe — `DataLayer.md` for a layer, `DataLayer.Repository.md` for one construct.
-- The **documentation** — this README and everything under `docs/` — is **generated** from those two sources. Never edit the generated files; edit a fragment or the catalog, then regenerate.
+- The **rules** are Kotlin (Konsist tests), maintained by hand: one `RuleGroup` object per layer, a nested `Construct` object per code shape, a rule or guidance property on each. They live in [`src/test/kotlin/architecture/rules/`](src/test/kotlin/architecture/rules).
+- The **narrative** lives in the catalog too: `@Describe("…")` annotations carry the documentation text for every group, construct, rule, and guidance entry.
+- **Examples** are markdown files next to the rules they belong to: `DataLayer.Repository.examples.md` holds the example blocks for that construct, rendered after its rules.
+- The **documentation** — this README and everything under `docs/` — is **generated** from those sources. Never edit the generated files; edit the catalog or an examples file, then regenerate.
 
 ## Running the checks
 
@@ -17,8 +18,8 @@ How this works:
 
 ## Changing rules or docs
 
-- Change a **rule**: edit the layer's `.kt` in `src/test/kotlin/architecture/rules/<layer>/`.
-- Change **narrative**: edit the fragment `.md` next to that `.kt` (each generated file's banner names its sources).
+- Change a **rule or its documentation**: edit the layer's `.kt` in `src/test/kotlin/architecture/rules/<layer>/` — statements and narrative are `@Describe` annotations there.
+- Change an **example**: edit the `<Id>.examples.md` file next to that `.kt` (each generated file's banner names its sources).
 - Then regenerate the docs:
 
 ```

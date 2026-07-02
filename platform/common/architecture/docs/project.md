@@ -1,27 +1,18 @@
 > [!NOTE]
 > **This file is generated — do not edit it by hand.**
-> Narrative sources: the `ProjectRules*.md` fragments in `src/test/kotlin/architecture/rules/project/`; structure and rule content come from the rule catalog.
+> Sources: @Describe annotations in `src/test/kotlin/architecture/rules/project/ProjectRules.kt` (narrative + rules) and the `*.examples.md` files beside it.
 > Regenerate with `UPDATE_ARCHITECTURE_DOCS=true ./gradlew :platform:common:architecture:test`.
 
-# Project-wide code rules
+# Project Rules
 
-These rules are not tied to a construct or a single package — they apply across every feature module. The last four govern the process for [architecture exceptions](exceptions.md); the mechanism itself is documented there.
+These rules are not tied to a construct or a single package — they apply across every feature
+module. The guidance entries govern the process for [architecture exceptions](exceptions.md);
+the mechanism itself is documented there.
 
-Context for the exception-handling rules: exceptions defined in the [services contract](services.md#services-the-cross-the-wire-contract) cross the client/server wire as serialised payloads, and the deserialised types don't always extend `Exception`. `AsyncState` is the async-result wrapper that [ViewModels](ui.md#viewmodels) consume.
-
-Example for `ProjectRules.sealedActionVariants`:
-
-```kotlin
-// Good
-sealed interface UserAction {
-    data class Rename(val id: User.Id, val newName: String) : UserAction
-    data class Delete(val id: User.Id) : UserAction
-}
-
-// Avoid
-enum class ActionType { RENAME, DELETE }
-data class UserActionRequest(val id: User.Id, val type: ActionType, val newName: String? = null)
-```
+Context for the exception-handling rules: exceptions defined in the
+[services contract](services.md#service-interface) cross the client/server wire as serialised
+payloads, and the deserialised types don't always extend `Exception`. `AsyncState` is the
+async-result wrapper that [ViewModels](ui.md#view-model) consume.
 
 ## Rules
 
@@ -55,3 +46,19 @@ data class UserActionRequest(val id: User.Id, val type: ActionType, val newName:
     * **ID**: `ProjectRules.exceptionNeedsKdoc`
 * Architecture exceptions are temporary — revisit them periodically and remove them once the underlying issue is resolved
     * **ID**: `ProjectRules.exceptionsAreTemporary`
+
+**Examples**:
+
+Example for `ProjectRules.sealedActionVariants`:
+
+```kotlin
+// Good
+sealed interface UserAction {
+    data class Rename(val id: User.Id, val newName: String) : UserAction
+    data class Delete(val id: User.Id) : UserAction
+}
+
+// Avoid
+enum class ActionType { RENAME, DELETE }
+data class UserActionRequest(val id: User.Id, val type: ActionType, val newName: String? = null)
+```
