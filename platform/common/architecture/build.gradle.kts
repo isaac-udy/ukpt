@@ -4,7 +4,7 @@ plugins {
     // updateArchitectureDocumentation tasks (plain `test` runs nothing here). The test classes
     // themselves are generated into build/generated/ from the definition below — none are checked
     // in. Resolves version-free from the root buildscript classpath (see the root build file).
-    id("dev.isaacudy.udytils.architecture")
+    alias(libs.plugins.udytilsArchitecture)
 }
 
 configure<dev.isaacudy.udytils.architecture.gradle.ArchitectureExtension> {
