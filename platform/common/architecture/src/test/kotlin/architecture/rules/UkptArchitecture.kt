@@ -40,7 +40,7 @@ import architecture.rules.ui.UiLayer
     - Then regenerate the docs:
 
     ```
-    UPDATE_ARCHITECTURE_DOCS=true ./gradlew :platform:common:architecture:test
+    ./gradlew :platform:common:architecture:test -PupdateArchitectureDocs=true
     ```
 
     - The test suite fails if the generated docs drift from the sources, if prose references a rule id that doesn't exist, or if a link/anchor is broken.

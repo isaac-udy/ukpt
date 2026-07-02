@@ -58,7 +58,7 @@ The shared module's Android / JVM / wasm targets compile transitively via the pe
 
 ## Testing
 
-- **Architecture rules**: `./gradlew :platform:common:architecture:test --rerun-tasks`. `--rerun-tasks` is load-bearing — Konsist caches the project scope and a stale cache hides new violations. The suite reports **one nested test per rule** (`<Layer> › <Construct> › <rule>`), so a failure names the exact rule. After changing a rule or a doc sidecar, regenerate the generated docs (README + `docs/`): `UPDATE_ARCHITECTURE_DOCS=true ./gradlew :platform:common:architecture:test`.
+- **Architecture rules**: `./gradlew :platform:common:architecture:test --rerun-tasks`. `--rerun-tasks` is load-bearing — Konsist caches the project scope and a stale cache hides new violations. The suite reports **one nested test per rule** (`<Layer> › <Construct> › <rule>`), so a failure names the exact rule. After changing a rule or a doc sidecar, regenerate the generated docs (README + `docs/`): `./gradlew :platform:common:architecture:test -PupdateArchitectureDocs=true`.
 - **UI snapshots** (enforced per screen by `UiLayer.Composable.screenContentSnapshotTest`): record then verify Paparazzi goldens, per client module:
 ```
 ./gradlew :feature:core:client:recordPaparazzi

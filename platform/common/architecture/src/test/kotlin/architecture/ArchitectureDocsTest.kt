@@ -12,7 +12,7 @@ import kotlin.test.fail
  * diffs it against the committed files, so a rule change, a sidecar edit, or a hand-edit to a
  * generated file all surface as one failure. Regenerate with:
  *
- *     UPDATE_ARCHITECTURE_DOCS=true ./gradlew :platform:common:architecture:test
+ *     ./gradlew :platform:common:architecture:test -PupdateArchitectureDocs=true
  */
 class ArchitectureDocsTest {
 
@@ -53,7 +53,7 @@ class ArchitectureDocsTest {
                 appendLine("The architecture docs are stale relative to the catalog + sidecar sources:")
                 stale.forEach { appendLine("  - ${it.relativePath} (fresh render: build/architecture-docs/${it.relativePath})") }
                 orphans.forEach { appendLine("  - docs/${it.name} is produced by no source (orphan)") }
-                appendLine("Regenerate with: UPDATE_ARCHITECTURE_DOCS=true ./gradlew :platform:common:architecture:test")
+                appendLine("Regenerate with: ./gradlew :platform:common:architecture:test -PupdateArchitectureDocs=true")
             },
         )
     }
