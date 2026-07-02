@@ -13,7 +13,7 @@ import java.nio.file.Paths
 /**
  * Any inline-code span shaped like a rule id whose first segment names a catalog group must resolve
  * to a real group/construct/rule id — this is what catches a renamed rule leaving stale prose behind.
- * Spans ending in `.md` are fragment-filename mentions, not ids.
+ * Spans ending in `.md`/`.kt` are filename mentions, not ids.
  */
 internal fun validateProseRuleIds(docs: List<GeneratedDoc>, catalog: CatalogIndex, errors: MutableList<String>) {
     val idLike = Regex("""[A-Za-z]+(?:\.[A-Za-z0-9]+)+""")
@@ -21,7 +21,7 @@ internal fun validateProseRuleIds(docs: List<GeneratedDoc>, catalog: CatalogInde
         forEachProseLine(doc.content) { line ->
             codeSpan.findAll(line).forEach { span ->
                 val text = span.groupValues[1]
-                if (!idLike.matches(text) || text.endsWith(".md")) return@forEach
+                if (!idLike.matches(text) || text.endsWith(".md") || text.endsWith(".kt")) return@forEach
                 if (text.substringBefore('.') !in catalog.groupsById) return@forEach
                 if (text !in catalog.knownIds) {
                     errors += "${doc.relativePath}: `$text` looks like a rule id but doesn't resolve to the catalog"

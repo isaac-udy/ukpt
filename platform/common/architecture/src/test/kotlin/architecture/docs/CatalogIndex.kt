@@ -18,7 +18,7 @@ internal class CatalogIndex(val groups: List<RuleGroup>) {
     }
 
     val groupsById: Map<String, RuleGroup> = groups.associateBy { it.id }
-    val constructsById: Map<String, Construct> = groups.flatMap { it.constructs }.associateBy { it.id }
+    val constructsById: Map<String, Construct<*>> = groups.flatMap { it.constructs }.associateBy { it.id }
     val rulesById: Map<String, Rule> = buildMap {
         groups.forEach { group ->
             group.declaredRules.forEach { put(it.id, it) }

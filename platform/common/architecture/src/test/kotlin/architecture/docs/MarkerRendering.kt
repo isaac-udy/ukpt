@@ -69,7 +69,7 @@ internal fun expandMarkers(
  * the enforced Rules, then the advisory Guidance — each block only when non-empty, as level-5
  * headers so they scan clearly without competing with the section headings.
  */
-internal fun renderConstructBlock(construct: Construct): String = buildString {
+internal fun renderConstructBlock(construct: Construct<*>): String = buildString {
     appendLine("##### Requirements")
     appendLine()
     construct.requirements.forEach { appendLine("* ${it.description}") }

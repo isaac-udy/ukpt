@@ -1,0 +1,15 @@
+package architecture.rules.feature
+
+import architecture.registry.*
+
+@Describe("""
+    An `internal` function with a Koin `Module` receiver that a `Dependencies` module calls to
+    register a group of bindings — used to split a large module into readable, named chunks.
+""")
+object DependencyModuleHelper : Construct<FeatureRules>(
+    requirements = listOf(
+        isFunction,
+        isInternal,
+        isFunctionWhere("A DI registration helper has a Koin `Module` receiver") { declaration -> declaration.receiverType?.name == "Module" },
+    ),
+)

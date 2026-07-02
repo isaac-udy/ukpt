@@ -6,7 +6,6 @@ import architecture.definitions.containingFilePackage
 import architecture.definitions.containsPackageSegment
 import architecture.definitions.isFeatureModule
 import architecture.definitions.isMutable
-import architecture.definitions.primitiveTypeNames
 import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
@@ -195,274 +194,22 @@ import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
       (extends `AssistantTool`, named `[Action][Entity]Tool`) on the `ServicesLayer` group to
       populate this layer.
 """)
-object ServicesLayer : RuleGroup(inPackage = "feature..services..") {
-
-    // ---- §4.4.1 Services (the cross-the-wire contract, `:api`) --------------------------------
-    @Describe("""
-        The client-server contract (in `:api`) and its implementation (in `:server`). Services use
-        **urpc** (`dev.isaacudy.udytils:urpc-*`): KSP generates the client, the `UrpcService`
-        server binding, and the wire descriptors from the annotated interface.
-
-        * **Note**: Service-level exception conventions — dedicated `@Serializable` exception
-          types, `PresentableException`, and the deliberate `retryable` flag — are covered in
-          [exception handling](exceptions.md).
-    """)
-    object ServiceInterface : Construct(
-        requirements = listOf(
-            isInterfaceWhere("A service is an `interface` annotated `@Urpc`") { decl -> decl.annotations.any { it.name == "Urpc" } },
-            hasNameEndingWith("Service"),
-            predicate("Resides in the top-level `feature.[name].services` package") { it.isInServicesRoot() },
-        ),
-    ) {
-        @Describe("Always implement services as urpc service functions in the appropriate server module — do not build client-only local services")
-        val noClientOnlyServices by guidance
-        @Describe("Functions are plain `suspend fun f(req): Res`, `fun f(req): Flow<Res>`, or `fun f(reqs: Flow<Req>): Flow<Res>`, each taking 0 or 1 parameter")
-        val plainFunctionShapes by guidance
-        @Describe("Each function's `Request`/`Response` types are nested `@Serializable` types grouped under a per-function `object` namespace")
-        val nestedRequestResponseTypes by guidance
-        @Describe("Service interfaces live in `feature.[name].services` of the `:api` module")
-        val contractLivesInApi by guidance
-
-        @Describe("Service functions propagate errors via thrown exceptions; the return type only ever represents a successful result")
-        val errorsViaExceptions by rule {
-            rationale(
-                """
-                @Throws on suspend functions must include CancellationException (or a superclass like
-                Exception) — required for Kotlin/Native: kotlinc rejects the function on iOS targets otherwise.
-                """.trimIndent(),
-            )
-            note("Known service exceptions should be their own `@Serializable` type (ideally a `PresentableException`).")
-            note("`@Throws` on `suspend` functions must include `kotlin.coroutines.cancellation.CancellationException`.")
-            constrain { decl, _ ->
-                val iface = decl as? KoInterfaceDeclaration ?: return@constrain emptyList()
-                iface.functions()
-                    .filter { it.hasSuspendModifier }
-                    .filter { fn -> fn.hasAnnotation { it.name == "Throws" } }
-                    .filterNot { fn ->
-                        val text = fn.annotations.first { it.name == "Throws" }.text
-                        text.contains("CancellationException::class") ||
-                            Regex("""(?<!\w)Exception::class""").containsMatchIn(text)
-                    }
-                    .map { Violation(it, "@Throws on a suspend service function must include CancellationException") }
-            }
-        }
-    }
-
-    // ---- §4.4.2 Service implementations (`:server`) -------------------------------------------
-    @Describe("""
-        Implementations of `Service` interfaces (see [Services](#service-interface)). A ServiceImpl
-        lives in `feature.[name].services` of `:server` — dual-life with the contract — so it
-        belongs to the `services` axis, not the top-level feature group.
-    """)
-    object ServiceImpl : Construct(
-        requirements = listOf(
-            isClassWhere("For a service named `[Name]Service` the implementation is a class named `[Name]ServiceImpl`") { it.name.endsWith("ServiceImpl") },
-            predicate("Resides in `feature.[name].services` of the `:server` module (dual-life with the contract)") { it.isInServicesRoot() },
-        ),
-    ) {
-        @Describe("Service implementations must be `internal`")
-        val internalVisibility by rule {
-            constrain { decl, _ ->
-                val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
-                if (cls.hasInternalModifier) emptyList() else listOf(Violation(cls, "Service implementation must be `internal`"))
-            }
-        }
-
-        @Describe("Service implementations are forbidden from injecting domain interfaces")
-        val noInjectingDomainInterfaces by guidance {
-            rationale(
-                """
-                A ServiceImpl is the server-side request handler; it reaches *down* into services.storage
-                and services.internal, not sideways into the domain interfaces a client would consume.
-                """.trimIndent(),
-            )
-            note("Surfaced as guidance rather than a construct requirement: forbidding domain-interface injection is a prohibition, not a classification shape, and re-expressing it would require resolving the domain-interface classifier from another layer.")
-        }
-        @Describe("May inject `services.storage` Storage classes and `services.internal` orchestrators of the same feature, plus other features' Service contracts via `:api`")
-        val mayInjectStorageAndInternal by guidance
-
-        @Describe("Service implementations must not depend on the `ui` package")
-        val noUiDependency by rule {
-            rationale(
-                """
-                ServiceImpls run on the server and have no Compose runtime — a UI import here would
-                either fail to compile in `:server` or mean a UI type has been pulled out of `ui` and
-                is being treated as data, both of which are wrong (§4.4.2, §3.4.4). If you need a
-                shared shape with the UI, put it in the feature's `:api` domain or services package.
-                """.trimIndent(),
-            )
-            constrain { decl, _ ->
-                val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
-                if (cls.containingFile.imports.any { it.name.containsPackageSegment("ui") }) {
-                    listOf(Violation(decl, "service implementation imports the `ui` package"))
-                } else {
-                    emptyList()
-                }
-            }
-        }
-    }
-
-    // ---- §4.4.3 `services.internal` package (`:server`) ---------------------------------------
-    @Describe("""
-        The orchestrators that compose subsystems (e.g. `SessionProcessingManager`) — see the
-        [`services.internal` overview](#servicesinternal). Cross-subsystem composition belongs
-        here, at bare `services.internal`, not to imports between sibling subsystems.
-    """)
-    object InternalCoordinator : Construct(
-        requirements = listOf(
-            isClassWhere("A coordinator is a concrete (non-`abstract`, non-`data`) class that is not a `Job` or `Exception`") { decl ->
-                !decl.hasAbstractModifier &&
-                    !decl.hasDataModifier &&
-                    !decl.name.endsWith("Job") &&
-                    !decl.name.endsWith("Exception")
-            },
-            predicate("Resides in `feature.[name].services.internal`") { it.isInServicesSubAxis("internal") },
-        ),
-    )
-
-    @Describe("""
-        Payloads that flow from one subsystem through the orchestrator into another. A carrier
-        lives at the bare `services.internal` ancestor so both producer and consumer can name it
-        under the data-shape carve-out (see
-        [hierarchical visibility](#hierarchical-visibility-within-servicesinternal)).
-    """)
-    object InternalDataCarrier : Construct(
-        requirements = listOf(
-            isClassWhere("A data carrier is a `data class` payload that flows between subsystems through the orchestrator") { it.hasDataModifier },
-            predicate("Resides in `feature.[name].services.internal`") { it.isInServicesSubAxis("internal") },
-        ),
-    )
-
-    @Describe("""
-        Abstractions used inside a subsystem (e.g. a strategy contract whose implementations live
-        in the same subpackage).
-    """)
-    object InternalInterface : Construct(
-        requirements = listOf(
-            isInterface,
-            predicate("Resides in `feature.[name].services.internal`") { it.isInServicesSubAxis("internal") },
-        ),
-    )
-
-    @Describe("""
-        Exceptions thrown only by internal helpers; service-level exceptions belong on the
-        `Service` interface (see [Services](#service-interface)).
-    """)
-    object InternalException : Construct(
-        requirements = listOf(
-            isClassWhere("An internal exception is a class named `[Name]Exception`, thrown only by internal helpers") { it.name.endsWith("Exception") },
-            predicate("Resides in `feature.[name].services.internal`") { it.isInServicesSubAxis("internal") },
-        ),
-    )
-
-    @Describe("`object`s holding pure helper functions.")
-    object InternalObjectHelper : Construct(
-        requirements = listOf(
-            isObject,
-            predicate("Resides in `feature.[name].services.internal`") { it.isInServicesSubAxis("internal") },
-        ),
-    )
-
-    // ---- §4.4.4 `services.storage` package (`:server`) ----------------------------------------
-    @Describe("""
-        The hand-written entry point to a feature's persistence — see the
-        [`services.storage` overview](#servicesstorage--postgres-persistence).
-    """)
-    object StorageClass : Construct(
-        requirements = listOf(
-            isClassWhere("Named `[Name]Storage` (or `[Name]Store` where the broader name fits)") { it.name.endsWith("Storage") || it.name.endsWith("Store") },
-            isClassWhere("Not abstract, not a `data class`") { !it.hasAbstractModifier && !it.hasDataModifier },
-            predicate("Resides in `feature.[name].services.storage`") { it.isInServicesSubAxis("storage") },
-        ),
-    ) {
-        @Describe("Storage classes must be `internal`")
-        val internalVisibility by rule {
-            constrain { decl, _ ->
-                val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
-                if (cls.hasInternalModifier) emptyList() else listOf(Violation(cls, "Storage class must be `internal`"))
-            }
-        }
-
-        @Describe("Storage classes must take/return `XxxRow` types only — never domain types")
-        val returnsRowTypesOnly by rule {
-            rationale(
-                """
-                Domain conversion lives in mapping functions (`XxxRow.toDomain()`). A Storage method that
-                returns a domain type embeds mapping logic in the persistence layer; the ServiceImpl should
-                do the Row→Domain conversion instead.
-                """.trimIndent(),
-            )
-            constrain { decl, _ ->
-                val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
-                cls.functions()
-                    .filter { it.hasPublicOrDefaultModifier || it.hasInternalModifier }
-                    .filterNot { it.hasOverrideModifier }
-                    .mapNotNull { fn ->
-                        val typeName = fn.returnType?.name ?: return@mapNotNull null
-                        if (isAllowedStorageReturnTypeName(typeName)) {
-                            null
-                        } else {
-                            Violation(
-                                fn,
-                                "Storage method `${fn.name}` returns `$typeName` — services.storage may only " +
-                                    "take/return Row shapes (or primitives/value-class ids/collections), never domain types",
-                            )
-                        }
-                    }
-            }
-        }
-
-        @Describe("When an operation touches only a subset of columns, keep the hand-written `update { … it[col] = value … }` block — `setFromRow` writes every column and is wrong here")
-        val partialUpdatesByHand by guidance
-    }
-
-    @Describe("""
-        The hand-written persistence record shapes — the `XxxRow`/`XxxRecord`/`XxxInsert`
-        `data class`es that live in a feature's `services.storage`. The *generated* `XxxRow`
-        classes live in `platform.server.postgres.tables` instead — see
-        [generated `Table`/`Row` sources](#generated-tablerow-sources).
-    """)
-    object StorageRecord : Construct(
-        requirements = listOf(
-            isClassWhere("Is a `data class`") { it.hasDataModifier },
-            oneOf(hasNameEndingWith("Row"), hasNameEndingWith("Record"), hasNameEndingWith("Insert")),
-            predicate("Resides in `feature.[name].services.storage`") { it.isInServicesSubAxis("storage") },
-        ),
-    )
-
-    @Describe("""
-        Plain `internal fun` conversions between the storage `Row` shapes and domain types.
-
-        * **Convention**: `XxxRow.toDomain()` for `Row → Domain`; `Domain.toRow(...)` for the
-          inverse.
-    """)
-    object MappingFunction : Construct(
-        requirements = listOf(
-            isFunction,
-            predicate("Resides in `feature.[name].services.storage`") { it.isInServicesSubAxis("storage") },
-        ),
-    ) {
-        @Describe("Conversions between a generated `XxxRow` and a domain type live in `services.storage` as plain `internal fun` declarations, conventionally collected in `[Name]Mappers.kt`")
-        val mappersInStorage by guidance
-        @Describe("Where storage operations span multiple tables to assemble a richer record, define those higher-level helpers as `suspend fun [Name]Storage.loadXxx(…)` extensions in `services.storage`")
-        val multiTableLoadHelpers by guidance
-    }
-
-    @Describe("""
-        The read/write codec for a column whose on-disk shape differs from the domain shape —
-        either an `object` holding discriminator constants (e.g. `ChatMessageContentTypeCodec`,
-        `ProcessingStatusCodec`) or file-private `Json` + `encode`/`decode` helpers in the
-        `[Name]Mappers.kt` file.
-    """)
-    object CodecObject : Construct(
-        requirements = listOf(
-            isObject,
-            predicate("Lives in `services.storage` alongside the Row + mapping functions for the table that uses it") { it.isInServicesSubAxis("storage") },
-        ),
-    ) {
-        @Describe("Codecs encapsulate the read/write asymmetry `setFromRow` can't express — keep them small and keyed to the column they serve")
-        val keyedToColumn by guidance
-    }
+object ServicesLayer : RuleGroup(
+    inPackage = "feature..services..",
+    constructs = listOf(
+        ServiceInterface,
+        ServiceImpl,
+        InternalCoordinator,
+        InternalDataCarrier,
+        InternalInterface,
+        InternalException,
+        InternalObjectHelper,
+        StorageClass,
+        StorageRecord,
+        MappingFunction,
+        CodecObject,
+    ),
+) {
 
     // §4.4.5 `services.tools` is intentionally empty (reserved for AI tool-use subclasses), so it
     // defines no construct: any declaration placed there fails the exhaustiveness check until an
@@ -654,35 +401,11 @@ private fun KoBaseDeclaration.servicesSubpath(): String? {
 private fun String.isUnderSegment(segment: String): Boolean = this == segment || startsWith("$segment.")
 
 /** In the top-level `feature.[name].services` package (the contract / ServiceImpl), not a sub-axis. */
-private fun KoBaseDeclaration.isInServicesRoot(): Boolean {
+internal fun KoBaseDeclaration.isInServicesRoot(): Boolean {
     val sub = servicesSubpath() ?: return false
     return !sub.isUnderSegment("internal") && !sub.isUnderSegment("storage") && !sub.isUnderSegment("tools")
 }
 
 /** In the named `services` sub-axis (`internal`, `storage`, or `tools`) of any feature. */
-private fun KoBaseDeclaration.isInServicesSubAxis(segment: String): Boolean =
+internal fun KoBaseDeclaration.isInServicesSubAxis(segment: String): Boolean =
     servicesSubpath()?.isUnderSegment(segment) == true
-
-/**
- * Allowed return-type bases for a `services.storage` Storage method
- * (`ServicesLayer.StorageClass.returnsRowTypesOnly`): Row-shaped types,
- * primitives, value-class identifiers, container wrappers, time types, and `Unit`/`Nothing` — never
- * a bare domain type. Copied from the original `DataLayerTests` predicate.
- */
-private fun isAllowedStorageReturnTypeName(name: String): Boolean {
-    val rowSuffixes = listOf("Row", "Record", "Insert")
-    val containerTypes = setOf("List", "Set", "Map", "Flow", "StateFlow", "SharedFlow", "Pair", "Triple")
-    val timeTypes = setOf("Instant", "LocalDate", "LocalDateTime", "Duration", "UUID")
-
-    // Strip nullability, generics, and whitespace so we can check the head.
-    val head = name.substringBefore('<').trimEnd('?').trim()
-    if (head.isEmpty()) return true
-    if (head == "Unit" || head == "Nothing") return true
-    if (head in primitiveTypeNames) return true
-    if (head in containerTypes) return true
-    if (head in timeTypes) return true
-    if (rowSuffixes.any { head.endsWith(it) }) return true
-    // Value-class IDs and similar: PascalCase nested names like `Campaign.Path`, `Session.Path`.
-    if (head.contains('.')) return true
-    return false
-}

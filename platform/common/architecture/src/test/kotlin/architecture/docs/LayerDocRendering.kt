@@ -74,7 +74,7 @@ internal fun spacedName(name: String): String = name.replace(Regex("(?<=[a-z0-9]
 private fun description(container: RuleContainer, errors: MutableList<String>): String? {
     val text = container::class.describeText()
     val group = container as? RuleGroup
-    val id = group?.id ?: (container as architecture.registry.Construct).id
+    val id = group?.id ?: (container as architecture.registry.Construct<*>).id
     if (text == null) errors += "$id: the object needs a @Describe(\"…\") with its narrative description"
     return text
 }

@@ -43,7 +43,7 @@ internal fun membershipRule(groups: List<RuleGroup>): Rule = Rule(
  * Shared classification check: every classifiable declaration (optionally restricted to [pkg], else
  * any feature module) must match exactly one of [constructs]; partial matches get a rich breakdown.
  */
-private fun membershipCheck(constructs: List<Construct>, pkg: String?): ScopeCheck =
+private fun membershipCheck(constructs: List<Construct<*>>, pkg: String?): ScopeCheck =
     ScopeCheck { scope, exempt ->
         classifiableDeclarations(scope)
             .filter { if (pkg != null) it.residesIn(pkg) else it.isFeatureModule() }
@@ -62,7 +62,7 @@ private fun classifiableDeclarations(scope: KoScope): List<KoBaseDeclaration> =
         .filterNot { it.isInsideFunction() }
 
 /** Human breakdown for a declaration that matched no construct (or several). */
-private fun classifyMessage(declaration: KoBaseDeclaration, constructs: List<Construct>): String {
+private fun classifyMessage(declaration: KoBaseDeclaration, constructs: List<Construct<*>>): String {
     val location = declaration.sourceLocation()
     val matched = constructs.filter { it.test(declaration) }
     return when {

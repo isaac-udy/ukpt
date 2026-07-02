@@ -50,7 +50,7 @@ class GuidanceScope internal constructor() {
 }
 
 /** Block receiver for a construct's `rule { }` — adds [constrain], scoped to the construct's population. */
-class ConstructRuleScope internal constructor(private val construct: Construct) : BaseRuleScope() {
+class ConstructRuleScope internal constructor(private val construct: Construct<*>) : BaseRuleScope() {
     /** A check over only the declarations this construct classifies. */
     fun constrain(check: ConstructCheck): Enforcement = ScopeConstraint { scope, exempt ->
         scope.declarations(includeNested = false)

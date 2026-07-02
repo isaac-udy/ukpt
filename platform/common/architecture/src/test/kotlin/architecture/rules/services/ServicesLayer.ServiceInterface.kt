@@ -1,0 +1,55 @@
+package architecture.rules.services
+
+import architecture.registry.*
+
+import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
+
+@Describe("""
+    The client-server contract (in `:api`) and its implementation (in `:server`). Services use
+    **urpc** (`dev.isaacudy.udytils:urpc-*`): KSP generates the client, the `UrpcService`
+    server binding, and the wire descriptors from the annotated interface.
+
+    * **Note**: Service-level exception conventions — dedicated `@Serializable` exception
+      types, `PresentableException`, and the deliberate `retryable` flag — are covered in
+      [exception handling](exceptions.md).
+""")
+object ServiceInterface : Construct<ServicesLayer>(
+    requirements = listOf(
+        isInterfaceWhere("A service is an `interface` annotated `@Urpc`") { decl -> decl.annotations.any { it.name == "Urpc" } },
+        hasNameEndingWith("Service"),
+        predicate("Resides in the top-level `feature.[name].services` package") { it.isInServicesRoot() },
+    ),
+) {
+    @Describe("Always implement services as urpc service functions in the appropriate server module — do not build client-only local services")
+    val noClientOnlyServices by guidance
+    @Describe("Functions are plain `suspend fun f(req): Res`, `fun f(req): Flow<Res>`, or `fun f(reqs: Flow<Req>): Flow<Res>`, each taking 0 or 1 parameter")
+    val plainFunctionShapes by guidance
+    @Describe("Each function's `Request`/`Response` types are nested `@Serializable` types grouped under a per-function `object` namespace")
+    val nestedRequestResponseTypes by guidance
+    @Describe("Service interfaces live in `feature.[name].services` of the `:api` module")
+    val contractLivesInApi by guidance
+
+    @Describe("Service functions propagate errors via thrown exceptions; the return type only ever represents a successful result")
+    val errorsViaExceptions by rule {
+        rationale(
+            """
+            @Throws on suspend functions must include CancellationException (or a superclass like
+            Exception) — required for Kotlin/Native: kotlinc rejects the function on iOS targets otherwise.
+            """.trimIndent(),
+        )
+        note("Known service exceptions should be their own `@Serializable` type (ideally a `PresentableException`).")
+        note("`@Throws` on `suspend` functions must include `kotlin.coroutines.cancellation.CancellationException`.")
+        constrain { decl, _ ->
+            val iface = decl as? KoInterfaceDeclaration ?: return@constrain emptyList()
+            iface.functions()
+                .filter { it.hasSuspendModifier }
+                .filter { fn -> fn.hasAnnotation { it.name == "Throws" } }
+                .filterNot { fn ->
+                    val text = fn.annotations.first { it.name == "Throws" }.text
+                    text.contains("CancellationException::class") ||
+                        Regex("""(?<!\w)Exception::class""").containsMatchIn(text)
+                }
+                .map { Violation(it, "@Throws on a suspend service function must include CancellationException") }
+        }
+    }
+}

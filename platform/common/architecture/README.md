@@ -7,7 +7,7 @@
 
 How this works:
 
-- The **rules** are Kotlin (Konsist tests), maintained by hand: one `RuleGroup` object per layer, a nested `Construct` object per code shape, a rule or guidance property on each. They live in [`src/test/kotlin/architecture/rules/`](src/test/kotlin/architecture/rules).
+- The **rules** are Kotlin (Konsist tests), maintained by hand: one `RuleGroup` object per layer, one top-level `Construct<Group>` object per code shape (in its own file, e.g. `DataLayer.Repository.kt`, listed in the group's `constructs`), a rule or guidance property on each. They live in [`src/test/kotlin/architecture/rules/`](src/test/kotlin/architecture/rules).
 - The **narrative** lives in the catalog too: `@Describe("…")` annotations carry the documentation text for every group, construct, rule, and guidance entry.
 - **Examples** are markdown files next to the rules they belong to: `DataLayer.Repository.examples.md` holds the example blocks for that construct, rendered after its rules.
 - The **documentation** — this README and everything under `docs/` — is **generated** from those sources. Never edit the generated files; edit the catalog or an examples file, then regenerate.
