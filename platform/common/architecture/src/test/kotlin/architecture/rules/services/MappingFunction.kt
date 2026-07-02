@@ -14,8 +14,8 @@ object MappingFunction : Construct<ServicesLayer>(
         predicate("resides in `feature.[name].services.storage`") { it.isInServicesSubAxis("storage") },
     ),
 ) {
-    @Describe("A Mapping Function between a generated `XxxRow` and a domain type lives in `services.storage` as a plain `internal fun` declaration, conventionally collected in `[Name]Mappers.kt`")
-    val mappersInStorage by guidance
-    @Describe("A storage operation that spans multiple tables to assemble a richer record is defined as a higher-level `suspend fun [Name]Storage.loadXxx(…)` extension in `services.storage`")
-    val multiTableLoadHelpers by guidance
+    @Describe("A Mapping Function between a generated `XxxRow` and a domain type must be a plain `internal fun` declaration in `services.storage`, conventionally collected in `[Name]Mappers.kt`")
+    val mappersInStorage by rule { unverifiable() }
+    @Describe("A storage operation that spans multiple tables to assemble a richer record must be defined as a higher-level `suspend fun [Name]Storage.loadXxx(…)` extension in `services.storage`")
+    val multiTableLoadHelpers by rule { unverifiable() }
 }

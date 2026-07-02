@@ -28,8 +28,8 @@ object ViewModelState : Construct<UiLayer>(
         }
     }
 
-    @Describe("A ViewModel State object has a 1:1 relationship with a ViewModel type")
-    val viewModelRelationship by guidance
+    @Describe("A ViewModel State object must have a 1:1 relationship with a ViewModel type")
+    val viewModelRelationship by rule { unverifiable() }
     @Describe("A ViewModel State object must use `AsyncState<T>` / `UpdatableState<T>` for asynchronously loaded data and action progress")
     val usesAsyncState by rule { unverifiable() }
     @Describe("A ViewModel State object must not define custom sealed types for loading/success/error — use `AsyncState<T>`")

@@ -59,5 +59,5 @@ The exemption applies to the immediately-following dependency line. Multiple `ar
     * **Verification**: not automatically verifiable — enforced by review.
 * An architecture exception must include a KDoc-style (`/** ... */`) comment explaining why it exists and the intended resolution
     * **Note**: Checked for `@ArchitectureException` on declarations; `// architecture-exception:` comments in build files carry their reason inline and are out of scope.
-* An architecture exception is temporary — revisit it periodically and remove it once the underlying issue is resolved
+* An architecture exception should be temporary — revisit it periodically and remove it once the underlying issue is resolved
 

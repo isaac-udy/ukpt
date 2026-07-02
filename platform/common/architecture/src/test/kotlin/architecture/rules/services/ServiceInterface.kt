@@ -33,8 +33,8 @@ object ServiceInterface : Construct<ServicesLayer>(
         }
     }
 
-    @Describe("A Service function's `Request`/`Response` types are nested `@Serializable` types grouped under a per-function `object` namespace")
-    val nestedRequestResponseTypes by guidance
+    @Describe("A Service function's `Request`/`Response` types must be nested `@Serializable` types grouped under a per-function `object` namespace")
+    val nestedRequestResponseTypes by rule { unverifiable() }
 
     @Describe("A Service interface lives in `feature.[name].services` of the `:api` module")
     val contractLivesInApi by rule {

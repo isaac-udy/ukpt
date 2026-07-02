@@ -147,7 +147,7 @@ object ProjectRules : RuleGroup() {
         }
     }
 
-    @Describe("An architecture exception is temporary — revisit it periodically and remove it once the underlying issue is resolved")
+    @Describe("An architecture exception should be temporary — revisit it periodically and remove it once the underlying issue is resolved")
     val exceptionsAreTemporary by guidance
 }
 

@@ -265,15 +265,13 @@ server binding, and the wire descriptors from the annotated interface.
     * **Verification**: not automatically verifiable — enforced by review.
 * A Service function is a plain `suspend fun f(req): Res`, `fun f(req): Flow<Res>`, or `fun f(reqs: Flow<Req>): Flow<Res>`, taking 0 or 1 parameter
     * **Note**: The check enforces the parameter count; the suspend/Flow shape is validated by the urpc KSP processor at compile time.
+* A Service function's `Request`/`Response` types must be nested `@Serializable` types grouped under a per-function `object` namespace
+    * **Verification**: not automatically verifiable — enforced by review.
 * A Service interface lives in `feature.[name].services` of the `:api` module
 * A Service function propagates errors via thrown exceptions; the return type only ever represents a successful result
     * **Why**: @Throws on suspend functions must include CancellationException (or a superclass like Exception) — required for Kotlin/Native: kotlinc rejects the function on iOS targets otherwise.
     * **Note**: Known service exceptions should be their own `@Serializable` type (ideally a `PresentableException`).
     * **Note**: `@Throws` on `suspend` functions must include `kotlin.coroutines.cancellation.CancellationException`.
-
-##### Guidance
-
-* A Service function's `Request`/`Response` types are nested `@Serializable` types grouped under a per-function `object` namespace
 
 ##### Examples
 
@@ -407,10 +405,8 @@ The hand-written entry point to a feature's persistence — see the
 * A Storage class must be `internal`
 * A Storage class must take and return `XxxRow` types only — never domain types
     * **Why**: Domain conversion lives in mapping functions (`XxxRow.toDomain()`). A Storage method that returns a domain type embeds mapping logic in the persistence layer; the ServiceImpl should do the Row→Domain conversion instead.
-
-##### Guidance
-
-* A Storage operation that touches only a subset of columns keeps the hand-written `update { … it[col] = value … }` block — `setFromRow` writes every column and is wrong here
+* A Storage operation that touches only a subset of columns must keep the hand-written `update { … it[col] = value … }` block — `setFromRow` writes every column and is wrong here
+    * **Verification**: not automatically verifiable — enforced by review.
 
 ---
 
@@ -443,10 +439,12 @@ Plain `internal fun` conversions between the storage `Row` shapes and domain typ
 * A Mapping Function is a function
 * A Mapping Function resides in `feature.[name].services.storage`
 
-##### Guidance
+##### Rules
 
-* A Mapping Function between a generated `XxxRow` and a domain type lives in `services.storage` as a plain `internal fun` declaration, conventionally collected in `[Name]Mappers.kt`
-* A storage operation that spans multiple tables to assemble a richer record is defined as a higher-level `suspend fun [Name]Storage.loadXxx(…)` extension in `services.storage`
+* A Mapping Function between a generated `XxxRow` and a domain type must be a plain `internal fun` declaration in `services.storage`, conventionally collected in `[Name]Mappers.kt`
+    * **Verification**: not automatically verifiable — enforced by review.
+* A storage operation that spans multiple tables to assemble a richer record must be defined as a higher-level `suspend fun [Name]Storage.loadXxx(…)` extension in `services.storage`
+    * **Verification**: not automatically verifiable — enforced by review.
 
 ---
 

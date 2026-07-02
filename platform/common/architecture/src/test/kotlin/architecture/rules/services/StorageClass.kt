@@ -53,8 +53,8 @@ object StorageClass : Construct<ServicesLayer>(
         }
     }
 
-    @Describe("A Storage operation that touches only a subset of columns keeps the hand-written `update { … it[col] = value … }` block — `setFromRow` writes every column and is wrong here")
-    val partialUpdatesByHand by guidance
+    @Describe("A Storage operation that touches only a subset of columns must keep the hand-written `update { … it[col] = value … }` block — `setFromRow` writes every column and is wrong here")
+    val partialUpdatesByHand by rule { unverifiable() }
 }
 
 /**

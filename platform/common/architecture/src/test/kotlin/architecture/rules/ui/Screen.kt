@@ -87,8 +87,8 @@ object Screen : Construct<UiLayer>(
         }
     }
 
-    @Describe("A Screen function has a 1:1 relationship with a ViewModel and ViewModel State")
-    val viewModelStateRelationship by guidance
+    @Describe("A Screen function must have a 1:1 relationship with a ViewModel and ViewModel State")
+    val viewModelStateRelationship by rule { unverifiable() }
     @Describe("A Screen function must observe the ViewModel's `state` property and use it to drive the UI")
     val observesState by rule {
         unverifiable { decl, _ ->

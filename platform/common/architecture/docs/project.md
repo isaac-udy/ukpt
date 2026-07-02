@@ -40,7 +40,7 @@ async-result wrapper that [ViewModels](ui.md#view-model) consume.
 
 ##### Guidance
 
-* An architecture exception is temporary — revisit it periodically and remove it once the underlying issue is resolved
+* An architecture exception should be temporary — revisit it periodically and remove it once the underlying issue is resolved
 
 ##### Examples
 
