@@ -23,6 +23,7 @@ How this works:
 
 ## Changing rules or docs
 
+- Read [authoring](docs/authoring.md) first: what should be a requirement vs a rule vs guidance, what audits are for, and the language conventions for statements, notes, and requirement descriptions.
 - Change a **rule or its documentation**: edit the layer's `.kt` in `src/test/kotlin/architecture/rules/<layer>/` — statements and narrative are `@Describe` annotations there.
 - Change an **example**: edit the `<Construct>.examples.md` file next to that construct's `.kt` (each generated file's banner names its sources).
 - Change **this README**: edit the `@Describe` on `UkptArchitecture`.
@@ -43,6 +44,7 @@ How this works:
 - [Services Layer](docs/services.md)
 - [Feature Rules](docs/feature.md)
 - [Project Rules](docs/project.md)
+- [Authoring rules](docs/authoring.md)
 - [Architecture exceptions](docs/exceptions.md)
 - [Rule index](docs/rule-index.md)
 

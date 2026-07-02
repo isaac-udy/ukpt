@@ -34,6 +34,7 @@ import architecture.rules.ui.UiLayer
 
     ## Changing rules or docs
 
+    - Read [authoring](docs/authoring.md) first: what should be a requirement vs a rule vs guidance, what audits are for, and the language conventions for statements, notes, and requirement descriptions.
     - Change a **rule or its documentation**: edit the layer's `.kt` in `src/test/kotlin/architecture/rules/<layer>/` — statements and narrative are `@Describe` annotations there.
     - Change an **example**: edit the `<Construct>.examples.md` file next to that construct's `.kt` (each generated file's banner names its sources).
     - Change **this README**: edit the `@Describe` on `UkptArchitecture`.
