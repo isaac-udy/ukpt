@@ -1,6 +1,6 @@
 package architecture.rules.module
 
-import architecture.registry.*
+import dev.isaacudy.udytils.architecture.*
 
 
 @Describe("""

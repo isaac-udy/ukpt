@@ -1,6 +1,6 @@
 package architecture.rules.services
 
-import architecture.registry.*
+import dev.isaacudy.udytils.architecture.*
 
 @Describe("""
     Exceptions thrown only by internal helpers; service-level exceptions belong on the

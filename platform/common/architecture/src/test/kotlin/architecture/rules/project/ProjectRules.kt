@@ -1,6 +1,6 @@
 package architecture.rules.project
 
-import architecture.registry.*
+import dev.isaacudy.udytils.architecture.*
 
 import architecture.definitions.isFeatureModule
 import com.lemonappdev.konsist.api.provider.KoAnnotationProvider

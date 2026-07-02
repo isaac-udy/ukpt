@@ -1,6 +1,6 @@
 package architecture.rules.ui
 
-import architecture.registry.*
+import dev.isaacudy.udytils.architecture.*
 
 import com.lemonappdev.konsist.api.Konsist
 import com.lemonappdev.konsist.api.declaration.KoFunctionDeclaration

@@ -2,7 +2,7 @@ package architecture.rules
 
 import architecture.definitions.isFeatureModule
 import architecture.projectScope
-import architecture.registry.*
+import dev.isaacudy.udytils.architecture.*
 import architecture.rules.data.DataLayer
 import architecture.rules.domain.DomainLayer
 import architecture.rules.feature.FeatureRules

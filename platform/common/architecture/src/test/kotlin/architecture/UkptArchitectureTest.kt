@@ -1,9 +1,9 @@
 package architecture
 
-import architecture.registry.ArchitectureRun
+import dev.isaacudy.udytils.architecture.ArchitectureRun
 import architecture.rules.UkptArchitecture
-import architecture.testing.architectureGroupNodes
-import architecture.testing.architectureMembershipNodes
+import dev.isaacudy.udytils.architecture.testing.architectureGroupNodes
+import dev.isaacudy.udytils.architecture.testing.architectureMembershipNodes
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.DynamicNode
 import org.junit.jupiter.api.TestFactory

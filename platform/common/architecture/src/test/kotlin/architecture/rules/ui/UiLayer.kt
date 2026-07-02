@@ -1,6 +1,6 @@
 package architecture.rules.ui
 
-import architecture.registry.*
+import dev.isaacudy.udytils.architecture.*
 import architecture.rules.domain.DomainInterface
 
 import architecture.definitions.containsPackageSegment

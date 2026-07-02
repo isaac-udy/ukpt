@@ -1,6 +1,6 @@
 package architecture.rules.data
 
-import architecture.registry.*
+import dev.isaacudy.udytils.architecture.*
 
 import architecture.definitions.containingFilePackage
 import architecture.definitions.containsPackageSegment

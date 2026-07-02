@@ -1,6 +1,6 @@
 package architecture.rules.services
 
-import architecture.registry.*
+import dev.isaacudy.udytils.architecture.*
 
 @Describe("`object`s holding pure helper functions.")
 object InternalObjectHelper : Construct<ServicesLayer>(

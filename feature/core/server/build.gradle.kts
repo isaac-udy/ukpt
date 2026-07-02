@@ -6,7 +6,7 @@ plugins {
 dependencies {
     api(projects.feature.core.api)
 
-    // Makes the `@ArchitectureException` annotation (in :platform:common:architecture's main
+    // Makes the `@ArchitectureException` annotation (forwarded from :platform:common:architecture's main
     // source set) importable so server declarations can declare rule-scoped exemptions.
     implementation(projects.platform.common.architecture)
 

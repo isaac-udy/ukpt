@@ -1,6 +1,6 @@
 package architecture.rules.feature
 
-import architecture.registry.*
+import dev.isaacudy.udytils.architecture.*
 
 @Describe("""
     An `internal` function with a Koin `Module` receiver that a `Dependencies` module calls to

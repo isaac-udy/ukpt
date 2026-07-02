@@ -1,6 +1,6 @@
 package architecture.rules.domain
 
-import architecture.registry.*
+import dev.isaacudy.udytils.architecture.*
 
 @Describe("""
     A top-level extension function on a domain object that adds derived or convenience

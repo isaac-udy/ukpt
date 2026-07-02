@@ -1,6 +1,6 @@
 package architecture.rules.services
 
-import architecture.registry.*
+import dev.isaacudy.udytils.architecture.*
 
 @Describe("""
     Plain `internal fun` conversions between the storage `Row` shapes and domain types.

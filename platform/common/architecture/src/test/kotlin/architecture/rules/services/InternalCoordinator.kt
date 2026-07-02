@@ -1,6 +1,6 @@
 package architecture.rules.services
 
-import architecture.registry.*
+import dev.isaacudy.udytils.architecture.*
 
 @Describe("""
     The orchestrators that compose subsystems (e.g. `SessionProcessingManager`) — see the

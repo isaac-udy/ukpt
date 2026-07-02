@@ -1,6 +1,6 @@
 package architecture.rules.domain
 
-import architecture.registry.*
+import dev.isaacudy.udytils.architecture.*
 
 @Describe("""
     A top-level extension property on a domain object that exposes derived state.

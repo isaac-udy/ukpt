@@ -1,6 +1,6 @@
 package architecture.rules.domain
 
-import architecture.registry.*
+import dev.isaacudy.udytils.architecture.*
 
 import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
 

@@ -1,6 +1,6 @@
 # Architecture exceptions
 
-Architecture rules are enforced by the registry-driven Konsist tests in `:platform:common:architecture`. When a specific declaration cannot conform to a rule (e.g. a transitional class whose ideal location hasn't been determined yet), the declaration can be marked exempt from that rule so the tests pass while the exception is tracked explicitly.
+Architecture rules are enforced by the catalog-driven Konsist tests in `:platform:common:architecture`. When a specific declaration cannot conform to a rule (e.g. a transitional class whose ideal location hasn't been determined yet), the declaration can be marked exempt from that rule so the tests pass while the exception is tracked explicitly.
 
 ## How to add an exception
 
@@ -8,7 +8,7 @@ There are two exemption mechanisms, depending on what kind of file the exempt co
 
 ### Kotlin source files: `@ArchitectureException`
 
-Add the [`@ArchitectureException`](../src/main/kotlin/architecture/ArchitectureException.kt) annotation either at file level (above the `package` line) or on the specific declaration:
+Add the `@ArchitectureException` annotation (from the `dev.isaacudy.udytils:architecture-annotations` artifact, forwarded by `:platform:common:architecture`) either at file level (above the `package` line) or on the specific declaration:
 
 ```kotlin
 @file:ArchitectureException(
@@ -21,7 +21,7 @@ Add the [`@ArchitectureException`](../src/main/kotlin/architecture/ArchitectureE
 
 package feature.sessions.services.internal.audio
 
-import architecture.ArchitectureException
+import dev.isaacudy.udytils.architecture.ArchitectureException
 // ...
 ```
 

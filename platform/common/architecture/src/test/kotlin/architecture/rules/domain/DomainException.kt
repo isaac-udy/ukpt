@@ -1,6 +1,6 @@
 package architecture.rules.domain
 
-import architecture.registry.*
+import dev.isaacudy.udytils.architecture.*
 
 @Describe("""
     A class that represents a known failure mode raised by a domain interface.

@@ -72,5 +72,7 @@ includeBuild("embedded-udytils") {
         substitute(module("dev.isaacudy.udytils:urpc-server")).using(project(":urpc:server"))
         substitute(module("dev.isaacudy.udytils:urpc-koin")).using(project(":urpc:koin"))
         substitute(module("dev.isaacudy.udytils:urpc-processor")).using(project(":urpc:processor"))
+        substitute(module("dev.isaacudy.udytils:architecture-core")).using(project(":architecture-core"))
+        substitute(module("dev.isaacudy.udytils:architecture-annotations")).using(project(":architecture-annotations"))
     }
 }

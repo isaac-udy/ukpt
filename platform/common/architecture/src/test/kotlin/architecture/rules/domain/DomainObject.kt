@@ -1,6 +1,6 @@
 package architecture.rules.domain
 
-import architecture.registry.*
+import dev.isaacudy.udytils.architecture.*
 
 import architecture.definitions.isKotlinxSerializable
 import architecture.definitions.isMutable

@@ -1,13 +1,13 @@
 package architecture
 
-import architecture.registry.ArchitectureRun
-import architecture.registry.Describe
-import architecture.registry.RuleGroup
-import architecture.registry.Violation
-import architecture.registry.verify
+import dev.isaacudy.udytils.architecture.ArchitectureRun
+import dev.isaacudy.udytils.architecture.Describe
+import dev.isaacudy.udytils.architecture.RuleGroup
+import dev.isaacudy.udytils.architecture.Violation
+import dev.isaacudy.udytils.architecture.verify
 import architecture.rules.UkptArchitecture
-import architecture.testing.assertCatalogSourcesRegistered
-import architecture.testing.assertEveryGroupHasATestFactory
+import dev.isaacudy.udytils.architecture.testing.assertCatalogSourcesRegistered
+import dev.isaacudy.udytils.architecture.testing.assertEveryGroupHasATestFactory
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue

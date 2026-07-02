@@ -1,6 +1,6 @@
 package architecture.rules.services
 
-import architecture.registry.*
+import dev.isaacudy.udytils.architecture.*
 
 @Describe("""
     The hand-written persistence record shapes — the `XxxRow`/`XxxRecord`/`XxxInsert`
