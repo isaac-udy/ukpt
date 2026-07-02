@@ -65,11 +65,12 @@ internal fun expandMarkers(
 }
 
 /**
- * A construct section's generated tail: the **Definition** (classification requirements), then the
- * enforced **Rules**, then the advisory **Guidance** — each block only when non-empty.
+ * A construct section's generated tail: its Requirements (the AND-composed classification), then
+ * the enforced Rules, then the advisory Guidance — each block only when non-empty, as level-5
+ * headers so they scan clearly without competing with the section headings.
  */
 internal fun renderConstructBlock(construct: Construct): String = buildString {
-    appendLine("**Definition** — a declaration is a `${construct.id}` when it satisfies all of:")
+    appendLine("##### Requirements")
     appendLine()
     construct.requirements.forEach { appendLine("* ${it.description}") }
     val (guidance, rules) = construct.declaredRules
@@ -77,13 +78,13 @@ internal fun renderConstructBlock(construct: Construct): String = buildString {
         .partition { it.tag == Tag.GUIDANCE }
     if (rules.isNotEmpty()) {
         appendLine()
-        appendLine("**Rules**:")
+        appendLine("##### Rules")
         appendLine()
         rules.forEach { append(renderRuleBullet(it)) }
     }
     if (guidance.isNotEmpty()) {
         appendLine()
-        appendLine("**Guidance**:")
+        appendLine("##### Guidance")
         appendLine()
         guidance.forEach { append(renderRuleBullet(it)) }
     }
@@ -95,27 +96,30 @@ internal fun groupRules(group: RuleGroup): List<Rule> =
 internal fun groupGuidance(group: RuleGroup): List<Rule> =
     group.declaredRules.filter { it.status is Status.Active && it.tag == Tag.GUIDANCE }
 
-/** For the `{{rules:Group}}` marker: the enforced rules, then the guidance, with labels. */
+/** For the `{{rules:Group}}` marker: the enforced rules, then the guidance, with headers. */
 internal fun renderGroupRules(group: RuleGroup): String = buildString {
     val rules = groupRules(group)
     val guidance = groupGuidance(group)
     if (rules.isNotEmpty()) {
-        appendLine("**Rules**:")
+        appendLine("##### Rules")
         appendLine()
         rules.forEach { append(renderRuleBullet(it)) }
     }
     if (guidance.isNotEmpty()) {
         if (rules.isNotEmpty()) appendLine()
-        appendLine("**Guidance**:")
+        appendLine("##### Guidance")
         appendLine()
         guidance.forEach { append(renderRuleBullet(it)) }
     }
 }
 
-/** Statement first; the id and any context sit underneath, so the rule itself is what you read. */
+/**
+ * The statement is the bullet; context sits underneath. Ids are deliberately NOT repeated here —
+ * `docs/rule-index.md` maps every statement to its id (for `@ArchitectureException` etc.), and test
+ * failures cite ids directly.
+ */
 internal fun renderRuleBullet(rule: Rule): String = buildString {
     appendLine("* ${rule.title}")
-    appendLine("    * **ID**: `${rule.id}`")
     if (rule.rationale.isNotBlank()) appendLine("    * **Why**: ${collapse(rule.rationale)}")
     rule.notes.forEach { appendLine("    * **Note**: ${collapse(it)}") }
     when (val enforcement = rule.enforcement) {

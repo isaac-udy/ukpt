@@ -59,6 +59,7 @@ Every rule and construct has a stable ID: the **path of the object/property name
 - Groups and constructs are PascalCase `object`s; rules are camelCase properties on them.
 - A construct's **requirements** (the predicates that decide whether a declaration *is* that construct) are not individually identified — the construct is the unit.
 - Test failures, the [rule index](docs/rule-index.md), and [architecture exceptions](docs/exceptions.md) all reference rules by this path.
+- The layer docs don't repeat ids next to each rule — to find a rule's id (e.g. for an exception), look it up by statement in the [rule index](docs/rule-index.md) or in the layer's `.kt`.
 
 The groups:
 

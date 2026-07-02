@@ -17,19 +17,17 @@ The layer rules below apply across the whole `feature.[name].ui` package.
 ## Rules
 
 * Forbidden from implementing `domain` interfaces
-    * **ID**: `UiLayer.noImplementingDomainInterfaces`
     * **Why**: Domain interfaces are the contract between presentation and persistence — implementations belong in `data` (Repositories) or `domain` (UseCases). A ViewModel that implements one would couple two layers' lifecycles and make the ViewModel un-injectable elsewhere.
 * Forbidden from depending on `data` or `services`
-    * **ID**: `UiLayer.noDataServicesDeps`
     * **Why**: UI consumes `domain` interactors only — Repositories (in `data`) fan out to `services` (the cross-the-wire contract) on the UI's behalf. The UI must not reach either directly.
 * Must not use `koinInject` — all dependencies are injected through ViewModels
-    * **ID**: `UiLayer.noKoinInject`
     * **Why**: Resolving from Koin inside a Composable side-steps the ViewModel as the single dependency surface, makes the screen untestable in snapshots (no Koin runtime), and re-resolves on every recomposition.
 
 ## Guidance
 
 * May depend on `domain`
-    * **ID**: `UiLayer.mayDependOnDomain`
+
+---
 
 ## Screen
 
@@ -47,38 +45,30 @@ metadata (such as `directOverlay()`). The property name may end in `Screen` or
 `Destination` — both are accepted because the property *is* the destination declaration
 site.
 
-**Definition** — a declaration is a `UiLayer.Screen` when it satisfies all of:
+##### Requirements
 
 * resides in `feature..ui..`
 * Screen functions/properties must be bound to their Destination via the `@NavigationDestination` annotation
 * Screen functions are named `[Name]Screen`; property-based screens end in `Screen` or `Destination`
 * Screen functions must have a single parameter — the associated `[Name]ViewModel`
 
-**Rules**:
+##### Rules
 
 * Screen functions must be paired with an `internal [Name]ScreenContent` composable in the same file
-    * **ID**: `UiLayer.Screen.screenContentCompanion`
     * **Why**: The Screen function plumbs the ViewModel; the `ScreenContent` function takes only state + callbacks so snapshot tests can render every state without a ViewModel. Marking it `internal` lets the host-test source set call it; `private` makes the screen untestable.
 * ViewModels must be injected into screens using `viewModel()`, not `koinViewModel()`
-    * **ID**: `UiLayer.Screen.viewModelInjection`
     * **Why**: `viewModel()` ties the ViewModel's lifecycle to the navigation backstack entry — when the entry is popped, the ViewModel is cleared. `koinViewModel()` resolves through Koin and either scopes to the wrong lifecycle or returns a singleton, leaking state between screens or returning stale state on re-entry.
 
-**Guidance**:
+##### Guidance
 
 * Screen functions must be annotated with `@Composable`
-    * **ID**: `UiLayer.Screen.composableFunction`
 * Screen functions have a 1:1 relationship with a ViewModel and ViewModel State
-    * **ID**: `UiLayer.Screen.viewModelStateRelationship`
 * Screen functions must observe the ViewModel's `state` property and use it to drive the UI
-    * **ID**: `UiLayer.Screen.observesState`
 * Screen functions should delegate all user interaction handling to the ViewModel
-    * **ID**: `UiLayer.Screen.delegatesInteraction`
 * Dialog/overlay screens must use the `navigationDestination` DSL with `metadata = { directOverlay() }`
-    * **ID**: `UiLayer.Screen.overlayViaDsl`
 * Dialog/overlay screens that need a ViewModel should call `viewModel()` inside the `navigationDestination` block
-    * **ID**: `UiLayer.Screen.overlayViewModel`
 
-**Examples**:
+##### Examples
 
 A dialog/overlay screen: the Destination lives in `:api`, and the property-based `navigationDestination` in `:client` declares `directOverlay()` metadata and resolves its ViewModel via `viewModel()` inside the block.
 
@@ -107,6 +97,8 @@ val changeRoleScreen = navigationDestination<ChangeRoleDestination>(
     )
 }
 ```
+
+---
 
 ## Composable
 
@@ -144,17 +136,18 @@ device or emulator — enforced by `UiLayer.Composable.screenContentSnapshotTest
   ./gradlew :feature:core:client:verifyPaparazzi
   ```
 
-**Definition** — a declaration is a `UiLayer.Composable` when it satisfies all of:
+##### Requirements
 
 * resides in `feature..ui..`
 * Is not a Screen
 * annotated `@Composable`
 
-**Rules**:
+##### Rules
 
 * Every `[Name]ScreenContent` composable must be exercised by at least one snapshot test
-    * **ID**: `UiLayer.Composable.screenContentSnapshotTest`
     * **Why**: `ScreenContent` exists specifically so the screen body can be rendered from state + callbacks. Enforced softly — the test only checks that each ScreenContent is *called* from a `@Test` in an `androidHostTest` source set, not a minimum number of snapshots.
+
+---
 
 ## Destination
 
@@ -166,7 +159,7 @@ provided by that screen (if any).
   `User.Id` and let the Screen load the associated `User`, rather than accepting an entire
   `User`.
 
-**Definition** — a declaration is a `UiLayer.Destination` when it satisfies all of:
+##### Requirements
 
 * resides in `feature..ui..`
 * is a class or object
@@ -175,12 +168,12 @@ provided by that screen (if any).
 * annotated `@Serializable`
 * is declared in a file matching its name
 
-**Guidance**:
+##### Guidance
 
 * Destinations should accept the minimal data required to initialise the associated Screen
-    * **ID**: `UiLayer.Destination.minimalData`
 * Destinations may live in `:api` (shared entry point / server-driven) or `:client` (internal only)
-    * **ID**: `UiLayer.Destination.definedInApiOrClient`
+
+---
 
 ## View Model
 
@@ -192,7 +185,7 @@ to load data and perform side effects based on user actions.
   is cancelling or backing out, and `NavigationHandle.complete` when the user has
   successfully performed an action.
 
-**Definition** — a declaration is a `UiLayer.ViewModel` when it satisfies all of:
+##### Requirements
 
 * resides in `feature..ui..`
 * ViewModels extend `androidx.lifecycle.ViewModel`
@@ -201,20 +194,18 @@ to load data and perform side effects based on user actions.
 * ViewModels have a `private val navigation` obtained via `navigationHandle<[Name]Destination>()`
 * is declared in a file matching its name
 
-**Rules**:
+##### Rules
 
 * ViewModels expose a single public `state` property, or no public properties at all
-    * **ID**: `UiLayer.ViewModel.singlePublicStateProperty`
 * `public`/`internal` functions on a ViewModel must only return `Unit` (or omit a return type)
-    * **ID**: `UiLayer.ViewModel.publicFunctionsReturnUnit`
 * ViewModels must use `JobManager` to manage coroutines — never hold `var job: Job?` references
-    * **ID**: `UiLayer.ViewModel.usesJobManager`
     * **Why**: Manual `var job: Job?` tracking is error-prone: the previous job leaks if a new one starts before the old one completes, and lifecycle cancellation is easy to forget. `dev.isaacudy.udytils.coroutines.JobManager` handles cancel-then-replace and ties everything to `viewModelScope`.
 
-**Guidance**:
+##### Guidance
 
 * ViewModels should inject domain interfaces to load and manipulate domain objects
-    * **ID**: `UiLayer.ViewModel.injectsDomainInterfaces`
+
+---
 
 ## View Model State
 
@@ -225,7 +216,7 @@ The complete, immutable representation of a Screen's data at a single point in t
   `AsyncState.fromSuspending`/`fromFlow`; that prohibition is enforced project-wide by
   `ProjectRules.noDirectAsyncStateConstruction`.
 
-**Definition** — a declaration is a `UiLayer.ViewModelState` when it satisfies all of:
+##### Requirements
 
 * resides in `feature..ui..`
 * is a class
@@ -233,27 +224,20 @@ The complete, immutable representation of a Screen's data at a single point in t
 * name ends with `State`
 * is declared in a file matching its name
 
-**Rules**:
+##### Rules
 
 * ViewModel State objects must be immutable (val properties only)
-    * **ID**: `UiLayer.ViewModelState.immutable`
 
-**Guidance**:
+##### Guidance
 
 * ViewModel State objects have a 1:1 relationship with a ViewModel type
-    * **ID**: `UiLayer.ViewModelState.viewModelRelationship`
 * ViewModel State objects must use `AsyncState<T>` / `UpdatableState<T>` for asynchronously loaded data and action progress
-    * **ID**: `UiLayer.ViewModelState.usesAsyncState`
 * ViewModel State objects must not define custom sealed types for loading/success/error — use `AsyncState<T>`
-    * **ID**: `UiLayer.ViewModelState.noCustomAsyncSealedTypes`
 * ViewModel State objects should be a transparent container for domain objects, not lossy UI-level mappings
-    * **ID**: `UiLayer.ViewModelState.transparentContainer`
 * ViewModel State objects should include `init` blocks that enforce invariants
-    * **ID**: `UiLayer.ViewModelState.invariantInitBlocks`
 * Formatting and visual representation must be handled by the Screen or specialized `@Composable` properties/functions
-    * **ID**: `UiLayer.ViewModelState.formattingInScreen`
 
-**Examples**:
+##### Examples
 
 A State that is a transparent container for domain objects plus calculated properties; display formatting lives with the Screen as a `@Composable` extension property, not in the State.
 
@@ -277,6 +261,8 @@ val User.displayRole: String
     }
 ```
 
+---
+
 ## Ui Value Type
 
 A small closed value type (enum, sealed class, or sealed interface) that lives in `..ui..`
@@ -286,7 +272,7 @@ to another feature's screen.
 * **Note**: If a value type grows behaviour, it stops being a value type — promote it into
   a State, Destination, or domain object as appropriate.
 
-**Definition** — a declaration is a `UiLayer.UiValueType` when it satisfies all of:
+##### Requirements
 
 * resides in `feature..ui..`
 * one of {is an `enum class`, is `sealed`}

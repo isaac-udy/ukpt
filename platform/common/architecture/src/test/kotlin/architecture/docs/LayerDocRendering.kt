@@ -43,6 +43,8 @@ internal fun renderLayerDoc(
     }
     layer.groupExamples?.let { append(renderExamples(it, sourcePath(it), errors)) }
     group.constructs.forEach { construct ->
+        appendLine("---")
+        appendLine()
         appendLine("## ${spacedName(construct.id.substringAfterLast('.'))}")
         appendLine()
         description(construct, errors)?.let {
@@ -67,7 +69,7 @@ private fun description(container: RuleContainer, errors: MutableList<String>): 
     return text
 }
 
-/** An `<Id>.examples.md` file: raw markdown, no markers, rendered under an **Examples** label. */
+/** An `<Id>.examples.md` file: raw markdown, no markers, rendered under an Examples header. */
 private fun renderExamples(file: File, where: String, errors: MutableList<String>): String = buildString {
     val content = file.readText().trim()
     forEachProseLine(content) { line ->
@@ -75,7 +77,7 @@ private fun renderExamples(file: File, where: String, errors: MutableList<String
             errors += "$where: markers are not supported in examples files"
         }
     }
-    appendLine("**Examples**:")
+    appendLine("##### Examples")
     appendLine()
     appendLine(content)
     appendLine()
