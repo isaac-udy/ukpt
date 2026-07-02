@@ -5,7 +5,7 @@
 
 # Rule index
 
-The complete catalog, one row per construct or rule. Ids are object/property paths (see [Rule IDs](../README.md#rule-ids)). Enforcement markers link to the declaring source and are explained below the table.
+The complete catalog, one row per Construct or Rule. IDs are based on the object/property that declares the entry (see the [README](../README.md)). Enforcement markers link to the declaring source and are explained below the table.
 
 | Rule | Statement | Enforcement |
 | --- | --- | --- |

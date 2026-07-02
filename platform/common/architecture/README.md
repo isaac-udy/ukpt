@@ -48,7 +48,17 @@ This project uses the [udytils architecture system](https://github.com/isaac-udy
  
 Documentation for RuleGroups and Constructs is recorded by annotating the RuleGroup or Construct with the `@Describe` annotation. Documentation for Rules and Guidance is also provided by annotating the Rule or Guidance statement with `@Describe` but Rules and Guidance also provide the ability to add "rationale" and "notes" through functions in their builder definitions.
 
-This README and everything under `docs/` is generated from the catalog. Never edit these files directly — edit the catalog and regenerate. Read [authoring](docs/authoring.md) before adding rules.
+Every Rule/Guidance/Construct has a stable ID based on the object/property that declares it:
+
+| ID | Reads as |
+| --- | --- |
+| `ModuleRules.featureNotApp` | a RuleGroup-level rule (not tied to a Construct) |
+| `DomainLayer.DomainInterface.interfaceDefaults` | the `interfaceDefaults` Rule of the `DomainInterface` Construct |
+| `DomainLayer.DomainInterface` | the `DomainInterface` Construct (a classification) in the `DomainLayer` RuleGroup |
+
+Test failures, the [rule index](docs/rule-index.md), and [architecture exceptions](docs/exceptions.md) reference rules by ID. Construct requirements don't have their own IDs, they belong to their Construct.
+
+This README and everything under `docs/` is generated based on the RuleGroups/Constructs in this project. Never edit these files directly. Read [authoring](docs/authoring.md) before adding rules.
 
 ## Run the tests
 
@@ -63,15 +73,3 @@ This README and everything under `docs/` is generated from the catalog. Never ed
 ```
 
 Run this after changing the catalog or an examples file. The tests fail if the generated documentation is manually edited, or if the documentation references a rule that doesn't exist.
-
-## Rule IDs
-
-Every Rule/Guidance/Construct has a stable ID based on the object/property that declares it.
-
-| ID | Reads as |
-| --- | --- |
-| `ModuleRules.featureNotApp` | a RuleGroup-level rule (not tied to a Construct) |
-| `DomainLayer.DomainInterface.interfaceDefaults` | the `interfaceDefaults` Rule of the `DomainInterface` Construct |
-| `DomainLayer.DomainInterface` | the `DomainInterface` Construct (a classification) in the `DomainLayer` RuleGroup |
-
-Test failures, the [rule index](docs/rule-index.md), and [architecture exceptions](docs/exceptions.md) reference rules by id. Construct requirements don't have their own IDs, they belong to their Construct.

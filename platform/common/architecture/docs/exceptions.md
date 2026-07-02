@@ -13,7 +13,7 @@ tracked explicitly.
 ## How to add an exception
 
 There are two exemption mechanisms, depending on what kind of file the exempt code lives in. Both
-reference rules by their [path id](../README.md#rule-ids).
+reference rules by their ID (see the [rule index](rule-index.md)).
 
 ### Kotlin source files: `@ArchitectureException`
 
@@ -35,8 +35,8 @@ import dev.isaacudy.udytils.architecture.ArchitectureException
 // ...
 ```
 
-`ruleIds` lists the rule path ids the declaration is exempt from (see [Rule IDs](../README.md#rule-ids)).
-`reason` is free-form prose; `trackingIssue` is optional but recommended.
+`ruleIds` lists the rule IDs the declaration is exempt from (see the [rule index](rule-index.md)).
+`reason` is free-form text; `trackingIssue` is optional but recommended.
 
 The architecture tests look up the annotation when running each rule's test, and skip
 declarations / files that list the rule's id.
