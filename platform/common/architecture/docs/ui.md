@@ -25,16 +25,16 @@ The layer rules below apply across the whole `feature.[name].ui` package.
 
 ##### Rules
 
-* Forbidden from implementing `domain` interfaces
+* The `ui` layer is forbidden from implementing `domain` interfaces
     * **Why**: Domain interfaces are the contract between presentation and persistence — implementations belong in `data` (Repositories) or `domain` (UseCases). A ViewModel that implements one would couple two layers' lifecycles and make the ViewModel un-injectable elsewhere.
-* Forbidden from depending on `data` or `services`
+* The `ui` layer is forbidden from depending on `data` or `services`
     * **Why**: UI consumes `domain` interactors only — Repositories (in `data`) fan out to `services` (the cross-the-wire contract) on the UI's behalf. The UI must not reach either directly.
-* Must not use `koinInject` — all dependencies are injected through ViewModels
+* The `ui` layer must not use `koinInject` — all dependencies are injected through ViewModels
     * **Why**: Resolving from Koin inside a Composable side-steps the ViewModel as the single dependency surface, makes the screen untestable in snapshots (no Koin runtime), and re-resolves on every recomposition.
 
 ##### Guidance
 
-* May depend on `domain`
+* The `ui` layer may depend on `domain`
 
 ---
 
@@ -56,26 +56,26 @@ site.
 
 ##### Requirements
 
-* resides in `feature..ui..`
-* Screen functions/properties must be bound to their Destination via the `@NavigationDestination` annotation
-* Screen functions are named `[Name]Screen`; property-based screens end in `Screen` or `Destination`
-* Screen functions must have a single parameter — the associated `[Name]ViewModel`
+* A Screen resides in `feature..ui..`
+* A Screen is bound to its Destination via the `@NavigationDestination` annotation
+* A Screen is named `[Name]Screen` (property-based screens may end in `Screen` or `Destination`)
+* A Screen has a single parameter — the associated `[Name]ViewModel` (property form exempt)
 
 ##### Rules
 
-* Screen functions must be annotated with `@Composable`
-* Screen functions must be paired with an `internal [Name]ScreenContent` composable in the same file
+* A Screen function must be annotated with `@Composable`
+* A Screen function must be paired with an `internal [Name]ScreenContent` composable in the same file
     * **Why**: The Screen function plumbs the ViewModel; the `ScreenContent` function takes only state + callbacks so snapshot tests can render every state without a ViewModel. Marking it `internal` lets the host-test source set call it; `private` makes the screen untestable.
-* ViewModels must be injected into screens using `viewModel()`, not `koinViewModel()`
+* A ViewModel must be injected into its Screen using `viewModel()`, not `koinViewModel()`
     * **Why**: `viewModel()` ties the ViewModel's lifecycle to the navigation backstack entry — when the entry is popped, the ViewModel is cleared. `koinViewModel()` resolves through Koin and either scopes to the wrong lifecycle or returns a singleton, leaking state between screens or returning stale state on re-entry.
 
 ##### Guidance
 
-* Screen functions have a 1:1 relationship with a ViewModel and ViewModel State
-* Screen functions must observe the ViewModel's `state` property and use it to drive the UI
-* Screen functions should delegate all user interaction handling to the ViewModel
-* Dialog/overlay screens must use the `navigationDestination` DSL with `metadata = { directOverlay() }`
-* Dialog/overlay screens that need a ViewModel should call `viewModel()` inside the `navigationDestination` block
+* A Screen function has a 1:1 relationship with a ViewModel and ViewModel State
+* A Screen function must observe the ViewModel's `state` property and use it to drive the UI
+* A Screen function should delegate all user interaction handling to the ViewModel
+* A dialog/overlay Screen must use the `navigationDestination` DSL with `metadata = { directOverlay() }`
+* A dialog/overlay Screen that needs a ViewModel should call `viewModel()` inside the `navigationDestination` block
 
 ##### Examples
 
@@ -147,13 +147,13 @@ device or emulator — enforced by `UiLayer.Composable.screenContentSnapshotTest
 
 ##### Requirements
 
-* resides in `feature..ui..`
-* Is not a Screen
-* annotated `@Composable`
+* A Composable resides in `feature..ui..`
+* A Composable is not a Screen
+* A Composable is annotated `@Composable`
 
 ##### Rules
 
-* Every `[Name]ScreenContent` composable must be exercised by at least one snapshot test
+* A `[Name]ScreenContent` composable must be exercised by at least one snapshot test
     * **Why**: `ScreenContent` exists specifically so the screen body can be rendered from state + callbacks. Enforced softly — the test only checks that each ScreenContent is *called* from a `@Test` in an `androidHostTest` source set, not a minimum number of snapshots.
 
 ---
@@ -170,20 +170,20 @@ provided by that screen (if any).
 
 ##### Requirements
 
-* resides in `feature..ui..`
-* is a class or object
-* Destinations must implement `dev.enro.NavigationKey` or `NavigationKey.WithResult<T>`
-* name ends with `Destination`
-* annotated `@Serializable`
-* is declared in a file matching its name
+* A Destination resides in `feature..ui..`
+* A Destination is a class or object
+* A Destination implements `dev.enro.NavigationKey` or `NavigationKey.WithResult<T>`
+* A Destination is named `[Name]Destination`
+* A Destination is annotated `@Serializable`
+* A Destination is declared in a file matching its name
 
 ##### Rules
 
-* Destinations may live in `:api` (shared entry point / server-driven) or `:client` (internal only)
+* A Destination may live in `:api` (shared entry point / server-driven) or `:client` (internal only)
 
 ##### Guidance
 
-* Destinations should accept the minimal data required to initialise the associated Screen
+* A Destination should accept the minimal data required to initialise the associated Screen
 
 ---
 
@@ -199,23 +199,23 @@ to load data and perform side effects based on user actions.
 
 ##### Requirements
 
-* resides in `feature..ui..`
-* ViewModels extend `androidx.lifecycle.ViewModel`
-* ViewModels must be named `[Name]ViewModel`
-* The `state` property is a `ViewModelState<[Name]State>` (1:1 with the ViewModel's State type)
-* ViewModels have a `private val navigation` obtained via `navigationHandle<[Name]Destination>()`
-* is declared in a file matching its name
+* A View Model resides in `feature..ui..`
+* A View Model extends `androidx.lifecycle.ViewModel`
+* A View Model is named `[Name]ViewModel`
+* A View Model declares its `state` property as a `ViewModelState<[Name]State>` (1:1 with the ViewModel's State type)
+* A View Model has a `private val navigation` obtained via `navigationHandle<[Name]Destination>()`
+* A View Model is declared in a file matching its name
 
 ##### Rules
 
-* ViewModels expose a single public `state` property, or no public properties at all
-* `public`/`internal` functions on a ViewModel must only return `Unit` (or omit a return type)
-* ViewModels must use `JobManager` to manage coroutines — never hold `var job: Job?` references
+* A ViewModel exposes a single public `state` property, or no public properties at all
+* A ViewModel's `public`/`internal` functions must only return `Unit` (or omit a return type)
+* A ViewModel must use `JobManager` to manage coroutines — never hold `var job: Job?` references
     * **Why**: Manual `var job: Job?` tracking is error-prone: the previous job leaks if a new one starts before the old one completes, and lifecycle cancellation is easy to forget. `dev.isaacudy.udytils.coroutines.JobManager` handles cancel-then-replace and ties everything to `viewModelScope`.
 
 ##### Guidance
 
-* ViewModels should inject domain interfaces to load and manipulate domain objects
+* A ViewModel should inject domain interfaces to load and manipulate domain objects
 
 ---
 
@@ -230,24 +230,25 @@ The complete, immutable representation of a Screen's data at a single point in t
 
 ##### Requirements
 
-* resides in `feature..ui..`
-* is a class
-* is a `data class`
-* name ends with `State`
-* is declared in a file matching its name
+* A View Model State resides in `feature..ui..`
+* A View Model State is a class
+* A View Model State is a `data class`
+* A View Model State is named `[Name]State`
+* A View Model State is declared in a file matching its name
 
 ##### Rules
 
-* ViewModel State objects must be immutable (val properties only)
-* ViewModel State objects must not define custom sealed types for loading/success/error — use `AsyncState<T>`
+* A ViewModel State object must be immutable (val properties only)
+* A ViewModel State object must not define custom sealed types for loading/success/error — use `AsyncState<T>`
 
 ##### Guidance
 
-* ViewModel State objects have a 1:1 relationship with a ViewModel type
-* ViewModel State objects must use `AsyncState<T>` / `UpdatableState<T>` for asynchronously loaded data and action progress
-* ViewModel State objects should be a transparent container for domain objects, not lossy UI-level mappings
-* ViewModel State objects should include `init` blocks that enforce invariants
-* Formatting and visual representation must be handled by the Screen or specialized `@Composable` properties/functions
+* A ViewModel State object has a 1:1 relationship with a ViewModel type
+* A ViewModel State object must use `AsyncState<T>` / `UpdatableState<T>` for asynchronously loaded data and action progress
+* A ViewModel State object should be a transparent container for domain objects, not a lossy UI-level mapping
+* A ViewModel State object should include `init` blocks that enforce invariants
+    * **Audited**: the test suite reports non-conforming code, without failing.
+* A ViewModel State object's formatting and visual representation must be handled by the Screen or specialized `@Composable` properties/functions
 
 ##### Examples
 
@@ -286,6 +287,6 @@ to another feature's screen.
 
 ##### Requirements
 
-* resides in `feature..ui..`
-* one of {is an `enum class`, is `sealed`}
-* Has no member functions
+* An Ui Value Type resides in `feature..ui..`
+* An Ui Value Type satisfies one of: {is an `enum class`, is `sealed`}
+* An Ui Value Type has no member functions

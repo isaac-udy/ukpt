@@ -12,8 +12,8 @@ import architecture.definitions.containsPackageSegment
 object ClientDataImplementation : Construct<DataLayer>(
     requirements = listOf(
         isClass,
-        isClassWhere("Must not be named `Repository`") { !it.name.endsWith("Repository") },
-        predicate("Must live in `feature.[name].data` (not `data.storage`)") { decl ->
+        isClassWhere("is not named `[Name]Repository`") { !it.name.endsWith("Repository") },
+        predicate("resides in `feature.[name].data` (not `data.storage`)") { decl ->
             val pkg = decl.containingFilePackage()
             pkg.containsPackageSegment("data") && !pkg.containsPackageSegment("storage")
         },

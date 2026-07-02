@@ -11,9 +11,9 @@ import architecture.registry.*
 object CodecObject : Construct<ServicesLayer>(
     requirements = listOf(
         isObject,
-        predicate("Lives in `services.storage` alongside the Row + mapping functions for the table that uses it") { it.isInServicesSubAxis("storage") },
+        predicate("lives in `services.storage` alongside the Row + mapping functions for the table that uses it") { it.isInServicesSubAxis("storage") },
     ),
 ) {
-    @Describe("Codecs encapsulate the read/write asymmetry `setFromRow` can't express — keep them small and keyed to the column they serve")
+    @Describe("A Codec encapsulates the read/write asymmetry `setFromRow` can't express — it stays small and keyed to the column it serves")
     val keyedToColumn by guidance
 }

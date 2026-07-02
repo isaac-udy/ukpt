@@ -22,7 +22,7 @@ import com.lemonappdev.konsist.api.provider.KoContainingFileProvider
 """)
 object DependencyModule : Construct<FeatureRules>(
     requirements = listOf(
-        predicate("DI modules must be defined in the top-level `feature.[name]` package of the `:client` and `:server` modules") { decl ->
+        predicate("resides in the top-level `feature.[name]` package of a `:client` or `:server` module") { decl ->
             decl.isFeatureModule() &&
                 decl.containingFilePackage().let { pkg ->
                     pkg.startsWith("feature.") &&
@@ -36,7 +36,7 @@ object DependencyModule : Construct<FeatureRules>(
         hasNameEndingWith("Dependencies"),
     ),
 ) {
-    @Describe("The DI module for a feature must only bind/provide dependencies that are both defined and implemented in that feature")
+    @Describe("A Dependency Module must only bind/provide dependencies that are both defined and implemented in its own feature")
     val ownFeatureBindingsOnly by rule {
         rationale(
             """
@@ -62,7 +62,7 @@ object DependencyModule : Construct<FeatureRules>(
         }
     }
 
-    @Describe("Register a service's generated `[Name]ServiceUrpcBinding` by chaining `.bindService(::[Name]ServiceUrpcBinding)` off the implementation's binding, inside the per-call `scope<UrpcCall> { }` block")
+    @Describe("A Dependency Module registers a service's generated `[Name]ServiceUrpcBinding` by chaining `.bindService(::[Name]ServiceUrpcBinding)` off the implementation's binding, inside the per-call `scope<UrpcCall> { }` block")
     val urpcServiceBinding by rule {
         note("`bindService` (from `dev.isaacudy.udytils.urpc.koin`) registers the binding under its own concrete type, bound to `UrpcService`, with the impl resolved lazily.")
         note("Do NOT use `scoped<UrpcService> { [Name]ServiceUrpcBinding { get() } }` — every such binding shares the `UrpcService` definition key, so co-registered services override each other and `getAll<UrpcService>()` returns only one; the check catches this form.")

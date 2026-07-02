@@ -9,6 +9,6 @@ import architecture.registry.*
 object InternalInterface : Construct<ServicesLayer>(
     requirements = listOf(
         isInterface,
-        predicate("Resides in `feature.[name].services.internal`") { it.isInServicesSubAxis("internal") },
+        predicate("resides in `feature.[name].services.internal`") { it.isInServicesSubAxis("internal") },
     ),
 )

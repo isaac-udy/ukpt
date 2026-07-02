@@ -19,7 +19,7 @@ object Repository : Construct<DataLayer>(
         hasFileNameMatchingDeclaration,
     ),
 ) {
-    @Describe("Repositories must be marked as `internal`")
+    @Describe("A Repository must be marked as `internal`")
     val internalVisibility by rule {
         constrain { decl, _ ->
             val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
@@ -27,7 +27,7 @@ object Repository : Construct<DataLayer>(
         }
     }
 
-    @Describe("Repositories must not implement domain interfaces directly")
+    @Describe("A Repository must not implement domain interfaces directly")
     val doesNotImplementDomainInterfaces by rule {
         constrain { decl, _ ->
             val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
@@ -37,7 +37,7 @@ object Repository : Construct<DataLayer>(
         }
     }
 
-    @Describe("Repositories must expose domain interfaces as `public val` properties")
+    @Describe("A Repository must expose domain interfaces as `public val` properties")
     val exposesDomainInterfacesAsProperties by rule {
         constrain { decl, _ ->
             val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
@@ -52,7 +52,7 @@ object Repository : Construct<DataLayer>(
         }
     }
 
-    @Describe("Repositories are forbidden from injecting domain interfaces")
+    @Describe("A Repository must not inject domain interfaces")
     val doesNotInjectDomainInterfaces by rule {
         rationale("Logic requiring multiple domain interfaces must be moved to a UseCase in the `domain` package.")
         constrain { decl, _ ->
@@ -66,7 +66,7 @@ object Repository : Construct<DataLayer>(
         }
     }
 
-    @Describe("Repositories are forbidden from injecting other Repositories")
+    @Describe("A Repository must not inject other Repositories")
     val doesNotInjectRepositories by rule {
         constrain { decl, _ ->
             val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
@@ -76,7 +76,7 @@ object Repository : Construct<DataLayer>(
         }
     }
 
-    @Describe("Repository domain-interface properties must be initialized immediately — no `by lazy`, no custom getter")
+    @Describe("A Repository's domain-interface properties must be initialized immediately — no `by lazy`, no custom getter")
     val propertiesEagerlyInitialized by rule {
         rationale(
             """
@@ -94,6 +94,6 @@ object Repository : Construct<DataLayer>(
         }
     }
 
-    @Describe("May inject Services, client-side `data.storage` Storage objects, or database clients to fulfill their domain properties")
+    @Describe("A Repository may inject Services, client-side `data.storage` Storage objects, or database clients to fulfill its domain properties")
     val mayInjectServicesStorageOrClients by guidance
 }

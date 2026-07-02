@@ -9,12 +9,12 @@ import architecture.registry.*
 """)
 object InternalCoordinator : Construct<ServicesLayer>(
     requirements = listOf(
-        isClassWhere("A coordinator is a concrete (non-`abstract`, non-`data`) class that is not a `Job` or `Exception`") { decl ->
+        isClassWhere("is a concrete (non-`abstract`, non-`data`) class that is not a `Job` or `Exception`") { decl ->
             !decl.hasAbstractModifier &&
                 !decl.hasDataModifier &&
                 !decl.name.endsWith("Job") &&
                 !decl.name.endsWith("Exception")
         },
-        predicate("Resides in `feature.[name].services.internal`") { it.isInServicesSubAxis("internal") },
+        predicate("resides in `feature.[name].services.internal`") { it.isInServicesSubAxis("internal") },
     ),
 )

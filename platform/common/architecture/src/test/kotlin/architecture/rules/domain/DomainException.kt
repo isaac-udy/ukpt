@@ -12,7 +12,7 @@ import architecture.registry.*
 """)
 object DomainException : Construct<DomainLayer>(
     requirements = listOf(
-        isClassWhere("A domain exception is a class extending RuntimeException/Exception/PresentableException") { decl ->
+        isClassWhere("is a class extending RuntimeException/Exception/PresentableException") { decl ->
             decl.parents().any { it.name == "RuntimeException" || it.name == "Exception" || it.name == "PresentableException" }
         },
     ),

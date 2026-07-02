@@ -45,7 +45,7 @@ object DomainLayer : RuleGroup(
 ) {
 
     // §3.1 domain package dependencies (layer-level — not tied to one construct)
-    @Describe("Domain must not contain platform-specific dependencies (Android, Ktor, SQL, …)")
+    @Describe("The `domain` layer must not contain platform-specific dependencies (Android, Ktor, SQL, …)")
     val noPlatformDeps by rule {
         rationale(
             """
@@ -69,7 +69,7 @@ object DomainLayer : RuleGroup(
         }
     }
 
-    @Describe("Domain must not depend on `ui`, `data`, or `services` packages within the feature")
+    @Describe("The `domain` layer must not depend on `ui`, `data`, or `services` packages within the feature")
     val noUiDataServicesDeps by rule {
         rationale(
             """
@@ -92,7 +92,7 @@ object DomainLayer : RuleGroup(
         }
     }
 
-    @Describe("May depend on another feature's `domain` only via that feature's `:api` module")
+    @Describe("The `domain` layer may depend on another feature's `domain` only via that feature's `:api` module")
     val crossFeatureViaApi by rule {
         enforcedBy("ModuleRules.clientApiOnly", "ModuleRules.serverApiOnly")
     }

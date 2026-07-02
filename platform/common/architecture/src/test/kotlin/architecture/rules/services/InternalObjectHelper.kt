@@ -6,6 +6,6 @@ import architecture.registry.*
 object InternalObjectHelper : Construct<ServicesLayer>(
     requirements = listOf(
         isObject,
-        predicate("Resides in `feature.[name].services.internal`") { it.isInServicesSubAxis("internal") },
+        predicate("resides in `feature.[name].services.internal`") { it.isInServicesSubAxis("internal") },
     ),
 )

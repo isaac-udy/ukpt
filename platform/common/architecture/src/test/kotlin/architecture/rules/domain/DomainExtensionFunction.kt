@@ -12,7 +12,7 @@ import architecture.registry.*
 """)
 object DomainExtensionFunction : Construct<DomainLayer>(
     requirements = listOf(
-        isFunctionWhere("Receiver/return/parameter types are domain objects, primitives, or collections of those") { decl ->
+        isFunctionWhere("has receiver/return/parameter types that are domain objects, primitives, or collections of those") { decl ->
             val receiverOk = decl.receiverType?.let { isDomainCompatibleType(it.name, decl.containingFile) } ?: true
             val returnOk = decl.returnType?.let { isDomainCompatibleType(it.name, decl.containingFile) } ?: true
             val parametersOk = decl.parameters.all { isDomainCompatibleType(it.type.name, decl.containingFile) }
@@ -20,7 +20,7 @@ object DomainExtensionFunction : Construct<DomainLayer>(
         },
     ),
 ) {
-    @Describe("Domain extension functions must not introduce platform-specific dependencies")
+    @Describe("A Domain Extension Function must not introduce platform-specific dependencies")
     val noPlatformDeps by rule {
         enforcedBy("DomainLayer.noPlatformDeps")
     }

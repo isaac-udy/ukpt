@@ -20,7 +20,7 @@ object ViewModelState : Construct<UiLayer>(
         hasFileNameMatchingDeclaration,
     ),
 ) {
-    @Describe("ViewModel State objects must be immutable (val properties only)")
+    @Describe("A ViewModel State object must be immutable (val properties only)")
     val immutable by rule {
         constrain { decl, _ ->
             val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
@@ -28,11 +28,11 @@ object ViewModelState : Construct<UiLayer>(
         }
     }
 
-    @Describe("ViewModel State objects have a 1:1 relationship with a ViewModel type")
+    @Describe("A ViewModel State object has a 1:1 relationship with a ViewModel type")
     val viewModelRelationship by guidance
-    @Describe("ViewModel State objects must use `AsyncState<T>` / `UpdatableState<T>` for asynchronously loaded data and action progress")
+    @Describe("A ViewModel State object must use `AsyncState<T>` / `UpdatableState<T>` for asynchronously loaded data and action progress")
     val usesAsyncState by guidance
-    @Describe("ViewModel State objects must not define custom sealed types for loading/success/error — use `AsyncState<T>`")
+    @Describe("A ViewModel State object must not define custom sealed types for loading/success/error — use `AsyncState<T>`")
     val noCustomAsyncSealedTypes by rule {
         constrain { decl, _ ->
             val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
@@ -42,10 +42,19 @@ object ViewModelState : Construct<UiLayer>(
                 .map { Violation(it, "State declares a custom sealed loading/error hierarchy `${it.name}` — use `AsyncState<T>`") }
         }
     }
-    @Describe("ViewModel State objects should be a transparent container for domain objects, not lossy UI-level mappings")
+    @Describe("A ViewModel State object should be a transparent container for domain objects, not a lossy UI-level mapping")
     val transparentContainer by guidance
-    @Describe("ViewModel State objects should include `init` blocks that enforce invariants")
-    val invariantInitBlocks by guidance
-    @Describe("Formatting and visual representation must be handled by the Screen or specialized `@Composable` properties/functions")
+    @Describe("A ViewModel State object should include `init` blocks that enforce invariants")
+    val invariantInitBlocks by guidance {
+        audit { decl, _ ->
+            val cls = decl as? KoClassDeclaration ?: return@audit emptyList()
+            if (cls.text.contains("init {")) {
+                emptyList()
+            } else {
+                listOf(Violation(cls, "State has no `init` block — consider one if this state has invariants"))
+            }
+        }
+    }
+    @Describe("A ViewModel State object's formatting and visual representation must be handled by the Screen or specialized `@Composable` properties/functions")
     val formattingInScreen by guidance
 }

@@ -10,7 +10,7 @@ import architecture.registry.*
 """)
 object InternalDataCarrier : Construct<ServicesLayer>(
     requirements = listOf(
-        isClassWhere("A data carrier is a `data class` payload that flows between subsystems through the orchestrator") { it.hasDataModifier },
-        predicate("Resides in `feature.[name].services.internal`") { it.isInServicesSubAxis("internal") },
+        isClassWhere("is a `data class` payload that flows between subsystems through the orchestrator") { it.hasDataModifier },
+        predicate("resides in `feature.[name].services.internal`") { it.isInServicesSubAxis("internal") },
     ),
 )

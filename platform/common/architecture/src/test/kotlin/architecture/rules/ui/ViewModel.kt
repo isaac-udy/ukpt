@@ -15,13 +15,13 @@ import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 """)
 object ViewModel : Construct<UiLayer>(
     requirements = listOf(
-        isClassWhere("ViewModels extend `androidx.lifecycle.ViewModel`") { declaration ->
+        isClassWhere("extends `androidx.lifecycle.ViewModel`") { declaration ->
             declaration.parents().any { parent -> parent.name == "ViewModel" }
         },
-        isClassWhere("ViewModels must be named `[Name]ViewModel`") { declaration ->
+        isClassWhere("is named `[Name]ViewModel`") { declaration ->
             declaration.name.endsWith("ViewModel")
         },
-        isClassWhere("The `state` property is a `ViewModelState<[Name]State>` (1:1 with the ViewModel's State type)") { declaration ->
+        isClassWhere("declares its `state` property as a `ViewModelState<[Name]State>` (1:1 with the ViewModel's State type)") { declaration ->
             val stateProperty = declaration.properties()
                 .filter { it.hasPublicOrDefaultModifier || it.hasInternalModifier }
                 .singleOrNull { it.name == "state" }
@@ -29,7 +29,7 @@ object ViewModel : Construct<UiLayer>(
             stateProperty.text.contains("viewModelState") &&
                 stateProperty.text.contains(declaration.name.replace("ViewModel", "State"))
         },
-        isClassWhere("ViewModels have a `private val navigation` obtained via `navigationHandle<[Name]Destination>()`") { declaration ->
+        isClassWhere("has a `private val navigation` obtained via `navigationHandle<[Name]Destination>()`") { declaration ->
             val navigationProperty = declaration.properties()
                 .filter { it.hasPrivateModifier }
                 .singleOrNull { it.name == "navigation" }
@@ -42,7 +42,7 @@ object ViewModel : Construct<UiLayer>(
         hasFileNameMatchingDeclaration,
     ),
 ) {
-    @Describe("ViewModels expose a single public `state` property, or no public properties at all")
+    @Describe("A ViewModel exposes a single public `state` property, or no public properties at all")
     val singlePublicStateProperty by rule {
         constrain { decl, _ ->
             val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
@@ -58,7 +58,7 @@ object ViewModel : Construct<UiLayer>(
         }
     }
 
-    @Describe("`public`/`internal` functions on a ViewModel must only return `Unit` (or omit a return type)")
+    @Describe("A ViewModel's `public`/`internal` functions must only return `Unit` (or omit a return type)")
     val publicFunctionsReturnUnit by rule {
         constrain { decl, _ ->
             val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
@@ -69,10 +69,10 @@ object ViewModel : Construct<UiLayer>(
         }
     }
 
-    @Describe("ViewModels should inject domain interfaces to load and manipulate domain objects")
+    @Describe("A ViewModel should inject domain interfaces to load and manipulate domain objects")
     val injectsDomainInterfaces by guidance
 
-    @Describe("ViewModels must use `JobManager` to manage coroutines — never hold `var job: Job?` references")
+    @Describe("A ViewModel must use `JobManager` to manage coroutines — never hold `var job: Job?` references")
     val usesJobManager by rule {
         rationale(
             """

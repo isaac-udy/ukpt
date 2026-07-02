@@ -28,13 +28,13 @@ object DataLayer : RuleGroup(
 ) {
 
     // §3.3 `data` package dependencies (layer-level — not tied to one construct)
-    @Describe("Provides implementations of `domain` interfaces — by exposing them as properties, not by inheriting them")
+    @Describe("The `data` layer provides implementations of `domain` interfaces — by exposing them as properties, not by inheriting them")
     val providesDomainImplementations by rule {
         note("A Repository that implements a domain interface, or fails to expose one as a `public val`, fails the enforcing rules directly.")
         enforcedBy(Repository.doesNotImplementDomainInterfaces, Repository.exposesDomainInterfacesAsProperties)
     }
 
-    @Describe("Forbidden from injecting `domain` interfaces — logic requiring multiple domain interfaces must be moved to a UseCase")
+    @Describe("A `data` class must not inject `domain` interfaces — logic requiring multiple domain interfaces must be moved to a UseCase")
     val noInjectingDomainInterfaces by rule {
         rationale(
             """
@@ -59,12 +59,12 @@ object DataLayer : RuleGroup(
         }
     }
 
-    @Describe("`data.storage` classes use `internal` visibility where the language allows (see `DataLayer.ClientStorage.internalVisibility` for the canonical statement, incl. the `expect`/`actual` nuance)")
+    @Describe("A `data.storage` class uses `internal` visibility where the language allows (see `DataLayer.ClientStorage.internalVisibility` for the canonical statement, incl. the `expect`/`actual` nuance)")
     val storageInternalVisibility by rule {
         enforcedBy(ClientStorage.internalVisibility)
     }
 
-    @Describe("Must not depend on the `ui` package")
+    @Describe("The `data` layer must not depend on the `ui` package")
     val noUiDeps by rule {
         rationale(
             """

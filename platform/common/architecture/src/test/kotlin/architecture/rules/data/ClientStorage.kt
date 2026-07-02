@@ -19,15 +19,15 @@ object ClientStorage : Construct<DataLayer>(
     requirements = listOf(
         isClass,
         hasNameEndingWith("Storage"),
-        isClassWhere("Storage classes must not be abstract") { !it.hasAbstractModifier },
-        isClassWhere("Storage classes must not be `data class`") { !it.hasDataModifier },
-        predicate("Storage classes must reside in the `data.storage` package on `:client`") { decl ->
+        isClassWhere("is not abstract") { !it.hasAbstractModifier },
+        isClassWhere("is not a `data class`") { !it.hasDataModifier },
+        predicate("resides in the `data.storage` package on `:client`") { decl ->
             val pkg = decl.containingFilePackage()
             pkg.containsPackageSegment("data") && pkg.containsPackageSegment("storage")
         },
     ),
 ) {
-    @Describe("Storage classes must be marked as `internal` (the `expect` declaration may be public, but `actual` implementations should be `internal` where the language allows)")
+    @Describe("A Storage class must be marked as `internal` (the `expect` declaration may be public, but `actual` implementations should be `internal` where the language allows)")
     val internalVisibility by rule {
         note("The check skips `expect`/`actual` declarations — an `actual`'s visibility must match its `expect`, so the language decides there, not this rule.")
         constrain { decl, _ ->
@@ -40,7 +40,7 @@ object ClientStorage : Construct<DataLayer>(
         }
     }
 
-    @Describe("Storage classes are forbidden from injecting domain interfaces, Repositories, or Services")
+    @Describe("A Storage class must not inject domain interfaces, Repositories, or Services")
     val doesNotInjectDomainRepositoriesOrServices by rule {
         rationale(
             """

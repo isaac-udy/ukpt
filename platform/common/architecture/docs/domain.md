@@ -38,11 +38,11 @@ The [Rules](#rules) below apply across the whole `feature.[name].domain` package
 
 ##### Rules
 
-* Domain must not contain platform-specific dependencies (Android, Ktor, SQL, …)
+* The `domain` layer must not contain platform-specific dependencies (Android, Ktor, SQL, …)
     * **Why**: The domain layer stays pure Kotlin so it ports across :client/:server and every KMP target and stays unit-testable. Expose a domain interface and implement it in `data`/`services`.
-* Domain must not depend on `ui`, `data`, or `services` packages within the feature
+* The `domain` layer must not depend on `ui`, `data`, or `services` packages within the feature
     * **Why**: The dependency graph is `ui → domain ← data`, with `services` depending on domain. Importing those into domain would invert the graph or create a cycle.
-* May depend on another feature's `domain` only via that feature's `:api` module
+* The `domain` layer may depend on another feature's `domain` only via that feature's `:api` module
     * **Enforced by**: `ModuleRules.clientApiOnly`, `ModuleRules.serverApiOnly`
 
 ---
@@ -62,25 +62,25 @@ A functional interface representing domain-level functionality/business logic.
 
 ##### Requirements
 
-* resides in `feature..domain..`
-* Domain interfaces must be a `fun interface`
-* The primary function of a domain interface must be an `operator fun invoke`
-* All functions in a domain interface must be `suspend` or return a `Flow<T>`
-* Flow-returning domain interfaces are prefixed with `FlowOf`
+* A Domain Interface resides in `feature..domain..`
+* A Domain Interface is a `fun interface`
+* A Domain Interface has a primary function that is an `operator fun invoke`
+* A Domain Interface declares all functions as `suspend` or returning a `Flow<T>`
+* A Domain Interface is prefixed with `FlowOf` when its primary function returns a `Flow`
 
 ##### Rules
 
-* Functions propagate errors via thrown exceptions, never via the return type
+* A Domain Interface's functions propagate errors via thrown exceptions, never via the return type
     * **Why**: @Throws on suspend functions must include CancellationException (or a superclass like Exception) — required for Kotlin/Native: kotlinc rejects the function on iOS targets otherwise.
     * **Note**: Known exceptions should be their own type extending RuntimeException, marked with `@Throws`.
     * **Note**: `@Throws` on `suspend` functions must include `kotlin.coroutines.cancellation.CancellationException`.
 
 ##### Guidance
 
-* May define additional default functions that call the primary function
-* Primary-function parameters must be domain objects, nested types, primitives, or collections of those
-* Primary-function return type must be domain objects, nested types, primitives, collections of those, or no value
-* Must be implemented by a Repository (as a property) or by a UseCase
+* A Domain Interface may define additional default functions that call the primary function
+* A Domain Interface's primary-function parameters must be domain objects, nested types, primitives, or collections of those
+* A Domain Interface's primary-function return type must be domain objects, nested types, primitives, collections of those, or no value
+* A Domain Interface must be implemented by a Repository (as a property) or by a UseCase
 
 ##### Examples
 
@@ -156,21 +156,21 @@ An immutable type representing data at the domain-level.
 
 ##### Requirements
 
-* resides in `feature..domain..`
-* is a class or interface
-* one of {is `sealed`, is a `data class`, is an `enum class`, is a `value class`}
-* Domain objects must be annotated with `@Serializable`
+* A Domain Object resides in `feature..domain..`
+* A Domain Object is a class or interface
+* A Domain Object satisfies one of: {is `sealed`, is a `data class`, is an `enum class`, is a `value class`}
+* A Domain Object is annotated with `@Serializable`
 
 ##### Rules
 
-* Domain objects must be immutable (val properties only)
+* A Domain Object must be immutable (val properties only)
 
 ##### Guidance
 
-* Should use nested value classes for identifiers where appropriate
-* Should use sealed interface hierarchies to model polymorphic data where appropriate
-* Should include `init` blocks that enforce invariants
-* Should use nested types when conceptually inseparable from the parent
+* A Domain Object should use nested value classes for identifiers where appropriate
+* A Domain Object should use sealed interface hierarchies to model polymorphic data where appropriate
+* A Domain Object should include `init` blocks that enforce invariants
+* A Domain Object should use nested types when conceptually inseparable from the parent
 
 ##### Examples
 
@@ -256,20 +256,20 @@ A class that implements a single [domain interface](#domain-interface).
 
 ##### Requirements
 
-* resides in `feature..domain..`
-* A UseCase is a non-sealed/data/enum/value class named `[DomainInterface]Impl`
-* A UseCase must implement exactly one domain interface
+* An Use Case resides in `feature..domain..`
+* An Use Case is a non-sealed/data/enum/value class named `[DomainInterface]Impl`
+* An Use Case implements exactly one domain interface
 
 ##### Rules
 
 * A UseCase must not contain mutable state — all properties are `val`
-* Must not override any default function of its domain interface
+* A UseCase must not override any default function of its domain interface
     * **Why**: The only abstract member is the primary `operator fun invoke`; every other function is a default. Overriding a default per-implementation defeats the point of the interface helpers.
 
 ##### Guidance
 
-* May inject domain interfaces to perform its logic
-* If it becomes too complex, break it into private/file-private/nested parts
+* A UseCase may inject domain interfaces to perform its logic
+* A UseCase that becomes too complex should be broken into private/file-private/nested parts
 
 ---
 
@@ -284,8 +284,8 @@ A class that represents a known failure mode raised by a domain interface.
 
 ##### Requirements
 
-* resides in `feature..domain..`
-* A domain exception is a class extending RuntimeException/Exception/PresentableException
+* A Domain Exception resides in `feature..domain..`
+* A Domain Exception is a class extending RuntimeException/Exception/PresentableException
 
 ---
 
@@ -300,8 +300,8 @@ domain-level magic numbers, lookup tables, or named tags.
 
 ##### Requirements
 
-* resides in `feature..domain..`
-* Domain constants are an `object` with only `val` properties and no functions
+* A Domain Constants resides in `feature..domain..`
+* A Domain Constants is an `object` with only `val` properties and no functions
 
 ---
 
@@ -316,12 +316,12 @@ behavior.
 
 ##### Requirements
 
-* resides in `feature..domain..`
-* Receiver/return/parameter types are domain objects, primitives, or collections of those
+* A Domain Extension Function resides in `feature..domain..`
+* A Domain Extension Function has receiver/return/parameter types that are domain objects, primitives, or collections of those
 
 ##### Rules
 
-* Domain extension functions must not introduce platform-specific dependencies
+* A Domain Extension Function must not introduce platform-specific dependencies
     * **Enforced by**: `DomainLayer.noPlatformDeps`
 
 ---
@@ -336,5 +336,5 @@ A top-level extension property on a domain object that exposes derived state.
 
 ##### Requirements
 
-* resides in `feature..domain..`
-* Receiver/type is a domain object, primitive, or collection of those
+* A Domain Extension Property resides in `feature..domain..`
+* A Domain Extension Property has a receiver/type that is a domain object, primitive, or collection of those

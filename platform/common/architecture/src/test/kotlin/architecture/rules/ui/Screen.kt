@@ -25,7 +25,7 @@ import com.lemonappdev.konsist.api.provider.KoNameProvider
 """)
 object Screen : Construct<UiLayer>(
     requirements = listOf(
-        predicate("Screen functions/properties must be bound to their Destination via the `@NavigationDestination` annotation") { declaration ->
+        predicate("is bound to its Destination via the `@NavigationDestination` annotation") { declaration ->
             require(declaration is KoNameProvider)
             require(declaration is KoAnnotationProvider)
             require(declaration is KoPropertyDeclaration || declaration is KoFunctionDeclaration)
@@ -38,7 +38,7 @@ object Screen : Construct<UiLayer>(
                 ).any { annotation.text.contains(it) }
             }
         },
-        predicate("Screen functions are named `[Name]Screen`; property-based screens end in `Screen` or `Destination`") { declaration ->
+        predicate("is named `[Name]Screen` (property-based screens may end in `Screen` or `Destination`)") { declaration ->
             require(declaration is KoNameProvider)
             require(declaration is KoAnnotationProvider)
             require(declaration is KoPropertyDeclaration || declaration is KoFunctionDeclaration)
@@ -64,7 +64,7 @@ object Screen : Construct<UiLayer>(
                 else -> false
             }
         },
-        predicate("Screen functions must have a single parameter — the associated `[Name]ViewModel`") { declaration ->
+        predicate("has a single parameter — the associated `[Name]ViewModel` (property form exempt)") { declaration ->
             when (declaration) {
                 is KoFunctionDeclaration ->
                     declaration.parameters.size == 1 &&
@@ -75,7 +75,7 @@ object Screen : Construct<UiLayer>(
         },
     ),
 ) {
-    @Describe("Screen functions must be annotated with `@Composable`")
+    @Describe("A Screen function must be annotated with `@Composable`")
     val composableFunction by rule {
         constrain { decl, _ ->
             val fn = decl as? KoFunctionDeclaration ?: return@constrain emptyList() // property-form screens have no annotation to check
@@ -87,18 +87,18 @@ object Screen : Construct<UiLayer>(
         }
     }
 
-    @Describe("Screen functions have a 1:1 relationship with a ViewModel and ViewModel State")
+    @Describe("A Screen function has a 1:1 relationship with a ViewModel and ViewModel State")
     val viewModelStateRelationship by guidance
-    @Describe("Screen functions must observe the ViewModel's `state` property and use it to drive the UI")
+    @Describe("A Screen function must observe the ViewModel's `state` property and use it to drive the UI")
     val observesState by guidance
-    @Describe("Screen functions should delegate all user interaction handling to the ViewModel")
+    @Describe("A Screen function should delegate all user interaction handling to the ViewModel")
     val delegatesInteraction by guidance
-    @Describe("Dialog/overlay screens must use the `navigationDestination` DSL with `metadata = { directOverlay() }`")
+    @Describe("A dialog/overlay Screen must use the `navigationDestination` DSL with `metadata = { directOverlay() }`")
     val overlayViaDsl by guidance
-    @Describe("Dialog/overlay screens that need a ViewModel should call `viewModel()` inside the `navigationDestination` block")
+    @Describe("A dialog/overlay Screen that needs a ViewModel should call `viewModel()` inside the `navigationDestination` block")
     val overlayViewModel by guidance
 
-    @Describe("Screen functions must be paired with an `internal [Name]ScreenContent` composable in the same file")
+    @Describe("A Screen function must be paired with an `internal [Name]ScreenContent` composable in the same file")
     val screenContentCompanion by rule {
         rationale(
             """
@@ -122,7 +122,7 @@ object Screen : Construct<UiLayer>(
         }
     }
 
-    @Describe("ViewModels must be injected into screens using `viewModel()`, not `koinViewModel()`")
+    @Describe("A ViewModel must be injected into its Screen using `viewModel()`, not `koinViewModel()`")
     val viewModelInjection by rule {
         rationale(
             """

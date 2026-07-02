@@ -43,24 +43,25 @@ source. Build-file exemptions use the `// architecture-exception:` comment (see
 
 ##### Rules
 
-* `:feature` modules must never depend on `:app` modules
-* `:feature:[name]:client` must never depend on another `:client`/`:server` module
+* A `:feature` module must never depend on an `:app` module
+* A `:feature:[name]:client` module must never depend on another `:client`/`:server` module
     * **Why**: A feature's client may only reach other features through their `:api` contract, or `:platform`.
-* `:feature:[name]:client` may depend on any `:feature:[name]:api` module
+* A `:feature:[name]:client` module may depend on any `:feature:[name]:api` module
     * **Enforced by**: `ModuleRules.clientApiOnly`
-* `:feature:[name]:server` must never depend on another `:client`/`:server` module
+* A `:feature:[name]:server` module must never depend on another `:client`/`:server` module
     * **Why**: A feature's server may only reach other features through their `:api` contract, or `:platform`.
-* `:feature:[name]:server` may depend on any `:feature:[name]:api` module
+* A `:feature:[name]:server` module may depend on any `:feature:[name]:api` module
     * **Enforced by**: `ModuleRules.serverApiOnly`
-* `:platform` modules must never depend on `:app` modules
-* `:platform` modules must never depend on `:feature` modules
+* A `:platform` module must never depend on an `:app` module
+* A `:platform` module must never depend on a `:feature` module
 
 ##### Guidance
 
-* `:feature` modules may depend on `:platform` modules
-* `:feature:[name]:api` may depend on another feature's `:api` module to share models
+* A `:feature` module may depend on `:platform` modules
+* A `:feature:[name]:api` module may depend on another feature's `:api` module to share models
     * **Note**: `:api` to `:api` dependencies are allowed, but should be used sparingly, treated with caution, and minimised where possible.
-* `:feature` modules may be grouped (`:feature:[group]:[name]:…`)
+    * **Audited**: the test suite reports non-conforming code, without failing.
+* A `:feature` module may be grouped (`:feature:[group]:[name]:…`)
     * **Note**: A module that serves as a group should exist only as a group, and should not itself contain `:api`, `:server` or `:client` modules.
-* `:platform` modules may depend on other `:platform` modules
+* A `:platform` module may depend on other `:platform` modules
     * **Note**: `:platform` to `:platform` dependencies are allowed, but should be used sparingly, treated with caution, and minimised where possible.

@@ -35,10 +35,15 @@ class RuleScope internal constructor() : BaseRuleScope() {
     fun moduleGraph(check: ModuleGraphCheck): Enforcement = ModuleGraphConstraint(check)
 }
 
-/** Block receiver for a `guidance(…) { }` declaration — context only, no enforcement to choose. */
-class GuidanceScope internal constructor() {
+/**
+ * Block receiver for a `guidance { }` declaration. Guidance is never machine-*enforced*, but it may
+ * declare an optional **audit** — a check the suite runs and reports (always passing), so soft
+ * conventions stay visible without failing the build.
+ */
+abstract class BaseGuidanceScope internal constructor() {
     internal var rationaleText: String = ""
     internal val notes = mutableListOf<String>()
+    internal var audit: Enforcement? = null
 
     fun rationale(text: String) {
         rationaleText = text
@@ -46,6 +51,32 @@ class GuidanceScope internal constructor() {
 
     fun note(text: String) {
         notes += text
+    }
+}
+
+/** Group-level guidance: audits run over the whole Konsist scope or the module graph. */
+class GuidanceScope internal constructor() : BaseGuidanceScope() {
+    /** Report (never fail) wherever this guidance is not being followed. */
+    fun audit(check: ScopeCheck) {
+        audit = ScopeConstraint(check)
+    }
+
+    /** Report (never fail) module-graph edges where this guidance is not being followed. */
+    fun auditModuleGraph(check: ModuleGraphCheck) {
+        audit = ModuleGraphConstraint(check)
+    }
+}
+
+/** Construct-level guidance: the audit runs over only the declarations this construct classifies. */
+class ConstructGuidanceScope internal constructor(private val construct: Construct<*>) : BaseGuidanceScope() {
+    /** Report (never fail) each classified declaration where this guidance is not being followed. */
+    fun audit(check: ConstructCheck) {
+        audit = ScopeConstraint { scope, exempt ->
+            scope.declarations(includeNested = false)
+                .filter { construct.test(it) }
+                .filterNot { exempt(it) }
+                .flatMap { check.run(it, exempt) }
+        }
     }
 }
 

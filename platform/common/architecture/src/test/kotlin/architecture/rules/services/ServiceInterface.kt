@@ -15,14 +15,14 @@ import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
 """)
 object ServiceInterface : Construct<ServicesLayer>(
     requirements = listOf(
-        isInterfaceWhere("A service is an `interface` annotated `@Urpc`") { decl -> decl.annotations.any { it.name == "Urpc" } },
+        isInterfaceWhere("is an `interface` annotated `@Urpc`") { decl -> decl.annotations.any { it.name == "Urpc" } },
         hasNameEndingWith("Service"),
-        predicate("Resides in the top-level `feature.[name].services` package") { it.isInServicesRoot() },
+        predicate("resides in the top-level `feature.[name].services` package") { it.isInServicesRoot() },
     ),
 ) {
-    @Describe("Always implement services as urpc service functions in the appropriate server module — do not build client-only local services")
+    @Describe("A Service must always be implemented as urpc service functions in the appropriate server module — never as a client-only local service")
     val noClientOnlyServices by guidance
-    @Describe("Functions are plain `suspend fun f(req): Res`, `fun f(req): Flow<Res>`, or `fun f(reqs: Flow<Req>): Flow<Res>`, each taking 0 or 1 parameter")
+    @Describe("A Service function is a plain `suspend fun f(req): Res`, `fun f(req): Flow<Res>`, or `fun f(reqs: Flow<Req>): Flow<Res>`, taking 0 or 1 parameter")
     val plainFunctionShapes by rule {
         note("The check enforces the parameter count; the suspend/Flow shape is validated by the urpc KSP processor at compile time.")
         constrain { decl, _ ->
@@ -33,10 +33,10 @@ object ServiceInterface : Construct<ServicesLayer>(
         }
     }
 
-    @Describe("Each function's `Request`/`Response` types are nested `@Serializable` types grouped under a per-function `object` namespace")
+    @Describe("A Service function's `Request`/`Response` types are nested `@Serializable` types grouped under a per-function `object` namespace")
     val nestedRequestResponseTypes by guidance
 
-    @Describe("Service interfaces live in `feature.[name].services` of the `:api` module")
+    @Describe("A Service interface lives in `feature.[name].services` of the `:api` module")
     val contractLivesInApi by rule {
         constrain { decl, _ ->
             val iface = decl as? KoInterfaceDeclaration ?: return@constrain emptyList()
@@ -48,7 +48,7 @@ object ServiceInterface : Construct<ServicesLayer>(
         }
     }
 
-    @Describe("Service functions propagate errors via thrown exceptions; the return type only ever represents a successful result")
+    @Describe("A Service function propagates errors via thrown exceptions; the return type only ever represents a successful result")
     val errorsViaExceptions by rule {
         rationale(
             """

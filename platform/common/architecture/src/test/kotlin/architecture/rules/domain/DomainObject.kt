@@ -19,10 +19,10 @@ object DomainObject : Construct<DomainLayer>(
     requirements = listOf(
         isClassOrInterface,
         oneOf(isSealed, isDataClass, isEnum, isValueClass),
-        predicate("Domain objects must be annotated with `@Serializable`") { it.isKotlinxSerializable() },
+        predicate("is annotated with `@Serializable`") { it.isKotlinxSerializable() },
     ),
 ) {
-    @Describe("Domain objects must be immutable (val properties only)")
+    @Describe("A Domain Object must be immutable (val properties only)")
     val immutable by rule {
         constrain { decl, _ ->
             val props = when (decl) {
@@ -34,12 +34,12 @@ object DomainObject : Construct<DomainLayer>(
         }
     }
 
-    @Describe("Should use nested value classes for identifiers where appropriate")
+    @Describe("A Domain Object should use nested value classes for identifiers where appropriate")
     val nestedValueClassIds by guidance
-    @Describe("Should use sealed interface hierarchies to model polymorphic data where appropriate")
+    @Describe("A Domain Object should use sealed interface hierarchies to model polymorphic data where appropriate")
     val sealedHierarchies by guidance
-    @Describe("Should include `init` blocks that enforce invariants")
+    @Describe("A Domain Object should include `init` blocks that enforce invariants")
     val invariantInitBlocks by guidance
-    @Describe("Should use nested types when conceptually inseparable from the parent")
+    @Describe("A Domain Object should use nested types when conceptually inseparable from the parent")
     val nestedTypes by guidance
 }

@@ -14,11 +14,11 @@ import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 """)
 object ServiceImpl : Construct<ServicesLayer>(
     requirements = listOf(
-        isClassWhere("For a service named `[Name]Service` the implementation is a class named `[Name]ServiceImpl`") { it.name.endsWith("ServiceImpl") },
-        predicate("Resides in `feature.[name].services` of the `:server` module (dual-life with the contract)") { it.isInServicesRoot() },
+        isClassWhere("is named `[Name]ServiceImpl`, matching its `[Name]Service` contract") { it.name.endsWith("ServiceImpl") },
+        predicate("resides in `feature.[name].services` of the `:server` module (dual-life with the contract)") { it.isInServicesRoot() },
     ),
 ) {
-    @Describe("Service implementations must be `internal`")
+    @Describe("A Service implementation must be `internal`")
     val internalVisibility by rule {
         constrain { decl, _ ->
             val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
@@ -26,7 +26,7 @@ object ServiceImpl : Construct<ServicesLayer>(
         }
     }
 
-    @Describe("Service implementations are forbidden from injecting domain interfaces")
+    @Describe("A Service implementation must not inject domain interfaces")
     val noInjectingDomainInterfaces by rule {
         rationale(
             """
@@ -41,10 +41,10 @@ object ServiceImpl : Construct<ServicesLayer>(
                 .map { Violation(cls, "ServiceImpl injects domain interface `${it.type.name}` — reach down into storage/internal instead") }
         }
     }
-    @Describe("May inject `services.storage` Storage classes and `services.internal` orchestrators of the same feature, plus other features' Service contracts via `:api`")
+    @Describe("A Service implementation may inject `services.storage` Storage classes and `services.internal` orchestrators of the same feature, plus other features' Service contracts via `:api`")
     val mayInjectStorageAndInternal by guidance
 
-    @Describe("Service implementations must not depend on the `ui` package")
+    @Describe("A Service implementation must not depend on the `ui` package")
     val noUiDependency by rule {
         rationale(
             """

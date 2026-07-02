@@ -42,11 +42,11 @@ import com.lemonappdev.konsist.api.declaration.KoFunctionDeclaration
 """)
 object Composable : Construct<UiLayer>(
     requirements = listOf(
-        predicate("Is not a Screen") { declaration -> !Screen.test(declaration) },
+        predicate("is not a Screen") { declaration -> !Screen.test(declaration) },
         isAnnotatedWith("Composable"),
     ),
 ) {
-    @Describe("Every `[Name]ScreenContent` composable must be exercised by at least one snapshot test")
+    @Describe("A `[Name]ScreenContent` composable must be exercised by at least one snapshot test")
     val screenContentSnapshotTest by rule {
         rationale(
             """

@@ -10,8 +10,8 @@ import architecture.registry.*
 """)
 object StorageRecord : Construct<ServicesLayer>(
     requirements = listOf(
-        isClassWhere("Is a `data class`") { it.hasDataModifier },
+        isClassWhere("is a `data class`") { it.hasDataModifier },
         oneOf(hasNameEndingWith("Row"), hasNameEndingWith("Record"), hasNameEndingWith("Insert")),
-        predicate("Resides in `feature.[name].services.storage`") { it.isInServicesSubAxis("storage") },
+        predicate("resides in `feature.[name].services.storage`") { it.isInServicesSubAxis("storage") },
     ),
 )

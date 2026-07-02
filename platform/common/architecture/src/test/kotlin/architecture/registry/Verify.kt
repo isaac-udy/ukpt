@@ -25,6 +25,13 @@ class ArchitectureRun(catalog: List<RuleGroup>) {
         is ModuleGraphConstraint -> e.check.run(graph) { edge -> Exemptions.isExempt(rule.id, edge) }
         else -> emptyList()
     }
+
+    /** Findings for a guidance audit — reported, never failing. Empty for rules without an audit. */
+    fun auditFindings(rule: Rule): List<Violation> = when (val audit = (rule.enforcement as? NotEnforced)?.audit) {
+        is ScopeConstraint -> audit.check.run(scope) { decl -> Exemptions.isExempt(rule.id, decl) }
+        is ModuleGraphConstraint -> audit.check.run(graph) { edge -> Exemptions.isExempt(rule.id, edge) }
+        else -> emptyList()
+    }
 }
 
 /**

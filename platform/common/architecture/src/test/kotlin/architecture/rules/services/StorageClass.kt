@@ -11,12 +11,12 @@ import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 """)
 object StorageClass : Construct<ServicesLayer>(
     requirements = listOf(
-        isClassWhere("Named `[Name]Storage` (or `[Name]Store` where the broader name fits)") { it.name.endsWith("Storage") || it.name.endsWith("Store") },
-        isClassWhere("Not abstract, not a `data class`") { !it.hasAbstractModifier && !it.hasDataModifier },
-        predicate("Resides in `feature.[name].services.storage`") { it.isInServicesSubAxis("storage") },
+        isClassWhere("is named `[Name]Storage` (or `[Name]Store` where the broader name fits)") { it.name.endsWith("Storage") || it.name.endsWith("Store") },
+        isClassWhere("is not abstract and not a `data class`") { !it.hasAbstractModifier && !it.hasDataModifier },
+        predicate("resides in `feature.[name].services.storage`") { it.isInServicesSubAxis("storage") },
     ),
 ) {
-    @Describe("Storage classes must be `internal`")
+    @Describe("A Storage class must be `internal`")
     val internalVisibility by rule {
         constrain { decl, _ ->
             val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
@@ -24,7 +24,7 @@ object StorageClass : Construct<ServicesLayer>(
         }
     }
 
-    @Describe("Storage classes must take/return `XxxRow` types only — never domain types")
+    @Describe("A Storage class must take and return `XxxRow` types only — never domain types")
     val returnsRowTypesOnly by rule {
         rationale(
             """
@@ -53,7 +53,7 @@ object StorageClass : Construct<ServicesLayer>(
         }
     }
 
-    @Describe("When an operation touches only a subset of columns, keep the hand-written `update { … it[col] = value … }` block — `setFromRow` writes every column and is wrong here")
+    @Describe("A Storage operation that touches only a subset of columns keeps the hand-written `update { … it[col] = value … }` block — `setFromRow` writes every column and is wrong here")
     val partialUpdatesByHand by guidance
 }
 

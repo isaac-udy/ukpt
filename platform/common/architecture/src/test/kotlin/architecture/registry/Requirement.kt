@@ -53,7 +53,7 @@ val isInternal = Requirement("is `internal`") { it.hasMod(KoModifier.INTERNAL) }
 val isFunInterface = Requirement("is a `fun interface`") { it is KoInterfaceDeclaration && it.hasMod(KoModifier.FUN) }
 
 /** Has any annotation at all; `isAnnotatedWith(name)` narrows to a specific one. */
-val isAnnotated = Requirement("has any annotation") { (it as? KoAnnotationProvider)?.annotations?.isNotEmpty() == true }
+val isAnnotated = Requirement("has an annotation") { (it as? KoAnnotationProvider)?.annotations?.isNotEmpty() == true }
 
 /** Declared in a file whose name (minus `.kt`) matches the declaration's name — the "own file" rule. */
 val hasFileNameMatchingDeclaration = Requirement("is declared in a file matching its name") { d ->
@@ -64,10 +64,10 @@ val hasFileNameMatchingDeclaration = Requirement("is declared in a file matching
 
 fun isInPackage(glob: String) = Requirement("resides in `$glob`") { it.residesIn(glob) }
 fun isAnnotatedWith(name: String) =
-    Requirement("annotated `@$name`") { (it as? KoAnnotationProvider)?.hasAnnotationWithName(name) == true }
+    Requirement("is annotated `@$name`") { (it as? KoAnnotationProvider)?.hasAnnotationWithName(name) == true }
 
 fun hasNameEndingWith(suffix: String) =
-    Requirement("name ends with `$suffix`") { (it as? KoNameProvider)?.name?.endsWith(suffix) == true }
+    Requirement("is named `[Name]$suffix`") { (it as? KoNameProvider)?.name?.endsWith(suffix) == true }
 
 fun extends(parentName: String) =
     Requirement("extends `$parentName`") { d ->
@@ -75,10 +75,10 @@ fun extends(parentName: String) =
     }
 
 fun oneOf(vararg options: Requirement) =
-    Requirement("one of {${options.joinToString(", ") { it.description }}}") { d -> options.any { it.matches(d) } }
+    Requirement("satisfies one of: {${options.joinToString(", ") { it.description }}}") { d -> options.any { it.matches(d) } }
 
 fun not(requirement: Requirement) =
-    Requirement("not ${requirement.description}") { !requirement.matches(it) }
+    Requirement("does not satisfy: ${requirement.description}") { !requirement.matches(it) }
 
 /** Escape hatch for a one-off classification predicate the vocabulary doesn't cover. */
 fun predicate(description: String, test: (KoBaseDeclaration) -> Boolean) = Requirement(description, test)

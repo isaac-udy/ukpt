@@ -21,7 +21,7 @@ import com.lemonappdev.konsist.api.provider.KoResideInPackageProvider
 object ProjectRules : RuleGroup() {
 
     // ---- §5.1 Exception handling -------------------------------------------------------------
-    @Describe("`try/catch` blocks must never catch `Exception` — use `catch (t: Throwable)` or a specific exception type")
+    @Describe("A `try/catch` block must never catch `Exception` — use `catch (t: Throwable)` or a specific exception type")
     val noCatchException by rule {
         rationale(
             """
@@ -45,7 +45,7 @@ object ProjectRules : RuleGroup() {
         }
     }
 
-    @Describe("Exception types defined in `services` (the cross-the-wire contract) must be annotated with `@Serializable`")
+    @Describe("An exception type defined in `services` (the cross-the-wire contract) must be annotated with `@Serializable`")
     val serviceExceptionsSerializable by rule {
         rationale(
             """
@@ -74,7 +74,7 @@ object ProjectRules : RuleGroup() {
     }
 
     // ---- §5.2 Imports ------------------------------------------------------------------------
-    @Describe("Imports must not use wildcards — always list the explicit symbols")
+    @Describe("An import must not use a wildcard — always list the explicit symbols")
     val noWildcardImports by rule {
         rationale(
             """
@@ -92,7 +92,7 @@ object ProjectRules : RuleGroup() {
         }
     }
 
-    @Describe("`AsyncState.Loading`/`Success`/`Error` must not be constructed directly — use `AsyncState.fromSuspending`/`fromFlow`")
+    @Describe("An `AsyncState` must never be constructed directly via `Loading`/`Success`/`Error` — use `AsyncState.fromSuspending`/`fromFlow`")
     val noDirectAsyncStateConstruction by rule {
         rationale(
             """
@@ -114,7 +114,7 @@ object ProjectRules : RuleGroup() {
     }
 
     // ---- §5.3 Action and request types -------------------------------------------------------
-    @Describe("Model action/request variants as a `sealed interface`/`sealed class` (each variant a `data class`), not a single type with an `enum` discriminator and nullable fields")
+    @Describe("An action/request type must model its variants as a `sealed interface`/`sealed class` (each variant a `data class`), not as a single type with an `enum` discriminator and nullable fields")
     val sealedActionVariants by guidance {
         rationale(
             """
@@ -126,16 +126,16 @@ object ProjectRules : RuleGroup() {
     }
 
     // ---- §6.3 Architecture-exception sign-off (all guidance — enforced by human review) ----
-    @Describe("Architecture exceptions may only be added after discussing the exception with a human author")
+    @Describe("An architecture exception may only be added after discussing the exception with a human author")
     val exceptionsNeedHumanSignOff by guidance
 
-    @Describe("Adding an architecture exception is not a valid way to resolve an immediate architecture-test failure without user feedback — fix the code or the rule first")
+    @Describe("An architecture exception is not a valid way to resolve an immediate architecture-test failure without user feedback — fix the code or the rule first")
     val exceptionNotForFailingTests by guidance
 
-    @Describe("Every architecture exception must include a KDoc-style (`/** ... */`) comment explaining why it exists and the intended resolution")
+    @Describe("An architecture exception must include a KDoc-style (`/** ... */`) comment explaining why it exists and the intended resolution")
     val exceptionNeedsKdoc by guidance
 
-    @Describe("Architecture exceptions are temporary — revisit them periodically and remove them once the underlying issue is resolved")
+    @Describe("An architecture exception is temporary — revisit it periodically and remove it once the underlying issue is resolved")
     val exceptionsAreTemporary by guidance
 }
 

@@ -53,8 +53,8 @@ The exemption applies to the immediately-following dependency line. Multiple `ar
 
 ## Rules for adding exceptions
 
-* Architecture exceptions may only be added after discussing the exception with a human author
-* Adding an architecture exception is not a valid way to resolve an immediate architecture-test failure without user feedback — fix the code or the rule first
-* Every architecture exception must include a KDoc-style (`/** ... */`) comment explaining why it exists and the intended resolution
-* Architecture exceptions are temporary — revisit them periodically and remove them once the underlying issue is resolved
+* An architecture exception may only be added after discussing the exception with a human author
+* An architecture exception is not a valid way to resolve an immediate architecture-test failure without user feedback — fix the code or the rule first
+* An architecture exception must include a KDoc-style (`/** ... */`) comment explaining why it exists and the intended resolution
+* An architecture exception is temporary — revisit it periodically and remove it once the underlying issue is resolved
 

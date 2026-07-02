@@ -4,6 +4,7 @@ import architecture.rules.UkptArchitecture
 import architecture.registry.ArchitectureRun
 import architecture.registry.Describe
 import architecture.registry.ModuleGraphConstraint
+import architecture.registry.NotEnforced
 import architecture.registry.Rule
 import architecture.registry.RuleGroup
 import architecture.registry.ScopeConstraint
@@ -37,14 +38,28 @@ class RegistryArchitectureTest {
         val run = ArchitectureRun(UkptArchitecture.all)
 
         fun runs(rule: Rule) = rule.enforcement is ScopeConstraint || rule.enforcement is ModuleGraphConstraint
-        fun leaf(rule: Rule) = dynamicTest(rule.id.substringAfterLast('.')) {
-            val violations = run.violations(rule)
-            if (violations.isNotEmpty()) {
-                fail("[${rule.id}] ${rule.title}\n" + violations.joinToString("\n") { "  - ${it.where}: ${it.message}" })
+        fun audited(rule: Rule) = (rule.enforcement as? NotEnforced)?.audit != null
+        fun leaf(rule: Rule) = if (audited(rule)) {
+            // A guidance audit: never fails, but reports where the guidance is not being followed.
+            dynamicTest("${rule.id.substringAfterLast('.')} [audit]") {
+                val findings = run.auditFindings(rule)
+                if (findings.isNotEmpty()) {
+                    println("[audit] ${rule.id} — guidance not followed in ${findings.size} place(s):")
+                    findings.forEach { println("  - ${it.where}: ${it.message}") }
+                }
+            }
+        } else {
+            dynamicTest(rule.id.substringAfterLast('.')) {
+                val violations = run.violations(rule)
+                if (violations.isNotEmpty()) {
+                    fail("[${rule.id}] ${rule.title}\n" + violations.joinToString("\n") { "  - ${it.where}: ${it.message}" })
+                }
             }
         }
 
-        val (membership, layered) = run.rules.filter(::runs).partition { it.id.startsWith("architecture.") }
+        val (membership, layered) = run.rules
+            .filter { runs(it) || audited(it) }
+            .partition { it.id.startsWith("architecture.") }
         return buildList {
             layered.groupBy { it.id.substringBefore('.') }.forEach { (groupId, groupRules) ->
                 val (constructRules, groupLevel) = groupRules.partition { r -> r.id.count { it == '.' } == 2 }

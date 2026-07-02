@@ -28,7 +28,7 @@ object FeatureRules : RuleGroup(
     ),
 ) {
 
-    @Describe("DI bindings must use the constructor reference style `singleOf(::Constructor).bind(BindingType::class)`, not the lambda style `single<BindingType> { Constructor(get()) }`")
+    @Describe("A DI binding must use the constructor reference style `singleOf(::Constructor).bind(BindingType::class)`, not the lambda style `single<BindingType> { Constructor(get()) }`")
     val constructorReferenceBindings by rule {
         rationale(
             """

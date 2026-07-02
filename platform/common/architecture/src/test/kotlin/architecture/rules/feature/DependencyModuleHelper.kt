@@ -10,6 +10,6 @@ object DependencyModuleHelper : Construct<FeatureRules>(
     requirements = listOf(
         isFunction,
         isInternal,
-        isFunctionWhere("A DI registration helper has a Koin `Module` receiver") { declaration -> declaration.receiverType?.name == "Module" },
+        isFunctionWhere("has a Koin `Module` receiver") { declaration -> declaration.receiverType?.name == "Module" },
     ),
 )

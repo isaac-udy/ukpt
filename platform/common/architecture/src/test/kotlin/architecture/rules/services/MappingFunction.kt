@@ -11,11 +11,11 @@ import architecture.registry.*
 object MappingFunction : Construct<ServicesLayer>(
     requirements = listOf(
         isFunction,
-        predicate("Resides in `feature.[name].services.storage`") { it.isInServicesSubAxis("storage") },
+        predicate("resides in `feature.[name].services.storage`") { it.isInServicesSubAxis("storage") },
     ),
 ) {
-    @Describe("Conversions between a generated `XxxRow` and a domain type live in `services.storage` as plain `internal fun` declarations, conventionally collected in `[Name]Mappers.kt`")
+    @Describe("A Mapping Function between a generated `XxxRow` and a domain type lives in `services.storage` as a plain `internal fun` declaration, conventionally collected in `[Name]Mappers.kt`")
     val mappersInStorage by guidance
-    @Describe("Where storage operations span multiple tables to assemble a richer record, define those higher-level helpers as `suspend fun [Name]Storage.loadXxx(…)` extensions in `services.storage`")
+    @Describe("A storage operation that spans multiple tables to assemble a richer record is defined as a higher-level `suspend fun [Name]Storage.loadXxx(…)` extension in `services.storage`")
     val multiTableLoadHelpers by guidance
 }

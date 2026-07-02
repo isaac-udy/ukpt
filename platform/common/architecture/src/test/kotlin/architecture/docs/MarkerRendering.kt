@@ -67,12 +67,16 @@ internal fun expandMarkers(
 /**
  * A construct section's generated tail: its Requirements (the AND-composed classification), then
  * the enforced Rules, then the advisory Guidance — each block only when non-empty, as level-5
- * headers so they scan clearly without competing with the section headings.
+ * headers so they scan clearly without competing with the section headings. Requirement bullets are
+ * prefixed with the construct as subject ("A Repository is a class"), so each reads standalone while
+ * the shared requirement vocabulary stays subject-free.
  */
 internal fun renderConstructBlock(construct: Construct<*>): String = buildString {
+    val subject = spacedName(construct.id.substringAfterLast('.'))
+    val article = if (subject.first() in "AEIOU") "An" else "A"
     appendLine("##### Requirements")
     appendLine()
-    construct.requirements.forEach { appendLine("* ${it.description}") }
+    construct.requirements.forEach { appendLine("* $article $subject ${it.description}") }
     val (guidance, rules) = construct.declaredRules
         .filter { it.status is Status.Active }
         .partition { it.tag == Tag.GUIDANCE }
@@ -124,8 +128,11 @@ internal fun renderRuleBullet(rule: Rule): String = buildString {
     rule.notes.forEach { appendLine("    * **Note**: ${collapse(it)}") }
     when (val enforcement = rule.enforcement) {
         is DelegatedConstraint -> appendLine("    * **Enforced by**: ${enforcement.by.joinToString(", ") { "`$it`" }}")
-        is NotEnforced -> if (enforcement.tag == Tag.CODEGEN) {
-            appendLine("    * **Enforced by**: the `dev.isaacudy.udytils.postgres` code generator")
+        is NotEnforced -> when {
+            enforcement.tag == Tag.CODEGEN ->
+                appendLine("    * **Enforced by**: the `dev.isaacudy.udytils.postgres` code generator")
+            enforcement.audit != null ->
+                appendLine("    * **Audited**: the test suite reports non-conforming code, without failing.")
         }
         else -> {}
     }

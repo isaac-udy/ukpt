@@ -18,7 +18,7 @@ and [Service](services.md#service-interface) implementations into the graph. Con
 
 ##### Rules
 
-* DI bindings must use the constructor reference style `singleOf(::Constructor).bind(BindingType::class)`, not the lambda style `single<BindingType> { Constructor(get()) }`
+* A DI binding must use the constructor reference style `singleOf(::Constructor).bind(BindingType::class)`, not the lambda style `single<BindingType> { Constructor(get()) }`
     * **Why**: The reference style lets Koin validate the constructor parameters against the graph at startup; the lambda style hides missing or cyclic dependencies until the first injection at runtime.
 
 ---
@@ -37,15 +37,15 @@ The configuration for Dependency Injection (DI) that wires the feature together.
 
 ##### Requirements
 
-* DI modules must be defined in the top-level `feature.[name]` package of the `:client` and `:server` modules
-* is a property
-* name ends with `Dependencies`
+* A Dependency Module resides in the top-level `feature.[name]` package of a `:client` or `:server` module
+* A Dependency Module is a property
+* A Dependency Module is named `[Name]Dependencies`
 
 ##### Rules
 
-* The DI module for a feature must only bind/provide dependencies that are both defined and implemented in that feature
+* A Dependency Module must only bind/provide dependencies that are both defined and implemented in its own feature
     * **Why**: If feature A binds an implementation of feature B's domain interface, feature B's DI graph silently depends on feature A — and removing/refactoring A breaks B's wiring at runtime, not at compile time. Each feature owns its own bindings; cross-feature consumption goes through `:api` interfaces only.
-* Register a service's generated `[Name]ServiceUrpcBinding` by chaining `.bindService(::[Name]ServiceUrpcBinding)` off the implementation's binding, inside the per-call `scope<UrpcCall> { }` block
+* A Dependency Module registers a service's generated `[Name]ServiceUrpcBinding` by chaining `.bindService(::[Name]ServiceUrpcBinding)` off the implementation's binding, inside the per-call `scope<UrpcCall> { }` block
     * **Note**: `bindService` (from `dev.isaacudy.udytils.urpc.koin`) registers the binding under its own concrete type, bound to `UrpcService`, with the impl resolved lazily.
     * **Note**: Do NOT use `scoped<UrpcService> { [Name]ServiceUrpcBinding { get() } }` — every such binding shares the `UrpcService` definition key, so co-registered services override each other and `getAll<UrpcService>()` returns only one; the check catches this form.
     * **Note**: `urpcService(::[Name]ServiceUrpcBinding)` is the equivalent standalone form when there is no impl definition to chain off.
@@ -99,6 +99,6 @@ register a group of bindings — used to split a large module into readable, nam
 
 ##### Requirements
 
-* is a function
-* is `internal`
-* A DI registration helper has a Koin `Module` receiver
+* A Dependency Module Helper is a function
+* A Dependency Module Helper is `internal`
+* A Dependency Module Helper has a Koin `Module` receiver

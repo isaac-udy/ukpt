@@ -85,7 +85,7 @@ import architecture.rules.ui.UiLayer
     | --- | --- | --- |
     | `tested` | a `rule` ending in `scope { }` / `constrain { }` / `moduleGraph { }` / `enforcedBy(...)` | A Konsist check enforces the rule and fails citing its id. `enforcedBy(...)` rules are enforced transitively by the rules they name. |
     | `construct` | a `Construct(...)`'s requirement predicates | A classification. A declaration matching no construct (or more than one) fails the layer exhaustiveness / membership check. |
-    | `guidance` | `@Describe("…") val x by guidance` | A convention static analysis can't reliably check. Enforced by review. Renders under **Guidance** in the docs, separate from **Rules**. |
+    | `guidance` | `@Describe("…") val x by guidance` | A convention static analysis can't reliably check. Enforced by review. Renders under **Guidance** in the docs, separate from **Rules**. Guidance may declare an `audit { }` — a check that never fails the build but reports non-conforming code in the test output. |
     | `codegen` | a `rule` ending in `codegen()` | Guaranteed by the `dev.isaacudy.udytils.postgres` code generator — nothing in `src/` for Konsist to scan. |
 """)
 object UkptArchitecture {

@@ -11,7 +11,7 @@ import architecture.registry.*
 """)
 object DomainExtensionProperty : Construct<DomainLayer>(
     requirements = listOf(
-        isPropertyWhere("Receiver/type is a domain object, primitive, or collection of those") { decl ->
+        isPropertyWhere("has a receiver/type that is a domain object, primitive, or collection of those") { decl ->
             val receiverOk = decl.receiverType?.let { isDomainCompatibleType(it.name, decl.containingFile) } ?: true
             val typeOk = decl.type?.let { isDomainCompatibleType(it.name, decl.containingFile) } ?: true
             receiverOk && typeOk

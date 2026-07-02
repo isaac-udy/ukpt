@@ -18,11 +18,11 @@ import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 """)
 object UseCase : Construct<DomainLayer>(
     requirements = listOf(
-        isClassWhere("A UseCase is a non-sealed/data/enum/value class named `[DomainInterface]Impl`") { decl ->
+        isClassWhere("is a non-sealed/data/enum/value class named `[DomainInterface]Impl`") { decl ->
             !decl.hasSealedModifier && !decl.hasDataModifier && !decl.hasEnumModifier && !decl.hasValueModifier &&
                 decl.name == "${decl.associatedDomainInterfaceName()}Impl"
         },
-        isClassWhere("A UseCase must implement exactly one domain interface") { it.associatedDomainInterfaceName() != null },
+        isClassWhere("implements exactly one domain interface") { it.associatedDomainInterfaceName() != null },
     ),
 ) {
     @Describe("A UseCase must not contain mutable state — all properties are `val`")
@@ -33,7 +33,7 @@ object UseCase : Construct<DomainLayer>(
         }
     }
 
-    @Describe("Must not override any default function of its domain interface")
+    @Describe("A UseCase must not override any default function of its domain interface")
     val noOverridingDefaults by rule {
         rationale(
             """
@@ -50,9 +50,9 @@ object UseCase : Construct<DomainLayer>(
         }
     }
 
-    @Describe("May inject domain interfaces to perform its logic")
+    @Describe("A UseCase may inject domain interfaces to perform its logic")
     val mayInjectDomainInterfaces by guidance
-    @Describe("If it becomes too complex, break it into private/file-private/nested parts")
+    @Describe("A UseCase that becomes too complex should be broken into private/file-private/nested parts")
     val breakDownComplexUseCases by guidance
 }
 

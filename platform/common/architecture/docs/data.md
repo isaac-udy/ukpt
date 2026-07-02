@@ -21,14 +21,14 @@ rest of the feature to consume.
 
 ##### Rules
 
-* Provides implementations of `domain` interfaces — by exposing them as properties, not by inheriting them
+* The `data` layer provides implementations of `domain` interfaces — by exposing them as properties, not by inheriting them
     * **Note**: A Repository that implements a domain interface, or fails to expose one as a `public val`, fails the enforcing rules directly.
     * **Enforced by**: `DataLayer.Repository.doesNotImplementDomainInterfaces`, `DataLayer.Repository.exposesDomainInterfacesAsProperties`
-* Forbidden from injecting `domain` interfaces — logic requiring multiple domain interfaces must be moved to a UseCase
+* A `data` class must not inject `domain` interfaces — logic requiring multiple domain interfaces must be moved to a UseCase
     * **Why**: Repositories *implement* domain interfaces — if one injects a domain interface, it's calling a sibling Repository through the abstract layer, which makes the dependency graph unreadable and easy to cycle. Logic that needs multiple domain interfaces belongs in a UseCase.
-* `data.storage` classes use `internal` visibility where the language allows (see `DataLayer.ClientStorage.internalVisibility` for the canonical statement, incl. the `expect`/`actual` nuance)
+* A `data.storage` class uses `internal` visibility where the language allows (see `DataLayer.ClientStorage.internalVisibility` for the canonical statement, incl. the `expect`/`actual` nuance)
     * **Enforced by**: `DataLayer.ClientStorage.internalVisibility`
-* Must not depend on the `ui` package
+* The `data` layer must not depend on the `ui` package
     * **Why**: UI is the outermost layer; `data` sits beneath it and supplies the domain interfaces the UI consumes. If `data` imports a UI type the layering becomes circular and the Repository can no longer be tested without a Compose runtime.
 
 ---
@@ -43,25 +43,25 @@ providing the "edge" of the domain layer.
 
 ##### Requirements
 
-* resides in `feature..data..`
-* is a class
-* name ends with `Repository`
-* is declared in a file matching its name
+* A Repository resides in `feature..data..`
+* A Repository is a class
+* A Repository is named `[Name]Repository`
+* A Repository is declared in a file matching its name
 
 ##### Rules
 
-* Repositories must be marked as `internal`
-* Repositories must not implement domain interfaces directly
-* Repositories must expose domain interfaces as `public val` properties
-* Repositories are forbidden from injecting domain interfaces
+* A Repository must be marked as `internal`
+* A Repository must not implement domain interfaces directly
+* A Repository must expose domain interfaces as `public val` properties
+* A Repository must not inject domain interfaces
     * **Why**: Logic requiring multiple domain interfaces must be moved to a UseCase in the `domain` package.
-* Repositories are forbidden from injecting other Repositories
-* Repository domain-interface properties must be initialized immediately — no `by lazy`, no custom getter
+* A Repository must not inject other Repositories
+* A Repository's domain-interface properties must be initialized immediately — no `by lazy`, no custom getter
     * **Why**: Eager initialisation lets Koin's graph validation catch missing or cyclic dependencies at startup instead of at the first injection at runtime, and it makes the wiring obvious from a quick read of the Repository constructor.
 
 ##### Guidance
 
-* May inject Services, client-side `data.storage` Storage objects, or database clients to fulfill their domain properties
+* A Repository may inject Services, client-side `data.storage` Storage objects, or database clients to fulfill its domain properties
 
 ##### Examples
 
@@ -95,9 +95,9 @@ Repository — typically the contract for a low-level concern with platform-spec
 
 ##### Requirements
 
-* resides in `feature..data..`
-* is an interface
-* Must live in `feature.[name].data` (not `data.storage`)
+* A Client Data Interface resides in `feature..data..`
+* A Client Data Interface is an interface
+* A Client Data Interface resides in `feature.[name].data` (not `data.storage`)
 
 ---
 
@@ -108,10 +108,10 @@ usually a platform-specific implementation of a [client data interface](#client-
 
 ##### Requirements
 
-* resides in `feature..data..`
-* is a class
-* Must not be named `Repository`
-* Must live in `feature.[name].data` (not `data.storage`)
+* A Client Data Implementation resides in `feature..data..`
+* A Client Data Implementation is a class
+* A Client Data Implementation is not named `[Name]Repository`
+* A Client Data Implementation resides in `feature.[name].data` (not `data.storage`)
 
 ---
 
@@ -126,18 +126,18 @@ preferences, cached data on disk) — `expect`/`actual` `Storage` classes backed
 
 ##### Requirements
 
-* resides in `feature..data..`
-* is a class
-* name ends with `Storage`
-* Storage classes must not be abstract
-* Storage classes must not be `data class`
-* Storage classes must reside in the `data.storage` package on `:client`
+* A Client Storage resides in `feature..data..`
+* A Client Storage is a class
+* A Client Storage is named `[Name]Storage`
+* A Client Storage is not abstract
+* A Client Storage is not a `data class`
+* A Client Storage resides in the `data.storage` package on `:client`
 
 ##### Rules
 
-* Storage classes must be marked as `internal` (the `expect` declaration may be public, but `actual` implementations should be `internal` where the language allows)
+* A Storage class must be marked as `internal` (the `expect` declaration may be public, but `actual` implementations should be `internal` where the language allows)
     * **Note**: The check skips `expect`/`actual` declarations — an `actual`'s visibility must match its `expect`, so the language decides there, not this rule.
-* Storage classes are forbidden from injecting domain interfaces, Repositories, or Services
+* A Storage class must not inject domain interfaces, Repositories, or Services
     * **Why**: Storage is the lowest layer of the stack — it should depend on the database/keychain client and nothing higher. Injecting a domain interface, Repository, or Service would embed orchestration logic in the persistence layer.
 
 ##### Examples

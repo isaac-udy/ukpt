@@ -18,7 +18,7 @@ import com.lemonappdev.konsist.api.provider.KoContainingFileProvider
 object Destination : Construct<UiLayer>(
     requirements = listOf(
         isClassOrObject,
-        predicate("Destinations must implement `dev.enro.NavigationKey` or `NavigationKey.WithResult<T>`") { d ->
+        predicate("implements `dev.enro.NavigationKey` or `NavigationKey.WithResult<T>`") { d ->
             (d is KoClassDeclaration || d is KoObjectDeclaration) &&
                 d.parents().any { parent -> parent.name.contains("NavigationKey") }
         },
@@ -27,9 +27,9 @@ object Destination : Construct<UiLayer>(
         hasFileNameMatchingDeclaration,
     ),
 ) {
-    @Describe("Destinations should accept the minimal data required to initialise the associated Screen")
+    @Describe("A Destination should accept the minimal data required to initialise the associated Screen")
     val minimalData by guidance
-    @Describe("Destinations may live in `:api` (shared entry point / server-driven) or `:client` (internal only)")
+    @Describe("A Destination may live in `:api` (shared entry point / server-driven) or `:client` (internal only)")
     val definedInApiOrClient by rule {
         constrain { decl, _ ->
             val path = (decl as? KoContainingFileProvider)?.containingFile?.path ?: return@constrain emptyList()

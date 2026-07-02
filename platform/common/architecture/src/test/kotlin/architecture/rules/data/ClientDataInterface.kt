@@ -18,7 +18,7 @@ import architecture.definitions.containsPackageSegment
 object ClientDataInterface : Construct<DataLayer>(
     requirements = listOf(
         isInterface,
-        predicate("Must live in `feature.[name].data` (not `data.storage`)") { decl ->
+        predicate("resides in `feature.[name].data` (not `data.storage`)") { decl ->
             val pkg = decl.containingFilePackage()
             pkg.containsPackageSegment("data") && !pkg.containsPackageSegment("storage")
         },

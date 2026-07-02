@@ -16,7 +16,7 @@ import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
 object UiValueType : Construct<UiLayer>(
     requirements = listOf(
         oneOf(isEnum, isSealed),
-        predicate("Has no member functions") { declaration ->
+        predicate("has no member functions") { declaration ->
             when (declaration) {
                 is KoClassDeclaration -> declaration.functions().isEmpty()
                 is KoInterfaceDeclaration -> declaration.functions().isEmpty()

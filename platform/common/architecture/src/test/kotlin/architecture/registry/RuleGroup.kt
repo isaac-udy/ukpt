@@ -83,13 +83,13 @@ abstract class Construct<G : RuleGroup>(requirements: List<Requirement>) : RuleC
             register(Rule({ "$id.${property.name}" }, property.statementOrFail(this), scope.rationaleText, enforcement, Status.Active, scope.notes.toList()))
         }
 
-    /** An advisory convention with context: `@Describe("…") val x by guidance { note("…") }`. */
+    /** An advisory convention with context or an audit: `@Describe("…") val x by guidance { audit { … } }`. */
     protected fun guidance(
-        block: GuidanceScope.() -> Unit,
+        block: ConstructGuidanceScope.() -> Unit,
     ): PropertyDelegateProvider<Construct<G>, ReadOnlyProperty<Construct<G>, Rule>> =
         PropertyDelegateProvider { _, property ->
-            val scope = GuidanceScope().apply(block)
-            register(Rule({ "$id.${property.name}" }, property.statementOrFail(this), scope.rationaleText, NotEnforced(Tag.GUIDANCE), Status.Active, scope.notes.toList()))
+            val scope = ConstructGuidanceScope(this).apply(block)
+            register(Rule({ "$id.${property.name}" }, property.statementOrFail(this), scope.rationaleText, NotEnforced(Tag.GUIDANCE, scope.audit), Status.Active, scope.notes.toList()))
         }
 
     /** An advisory convention: `@Describe("…") val x by guidance`. */
@@ -122,13 +122,13 @@ abstract class RuleGroup(
             register(Rule({ "$id.${property.name}" }, property.statementOrFail(this), scope.rationaleText, enforcement, Status.Active, scope.notes.toList()))
         }
 
-    /** An advisory convention with context: `@Describe("…") val x by guidance { note("…") }`. */
+    /** An advisory convention with context or an audit: `@Describe("…") val x by guidance { audit { … } }`. */
     protected fun guidance(
         block: GuidanceScope.() -> Unit,
     ): PropertyDelegateProvider<RuleGroup, ReadOnlyProperty<RuleGroup, Rule>> =
         PropertyDelegateProvider { _, property ->
             val scope = GuidanceScope().apply(block)
-            register(Rule({ "$id.${property.name}" }, property.statementOrFail(this), scope.rationaleText, NotEnforced(Tag.GUIDANCE), Status.Active, scope.notes.toList()))
+            register(Rule({ "$id.${property.name}" }, property.statementOrFail(this), scope.rationaleText, NotEnforced(Tag.GUIDANCE, scope.audit), Status.Active, scope.notes.toList()))
         }
 
     /** An advisory convention: `@Describe("…") val x by guidance`. */

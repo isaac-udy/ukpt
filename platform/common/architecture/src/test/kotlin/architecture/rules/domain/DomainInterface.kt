@@ -18,31 +18,31 @@ import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
 """)
 object DomainInterface : Construct<DomainLayer>(
     requirements = listOf(
-        isInterfaceWhere("Domain interfaces must be a `fun interface`") { it.hasFunModifier && !it.hasSealedModifier },
-        isInterfaceWhere("The primary function of a domain interface must be an `operator fun invoke`") { decl ->
+        isInterfaceWhere("is a `fun interface`") { it.hasFunModifier && !it.hasSealedModifier },
+        isInterfaceWhere("has a primary function that is an `operator fun invoke`") { decl ->
             decl.functions().any { it.name == "invoke" && it.hasOperatorModifier }
         },
-        isInterfaceWhere("All functions in a domain interface must be `suspend` or return a `Flow<T>`") { decl ->
+        isInterfaceWhere("declares all functions as `suspend` or returning a `Flow<T>`") { decl ->
             decl.functions()
                 .filter { it.name == "invoke" || !it.text.contains("=") }
                 .all { it.hasSuspendModifier || it.returnType?.name?.contains("Flow") == true }
         },
-        isInterfaceWhere("Flow-returning domain interfaces are prefixed with `FlowOf`") { decl ->
+        isInterfaceWhere("is prefixed with `FlowOf` when its primary function returns a `Flow`") { decl ->
             val hasFlowReturn = decl.functions().any { it.name == "invoke" && it.returnType?.name?.contains("Flow") == true }
             !hasFlowReturn || decl.name.startsWith("FlowOf")
         },
     ),
 ) {
-    @Describe("May define additional default functions that call the primary function")
+    @Describe("A Domain Interface may define additional default functions that call the primary function")
     val interfaceDefaults by guidance
-    @Describe("Primary-function parameters must be domain objects, nested types, primitives, or collections of those")
+    @Describe("A Domain Interface's primary-function parameters must be domain objects, nested types, primitives, or collections of those")
     val primaryParameterTypes by guidance
-    @Describe("Primary-function return type must be domain objects, nested types, primitives, collections of those, or no value")
+    @Describe("A Domain Interface's primary-function return type must be domain objects, nested types, primitives, collections of those, or no value")
     val primaryReturnType by guidance
-    @Describe("Must be implemented by a Repository (as a property) or by a UseCase")
+    @Describe("A Domain Interface must be implemented by a Repository (as a property) or by a UseCase")
     val implementedByRepositoryOrUseCase by guidance
 
-    @Describe("Functions propagate errors via thrown exceptions, never via the return type")
+    @Describe("A Domain Interface's functions propagate errors via thrown exceptions, never via the return type")
     val errorsViaExceptions by rule {
         rationale(
             """

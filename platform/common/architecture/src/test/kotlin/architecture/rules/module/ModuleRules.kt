@@ -42,7 +42,7 @@ import architecture.registry.*
 """)
 object ModuleRules : RuleGroup() {
 
-    @Describe("`:feature` modules must never depend on `:app` modules")
+    @Describe("A `:feature` module must never depend on an `:app` module")
     val featureNotApp by rule {
         moduleGraph { graph, exempt ->
             graph.edges
@@ -51,10 +51,10 @@ object ModuleRules : RuleGroup() {
         }
     }
 
-    @Describe("`:feature` modules may depend on `:platform` modules")
+    @Describe("A `:feature` module may depend on `:platform` modules")
     val featureMayUsePlatform by guidance
 
-    @Describe("`:feature:[name]:client` must never depend on another `:client`/`:server` module")
+    @Describe("A `:feature:[name]:client` module must never depend on another `:client`/`:server` module")
     val clientApiOnly by rule {
         rationale("A feature's client may only reach other features through their `:api` contract, or `:platform`.")
         moduleGraph { graph, exempt ->
@@ -65,12 +65,12 @@ object ModuleRules : RuleGroup() {
         }
     }
 
-    @Describe("`:feature:[name]:client` may depend on any `:feature:[name]:api` module")
+    @Describe("A `:feature:[name]:client` module may depend on any `:feature:[name]:api` module")
     val clientMayUseApi by rule {
         enforcedBy(clientApiOnly)
     }
 
-    @Describe("`:feature:[name]:server` must never depend on another `:client`/`:server` module")
+    @Describe("A `:feature:[name]:server` module must never depend on another `:client`/`:server` module")
     val serverApiOnly by rule {
         rationale("A feature's server may only reach other features through their `:api` contract, or `:platform`.")
         moduleGraph { graph, exempt ->
@@ -81,22 +81,27 @@ object ModuleRules : RuleGroup() {
         }
     }
 
-    @Describe("`:feature:[name]:server` may depend on any `:feature:[name]:api` module")
+    @Describe("A `:feature:[name]:server` module may depend on any `:feature:[name]:api` module")
     val serverMayUseApi by rule {
         enforcedBy(serverApiOnly)
     }
 
-    @Describe("`:feature:[name]:api` may depend on another feature's `:api` module to share models")
+    @Describe("A `:feature:[name]:api` module may depend on another feature's `:api` module to share models")
     val apiMayUseApi by guidance {
         note("`:api` to `:api` dependencies are allowed, but should be used sparingly, treated with caution, and minimised where possible.")
+        auditModuleGraph { graph, exempt ->
+            graph.edges
+                .filter { featureSubmoduleType(it.from) == "api" && featureSubmoduleType(it.to) == "api" && !exempt(it) }
+                .map { Violation(it.location, "cross-feature :api → :api dependency — allowed, but keep these minimal") }
+        }
     }
 
-    @Describe("`:feature` modules may be grouped (`:feature:[group]:[name]:…`)")
+    @Describe("A `:feature` module may be grouped (`:feature:[group]:[name]:…`)")
     val featuresMayBeGrouped by guidance {
         note("A module that serves as a group should exist only as a group, and should not itself contain `:api`, `:server` or `:client` modules.")
     }
 
-    @Describe("`:platform` modules must never depend on `:app` modules")
+    @Describe("A `:platform` module must never depend on an `:app` module")
     val platformNotApp by rule {
         moduleGraph { graph, exempt ->
             graph.edges
@@ -105,7 +110,7 @@ object ModuleRules : RuleGroup() {
         }
     }
 
-    @Describe("`:platform` modules must never depend on `:feature` modules")
+    @Describe("A `:platform` module must never depend on a `:feature` module")
     val platformNotFeature by rule {
         moduleGraph { graph, exempt ->
             graph.edges
@@ -114,7 +119,7 @@ object ModuleRules : RuleGroup() {
         }
     }
 
-    @Describe("`:platform` modules may depend on other `:platform` modules")
+    @Describe("A `:platform` module may depend on other `:platform` modules")
     val platformMayUsePlatform by guidance {
         note("`:platform` to `:platform` dependencies are allowed, but should be used sparingly, treated with caution, and minimised where possible.")
     }

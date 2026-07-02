@@ -29,10 +29,10 @@ object UiLayer : RuleGroup(
 ) {
 
     // §3.2 ui package dependencies (layer-level — not tied to one construct)
-    @Describe("May depend on `domain`")
+    @Describe("The `ui` layer may depend on `domain`")
     val mayDependOnDomain by guidance
 
-    @Describe("Forbidden from implementing `domain` interfaces")
+    @Describe("The `ui` layer is forbidden from implementing `domain` interfaces")
     val noImplementingDomainInterfaces by rule {
         rationale(
             """
@@ -58,7 +58,7 @@ object UiLayer : RuleGroup(
         }
     }
 
-    @Describe("Forbidden from depending on `data` or `services`")
+    @Describe("The `ui` layer is forbidden from depending on `data` or `services`")
     val noDataServicesDeps by rule {
         rationale(
             """
@@ -81,7 +81,7 @@ object UiLayer : RuleGroup(
         }
     }
 
-    @Describe("Must not use `koinInject` — all dependencies are injected through ViewModels")
+    @Describe("The `ui` layer must not use `koinInject` — all dependencies are injected through ViewModels")
     val noKoinInject by rule {
         rationale(
             """

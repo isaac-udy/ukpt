@@ -92,7 +92,12 @@ class DelegatedConstraint(
     override val tag get() = Tag.TESTED
 }
 
-/** guidance / codegen — no executable body. Distinct from a vacuous `scope { emptyList() }`. */
+/**
+ * guidance / codegen — never fails the build. Guidance may carry an optional [audit]: a
+ * ScopeConstraint/ModuleGraphConstraint the suite runs and *reports* (without failing), so
+ * soft conventions like "keep cross-feature `:api` dependencies minimal" stay visible.
+ */
 class NotEnforced(
     override val tag: Tag,
+    val audit: Enforcement? = null,
 ) : Enforcement

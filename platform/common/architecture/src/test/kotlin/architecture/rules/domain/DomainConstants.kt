@@ -14,7 +14,7 @@ import architecture.definitions.isMutable
 """)
 object DomainConstants : Construct<DomainLayer>(
     requirements = listOf(
-        isObjectWhere("Domain constants are an `object` with only `val` properties and no functions") { decl ->
+        isObjectWhere("is an `object` with only `val` properties and no functions") { decl ->
             decl.functions().isEmpty() && decl.properties().all { it.isVal && !it.isMutable() }
         },
     ),
