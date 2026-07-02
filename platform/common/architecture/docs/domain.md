@@ -26,6 +26,16 @@ The [Rules](#rules) below apply across the whole `feature.[name].domain` package
   permitted because real-world domains have genuine dependencies between them. The important
   thing is getting the direction of dependencies correct and avoiding circular dependencies.
 
+##### Constructs
+
+* [Domain Interface](#domain-interface)
+* [Domain Object](#domain-object)
+* [Use Case](#use-case)
+* [Domain Exception](#domain-exception)
+* [Domain Constants](#domain-constants)
+* [Domain Extension Function](#domain-extension-function)
+* [Domain Extension Property](#domain-extension-property)
+
 ##### Rules
 
 * Domain must not contain platform-specific dependencies (Android, Ktor, SQL, …)

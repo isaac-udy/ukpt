@@ -12,6 +12,13 @@ Repositories fan out across [Services](services.md#service-interface) (the `:api
 client-side local storage, and expose [domain interfaces](domain.md#domain-interface) for the
 rest of the feature to consume.
 
+##### Constructs
+
+* [Repository](#repository)
+* [Client Data Interface](#client-data-interface)
+* [Client Data Implementation](#client-data-implementation)
+* [Client Storage](#client-storage)
+
 ##### Rules
 
 * Forbidden from injecting `domain` interfaces — logic requiring multiple domain interfaces must be moved to a UseCase

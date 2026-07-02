@@ -88,7 +88,7 @@ private fun anchorsOf(content: String): Set<String> {
     return anchors
 }
 
-private fun githubAnchor(heading: String): String = heading
+internal fun githubAnchor(heading: String): String = heading
     .lowercase()
     .replace(Regex("""[^\p{L}\p{N}\- ]"""), "")
     .replace(' ', '-')

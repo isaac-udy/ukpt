@@ -186,6 +186,20 @@ Its isolation is enforced now, even though the package is empty —
   (extends `AssistantTool`, named `[Action][Entity]Tool`) on the `ServicesLayer` group to
   populate this layer.
 
+##### Constructs
+
+* [Service Interface](#service-interface)
+* [Service Impl](#service-impl)
+* [Internal Coordinator](#internal-coordinator)
+* [Internal Data Carrier](#internal-data-carrier)
+* [Internal Interface](#internal-interface)
+* [Internal Exception](#internal-exception)
+* [Internal Object Helper](#internal-object-helper)
+* [Storage Class](#storage-class)
+* [Storage Record](#storage-record)
+* [Mapping Function](#mapping-function)
+* [Codec Object](#codec-object)
+
 ##### Rules
 
 * `services` may depend on `domain` and on other features' `:api` `services` contracts; it must not depend on `data`

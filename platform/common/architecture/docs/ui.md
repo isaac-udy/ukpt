@@ -14,6 +14,15 @@ or mutates arrives through [domain interfaces](domain.md#domain-interface), impl
 
 The layer rules below apply across the whole `feature.[name].ui` package.
 
+##### Constructs
+
+* [Screen](#screen)
+* [Composable](#composable)
+* [Destination](#destination)
+* [View Model](#view-model)
+* [View Model State](#view-model-state)
+* [Ui Value Type](#ui-value-type)
+
 ##### Rules
 
 * Forbidden from implementing `domain` interfaces

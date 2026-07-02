@@ -11,6 +11,11 @@ dependency-injection wiring: Koin modules that define the feature's DI bindings,
 and [Service](services.md#service-interface) implementations into the graph. Concrete classes
 (ServiceImpls, helpers, etc.) live in their layer-specific package; nothing else belongs here.
 
+##### Constructs
+
+* [Dependency Module](#dependency-module)
+* [Dependency Module Helper](#dependency-module-helper)
+
 ##### Rules
 
 * DI bindings must use the constructor reference style `singleOf(::Constructor).bind(BindingType::class)`, not the lambda style `single<BindingType> { Constructor(get()) }`
