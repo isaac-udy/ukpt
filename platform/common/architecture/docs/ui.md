@@ -63,6 +63,7 @@ site.
 
 ##### Rules
 
+* Screen functions must be annotated with `@Composable`
 * Screen functions must be paired with an `internal [Name]ScreenContent` composable in the same file
     * **Why**: The Screen function plumbs the ViewModel; the `ScreenContent` function takes only state + callbacks so snapshot tests can render every state without a ViewModel. Marking it `internal` lets the host-test source set call it; `private` makes the screen untestable.
 * ViewModels must be injected into screens using `viewModel()`, not `koinViewModel()`
@@ -70,7 +71,6 @@ site.
 
 ##### Guidance
 
-* Screen functions must be annotated with `@Composable`
 * Screen functions have a 1:1 relationship with a ViewModel and ViewModel State
 * Screen functions must observe the ViewModel's `state` property and use it to drive the UI
 * Screen functions should delegate all user interaction handling to the ViewModel
@@ -177,10 +177,13 @@ provided by that screen (if any).
 * annotated `@Serializable`
 * is declared in a file matching its name
 
+##### Rules
+
+* Destinations may live in `:api` (shared entry point / server-driven) or `:client` (internal only)
+
 ##### Guidance
 
 * Destinations should accept the minimal data required to initialise the associated Screen
-* Destinations may live in `:api` (shared entry point / server-driven) or `:client` (internal only)
 
 ---
 
@@ -236,12 +239,12 @@ The complete, immutable representation of a Screen's data at a single point in t
 ##### Rules
 
 * ViewModel State objects must be immutable (val properties only)
+* ViewModel State objects must not define custom sealed types for loading/success/error — use `AsyncState<T>`
 
 ##### Guidance
 
 * ViewModel State objects have a 1:1 relationship with a ViewModel type
 * ViewModel State objects must use `AsyncState<T>` / `UpdatableState<T>` for asynchronously loaded data and action progress
-* ViewModel State objects must not define custom sealed types for loading/success/error — use `AsyncState<T>`
 * ViewModel State objects should be a transparent container for domain objects, not lossy UI-level mappings
 * ViewModel State objects should include `init` blocks that enforce invariants
 * Formatting and visual representation must be handled by the Screen or specialized `@Composable` properties/functions

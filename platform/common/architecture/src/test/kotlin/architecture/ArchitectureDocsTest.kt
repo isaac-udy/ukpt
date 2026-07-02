@@ -19,7 +19,7 @@ class ArchitectureDocsTest {
     @Test
     fun architectureDocsAreUpToDate() {
         val root = moduleRoot()
-        val docs = renderArchitectureDocs(UkptArchitecture.all, root)
+        val docs = renderArchitectureDocs(UkptArchitecture.all, root, UkptArchitecture.readme)
 
         val staging = File(root, "build/architecture-docs")
         staging.deleteRecursively()

@@ -80,11 +80,15 @@ class ModuleGraphConstraint(
 
 /**
  * tested, but enforced *transitively* by the rules it names (e.g. cross-feature domain access is
- * enforced by the cross-feature module rules). Runs nothing; [by] documents the enforcing rule ids.
+ * enforced by the cross-feature module rules). Runs nothing; [by] documents the enforcing rule ids —
+ * resolved lazily so a rule can reference another rule that is still initializing.
  */
 class DelegatedConstraint(
-    val by: List<String>,
+    private val byProvider: () -> List<String>,
 ) : Enforcement {
+    constructor(by: List<String>) : this({ by })
+
+    val by: List<String> get() = byProvider()
     override val tag get() = Tag.TESTED
 }
 

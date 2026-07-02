@@ -23,11 +23,30 @@ object ServiceInterface : Construct<ServicesLayer>(
     @Describe("Always implement services as urpc service functions in the appropriate server module — do not build client-only local services")
     val noClientOnlyServices by guidance
     @Describe("Functions are plain `suspend fun f(req): Res`, `fun f(req): Flow<Res>`, or `fun f(reqs: Flow<Req>): Flow<Res>`, each taking 0 or 1 parameter")
-    val plainFunctionShapes by guidance
+    val plainFunctionShapes by rule {
+        note("The check enforces the parameter count; the suspend/Flow shape is validated by the urpc KSP processor at compile time.")
+        constrain { decl, _ ->
+            val iface = decl as? KoInterfaceDeclaration ?: return@constrain emptyList()
+            iface.functions()
+                .filter { it.parameters.size > 1 }
+                .map { Violation(it, "service function `${it.name}` takes ${it.parameters.size} parameters — use a single Request type") }
+        }
+    }
+
     @Describe("Each function's `Request`/`Response` types are nested `@Serializable` types grouped under a per-function `object` namespace")
     val nestedRequestResponseTypes by guidance
+
     @Describe("Service interfaces live in `feature.[name].services` of the `:api` module")
-    val contractLivesInApi by guidance
+    val contractLivesInApi by rule {
+        constrain { decl, _ ->
+            val iface = decl as? KoInterfaceDeclaration ?: return@constrain emptyList()
+            if (iface.containingFile.path.contains("/api/src/")) {
+                emptyList()
+            } else {
+                listOf(Violation(iface, "service contract is declared outside the `:api` module"))
+            }
+        }
+    }
 
     @Describe("Service functions propagate errors via thrown exceptions; the return type only ever represents a successful result")
     val errorsViaExceptions by rule {

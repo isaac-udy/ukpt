@@ -76,7 +76,17 @@ object Screen : Construct<UiLayer>(
     ),
 ) {
     @Describe("Screen functions must be annotated with `@Composable`")
-    val composableFunction by guidance
+    val composableFunction by rule {
+        constrain { decl, _ ->
+            val fn = decl as? KoFunctionDeclaration ?: return@constrain emptyList() // property-form screens have no annotation to check
+            if (fn.hasAnnotationWithName("Composable")) {
+                emptyList()
+            } else {
+                listOf(Violation(fn, "Screen function `${fn.name}` is missing `@Composable`"))
+            }
+        }
+    }
+
     @Describe("Screen functions have a 1:1 relationship with a ViewModel and ViewModel State")
     val viewModelStateRelationship by guidance
     @Describe("Screen functions must observe the ViewModel's `state` property and use it to drive the UI")

@@ -7,6 +7,7 @@ import architecture.definitions.containsPackageSegment
 import architecture.definitions.featureName
 import architecture.definitions.isFeatureModule
 import com.lemonappdev.konsist.api.declaration.KoPropertyDeclaration
+import com.lemonappdev.konsist.api.provider.KoContainingFileProvider
 
 @Describe("""
     The configuration for Dependency Injection (DI) that wires the feature together.
@@ -62,9 +63,17 @@ object DependencyModule : Construct<FeatureRules>(
     }
 
     @Describe("Register a service's generated `[Name]ServiceUrpcBinding` by chaining `.bindService(::[Name]ServiceUrpcBinding)` off the implementation's binding, inside the per-call `scope<UrpcCall> { }` block")
-    val urpcServiceBinding by guidance {
+    val urpcServiceBinding by rule {
         note("`bindService` (from `dev.isaacudy.udytils.urpc.koin`) registers the binding under its own concrete type, bound to `UrpcService`, with the impl resolved lazily.")
-        note("Do NOT use `scoped<UrpcService> { [Name]ServiceUrpcBinding { get() } }` — every such binding shares the `UrpcService` definition key, so co-registered services override each other and `getAll<UrpcService>()` returns only one.")
+        note("Do NOT use `scoped<UrpcService> { [Name]ServiceUrpcBinding { get() } }` — every such binding shares the `UrpcService` definition key, so co-registered services override each other and `getAll<UrpcService>()` returns only one; the check catches this form.")
         note("`urpcService(::[Name]ServiceUrpcBinding)` is the equivalent standalone form when there is no impl definition to chain off.")
+        constrain { decl, _ ->
+            val file = (decl as? KoContainingFileProvider)?.containingFile ?: return@constrain emptyList()
+            if (Regex("""(scoped|single|factory)\s*<\s*UrpcService\s*>""").containsMatchIn(file.text)) {
+                listOf(Violation(decl, "DI module binds under the shared `UrpcService` key — co-registered services override each other; chain `.bindService(::…UrpcBinding)` instead"))
+            } else {
+                emptyList()
+            }
+        }
     }
 }

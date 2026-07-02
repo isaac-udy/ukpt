@@ -9,14 +9,14 @@ import java.io.File
  *
  *  - `rules/<layer>/<Group>.examples.md` — the layer's example blocks (optional)
  *  - `rules/<layer>/<Construct>.examples.md` — one construct's examples, beside `<Construct>.kt` (optional)
- *  - README template `rules/UkptArchitecture.md` — next to the catalog object
  *  - any other `.md` directly in `rules/` is a standalone doc (e.g. `exceptions.md`) rendered to `docs/`
+ *
+ * (The README template is not a file — it is the `@Describe` on the catalog object.)
  */
 internal class DocSources(
     private val moduleRoot: File,
     val layers: List<LayerSource>,
     val standalone: List<File>,
-    val readmeTemplate: File,
 ) {
     class LayerSource(
         val group: RuleGroup,
@@ -48,9 +48,7 @@ internal class DocSources(
                         .toMap(),
                 )
             }
-            val readmeTemplate = File(rulesDir, "UkptArchitecture.md")
-            check(readmeTemplate.exists()) { "Missing README template: ${readmeTemplate.relativeTo(moduleRoot).path}" }
-            val claimed = (layers.flatMap { it.constructExamples.values + listOfNotNull(it.groupExamples) } + readmeTemplate)
+            val claimed = layers.flatMap { it.constructExamples.values + listOfNotNull(it.groupExamples) }
                 .map { it.canonicalFile }
                 .toSet()
             val groupIds = groups.map { it.id }.toSet()
@@ -60,6 +58,7 @@ internal class DocSources(
                 .partition { file ->
                     file.parentFile.canonicalFile != rulesDir.canonicalFile ||
                         file.name.endsWith(".examples.md") ||
+                        file.name == "UkptArchitecture.md" ||
                         file.name.substringBefore('.') in groupIds
                 }
             check(misnamed.isEmpty()) {
@@ -67,7 +66,7 @@ internal class DocSources(
                     "package directory, or a leftover narrative fragment?):\n" +
                     misnamed.joinToString("\n") { " - ${it.relativeTo(moduleRoot).path}" }
             }
-            return DocSources(moduleRoot, layers, standalone, readmeTemplate)
+            return DocSources(moduleRoot, layers, standalone)
         }
     }
 }

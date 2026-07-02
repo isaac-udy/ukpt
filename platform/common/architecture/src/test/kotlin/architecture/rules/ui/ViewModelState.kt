@@ -33,7 +33,15 @@ object ViewModelState : Construct<UiLayer>(
     @Describe("ViewModel State objects must use `AsyncState<T>` / `UpdatableState<T>` for asynchronously loaded data and action progress")
     val usesAsyncState by guidance
     @Describe("ViewModel State objects must not define custom sealed types for loading/success/error — use `AsyncState<T>`")
-    val noCustomAsyncSealedTypes by guidance
+    val noCustomAsyncSealedTypes by rule {
+        constrain { decl, _ ->
+            val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
+            (cls.classes() + cls.interfaces())
+                .filter { it.hasSealedModifier }
+                .filter { nested -> nested.text.contains("Loading") && nested.text.contains("Error") }
+                .map { Violation(it, "State declares a custom sealed loading/error hierarchy `${it.name}` — use `AsyncState<T>`") }
+        }
+    }
     @Describe("ViewModel State objects should be a transparent container for domain objects, not lossy UI-level mappings")
     val transparentContainer by guidance
     @Describe("ViewModel State objects should include `init` blocks that enforce invariants")

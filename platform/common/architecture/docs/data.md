@@ -21,16 +21,15 @@ rest of the feature to consume.
 
 ##### Rules
 
+* Provides implementations of `domain` interfaces — by exposing them as properties, not by inheriting them
+    * **Note**: A Repository that implements a domain interface, or fails to expose one as a `public val`, fails the enforcing rules directly.
+    * **Enforced by**: `DataLayer.Repository.doesNotImplementDomainInterfaces`, `DataLayer.Repository.exposesDomainInterfacesAsProperties`
 * Forbidden from injecting `domain` interfaces — logic requiring multiple domain interfaces must be moved to a UseCase
     * **Why**: Repositories *implement* domain interfaces — if one injects a domain interface, it's calling a sibling Repository through the abstract layer, which makes the dependency graph unreadable and easy to cycle. Logic that needs multiple domain interfaces belongs in a UseCase.
+* `data.storage` classes use `internal` visibility where the language allows (see `DataLayer.ClientStorage.internalVisibility` for the canonical statement, incl. the `expect`/`actual` nuance)
+    * **Enforced by**: `DataLayer.ClientStorage.internalVisibility`
 * Must not depend on the `ui` package
     * **Why**: UI is the outermost layer; `data` sits beneath it and supplies the domain interfaces the UI consumes. If `data` imports a UI type the layering becomes circular and the Repository can no longer be tested without a Compose runtime.
-
-##### Guidance
-
-* Provides implementations of `domain` interfaces — by exposing them as properties, not by inheriting them
-    * **Note**: Enforced via the `DataLayer.Repository` construct's classification: a class that implements a domain interface (or doesn't expose one as a `public val`) isn't recognised as a Repository.
-* `data.storage` classes use `internal` visibility where the language allows (see `DataLayer.ClientStorage.internalVisibility` for the canonical statement, incl. the `expect`/`actual` nuance)
 
 ---
 
@@ -136,12 +135,10 @@ preferences, cached data on disk) — `expect`/`actual` `Storage` classes backed
 
 ##### Rules
 
+* Storage classes must be marked as `internal` (the `expect` declaration may be public, but `actual` implementations should be `internal` where the language allows)
+    * **Note**: The check skips `expect`/`actual` declarations — an `actual`'s visibility must match its `expect`, so the language decides there, not this rule.
 * Storage classes are forbidden from injecting domain interfaces, Repositories, or Services
     * **Why**: Storage is the lowest layer of the stack — it should depend on the database/keychain client and nothing higher. Injecting a domain interface, Repository, or Service would embed orchestration logic in the persistence layer.
-
-##### Guidance
-
-* Storage classes must be marked as `internal` (the `expect` declaration may be public, but `actual` implementations should be `internal` where the language allows)
 
 ##### Examples
 

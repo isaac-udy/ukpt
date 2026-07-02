@@ -23,7 +23,7 @@ abstract class BaseRuleScope internal constructor() {
 
     /** Tested, but enforced transitively by the rules it names. */
     fun enforcedBy(vararg ruleIds: String): Enforcement = DelegatedConstraint(ruleIds.toList())
-    fun enforcedBy(vararg rules: Rule): Enforcement = DelegatedConstraint(rules.map { it.id })
+    fun enforcedBy(vararg rules: Rule): Enforcement = DelegatedConstraint { rules.map { it.id } }
 
     /** Guaranteed by the postgres code generator — nothing in `src/` for Konsist to scan. */
     fun codegen(): Enforcement = NotEnforced(Tag.CODEGEN)

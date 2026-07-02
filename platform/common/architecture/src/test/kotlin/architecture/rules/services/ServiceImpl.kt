@@ -3,6 +3,8 @@ package architecture.rules.services
 import architecture.registry.*
 
 import architecture.definitions.containsPackageSegment
+import architecture.rules.domain.DomainInterface
+import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 
 @Describe("""
@@ -25,14 +27,19 @@ object ServiceImpl : Construct<ServicesLayer>(
     }
 
     @Describe("Service implementations are forbidden from injecting domain interfaces")
-    val noInjectingDomainInterfaces by guidance {
+    val noInjectingDomainInterfaces by rule {
         rationale(
             """
             A ServiceImpl is the server-side request handler; it reaches *down* into services.storage
             and services.internal, not sideways into the domain interfaces a client would consume.
             """.trimIndent(),
         )
-        note("Surfaced as guidance rather than a construct requirement: forbidding domain-interface injection is a prohibition, not a classification shape, and re-expressing it would require resolving the domain-interface classifier from another layer.")
+        constrain { decl, _ ->
+            val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
+            cls.primaryConstructor?.parameters.orEmpty()
+                .filter { param -> DomainInterface.test(param.type.sourceDeclaration as? KoBaseDeclaration) }
+                .map { Violation(cls, "ServiceImpl injects domain interface `${it.type.name}` — reach down into storage/internal instead") }
+        }
     }
     @Describe("May inject `services.storage` Storage classes and `services.internal` orchestrators of the same feature, plus other features' Service contracts via `:api`")
     val mayInjectStorageAndInternal by guidance

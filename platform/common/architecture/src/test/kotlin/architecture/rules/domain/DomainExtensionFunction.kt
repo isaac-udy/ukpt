@@ -21,5 +21,7 @@ object DomainExtensionFunction : Construct<DomainLayer>(
     ),
 ) {
     @Describe("Domain extension functions must not introduce platform-specific dependencies")
-    val noPlatformDeps by guidance
+    val noPlatformDeps by rule {
+        enforcedBy("DomainLayer.noPlatformDeps")
+    }
 }

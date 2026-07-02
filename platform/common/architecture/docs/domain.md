@@ -319,9 +319,10 @@ behavior.
 * resides in `feature..domain..`
 * Receiver/return/parameter types are domain objects, primitives, or collections of those
 
-##### Guidance
+##### Rules
 
 * Domain extension functions must not introduce platform-specific dependencies
+    * **Enforced by**: `DomainLayer.noPlatformDeps`
 
 ---
 

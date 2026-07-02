@@ -261,6 +261,9 @@ server binding, and the wire descriptors from the annotated interface.
 
 ##### Rules
 
+* Functions are plain `suspend fun f(req): Res`, `fun f(req): Flow<Res>`, or `fun f(reqs: Flow<Req>): Flow<Res>`, each taking 0 or 1 parameter
+    * **Note**: The check enforces the parameter count; the suspend/Flow shape is validated by the urpc KSP processor at compile time.
+* Service interfaces live in `feature.[name].services` of the `:api` module
 * Service functions propagate errors via thrown exceptions; the return type only ever represents a successful result
     * **Why**: @Throws on suspend functions must include CancellationException (or a superclass like Exception) — required for Kotlin/Native: kotlinc rejects the function on iOS targets otherwise.
     * **Note**: Known service exceptions should be their own `@Serializable` type (ideally a `PresentableException`).
@@ -269,9 +272,7 @@ server binding, and the wire descriptors from the annotated interface.
 ##### Guidance
 
 * Always implement services as urpc service functions in the appropriate server module — do not build client-only local services
-* Functions are plain `suspend fun f(req): Res`, `fun f(req): Flow<Res>`, or `fun f(reqs: Flow<Req>): Flow<Res>`, each taking 0 or 1 parameter
 * Each function's `Request`/`Response` types are nested `@Serializable` types grouped under a per-function `object` namespace
-* Service interfaces live in `feature.[name].services` of the `:api` module
 
 ##### Examples
 
@@ -310,14 +311,13 @@ belongs to the `services` axis, not the top-level feature group.
 ##### Rules
 
 * Service implementations must be `internal`
+* Service implementations are forbidden from injecting domain interfaces
+    * **Why**: A ServiceImpl is the server-side request handler; it reaches *down* into services.storage and services.internal, not sideways into the domain interfaces a client would consume.
 * Service implementations must not depend on the `ui` package
     * **Why**: ServiceImpls run on the server and have no Compose runtime — a UI import here would either fail to compile in `:server` or mean a UI type has been pulled out of `ui` and is being treated as data, both of which are wrong (§4.4.2, §3.4.4). If you need a shared shape with the UI, put it in the feature's `:api` domain or services package.
 
 ##### Guidance
 
-* Service implementations are forbidden from injecting domain interfaces
-    * **Why**: A ServiceImpl is the server-side request handler; it reaches *down* into services.storage and services.internal, not sideways into the domain interfaces a client would consume.
-    * **Note**: Surfaced as guidance rather than a construct requirement: forbidding domain-interface injection is a prohibition, not a classification shape, and re-expressing it would require resolving the domain-interface classifier from another layer.
 * May inject `services.storage` Storage classes and `services.internal` orchestrators of the same feature, plus other features' Service contracts via `:api`
 
 ---

@@ -4,6 +4,7 @@ import architecture.registry.*
 
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 import com.lemonappdev.konsist.api.declaration.KoObjectDeclaration
+import com.lemonappdev.konsist.api.provider.KoContainingFileProvider
 
 @Describe("""
     A serializable data class or object representing the navigation contract for a particular
@@ -29,5 +30,14 @@ object Destination : Construct<UiLayer>(
     @Describe("Destinations should accept the minimal data required to initialise the associated Screen")
     val minimalData by guidance
     @Describe("Destinations may live in `:api` (shared entry point / server-driven) or `:client` (internal only)")
-    val definedInApiOrClient by guidance
+    val definedInApiOrClient by rule {
+        constrain { decl, _ ->
+            val path = (decl as? KoContainingFileProvider)?.containingFile?.path ?: return@constrain emptyList()
+            if (path.contains("/server/src/")) {
+                listOf(Violation(decl, "Destination is declared in a `:server` module — destinations belong in `:api` or `:client`"))
+            } else {
+                emptyList()
+            }
+        }
+    }
 }

@@ -40,14 +40,14 @@ The complete catalog, one row per construct or rule. Ids are object/property pat
 | `DomainLayer.DomainException` | construct | resides in `feature..domain..` · A domain exception is a class extending RuntimeException/Exception/PresentableException |
 | `DomainLayer.DomainConstants` | construct | resides in `feature..domain..` · Domain constants are an `object` with only `val` properties and no functions |
 | `DomainLayer.DomainExtensionFunction` | construct | resides in `feature..domain..` · Receiver/return/parameter types are domain objects, primitives, or collections of those |
-| `DomainLayer.DomainExtensionFunction.noPlatformDeps` | guidance | Domain extension functions must not introduce platform-specific dependencies |
+| `DomainLayer.DomainExtensionFunction.noPlatformDeps` | tested | Domain extension functions must not introduce platform-specific dependencies |
 | `DomainLayer.DomainExtensionProperty` | construct | resides in `feature..domain..` · Receiver/type is a domain object, primitive, or collection of those |
 | `DomainLayer.noPlatformDeps` | tested | Domain must not contain platform-specific dependencies (Android, Ktor, SQL, …) |
 | `DomainLayer.noUiDataServicesDeps` | tested | Domain must not depend on `ui`, `data`, or `services` packages within the feature |
 | `DomainLayer.crossFeatureViaApi` | tested | May depend on another feature's `domain` only via that feature's `:api` module |
 | `DomainLayer.exhaustive` | tested | Every top-level declaration in `feature..domain..` matches exactly one construct |
 | `UiLayer.Screen` | construct | resides in `feature..ui..` · Screen functions/properties must be bound to their Destination via the `@NavigationDestination` annotation · Screen functions are named `[Name]Screen`; property-based screens end in `Screen` or `Destination` · Screen functions must have a single parameter — the associated `[Name]ViewModel` |
-| `UiLayer.Screen.composableFunction` | guidance | Screen functions must be annotated with `@Composable` |
+| `UiLayer.Screen.composableFunction` | tested | Screen functions must be annotated with `@Composable` |
 | `UiLayer.Screen.viewModelStateRelationship` | guidance | Screen functions have a 1:1 relationship with a ViewModel and ViewModel State |
 | `UiLayer.Screen.observesState` | guidance | Screen functions must observe the ViewModel's `state` property and use it to drive the UI |
 | `UiLayer.Screen.delegatesInteraction` | guidance | Screen functions should delegate all user interaction handling to the ViewModel |
@@ -59,7 +59,7 @@ The complete catalog, one row per construct or rule. Ids are object/property pat
 | `UiLayer.Composable.screenContentSnapshotTest` | tested | Every `[Name]ScreenContent` composable must be exercised by at least one snapshot test |
 | `UiLayer.Destination` | construct | resides in `feature..ui..` · is a class or object · Destinations must implement `dev.enro.NavigationKey` or `NavigationKey.WithResult<T>` · name ends with `Destination` · annotated `@Serializable` · is declared in a file matching its name |
 | `UiLayer.Destination.minimalData` | guidance | Destinations should accept the minimal data required to initialise the associated Screen |
-| `UiLayer.Destination.definedInApiOrClient` | guidance | Destinations may live in `:api` (shared entry point / server-driven) or `:client` (internal only) |
+| `UiLayer.Destination.definedInApiOrClient` | tested | Destinations may live in `:api` (shared entry point / server-driven) or `:client` (internal only) |
 | `UiLayer.ViewModel` | construct | resides in `feature..ui..` · ViewModels extend `androidx.lifecycle.ViewModel` · ViewModels must be named `[Name]ViewModel` · The `state` property is a `ViewModelState<[Name]State>` (1:1 with the ViewModel's State type) · ViewModels have a `private val navigation` obtained via `navigationHandle<[Name]Destination>()` · is declared in a file matching its name |
 | `UiLayer.ViewModel.singlePublicStateProperty` | tested | ViewModels expose a single public `state` property, or no public properties at all |
 | `UiLayer.ViewModel.publicFunctionsReturnUnit` | tested | `public`/`internal` functions on a ViewModel must only return `Unit` (or omit a return type) |
@@ -69,7 +69,7 @@ The complete catalog, one row per construct or rule. Ids are object/property pat
 | `UiLayer.ViewModelState.immutable` | tested | ViewModel State objects must be immutable (val properties only) |
 | `UiLayer.ViewModelState.viewModelRelationship` | guidance | ViewModel State objects have a 1:1 relationship with a ViewModel type |
 | `UiLayer.ViewModelState.usesAsyncState` | guidance | ViewModel State objects must use `AsyncState<T>` / `UpdatableState<T>` for asynchronously loaded data and action progress |
-| `UiLayer.ViewModelState.noCustomAsyncSealedTypes` | guidance | ViewModel State objects must not define custom sealed types for loading/success/error — use `AsyncState<T>` |
+| `UiLayer.ViewModelState.noCustomAsyncSealedTypes` | tested | ViewModel State objects must not define custom sealed types for loading/success/error — use `AsyncState<T>` |
 | `UiLayer.ViewModelState.transparentContainer` | guidance | ViewModel State objects should be a transparent container for domain objects, not lossy UI-level mappings |
 | `UiLayer.ViewModelState.invariantInitBlocks` | guidance | ViewModel State objects should include `init` blocks that enforce invariants |
 | `UiLayer.ViewModelState.formattingInScreen` | guidance | Formatting and visual representation must be handled by the Screen or specialized `@Composable` properties/functions |
@@ -90,22 +90,22 @@ The complete catalog, one row per construct or rule. Ids are object/property pat
 | `DataLayer.ClientDataInterface` | construct | resides in `feature..data..` · is an interface · Must live in `feature.[name].data` (not `data.storage`) |
 | `DataLayer.ClientDataImplementation` | construct | resides in `feature..data..` · is a class · Must not be named `Repository` · Must live in `feature.[name].data` (not `data.storage`) |
 | `DataLayer.ClientStorage` | construct | resides in `feature..data..` · is a class · name ends with `Storage` · Storage classes must not be abstract · Storage classes must not be `data class` · Storage classes must reside in the `data.storage` package on `:client` |
-| `DataLayer.ClientStorage.internalVisibility` | guidance | Storage classes must be marked as `internal` (the `expect` declaration may be public, but `actual` implementations should be `internal` where the language allows) |
+| `DataLayer.ClientStorage.internalVisibility` | tested | Storage classes must be marked as `internal` (the `expect` declaration may be public, but `actual` implementations should be `internal` where the language allows) |
 | `DataLayer.ClientStorage.doesNotInjectDomainRepositoriesOrServices` | tested | Storage classes are forbidden from injecting domain interfaces, Repositories, or Services |
-| `DataLayer.providesDomainImplementations` | guidance | Provides implementations of `domain` interfaces — by exposing them as properties, not by inheriting them |
+| `DataLayer.providesDomainImplementations` | tested | Provides implementations of `domain` interfaces — by exposing them as properties, not by inheriting them |
 | `DataLayer.noInjectingDomainInterfaces` | tested | Forbidden from injecting `domain` interfaces — logic requiring multiple domain interfaces must be moved to a UseCase |
-| `DataLayer.storageInternalVisibility` | guidance | `data.storage` classes use `internal` visibility where the language allows (see `DataLayer.ClientStorage.internalVisibility` for the canonical statement, incl. the `expect`/`actual` nuance) |
+| `DataLayer.storageInternalVisibility` | tested | `data.storage` classes use `internal` visibility where the language allows (see `DataLayer.ClientStorage.internalVisibility` for the canonical statement, incl. the `expect`/`actual` nuance) |
 | `DataLayer.noUiDeps` | tested | Must not depend on the `ui` package |
 | `DataLayer.exhaustive` | tested | Every top-level declaration in `feature..data..` matches exactly one construct |
 | `ServicesLayer.ServiceInterface` | construct | resides in `feature..services..` · A service is an `interface` annotated `@Urpc` · name ends with `Service` · Resides in the top-level `feature.[name].services` package |
 | `ServicesLayer.ServiceInterface.noClientOnlyServices` | guidance | Always implement services as urpc service functions in the appropriate server module — do not build client-only local services |
-| `ServicesLayer.ServiceInterface.plainFunctionShapes` | guidance | Functions are plain `suspend fun f(req): Res`, `fun f(req): Flow<Res>`, or `fun f(reqs: Flow<Req>): Flow<Res>`, each taking 0 or 1 parameter |
+| `ServicesLayer.ServiceInterface.plainFunctionShapes` | tested | Functions are plain `suspend fun f(req): Res`, `fun f(req): Flow<Res>`, or `fun f(reqs: Flow<Req>): Flow<Res>`, each taking 0 or 1 parameter |
 | `ServicesLayer.ServiceInterface.nestedRequestResponseTypes` | guidance | Each function's `Request`/`Response` types are nested `@Serializable` types grouped under a per-function `object` namespace |
-| `ServicesLayer.ServiceInterface.contractLivesInApi` | guidance | Service interfaces live in `feature.[name].services` of the `:api` module |
+| `ServicesLayer.ServiceInterface.contractLivesInApi` | tested | Service interfaces live in `feature.[name].services` of the `:api` module |
 | `ServicesLayer.ServiceInterface.errorsViaExceptions` | tested | Service functions propagate errors via thrown exceptions; the return type only ever represents a successful result |
 | `ServicesLayer.ServiceImpl` | construct | resides in `feature..services..` · For a service named `[Name]Service` the implementation is a class named `[Name]ServiceImpl` · Resides in `feature.[name].services` of the `:server` module (dual-life with the contract) |
 | `ServicesLayer.ServiceImpl.internalVisibility` | tested | Service implementations must be `internal` |
-| `ServicesLayer.ServiceImpl.noInjectingDomainInterfaces` | guidance | Service implementations are forbidden from injecting domain interfaces |
+| `ServicesLayer.ServiceImpl.noInjectingDomainInterfaces` | tested | Service implementations are forbidden from injecting domain interfaces |
 | `ServicesLayer.ServiceImpl.mayInjectStorageAndInternal` | guidance | May inject `services.storage` Storage classes and `services.internal` orchestrators of the same feature, plus other features' Service contracts via `:api` |
 | `ServicesLayer.ServiceImpl.noUiDependency` | tested | Service implementations must not depend on the `ui` package |
 | `ServicesLayer.InternalCoordinator` | construct | resides in `feature..services..` · A coordinator is a concrete (non-`abstract`, non-`data`) class that is not a `Job` or `Exception` · Resides in `feature.[name].services.internal` |
@@ -136,7 +136,7 @@ The complete catalog, one row per construct or rule. Ids are object/property pat
 | `ServicesLayer.exhaustive` | tested | Every top-level declaration in `feature..services..` matches exactly one construct |
 | `FeatureRules.DependencyModule` | construct | DI modules must be defined in the top-level `feature.[name]` package of the `:client` and `:server` modules · is a property · name ends with `Dependencies` |
 | `FeatureRules.DependencyModule.ownFeatureBindingsOnly` | tested | The DI module for a feature must only bind/provide dependencies that are both defined and implemented in that feature |
-| `FeatureRules.DependencyModule.urpcServiceBinding` | guidance | Register a service's generated `[Name]ServiceUrpcBinding` by chaining `.bindService(::[Name]ServiceUrpcBinding)` off the implementation's binding, inside the per-call `scope<UrpcCall> { }` block |
+| `FeatureRules.DependencyModule.urpcServiceBinding` | tested | Register a service's generated `[Name]ServiceUrpcBinding` by chaining `.bindService(::[Name]ServiceUrpcBinding)` off the implementation's binding, inside the per-call `scope<UrpcCall> { }` block |
 | `FeatureRules.DependencyModuleHelper` | construct | is a function · is `internal` · A DI registration helper has a Koin `Module` receiver |
 | `FeatureRules.constructorReferenceBindings` | tested | DI bindings must use the constructor reference style `singleOf(::Constructor).bind(BindingType::class)`, not the lambda style `single<BindingType> { Constructor(get()) }` |
 | `ProjectRules.noCatchException` | tested | `try/catch` blocks must never catch `Exception` — use `catch (t: Throwable)` or a specific exception type |

@@ -9,16 +9,16 @@ data class GeneratedDoc(val relativePath: String, val content: String)
 /**
  * Renders the complete generated doc set for [groups]:
  *
- *  - `docs/<layer>.md` — compiled per layer from its fragments + the catalog ([renderLayerDoc])
+ *  - `docs/<layer>.md` — compiled per layer from `@Describe` + examples files ([renderLayerDoc])
  *  - `docs/<name>.md` — each standalone source under `rules/`, markers expanded
  *  - `docs/rule-index.md` — entirely from the catalog
- *  - `README.md` — from the `UkptArchitecture.md` template (entry point, `{{toc}}`)
+ *  - `README.md` — from [readmeTemplate], the catalog object's `@Describe` text (`{{toc}}` expands)
  *
  * Any validation problem (unresolvable marker or fragment, stale prose id, broken link) fails the
  * render with every error listed — the golden test therefore refuses to regenerate from broken
  * sources.
  */
-fun renderArchitectureDocs(groups: List<RuleGroup>, moduleRoot: File): List<GeneratedDoc> {
+fun renderArchitectureDocs(groups: List<RuleGroup>, moduleRoot: File, readmeTemplate: String): List<GeneratedDoc> {
     val catalog = CatalogIndex(groups)
     val sources = DocSources.discover(moduleRoot, groups)
     val errors = mutableListOf<String>()
@@ -41,10 +41,10 @@ fun renderArchitectureDocs(groups: List<RuleGroup>, moduleRoot: File): List<Gene
     val linked = layerDocs + standaloneDocs + ruleIndex
     val readme = GeneratedDoc(
         "README.md",
-        banner("Narrative source: `${sources.sourcePath(sources.readmeTemplate)}`.") + expandMarkers(
-            sources.readmeTemplate.readText(),
+        banner("Source: the @Describe annotation on `UkptArchitecture` (`src/test/kotlin/architecture/rules/UkptArchitecture.kt`).") + expandMarkers(
+            readmeTemplate,
             catalog,
-            sources.sourcePath(sources.readmeTemplate),
+            "README template (@Describe on UkptArchitecture)",
             errors,
             toc = linked.map { it.relativePath to titleOf(it) },
         ),

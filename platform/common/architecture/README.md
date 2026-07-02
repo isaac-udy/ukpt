@@ -1,6 +1,6 @@
 > [!NOTE]
 > **This file is generated — do not edit it by hand.**
-> Narrative source: `src/test/kotlin/architecture/rules/UkptArchitecture.md`.
+> Source: the @Describe annotation on `UkptArchitecture` (`src/test/kotlin/architecture/rules/UkptArchitecture.kt`).
 > Regenerate with `UPDATE_ARCHITECTURE_DOCS=true ./gradlew :platform:common:architecture:test`.
 
 # UKPT Architecture
@@ -8,7 +8,7 @@
 How this works:
 
 - The **rules** are Kotlin (Konsist tests), maintained by hand: one `RuleGroup` object per layer, one top-level `Construct<Group>` object per code shape (in its own file, e.g. `Repository.kt`, listed in the group's `constructs`), a rule or guidance property on each. They live in [`src/test/kotlin/architecture/rules/`](src/test/kotlin/architecture/rules).
-- The **narrative** lives in the catalog too: `@Describe("…")` annotations carry the documentation text for every group, construct, rule, and guidance entry.
+- The **narrative** lives in the catalog too: `@Describe("…")` annotations carry the documentation text for every group, construct, rule, and guidance entry — including this README, which is the annotation on `UkptArchitecture`.
 - **Examples** are markdown files next to the rules they belong to: `Repository.examples.md` beside `Repository.kt` holds the example blocks for that construct, rendered after its rules.
 - The **documentation** — this README and everything under `docs/` — is **generated** from those sources. Never edit the generated files; edit the catalog or an examples file, then regenerate.
 
@@ -25,6 +25,7 @@ How this works:
 
 - Change a **rule or its documentation**: edit the layer's `.kt` in `src/test/kotlin/architecture/rules/<layer>/` — statements and narrative are `@Describe` annotations there.
 - Change an **example**: edit the `<Construct>.examples.md` file next to that construct's `.kt` (each generated file's banner names its sources).
+- Change **this README**: edit the `@Describe` on `UkptArchitecture`.
 - Then regenerate the docs:
 
 ```
@@ -81,6 +82,5 @@ Each entry's status is **derived from how it is declared in the catalog**, so it
 | --- | --- | --- |
 | `tested` | a `rule` ending in `scope { }` / `constrain { }` / `moduleGraph { }` / `enforcedBy(...)` | A Konsist check enforces the rule and fails citing its id. `enforcedBy(...)` rules are enforced transitively by the rules they name. |
 | `construct` | a `Construct(...)`'s requirement predicates | A classification. A declaration matching no construct (or more than one) fails the layer exhaustiveness / membership check. |
-| `guidance` | `val x by guidance("…")` | A convention static analysis can't reliably check. Enforced by review. Renders under **Guidance** in the docs, separate from **Rules**. |
+| `guidance` | `@Describe("…") val x by guidance` | A convention static analysis can't reliably check. Enforced by review. Renders under **Guidance** in the docs, separate from **Rules**. |
 | `codegen` | a `rule` ending in `codegen()` | Guaranteed by the `dev.isaacudy.udytils.postgres` code generator — nothing in `src/` for Konsist to scan. |
-

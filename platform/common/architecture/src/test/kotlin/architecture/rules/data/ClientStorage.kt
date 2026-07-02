@@ -28,7 +28,17 @@ object ClientStorage : Construct<DataLayer>(
     ),
 ) {
     @Describe("Storage classes must be marked as `internal` (the `expect` declaration may be public, but `actual` implementations should be `internal` where the language allows)")
-    val internalVisibility by guidance
+    val internalVisibility by rule {
+        note("The check skips `expect`/`actual` declarations — an `actual`'s visibility must match its `expect`, so the language decides there, not this rule.")
+        constrain { decl, _ ->
+            val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
+            if (cls.hasExpectModifier || cls.hasActualModifier || cls.hasInternalModifier) {
+                emptyList()
+            } else {
+                listOf(Violation(cls, "Storage class must be `internal`"))
+            }
+        }
+    }
 
     @Describe("Storage classes are forbidden from injecting domain interfaces, Repositories, or Services")
     val doesNotInjectDomainRepositoriesOrServices by rule {
