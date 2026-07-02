@@ -1,6 +1,6 @@
 > [!NOTE]
-> **This file is generated — do not edit it by hand.**
-> Sources: @Describe annotations in the Kotlin catalog in `src/main/kotlin/architecture/rules/domain/` (narrative + rules), plus the `*.examples.md` files beside it.
+> **This file is generated. Do not edit it directly.**
+> Generated from the `@Describe` annotations in `src/main/kotlin/architecture/rules/domain/` and the `*.examples.md` files beside them.
 > Regenerate with `./gradlew :platform:common:architecture:updateArchitectureDocumentation`.
 
 # [Domain Layer](../src/main/kotlin/architecture/rules/domain/DomainLayer.kt)
@@ -39,11 +39,11 @@ The [Rules](#rules) below apply across the whole `feature.[name].domain` package
 ##### Rules
 
 * The `domain` layer must not contain platform-specific dependencies (Android, Ktor, SQL, …)
-    * **Why**: The domain layer stays pure Kotlin so it ports across :client/:server and every KMP target and stays unit-testable. Expose a domain interface and implement it in `data`/`services`.
+    * **Why:** The domain layer stays pure Kotlin so it ports across :client/:server and every KMP target and stays unit-testable. Expose a domain interface and implement it in `data`/`services`.
 * The `domain` layer must not depend on `ui`, `data`, or `services` packages within the feature
-    * **Why**: The dependency graph is `ui → domain ← data`, with `services` depending on domain. Importing those into domain would invert the graph or create a cycle.
+    * **Why:** The dependency graph is `ui → domain ← data`, with `services` depending on domain. Importing those into domain would invert the graph or create a cycle.
 * The `domain` layer may depend on another feature's `domain` only via that feature's `:api` module
-    * **Enforced by**: `ModuleRules.clientApiOnly`, `ModuleRules.serverApiOnly`
+    * **Enforced by:** `ModuleRules.clientApiOnly`, `ModuleRules.serverApiOnly`
 
 ---
 
@@ -73,11 +73,11 @@ A functional interface representing domain-level functionality/business logic.
 * A Domain Interface's primary-function parameters must be domain objects, nested types, primitives, or collections of those
 * A Domain Interface's primary-function return type must be domain objects, nested types, primitives, collections of those, or no value
 * A Domain Interface must be implemented by a Repository (as a property) or by a UseCase
-    * **Note**: The check accepts either a class whose parents include the interface (a UseCase) or a `[Name]Repository` whose properties reference the interface.
+    * **Note:** The check accepts either a class whose parents include the interface (a UseCase) or a `[Name]Repository` whose properties reference the interface.
 * A Domain Interface's functions propagate errors via thrown exceptions, never via the return type
-    * **Why**: @Throws on suspend functions must include CancellationException (or a superclass like Exception) — required for Kotlin/Native: kotlinc rejects the function on iOS targets otherwise.
-    * **Note**: Known exceptions should be their own type extending RuntimeException, marked with `@Throws`.
-    * **Note**: `@Throws` on `suspend` functions must include `kotlin.coroutines.cancellation.CancellationException`.
+    * **Why:** @Throws on suspend functions must include CancellationException (or a superclass like Exception) — required for Kotlin/Native: kotlinc rejects the function on iOS targets otherwise.
+    * **Note:** Known exceptions should be their own type extending RuntimeException, marked with `@Throws`.
+    * **Note:** `@Throws` on `suspend` functions must include `kotlin.coroutines.cancellation.CancellationException`.
 
 ##### Guidance
 
@@ -171,7 +171,7 @@ An immutable type representing data at the domain-level.
 * A Domain Object should use nested value classes for identifiers where appropriate
 * A Domain Object should use sealed interface hierarchies to model polymorphic data where appropriate
 * A Domain Object should include `init` blocks that enforce invariants
-    * **Audited**: the test suite reports non-conforming code, without failing.
+    * **Audited:** a test reports non-conforming code without ever failing.
 * A Domain Object should use nested types when conceptually inseparable from the parent
 
 ##### Examples
@@ -266,7 +266,7 @@ A class that implements a single [domain interface](#domain-interface).
 
 * A UseCase must not contain mutable state — all properties are `val`
 * A UseCase must not override any default function of its domain interface
-    * **Why**: The only abstract member is the primary `operator fun invoke`; every other function is a default. Overriding a default per-implementation defeats the point of the interface helpers.
+    * **Why:** The only abstract member is the primary `operator fun invoke`; every other function is a default. Overriding a default per-implementation defeats the point of the interface helpers.
 
 ##### Guidance
 
@@ -324,7 +324,7 @@ behavior.
 ##### Rules
 
 * A Domain Extension Function must not introduce platform-specific dependencies
-    * **Enforced by**: `DomainLayer.noPlatformDeps`
+    * **Enforced by:** `DomainLayer.noPlatformDeps`
 
 ---
 

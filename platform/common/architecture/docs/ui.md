@@ -1,6 +1,6 @@
 > [!NOTE]
-> **This file is generated — do not edit it by hand.**
-> Sources: @Describe annotations in the Kotlin catalog in `src/main/kotlin/architecture/rules/ui/` (narrative + rules), plus the `*.examples.md` files beside it.
+> **This file is generated. Do not edit it directly.**
+> Generated from the `@Describe` annotations in `src/main/kotlin/architecture/rules/ui/` and the `*.examples.md` files beside them.
 > Regenerate with `./gradlew :platform:common:architecture:updateArchitectureDocumentation`.
 
 # [Ui Layer](../src/main/kotlin/architecture/rules/ui/UiLayer.kt)
@@ -26,11 +26,11 @@ The layer rules below apply across the whole `feature.[name].ui` package.
 ##### Rules
 
 * The `ui` layer is forbidden from implementing `domain` interfaces
-    * **Why**: Domain interfaces are the contract between presentation and persistence — implementations belong in `data` (Repositories) or `domain` (UseCases). A ViewModel that implements one would couple two layers' lifecycles and make the ViewModel un-injectable elsewhere.
+    * **Why:** Domain interfaces are the contract between presentation and persistence — implementations belong in `data` (Repositories) or `domain` (UseCases). A ViewModel that implements one would couple two layers' lifecycles and make the ViewModel un-injectable elsewhere.
 * The `ui` layer is forbidden from depending on `data` or `services`
-    * **Why**: UI consumes `domain` interactors only — Repositories (in `data`) fan out to `services` (the cross-the-wire contract) on the UI's behalf. The UI must not reach either directly.
+    * **Why:** UI consumes `domain` interactors only — Repositories (in `data`) fan out to `services` (the cross-the-wire contract) on the UI's behalf. The UI must not reach either directly.
 * The `ui` layer must not use `koinInject` — all dependencies are injected through ViewModels
-    * **Why**: Resolving from Koin inside a Composable side-steps the ViewModel as the single dependency surface, makes the screen untestable in snapshots (no Koin runtime), and re-resolves on every recomposition.
+    * **Why:** Resolving from Koin inside a Composable side-steps the ViewModel as the single dependency surface, makes the screen untestable in snapshots (no Koin runtime), and re-resolves on every recomposition.
 
 ##### Guidance
 
@@ -65,16 +65,16 @@ site.
 
 * A Screen function must be annotated with `@Composable`
 * A Screen function must have a 1:1 relationship with a ViewModel and ViewModel State
-    * **Verification**: not automatically verifiable — enforced by review.
+    * **Verification:** not automatically verifiable; enforced by review.
 * A Screen function must observe the ViewModel's `state` property and use it to drive the UI
-    * **Verification**: not automatically verifiable — enforced by review.
-    * **Audited**: the test suite reports non-conforming code, without failing.
+    * **Verification:** not automatically verifiable; enforced by review.
+    * **Audited:** a test reports non-conforming code without ever failing.
 * A dialog/overlay Screen must use the `navigationDestination` DSL with `metadata = { directOverlay() }`
-    * **Verification**: not automatically verifiable — enforced by review.
+    * **Verification:** not automatically verifiable; enforced by review.
 * A Screen function must be paired with an `internal [Name]ScreenContent` composable in the same file
-    * **Why**: The Screen function plumbs the ViewModel; the `ScreenContent` function takes only state + callbacks so snapshot tests can render every state without a ViewModel. Marking it `internal` lets the host-test source set call it; `private` makes the screen untestable.
+    * **Why:** The Screen function plumbs the ViewModel; the `ScreenContent` function takes only state + callbacks so snapshot tests can render every state without a ViewModel. Marking it `internal` lets the host-test source set call it; `private` makes the screen untestable.
 * A ViewModel must be injected into its Screen using `viewModel()`, not `koinViewModel()`
-    * **Why**: `viewModel()` ties the ViewModel's lifecycle to the navigation backstack entry — when the entry is popped, the ViewModel is cleared. `koinViewModel()` resolves through Koin and either scopes to the wrong lifecycle or returns a singleton, leaking state between screens or returning stale state on re-entry.
+    * **Why:** `viewModel()` ties the ViewModel's lifecycle to the navigation backstack entry — when the entry is popped, the ViewModel is cleared. `koinViewModel()` resolves through Koin and either scopes to the wrong lifecycle or returns a singleton, leaking state between screens or returning stale state on re-entry.
 
 ##### Guidance
 
@@ -158,7 +158,7 @@ device or emulator — enforced by `UiLayer.Composable.screenContentSnapshotTest
 ##### Rules
 
 * A `[Name]ScreenContent` composable must be exercised by at least one snapshot test
-    * **Why**: `ScreenContent` exists specifically so the screen body can be rendered from state + callbacks. Enforced softly — the test only checks that each ScreenContent is *called* from a `@Test` in an `androidHostTest` source set, not a minimum number of snapshots.
+    * **Why:** `ScreenContent` exists specifically so the screen body can be rendered from state + callbacks. Enforced softly — the test only checks that each ScreenContent is *called* from a `@Test` in an `androidHostTest` source set, not a minimum number of snapshots.
 
 ---
 
@@ -215,7 +215,7 @@ to load data and perform side effects based on user actions.
 * A ViewModel exposes a single public `state` property, or no public properties at all
 * A ViewModel's `public`/`internal` functions must only return `Unit` (or omit a return type)
 * A ViewModel must use `JobManager` to manage coroutines — never hold `var job: Job?` references
-    * **Why**: Manual `var job: Job?` tracking is error-prone: the previous job leaks if a new one starts before the old one completes, and lifecycle cancellation is easy to forget. `dev.isaacudy.udytils.coroutines.JobManager` handles cancel-then-replace and ties everything to `viewModelScope`.
+    * **Why:** Manual `var job: Job?` tracking is error-prone: the previous job leaks if a new one starts before the old one completes, and lifecycle cancellation is easy to forget. `dev.isaacudy.udytils.coroutines.JobManager` handles cancel-then-replace and ties everything to `viewModelScope`.
 
 ##### Guidance
 
@@ -244,18 +244,18 @@ The complete, immutable representation of a Screen's data at a single point in t
 
 * A ViewModel State object must be immutable (val properties only)
 * A ViewModel State object must have a 1:1 relationship with a ViewModel type
-    * **Verification**: not automatically verifiable — enforced by review.
+    * **Verification:** not automatically verifiable; enforced by review.
 * A ViewModel State object must use `AsyncState<T>` / `UpdatableState<T>` for asynchronously loaded data and action progress
-    * **Verification**: not automatically verifiable — enforced by review.
+    * **Verification:** not automatically verifiable; enforced by review.
 * A ViewModel State object must not define custom sealed types for loading/success/error — use `AsyncState<T>`
 * A ViewModel State object's formatting and visual representation must be handled by the Screen or specialized `@Composable` properties/functions
-    * **Verification**: not automatically verifiable — enforced by review.
+    * **Verification:** not automatically verifiable; enforced by review.
 
 ##### Guidance
 
 * A ViewModel State object should be a transparent container for domain objects, not a lossy UI-level mapping
 * A ViewModel State object should include `init` blocks that enforce invariants
-    * **Audited**: the test suite reports non-conforming code, without failing.
+    * **Audited:** a test reports non-conforming code without ever failing.
 
 ##### Examples
 

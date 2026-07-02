@@ -1,6 +1,6 @@
 > [!NOTE]
-> **This file is generated — do not edit it by hand.**
-> Intro source: the @Describe annotation on `UkptArchitecture` (`src/main/kotlin/architecture/rules/UkptArchitecture.kt`); the standard sections come from the framework.
+> **This file is generated. Do not edit it directly.**
+> The introduction comes from the `@Describe` annotation on `UkptArchitecture` (`src/main/kotlin/architecture/rules/UkptArchitecture.kt`); the remaining sections are provided by the udytils architecture system.
 > Regenerate with `./gradlew :platform:common:architecture:updateArchitectureDocumentation`.
 
 # UKPT Architecture

@@ -1,6 +1,6 @@
 > [!NOTE]
-> **This file is generated — do not edit it by hand.**
-> Sources: @Describe annotations in the Kotlin catalog in `src/main/kotlin/architecture/rules/module/` (narrative + rules), plus the `*.examples.md` files beside it.
+> **This file is generated. Do not edit it directly.**
+> Generated from the `@Describe` annotations in `src/main/kotlin/architecture/rules/module/` and the `*.examples.md` files beside them.
 > Regenerate with `./gradlew :platform:common:architecture:updateArchitectureDocumentation`.
 
 # [Module Rules](../src/main/kotlin/architecture/rules/module/ModuleRules.kt)
@@ -45,13 +45,13 @@ source. Build-file exemptions use the `// architecture-exception:` comment (see
 
 * A `:feature` module must never depend on an `:app` module
 * A `:feature:[name]:client` module must never depend on another `:client`/`:server` module
-    * **Why**: A feature's client may only reach other features through their `:api` contract, or `:platform`.
+    * **Why:** A feature's client may only reach other features through their `:api` contract, or `:platform`.
 * A `:feature:[name]:client` module may depend on any `:feature:[name]:api` module
-    * **Enforced by**: `ModuleRules.clientApiOnly`
+    * **Enforced by:** `ModuleRules.clientApiOnly`
 * A `:feature:[name]:server` module must never depend on another `:client`/`:server` module
-    * **Why**: A feature's server may only reach other features through their `:api` contract, or `:platform`.
+    * **Why:** A feature's server may only reach other features through their `:api` contract, or `:platform`.
 * A `:feature:[name]:server` module may depend on any `:feature:[name]:api` module
-    * **Enforced by**: `ModuleRules.serverApiOnly`
+    * **Enforced by:** `ModuleRules.serverApiOnly`
 * A `:platform` module must never depend on an `:app` module
 * A `:platform` module must never depend on a `:feature` module
 
@@ -59,11 +59,11 @@ source. Build-file exemptions use the `// architecture-exception:` comment (see
 
 * A `:feature` module may depend on `:platform` modules
 * A `:feature:[name]:api` module may depend on another feature's `:api` module to share models
-    * **Note**: `:api` to `:api` dependencies are allowed, but should be used sparingly, treated with caution, and minimised where possible.
-    * **Audited**: the test suite reports non-conforming code, without failing.
+    * **Note:** `:api` to `:api` dependencies are allowed, but should be used sparingly, treated with caution, and minimised where possible.
+    * **Audited:** a test reports non-conforming code without ever failing.
 * A `:feature` module may be grouped (`:feature:[group]:[name]:…`)
-    * **Note**: A module that serves as a group should exist only as a group, and should not itself contain `:api`, `:server` or `:client` modules.
-    * **Audited**: the test suite reports non-conforming code, without failing.
+    * **Note:** A module that serves as a group should exist only as a group, and should not itself contain `:api`, `:server` or `:client` modules.
+    * **Audited:** a test reports non-conforming code without ever failing.
 * A `:platform` module may depend on other `:platform` modules
-    * **Note**: `:platform` to `:platform` dependencies are allowed, but should be used sparingly, treated with caution, and minimised where possible.
-    * **Audited**: the test suite reports non-conforming code, without failing.
+    * **Note:** `:platform` to `:platform` dependencies are allowed, but should be used sparingly, treated with caution, and minimised where possible.
+    * **Audited:** a test reports non-conforming code without ever failing.

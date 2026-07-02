@@ -1,6 +1,6 @@
 > [!NOTE]
-> **This file is generated — do not edit it by hand.**
-> Sources: @Describe annotations in the Kotlin catalog in `src/main/kotlin/architecture/rules/feature/` (narrative + rules), plus the `*.examples.md` files beside it.
+> **This file is generated. Do not edit it directly.**
+> Generated from the `@Describe` annotations in `src/main/kotlin/architecture/rules/feature/` and the `*.examples.md` files beside them.
 > Regenerate with `./gradlew :platform:common:architecture:updateArchitectureDocumentation`.
 
 # [Feature Rules](../src/main/kotlin/architecture/rules/feature/FeatureRules.kt)
@@ -19,7 +19,7 @@ and [Service](services.md#service-interface) implementations into the graph. Con
 ##### Rules
 
 * A DI binding must use the constructor reference style `singleOf(::Constructor).bind(BindingType::class)`, not the lambda style `single<BindingType> { Constructor(get()) }`
-    * **Why**: The reference style lets Koin validate the constructor parameters against the graph at startup; the lambda style hides missing or cyclic dependencies until the first injection at runtime.
+    * **Why:** The reference style lets Koin validate the constructor parameters against the graph at startup; the lambda style hides missing or cyclic dependencies until the first injection at runtime.
 
 ---
 
@@ -44,11 +44,11 @@ The configuration for Dependency Injection (DI) that wires the feature together.
 ##### Rules
 
 * A Dependency Module must only bind/provide dependencies that are both defined and implemented in its own feature
-    * **Why**: If feature A binds an implementation of feature B's domain interface, feature B's DI graph silently depends on feature A — and removing/refactoring A breaks B's wiring at runtime, not at compile time. Each feature owns its own bindings; cross-feature consumption goes through `:api` interfaces only.
+    * **Why:** If feature A binds an implementation of feature B's domain interface, feature B's DI graph silently depends on feature A — and removing/refactoring A breaks B's wiring at runtime, not at compile time. Each feature owns its own bindings; cross-feature consumption goes through `:api` interfaces only.
 * A Dependency Module registers a service's generated `[Name]ServiceUrpcBinding` by chaining `.bindService(::[Name]ServiceUrpcBinding)` off the implementation's binding, inside the per-call `scope<UrpcCall> { }` block
-    * **Note**: `bindService` (from `dev.isaacudy.udytils.urpc.koin`) registers the binding under its own concrete type, bound to `UrpcService`, with the impl resolved lazily.
-    * **Note**: Do NOT use `scoped<UrpcService> { [Name]ServiceUrpcBinding { get() } }` — every such binding shares the `UrpcService` definition key, so co-registered services override each other and `getAll<UrpcService>()` returns only one; the check catches this form.
-    * **Note**: `urpcService(::[Name]ServiceUrpcBinding)` is the equivalent standalone form when there is no impl definition to chain off.
+    * **Note:** `bindService` (from `dev.isaacudy.udytils.urpc.koin`) registers the binding under its own concrete type, bound to `UrpcService`, with the impl resolved lazily.
+    * **Note:** Do NOT use `scoped<UrpcService> { [Name]ServiceUrpcBinding { get() } }` — every such binding shares the `UrpcService` definition key, so co-registered services override each other and `getAll<UrpcService>()` returns only one; the check catches this form.
+    * **Note:** `urpcService(::[Name]ServiceUrpcBinding)` is the equivalent standalone form when there is no impl definition to chain off.
 
 ##### Examples
 

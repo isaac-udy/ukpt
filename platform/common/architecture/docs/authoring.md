@@ -1,73 +1,86 @@
 > [!NOTE]
-> **This file is generated — do not edit it by hand.**
-> Shipped by the architecture framework (`dev.isaacudy.udytils:architecture-core`); override it by adding `authoring.md` to the catalog root.
+> **This file is generated. Do not edit it directly.**
+> Provided by the udytils architecture system. To override it, add a file named `authoring.md` next to this project's rule definitions.
 > Regenerate with `./gradlew :platform:common:architecture:updateArchitectureDocumentation`.
 
 # Authoring rules
 
-How to decide what kind of thing you're writing, and how to word it. The catalog is the source of
-truth — see the [README](../README.md) for how the documentation is generated from it.
+A guide for adding rules to this project. Rules are declared in Kotlin code (see the
+[README](../README.md)); this guide explains which declaration type to use and how to word
+the documentation.
 
-## The decision ladder
+## Choosing a declaration type
 
-Work down this list; the first fit wins.
+Work down this list and use the first type that fits:
 
-1. **Requirement** — *classification*. Answers "is this declaration this construct at all?"
-   Identity, not correctness: declaration kind, name shape, package residence, annotations,
-   structural markers. If failing the check should mean "this is **not** an X" (and let the
-   layer's exhaustiveness/membership check deal with it), it's a requirement. Requirements have
-   no ids and never fail on their own — they live in the `Construct(requirements = listOf(…))`
-   header.
-2. **Rule** — *correctness*, mandatory. Answers "given this **is** an X, is it well-formed?"
-   The statement uses **must / never / may only**.
-   - Testable → `rule { constrain { … } }` (construct-scoped), `rule { scope { … } }` (whole
-     scope), `rule { moduleGraph { … } }` (module edges), or `rule { enforcedBy(…) }` when
-     another rule already enforces it transitively.
-   - Not testable → `rule { unverifiable() }`. It is still a rule — it renders under **Rules**
-     with an automatic "not automatically verifiable" note and is enforced by review. Add a
-     `note("…")` saying *why* it can't be tested when that isn't obvious.
-3. **Guidance** — *advice or permission*. The statement uses **may / should**. Never use
-   mandatory phrasing in guidance; if you find yourself writing "must", it's a rule (see above).
-   Declared as `@Describe("…") val x by guidance` (block form for notes/rationale).
-4. **Audit** — *visibility without enforcement*, attached to guidance or an unverifiable rule.
-   A test that **reports without ever failing** — findings appear in the test output under
-   `<rule> [audit]`. Use one when a heuristic exists but is too brittle to fail the
-   build, or when a permission should be watched ("allowed, but keep these minimal"). Declared
-   with `audit { … }` (guidance), `auditModuleGraph { … }` (group guidance), or
-   `unverifiable { … }` (rules).
+1. **Requirement:** decides whether a declaration *is* a particular Construct.
+   - Requirements test identity, not correctness: declaration kind, name, package, annotations.
+   - Requirements are declared in the Construct's constructor. They never fail on their own; a
+     declaration that matches no Construct fails the RuleGroup's exhaustiveness test.
+   - Use a requirement when a failure should mean "this is not an X", rather than "this X is wrong".
+2. **Rule:** a mandatory statement about a Construct or RuleGroup.
+   - If the statement can be tested, declare it with `rule { constrain { … } }` (applies to each
+     matching declaration), `rule { scope { … } }` (applies to the whole scope),
+     `rule { moduleGraph { … } }` (applies to module dependencies), or `rule { enforcedBy(…) }`
+     (another Rule already enforces it).
+   - If the statement cannot be tested, declare it with `rule { unverifiable() }`. It is still a
+     Rule: it is enforced by review, and its documentation carries a "not automatically
+     verifiable" note. Add a `note("…")` explaining why it can't be tested if that isn't obvious.
+3. **Guidance:** an advisory statement about a Construct or RuleGroup.
+   - Declare it as `@Describe("…") val x by guidance`, or use `guidance { … }` to add notes,
+     rationale, or an audit.
+4. **Audit:** a test that reports findings without ever failing.
+   - Attach an audit to Guidance, or to an unverifiable Rule, when a heuristic exists but is too
+     brittle to fail the build, or when a permission should be watched.
+   - Findings appear in the test output under `<rule> [audit]`.
+   - Declare it with `audit { … }` (Construct Guidance), `auditModuleGraph { … }` (RuleGroup
+     Guidance), or `unverifiable { … }` (Rules).
 
-Two litmus tests: *"If code breaks this, should the build fail?"* — yes and testable → tested
-rule; yes but untestable → unverifiable rule; no → guidance. *"Would a declaration violating
-this still be an X?"* — no → requirement; yes → rule.
+Two questions resolve most cases:
 
-## Language
+- "If code breaks this, should the build fail?" Yes, and it can be tested: a tested Rule. Yes,
+  but it can't be tested: an unverifiable Rule. No: Guidance.
+- "Would a declaration violating this still be an X?" No: a requirement. Yes: a Rule.
 
-- **Statements** (`@Describe` on a rule/guidance property) are single sentences that read
-  standalone, with no surrounding context: "A Repository must not inject other Repositories",
-  "The `data` layer must not depend on the `ui` package". Start with "A/An <noun>" for
-  construct-level entries or "The <layer> layer" / "A <thing>" for group-level ones. Rules use
-  must/never/may only; guidance uses may/should.
-- **Requirement descriptions** are subject-free, lowercase verb phrases — "is a class",
-  "resides in `feature.[name].data`", "is named `[Name]Repository`" — because the doc generator
-  prefixes the construct as subject ("A Repository is a class"). Never include the subject.
-- **`rationale("…")`** is the *why* — the design pressure behind the rule. It renders as
-  **Why** and is collapsed to one line, so write it as flowing prose, not bullets.
-- **`note("…")`** is a caveat, nuance, or pointer ("the check skips `expect`/`actual` …").
-  Also collapsed to one line. Several notes are fine; keep each self-contained.
-- **Object `@Describe`** (on a group or construct) is narrative markdown: what the thing is and
-  why it exists, `* **Note**:` bullets for conventions. No `$` may appear in any `@Describe`
-  (Kotlin string interpolation) — code that needs `$` belongs in an examples file.
-- **Examples** live in `<Construct>.examples.md` beside the construct's `.kt` (group-level:
-  `<Group>.examples.md`): a one-line context sentence per fence, no headings above `###`, no
-  markers. They render after the section's rules under **Examples**.
+## Writing style
 
-## Mechanics checklist for a new construct
+All rule documentation uses the same voice:
 
-1. Create `<Name>.kt` in the layer's package: `object <Name> : Construct<Group>(requirements = listOf(…))`
-   with an object-level `@Describe`.
-2. Add it to the group's `constructs = listOf(…)` **in the position it should render** — the
-   list is the doc order. (Forgetting this fails the build: the meta-rule scans the sources.)
-3. Optional: `<Name>.examples.md` beside it.
+- Be short and direct. Use simple words.
+- Only include information that is critical to understanding the rule. Leave out anything the
+  reader would discover by running the tests.
+- Make each section self-contained: provide the minimum context needed to understand it without
+  reading the surrounding sections.
+- Use "tests", not "checks". Use "documentation", not "docs". Write "ID", not "id".
+- Capitalise the framework types when naming them: RuleGroup, Construct, Rule, Guidance.
+
+How to word each element:
+
+- **Statements** (`@Describe` on a Rule or Guidance property): a single sentence that reads
+  standalone, such as "A Repository must not inject other Repositories". Start with
+  "A/An <noun>" for Construct-level statements, or "The <name> layer" / "A <thing>" for
+  RuleGroup-level statements. Rules use must, never, or may only; Guidance uses may or should.
+  If you find yourself writing "must" in Guidance, it is a Rule.
+- **Requirement descriptions:** subject-free verb phrases, such as "is a class" or "is named
+  `[Name]Repository`". The documentation generator prefixes the Construct as the subject
+  ("A Repository is a class").
+- **`rationale("…")`:** why the rule exists. Rendered as a single line under **Why**, so write
+  it as one flowing sentence.
+- **`note("…")`:** a caveat or pointer. Rendered as a single line. Multiple notes are fine;
+  keep each self-contained.
+- **Object `@Describe`** (on a RuleGroup or Construct): what the thing is and why it exists.
+  No `$` may appear in any `@Describe` text (Kotlin string interpolation); code that needs `$`
+  belongs in an examples file.
+- **Examples** (`<Construct>.examples.md` beside the Construct's `.kt` file): one context
+  sentence per code block, no headings above `###`.
+
+## Adding a new Construct
+
+1. Create `<Name>.kt` in the RuleGroup's package: `object <Name> : Construct<Group>(requirements = listOf(…))`,
+   annotated with an object-level `@Describe`.
+2. Add it to the RuleGroup's `constructs = listOf(…)` in the position it should appear in the
+   documentation. The tests fail if a Construct is missing from this list.
+3. Optional: add `<Name>.examples.md` beside it.
 4. Regenerate the documentation and commit it with the change:
 
 ```

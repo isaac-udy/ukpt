@@ -1,6 +1,6 @@
 > [!NOTE]
-> **This file is generated — do not edit it by hand.**
-> Generated entirely from the rule catalog.
+> **This file is generated. Do not edit it directly.**
+> Generated from the RuleGroups and Constructs in this project.
 > Regenerate with `./gradlew :platform:common:architecture:updateArchitectureDocumentation`.
 
 # Rule index
@@ -45,7 +45,7 @@ The complete catalog, one row per Construct or Rule. IDs are based on the object
 | `DomainLayer.noPlatformDeps` | The `domain` layer must not contain platform-specific dependencies (Android, Ktor, SQL, …) | [tested](../src/main/kotlin/architecture/rules/domain/DomainLayer.kt) |
 | `DomainLayer.noUiDataServicesDeps` | The `domain` layer must not depend on `ui`, `data`, or `services` packages within the feature | [tested](../src/main/kotlin/architecture/rules/domain/DomainLayer.kt) |
 | `DomainLayer.crossFeatureViaApi` | The `domain` layer may depend on another feature's `domain` only via that feature's `:api` module | [tested](../src/main/kotlin/architecture/rules/domain/DomainLayer.kt) |
-| `DomainLayer.exhaustive` | Every top-level declaration in `feature..domain..` matches exactly one construct | [tested](../src/main/kotlin/architecture/rules/domain/DomainLayer.kt) |
+| `DomainLayer.exhaustive` | Every top-level declaration in `feature..domain..` must match exactly one Construct | [tested](../src/main/kotlin/architecture/rules/domain/DomainLayer.kt) |
 | `UiLayer.Screen` | resides in `feature..ui..` · is bound to its Destination via the `@NavigationDestination` annotation · is named `[Name]Screen` (property-based screens may end in `Screen` or `Destination`) · has a single parameter — the associated `[Name]ViewModel` (property form exempt) | [construct](../src/main/kotlin/architecture/rules/ui/Screen.kt) |
 | `UiLayer.Screen.composableFunction` | A Screen function must be annotated with `@Composable` | [tested](../src/main/kotlin/architecture/rules/ui/Screen.kt) |
 | `UiLayer.Screen.viewModelStateRelationship` | A Screen function must have a 1:1 relationship with a ViewModel and ViewModel State | [unverifiable](../src/main/kotlin/architecture/rules/ui/Screen.kt) |
@@ -78,7 +78,7 @@ The complete catalog, one row per Construct or Rule. IDs are based on the object
 | `UiLayer.noImplementingDomainInterfaces` | The `ui` layer is forbidden from implementing `domain` interfaces | [tested](../src/main/kotlin/architecture/rules/ui/UiLayer.kt) |
 | `UiLayer.noDataServicesDeps` | The `ui` layer is forbidden from depending on `data` or `services` | [tested](../src/main/kotlin/architecture/rules/ui/UiLayer.kt) |
 | `UiLayer.noKoinInject` | The `ui` layer must not use `koinInject` — all dependencies are injected through ViewModels | [tested](../src/main/kotlin/architecture/rules/ui/UiLayer.kt) |
-| `UiLayer.exhaustive` | Every top-level declaration in `feature..ui..` matches exactly one construct | [tested](../src/main/kotlin/architecture/rules/ui/UiLayer.kt) |
+| `UiLayer.exhaustive` | Every top-level declaration in `feature..ui..` must match exactly one Construct | [tested](../src/main/kotlin/architecture/rules/ui/UiLayer.kt) |
 | `DataLayer.Repository` | resides in `feature..data..` · is a class · is named `[Name]Repository` · is declared in a file matching its name | [construct](../src/main/kotlin/architecture/rules/data/Repository.kt) |
 | `DataLayer.Repository.internalVisibility` | A Repository must be marked as `internal` | [tested](../src/main/kotlin/architecture/rules/data/Repository.kt) |
 | `DataLayer.Repository.doesNotImplementDomainInterfaces` | A Repository must not implement domain interfaces directly | [tested](../src/main/kotlin/architecture/rules/data/Repository.kt) |
@@ -96,7 +96,7 @@ The complete catalog, one row per Construct or Rule. IDs are based on the object
 | `DataLayer.noInjectingDomainInterfaces` | A `data` class must not inject `domain` interfaces — logic requiring multiple domain interfaces must be moved to a UseCase | [tested](../src/main/kotlin/architecture/rules/data/DataLayer.kt) |
 | `DataLayer.storageInternalVisibility` | A `data.storage` class uses `internal` visibility where the language allows (see `DataLayer.ClientStorage.internalVisibility` for the canonical statement, incl. the `expect`/`actual` nuance) | [tested](../src/main/kotlin/architecture/rules/data/DataLayer.kt) |
 | `DataLayer.noUiDeps` | The `data` layer must not depend on the `ui` package | [tested](../src/main/kotlin/architecture/rules/data/DataLayer.kt) |
-| `DataLayer.exhaustive` | Every top-level declaration in `feature..data..` matches exactly one construct | [tested](../src/main/kotlin/architecture/rules/data/DataLayer.kt) |
+| `DataLayer.exhaustive` | Every top-level declaration in `feature..data..` must match exactly one Construct | [tested](../src/main/kotlin/architecture/rules/data/DataLayer.kt) |
 | `ServicesLayer.ServiceInterface` | resides in `feature..services..` · is an `interface` annotated `@Urpc` · is named `[Name]Service` · resides in the top-level `feature.[name].services` package | [construct](../src/main/kotlin/architecture/rules/services/ServiceInterface.kt) |
 | `ServicesLayer.ServiceInterface.noClientOnlyServices` | A Service must always be implemented as urpc service functions in the appropriate server module — never as a client-only local service | [unverifiable](../src/main/kotlin/architecture/rules/services/ServiceInterface.kt) |
 | `ServicesLayer.ServiceInterface.plainFunctionShapes` | A Service function is a plain `suspend fun f(req): Res`, `fun f(req): Flow<Res>`, or `fun f(reqs: Flow<Req>): Flow<Res>`, taking 0 or 1 parameter | [tested](../src/main/kotlin/architecture/rules/services/ServiceInterface.kt) |
@@ -133,7 +133,7 @@ The complete catalog, one row per Construct or Rule. IDs are based on the object
 | `ServicesLayer.everyColumnOnTable` | A generated `Table` object declares every column on the SQL table, with no omissions; the UUID primary key is `uuid("id").autoGenerate()` but the write path always supplies the id explicitly | [codegen](../src/main/kotlin/architecture/rules/services/ServicesLayer.kt) |
 | `ServicesLayer.rowDataClassPrimitives` | The in-memory persistence shape is a top-level `data class XxxRow` (singular) whose fields use only primitive types — no domain wrappers, enums, or sealed hierarchies | [codegen](../src/main/kotlin/architecture/rules/services/ServicesLayer.kt) |
 | `ServicesLayer.rowFakeConstructorAndSetFromRow` | A generated file exposes a fake-constructor `fun XxxRow(row: ResultRow): XxxRow` for reads, and a `fun UpdateBuilder<*>.setFromRow(row: XxxRow)` extension for writes | [codegen](../src/main/kotlin/architecture/rules/services/ServicesLayer.kt) |
-| `ServicesLayer.exhaustive` | Every top-level declaration in `feature..services..` matches exactly one construct | [tested](../src/main/kotlin/architecture/rules/services/ServicesLayer.kt) |
+| `ServicesLayer.exhaustive` | Every top-level declaration in `feature..services..` must match exactly one Construct | [tested](../src/main/kotlin/architecture/rules/services/ServicesLayer.kt) |
 | `FeatureRules.DependencyModule` | resides in the top-level `feature.[name]` package of a `:client` or `:server` module · is a property · is named `[Name]Dependencies` | [construct](../src/main/kotlin/architecture/rules/feature/DependencyModule.kt) |
 | `FeatureRules.DependencyModule.ownFeatureBindingsOnly` | A Dependency Module must only bind/provide dependencies that are both defined and implemented in its own feature | [tested](../src/main/kotlin/architecture/rules/feature/DependencyModule.kt) |
 | `FeatureRules.DependencyModule.urpcServiceBinding` | A Dependency Module registers a service's generated `[Name]ServiceUrpcBinding` by chaining `.bindService(::[Name]ServiceUrpcBinding)` off the implementation's binding, inside the per-call `scope<UrpcCall> { }` block | [tested](../src/main/kotlin/architecture/rules/feature/DependencyModule.kt) |
@@ -148,16 +148,16 @@ The complete catalog, one row per Construct or Rule. IDs are based on the object
 | `ProjectRules.exceptionNotForFailingTests` | An architecture exception is not a valid way to resolve an immediate architecture-test failure without user feedback — fix the code or the rule first | [unverifiable](../src/main/kotlin/architecture/rules/project/ProjectRules.kt) |
 | `ProjectRules.exceptionNeedsKdoc` | An architecture exception must include a KDoc-style (`/** ... */`) comment explaining why it exists and the intended resolution | [tested](../src/main/kotlin/architecture/rules/project/ProjectRules.kt) |
 | `ProjectRules.exceptionsAreTemporary` | An architecture exception should be temporary — revisit it periodically and remove it once the underlying issue is resolved | [guidance](../src/main/kotlin/architecture/rules/project/ProjectRules.kt) |
-| `architecture.everyDeclarationBelongsToALayer` | Every declaration in governed code matches exactly one construct across all layers | [tested](../src/main/kotlin/architecture/rules/UkptArchitecture.kt) |
+| `architecture.everyDeclarationBelongsToALayer` | Every declaration in governed code must match exactly one Construct across all RuleGroups | [tested](../src/main/kotlin/architecture/rules/UkptArchitecture.kt) |
 
 ## Enforcement status
 
-Each status is derived from how the entry is declared in the catalog:
+Each status is derived from how the entry is declared:
 
 | Status | Meaning | Declared as |
 | --- | --- | --- |
-| `tested` | A test enforces the rule and fails citing its id. | a `rule` ending in `scope { }` / `constrain { }` / `moduleGraph { }` / `enforcedBy(...)` |
-| `construct` | A classification. A declaration matching no construct (or more than one) fails the layer's exhaustiveness test. | a `Construct(...)`'s requirement predicates |
-| `unverifiable` | A mandatory rule that tests can't reliably verify; enforced by review. | a `rule` ending in `unverifiable()` |
-| `guidance` | An advisory convention (may/should); enforced by review. May declare an `audit { }` — a test that reports non-conforming code without ever failing. | `@Describe("…") val x by guidance` |
+| `tested` | A test enforces the Rule and fails citing its ID. | a `rule` ending in `scope { }` / `constrain { }` / `moduleGraph { }` / `enforcedBy(...)` |
+| `construct` | A classification. A declaration matching no Construct (or more than one) fails the RuleGroup's exhaustiveness test. | a `Construct(...)`'s requirements |
+| `unverifiable` | A mandatory Rule that tests can't reliably verify; enforced by review. | a `rule` ending in `unverifiable()` |
+| `guidance` | An advisory statement; enforced by review. May declare an `audit { }`: a test that reports non-conforming code without ever failing. | `@Describe("…") val x by guidance` |
 | `codegen` | Guaranteed by a code generator; there is nothing in source to test. | a `rule` ending in `codegen()` |

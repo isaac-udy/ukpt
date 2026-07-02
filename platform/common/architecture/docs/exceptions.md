@@ -1,19 +1,18 @@
 > [!NOTE]
-> **This file is generated — do not edit it by hand.**
-> Shipped by the architecture framework (`dev.isaacudy.udytils:architecture-core`); override it by adding `exceptions.md` to the catalog root.
+> **This file is generated. Do not edit it directly.**
+> Provided by the udytils architecture system. To override it, add a file named `exceptions.md` next to this project's rule definitions.
 > Regenerate with `./gradlew :platform:common:architecture:updateArchitectureDocumentation`.
 
 # Architecture exceptions
 
-Architecture rules are enforced by the catalog-driven test suite. When a specific declaration
-cannot conform to a rule (e.g. a transitional class whose ideal location hasn't been determined
-yet), the declaration can be marked exempt from that rule so the tests pass while the exception is
-tracked explicitly.
+A guide for using `@ArchitectureException` to ignore rules. When a declaration cannot conform to a
+Rule, it can be marked exempt from that Rule: the tests pass, and the exception is recorded in the
+code that carries it.
 
 ## How to add an exception
 
-There are two exemption mechanisms, depending on what kind of file the exempt code lives in. Both
-reference rules by their ID (see the [rule index](rule-index.md)).
+There are two exemption mechanisms, depending on the kind of file the exempt code lives in. Both
+reference Rules by their ID (see the [rule index](rule-index.md)).
 
 ### Kotlin source files: `@ArchitectureException`
 
@@ -35,17 +34,15 @@ import dev.isaacudy.udytils.architecture.ArchitectureException
 // ...
 ```
 
-`ruleIds` lists the rule IDs the declaration is exempt from (see the [rule index](rule-index.md)).
-`reason` is free-form text; `trackingIssue` is optional but recommended.
+`ruleIds` lists the rule IDs the declaration is exempt from. `reason` is free-form text.
+`trackingIssue` is optional but recommended.
 
-The architecture tests look up the annotation when running each rule's test, and skip
-declarations / files that list the rule's id.
+The tests skip a declaration or file for each Rule listed in its `ruleIds`.
 
 ### Gradle build files: `// architecture-exception:` comment
 
-`build.gradle.kts` files can't carry the annotation (no compile classpath), and the
-module-dependency rules are the ones that apply to them. Place a comment immediately above the
-dependency line:
+`build.gradle.kts` files can't use the annotation, so module-dependency Rules are exempted with a
+comment placed immediately above the dependency line:
 
 ```kotlin
 sourceSets {
@@ -59,19 +56,18 @@ sourceSets {
 ```
 
 The exemption applies to the immediately-following dependency line. Multiple
-`architecture-exception:` lines may stack to exempt one declaration from several rules
+`architecture-exception:` lines may stack to exempt one declaration from several Rules
 (`// architecture-exception: ModuleRules.platformNotFeature, ModuleRules.platformNotApp`).
 
 ## Rules for adding exceptions
 
-An exemption is an admission that the code does not meet a rule and that the right resolution has
-not yet been agreed. Treat these as process rules (projects may formalise them as `unverifiable`
-rules in their own catalog):
+An exception is an admission that the code does not meet a Rule and that the right resolution has
+not yet been agreed:
 
-* An architecture exception may only be added after discussing it with a human author — adding one
-  requires human judgement about whether the non-conformance is acceptable.
-* An architecture exception is not a valid way to resolve an immediate test failure — fix the code
-  or the rule first.
-* Every exception must explain *why* it exists and what the intended resolution is.
-* Exceptions should be temporary — revisit them periodically and remove them once the underlying
+* An exception may only be added after discussing it with a human author. Adding one requires
+  human judgement about whether the non-conformance is acceptable.
+* An exception is not a valid way to resolve an immediate test failure. Fix the code or the Rule
+  first.
+* Every exception must explain why it exists and what the intended resolution is.
+* Exceptions should be temporary. Revisit them periodically and remove them once the underlying
   issue is resolved.

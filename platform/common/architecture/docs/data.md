@@ -1,6 +1,6 @@
 > [!NOTE]
-> **This file is generated — do not edit it by hand.**
-> Sources: @Describe annotations in the Kotlin catalog in `src/main/kotlin/architecture/rules/data/` (narrative + rules), plus the `*.examples.md` files beside it.
+> **This file is generated. Do not edit it directly.**
+> Generated from the `@Describe` annotations in `src/main/kotlin/architecture/rules/data/` and the `*.examples.md` files beside them.
 > Regenerate with `./gradlew :platform:common:architecture:updateArchitectureDocumentation`.
 
 # [Data Layer](../src/main/kotlin/architecture/rules/data/DataLayer.kt)
@@ -22,14 +22,14 @@ rest of the feature to consume.
 ##### Rules
 
 * The `data` layer provides implementations of `domain` interfaces — by exposing them as properties, not by inheriting them
-    * **Note**: A Repository that implements a domain interface, or fails to expose one as a `public val`, fails the enforcing rules directly.
-    * **Enforced by**: `DataLayer.Repository.doesNotImplementDomainInterfaces`, `DataLayer.Repository.exposesDomainInterfacesAsProperties`
+    * **Note:** A Repository that implements a domain interface, or fails to expose one as a `public val`, fails the enforcing rules directly.
+    * **Enforced by:** `DataLayer.Repository.doesNotImplementDomainInterfaces`, `DataLayer.Repository.exposesDomainInterfacesAsProperties`
 * A `data` class must not inject `domain` interfaces — logic requiring multiple domain interfaces must be moved to a UseCase
-    * **Why**: Repositories *implement* domain interfaces — if one injects a domain interface, it's calling a sibling Repository through the abstract layer, which makes the dependency graph unreadable and easy to cycle. Logic that needs multiple domain interfaces belongs in a UseCase.
+    * **Why:** Repositories *implement* domain interfaces — if one injects a domain interface, it's calling a sibling Repository through the abstract layer, which makes the dependency graph unreadable and easy to cycle. Logic that needs multiple domain interfaces belongs in a UseCase.
 * A `data.storage` class uses `internal` visibility where the language allows (see `DataLayer.ClientStorage.internalVisibility` for the canonical statement, incl. the `expect`/`actual` nuance)
-    * **Enforced by**: `DataLayer.ClientStorage.internalVisibility`
+    * **Enforced by:** `DataLayer.ClientStorage.internalVisibility`
 * The `data` layer must not depend on the `ui` package
-    * **Why**: UI is the outermost layer; `data` sits beneath it and supplies the domain interfaces the UI consumes. If `data` imports a UI type the layering becomes circular and the Repository can no longer be tested without a Compose runtime.
+    * **Why:** UI is the outermost layer; `data` sits beneath it and supplies the domain interfaces the UI consumes. If `data` imports a UI type the layering becomes circular and the Repository can no longer be tested without a Compose runtime.
 
 ---
 
@@ -54,10 +54,10 @@ providing the "edge" of the domain layer.
 * A Repository must not implement domain interfaces directly
 * A Repository must expose domain interfaces as `public val` properties
 * A Repository must not inject domain interfaces
-    * **Why**: Logic requiring multiple domain interfaces must be moved to a UseCase in the `domain` package.
+    * **Why:** Logic requiring multiple domain interfaces must be moved to a UseCase in the `domain` package.
 * A Repository must not inject other Repositories
 * A Repository's domain-interface properties must be initialized immediately — no `by lazy`, no custom getter
-    * **Why**: Eager initialisation lets Koin's graph validation catch missing or cyclic dependencies at startup instead of at the first injection at runtime, and it makes the wiring obvious from a quick read of the Repository constructor.
+    * **Why:** Eager initialisation lets Koin's graph validation catch missing or cyclic dependencies at startup instead of at the first injection at runtime, and it makes the wiring obvious from a quick read of the Repository constructor.
 
 ##### Guidance
 
@@ -136,9 +136,9 @@ preferences, cached data on disk) — `expect`/`actual` `Storage` classes backed
 ##### Rules
 
 * A Storage class must be marked as `internal` (the `expect` declaration may be public, but `actual` implementations should be `internal` where the language allows)
-    * **Note**: The check skips `expect`/`actual` declarations — an `actual`'s visibility must match its `expect`, so the language decides there, not this rule.
+    * **Note:** The check skips `expect`/`actual` declarations — an `actual`'s visibility must match its `expect`, so the language decides there, not this rule.
 * A Storage class must not inject domain interfaces, Repositories, or Services
-    * **Why**: Storage is the lowest layer of the stack — it should depend on the database/keychain client and nothing higher. Injecting a domain interface, Repository, or Service would embed orchestration logic in the persistence layer.
+    * **Why:** Storage is the lowest layer of the stack — it should depend on the database/keychain client and nothing higher. Injecting a domain interface, Repository, or Service would embed orchestration logic in the persistence layer.
 
 ##### Examples
 
