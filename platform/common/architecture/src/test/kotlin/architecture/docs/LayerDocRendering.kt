@@ -26,10 +26,11 @@ import java.io.File
 internal fun renderLayerDoc(
     layer: DocSources.LayerSource,
     sourcePath: (File) -> String,
+    sourceLinkBase: String,
     errors: MutableList<String>,
 ): String = buildString {
     val group = layer.group
-    appendLine("# [${spacedName(group.id)}](${sourceLink(group.javaClass, "${group.id}.kt")})")
+    appendLine("# [${spacedName(group.id)}](${sourceLink(sourceLinkBase, group.javaClass, "${group.id}.kt")})")
     appendLine()
     description(group, errors)?.let {
         appendLine(it)
@@ -62,7 +63,7 @@ internal fun renderLayerDoc(
     group.constructs.forEach { construct ->
         appendLine("---")
         appendLine()
-        appendLine("## [${spacedName(construct.id.substringAfterLast('.'))}](${sourceLink(construct.javaClass, "${construct.javaClass.simpleName}.kt")})")
+        appendLine("## [${spacedName(construct.id.substringAfterLast('.'))}](${sourceLink(sourceLinkBase, construct.javaClass, "${construct.javaClass.simpleName}.kt")})")
         appendLine()
         description(construct, errors)?.let {
             appendLine(it)
@@ -77,9 +78,9 @@ internal fun renderLayerDoc(
 /** "DataLayer" → "Data Layer", "DomainInterface" → "Domain Interface". */
 internal fun spacedName(name: String): String = name.replace(Regex("(?<=[a-z0-9])(?=[A-Z])"), " ")
 
-/** The heading source-link target, relative to `docs/`. */
-private fun sourceLink(owner: Class<*>, fileName: String): String =
-    "../src/test/kotlin/${owner.packageName.replace('.', '/')}/$fileName"
+/** The heading source-link target, relative to the docs output directory. */
+private fun sourceLink(base: String, owner: Class<*>, fileName: String): String =
+    "$base/${owner.packageName.replace('.', '/')}/$fileName"
 
 /** A group/construct's narrative is its `@Describe` text — required. */
 private fun description(container: RuleContainer, errors: MutableList<String>): String? {

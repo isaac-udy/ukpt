@@ -1,9 +1,7 @@
 package architecture.registry
 
 import architecture.ArchitectureExceptions
-import architecture.definitions.isFeatureModule
-import architecture.definitions.isInsideFunction
-import architecture.definitions.isPrivate
+import com.lemonappdev.konsist.api.KoModifier
 import com.lemonappdev.konsist.api.container.KoScope
 import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
@@ -11,6 +9,8 @@ import com.lemonappdev.konsist.api.declaration.KoFunctionDeclaration
 import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
 import com.lemonappdev.konsist.api.declaration.KoObjectDeclaration
 import com.lemonappdev.konsist.api.declaration.KoPropertyDeclaration
+import com.lemonappdev.konsist.api.provider.KoContainingDeclarationProvider
+import com.lemonappdev.konsist.api.provider.modifier.KoModifierProvider
 
 /** Every top-level declaration in a layer's package must match exactly one of its constructs. */
 internal fun exhaustiveRule(group: RuleGroup): Rule = Rule(
@@ -20,33 +20,36 @@ internal fun exhaustiveRule(group: RuleGroup): Rule = Rule(
         A declaration here that matches no construct (or more than one) is either mis-placed or a shape
         the architecture doesn't recognise. Make it conform to a construct, or add one.
     """.trimIndent(),
-    enforcement = ScopeConstraint(membershipCheck(group.constructs, group.inPackage)),
-    status = Status.Active,
-    notes = emptyList(),
-)
-
-/** Cross-layer: every feature-module declaration must match exactly one construct across all layers. */
-internal fun membershipRule(groups: List<RuleGroup>): Rule = Rule(
-    id = "architecture.everyDeclarationBelongsToALayer",
-    title = "Every feature-module declaration matches exactly one construct across all layers",
-    rationale = """
-        A class/interface/object/function/property in a feature module that matches no construct (or
-        more than one) is mis-placed or an unrecognised shape. Covers declarations that aren't in any
-        single layer package (e.g. a feature's DI module).
-    """.trimIndent(),
-    enforcement = ScopeConstraint(membershipCheck(groups.flatMap { it.constructs }, pkg = null)),
+    enforcement = ScopeConstraint(membershipCheck(group.constructs, universe = { it.residesIn(group.inPackage!!) })),
     status = Status.Active,
     notes = emptyList(),
 )
 
 /**
- * Shared classification check: every classifiable declaration (optionally restricted to [pkg], else
- * any feature module) must match exactly one of [constructs]; partial matches get a rich breakdown.
+ * Cross-layer: every declaration in the [universe] (the consumer's "governed code" predicate from
+ * [ArchitectureDefinition.membership]) must match exactly one construct across all layers.
  */
-private fun membershipCheck(constructs: List<Construct<*>>, pkg: String?): ScopeCheck =
+internal fun membershipRule(groups: List<RuleGroup>, universe: (KoBaseDeclaration) -> Boolean): Rule = Rule(
+    id = "architecture.everyDeclarationBelongsToALayer",
+    title = "Every declaration in governed code matches exactly one construct across all layers",
+    rationale = """
+        A class/interface/object/function/property in governed code that matches no construct (or
+        more than one) is mis-placed or an unrecognised shape. Covers declarations that aren't in any
+        single layer package (e.g. a feature's DI module).
+    """.trimIndent(),
+    enforcement = ScopeConstraint(membershipCheck(groups.flatMap { it.constructs }, universe)),
+    status = Status.Active,
+    notes = emptyList(),
+)
+
+/**
+ * Shared classification check: every classifiable declaration in the [universe] must match exactly
+ * one of [constructs]; partial matches get a rich breakdown.
+ */
+private fun membershipCheck(constructs: List<Construct<*>>, universe: (KoBaseDeclaration) -> Boolean): ScopeCheck =
     ScopeCheck { scope, exempt ->
         classifiableDeclarations(scope)
-            .filter { if (pkg != null) it.residesIn(pkg) else it.isFeatureModule() }
+            .filter(universe)
             .filterNot { exempt(it) || ArchitectureExceptions.isIgnored(it) }
             .filter { decl -> constructs.count { it.test(decl) } != 1 }
             .map { Violation(it, classifyMessage(it, constructs)) }
@@ -58,8 +61,8 @@ private fun classifiableDeclarations(scope: KoScope): List<KoBaseDeclaration> =
             it is KoClassDeclaration || it is KoInterfaceDeclaration || it is KoObjectDeclaration ||
                 it is KoFunctionDeclaration || it is KoPropertyDeclaration
         }
-        .filterNot { it.isPrivate() }
-        .filterNot { it.isInsideFunction() }
+        .filterNot { (it as? KoModifierProvider)?.hasModifier(KoModifier.PRIVATE) == true }
+        .filterNot { (it as? KoContainingDeclarationProvider)?.containingDeclaration is KoFunctionDeclaration }
 
 /** Human breakdown for a declaration that matched no construct (or several). */
 private fun classifyMessage(declaration: KoBaseDeclaration, constructs: List<Construct<*>>): String {

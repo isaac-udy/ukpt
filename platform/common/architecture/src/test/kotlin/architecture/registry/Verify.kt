@@ -1,18 +1,24 @@
 package architecture.registry
 
-import architecture.projectScope
 import com.lemonappdev.konsist.api.container.KoScope
+import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
 import kotlin.test.fail
 
 /**
  * One architecture run over a catalog: builds the Konsist scope + module graph **once** and evaluates
  * rules on demand. Lets the aggregate [verify] and the per-rule `@TestFactory` share a single scan.
  */
-class ArchitectureRun(catalog: List<RuleGroup>) {
-    /** Every enforced rule, in document order (see [enforcedRules]). */
-    val rules: List<Rule> = enforcedRules(catalog)
+class ArchitectureRun(
+    groups: List<RuleGroup>,
+    scopeProvider: () -> KoScope,
+    membership: ((KoBaseDeclaration) -> Boolean)? = null,
+) {
+    constructor(definition: ArchitectureDefinition) : this(definition.groups, definition.scope, definition.membership)
 
-    private val scope: KoScope by lazy { projectScope }
+    /** Every enforced rule, in document order (see [enforcedRules]). */
+    val rules: List<Rule> = enforcedRules(groups, membership)
+
+    private val scope: KoScope by lazy { scopeProvider() }
     private val graph: ModuleGraph by lazy { ModuleGraph.parse() }
 
     init {
@@ -38,8 +44,11 @@ class ArchitectureRun(catalog: List<RuleGroup>) {
  * The single aggregate entry point: runs every active rule and fails once with a grouped report.
  * [exclude] drops rules by id (e.g. a downstream overlay).
  */
-fun verify(groups: List<RuleGroup>, exclude: Set<String> = emptySet()) {
-    val run = ArchitectureRun(groups)
+fun verify(definition: ArchitectureDefinition, exclude: Set<String> = emptySet()) =
+    verify(ArchitectureRun(definition), exclude)
+
+/** [verify] over an explicit run — also the engine-test entry point (sentinel catalogs). */
+fun verify(run: ArchitectureRun, exclude: Set<String> = emptySet()) {
     val findings = run.rules
         .filter { it.status is Status.Active && it.id !in exclude }
         .flatMap { rule -> run.violations(rule).map { Finding(rule, it.where, it.message) } }
@@ -48,10 +57,11 @@ fun verify(groups: List<RuleGroup>, exclude: Set<String> = emptySet()) {
 
 /**
  * Every rule the catalog enforces, in document order: per group the group-level rules, then each
- * construct's rules, then the layer's exhaustiveness rule; finally the global membership rule. The
- * single source for both [verify]/[ArchitectureRun] and [renderRuleIndex].
+ * construct's rules, then the layer's exhaustiveness rule; finally the cross-layer membership rule
+ * when the definition provides a membership universe. The single source for both [verify]/
+ * [ArchitectureRun] and the rule index.
  */
-internal fun enforcedRules(groups: List<RuleGroup>): List<Rule> {
+internal fun enforcedRules(groups: List<RuleGroup>, membership: ((KoBaseDeclaration) -> Boolean)?): List<Rule> {
     prepare(groups)
     val rules = mutableListOf<Rule>()
     groups.forEach { group ->
@@ -59,7 +69,7 @@ internal fun enforcedRules(groups: List<RuleGroup>): List<Rule> {
         group.constructs.forEach { rules += it.declaredRules }
         if (group.inPackage != null) rules += exhaustiveRule(group)
     }
-    rules += membershipRule(groups)
+    if (membership != null) rules += membershipRule(groups, membership)
     return rules
 }
 

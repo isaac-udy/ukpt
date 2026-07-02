@@ -1,5 +1,7 @@
 package architecture.rules
 
+import architecture.definitions.isFeatureModule
+import architecture.projectScope
 import architecture.registry.*
 import architecture.rules.data.DataLayer
 import architecture.rules.domain.DomainLayer
@@ -10,8 +12,9 @@ import architecture.rules.services.ServicesLayer
 import architecture.rules.ui.UiLayer
 
 /**
- * Every group in the architecture catalog, in document order. The single list `verify` runs over.
- * The [Describe] text is the README template — `{{toc}}` expands to the generated doc list.
+ * UKPT's architecture definition: the rule groups in document order, the scope the rules govern,
+ * and the docs layout. The [Describe] text is the README template — `{{toc}}` expands to the
+ * generated doc list.
  */
 @Describe("""
     # UKPT Architecture
@@ -90,8 +93,8 @@ import architecture.rules.ui.UiLayer
     | `guidance` | `@Describe("…") val x by guidance` | An advisory convention (may/should). Enforced by review; renders under **Guidance**, separate from **Rules**. Guidance may declare an `audit { }` — a check that never fails the build but reports non-conforming code in the test output. |
     | `codegen` | a `rule` ending in `codegen()` | Guaranteed by the `dev.isaacudy.udytils.postgres` code generator — nothing in `src/` for Konsist to scan. |
 """)
-object UkptArchitecture {
-    val all: List<RuleGroup> = listOf(
+object UkptArchitecture : ArchitectureDefinition(
+    groups = listOf(
         ModuleRules,
         DomainLayer,
         UiLayer,
@@ -99,10 +102,11 @@ object UkptArchitecture {
         ServicesLayer,
         FeatureRules,
         ProjectRules,
-    )
-
-    /** The README template — the [Describe] text above, expanded by the doc generator. */
-    val readme: String
-        get() = this::class.describeText()
-            ?: error("UkptArchitecture needs a @Describe with the README template")
-}
+    ),
+    scope = { projectScope },
+    membership = { it.isFeatureModule() },
+    docs = DocsConfig(
+        module = "platform/common/architecture",
+        regenerateCommand = "./gradlew :platform:common:architecture:test -PupdateArchitectureDocs=true",
+    ),
+)

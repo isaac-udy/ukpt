@@ -1,5 +1,6 @@
 package architecture.docs
 
+import architecture.registry.ArchitectureDefinition
 import architecture.registry.Construct
 import architecture.registry.Rule
 import architecture.registry.RuleGroup
@@ -9,10 +10,12 @@ import architecture.registry.prepare
 
 /**
  * Id-indexed view of the catalog for doc generation: groups, constructs, and every rule the engine
- * enforces (including the derived exhaustiveness + membership rules), so markers and prose ids can
- * be resolved and validated.
+ * enforces (including the derived exhaustiveness rules and, when the definition provides a
+ * membership universe, the membership rule), so markers and prose ids can be resolved and validated.
  */
-internal class CatalogIndex(val groups: List<RuleGroup>) {
+internal class CatalogIndex(definition: ArchitectureDefinition) {
+    val groups: List<RuleGroup> = definition.groups
+
     init {
         prepare(groups)
     }
@@ -25,7 +28,7 @@ internal class CatalogIndex(val groups: List<RuleGroup>) {
             group.constructs.flatMap { it.declaredRules }.forEach { put(it.id, it) }
             if (group.inPackage != null) exhaustiveRule(group).let { put(it.id, it) }
         }
-        membershipRule(groups).let { put(it.id, it) }
+        definition.membership?.let { universe -> membershipRule(groups, universe).let { put(it.id, it) } }
     }
 
     /** Every id a doc may legitimately reference in prose. */

@@ -1,6 +1,6 @@
 package architecture.docs
 
-import architecture.registry.RuleGroup
+import architecture.registry.ArchitectureDefinition
 import architecture.registry.Status
 import architecture.registry.Tag
 import architecture.registry.exhaustiveRule
@@ -13,7 +13,7 @@ import architecture.registry.prepare
  * requirements) with its rules, then the group-level rules, then the layer's exhaustiveness rule;
  * finally the global membership rule.
  */
-internal fun renderRuleIndexDoc(groups: List<RuleGroup>): String = buildString {
+internal fun renderRuleIndexDoc(definition: ArchitectureDefinition, sourceLinkBase: String): String = buildString {
     appendLine("# Rule index")
     appendLine()
     appendLine(
@@ -23,17 +23,17 @@ internal fun renderRuleIndexDoc(groups: List<RuleGroup>): String = buildString {
             "`guidance` = advisory convention · `codegen` = delegated to code generation.",
     )
     appendLine()
-    appendLine(renderRuleIndexTable(groups))
+    appendLine(renderRuleIndexTable(definition, sourceLinkBase))
 }
 
-internal fun renderRuleIndexTable(groups: List<RuleGroup>): String {
+internal fun renderRuleIndexTable(definition: ArchitectureDefinition, sourceLinkBase: String): String {
+    val groups = definition.groups
     prepare(groups)
     data class Row(val id: String, val statement: String, val marker: String, val source: String)
 
     fun sourceOf(owner: Any): String =
-        "../src/test/kotlin/${owner.javaClass.packageName.replace('.', '/')}/${owner.javaClass.simpleName}.kt"
+        "$sourceLinkBase/${owner.javaClass.packageName.replace('.', '/')}/${owner.javaClass.simpleName}.kt"
 
-    val engineSource = "../src/test/kotlin/architecture/registry/Membership.kt"
     val rows = mutableListOf<Row>()
     groups.forEach { group ->
         group.constructs.forEach { construct ->
@@ -45,9 +45,11 @@ internal fun renderRuleIndexTable(groups: List<RuleGroup>): String {
         group.declaredRules.filter { it.status is Status.Active }.forEach {
             rows += Row(it.id, it.title, it.tag.marker, sourceOf(group))
         }
-        if (group.inPackage != null) exhaustiveRule(group).let { rows += Row(it.id, it.title, it.tag.marker, engineSource) }
+        if (group.inPackage != null) exhaustiveRule(group).let { rows += Row(it.id, it.title, it.tag.marker, sourceOf(group)) }
     }
-    membershipRule(groups).let { rows += Row(it.id, it.title, it.tag.marker, engineSource) }
+    definition.membership?.let { universe ->
+        membershipRule(groups, universe).let { rows += Row(it.id, it.title, it.tag.marker, sourceOf(definition)) }
+    }
     return buildString {
         appendLine("| Rule | Statement | Enforcement |")
         appendLine("| --- | --- | --- |")
