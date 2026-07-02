@@ -25,8 +25,8 @@ fun renderArchitectureDocs(groups: List<RuleGroup>, moduleRoot: File): List<Gene
 
     val layerDocs = sources.layers.map { layer ->
         val content = renderLayerDoc(layer, sources::sourcePath, errors)
-        val note = "Sources: @Describe annotations in `${sources.packageDirPath(layer.group)}/${layer.group.id}.kt` " +
-            "(narrative + rules) and the `*.examples.md` files beside it."
+        val note = "Sources: @Describe annotations in the Kotlin catalog in `${sources.packageDirPath(layer.group)}/` " +
+            "(narrative + rules), plus the `*.examples.md` files beside it."
         GeneratedDoc("docs/${sources.outputName(layer.group)}.md", banner(note) + content)
     }
     val standaloneDocs = sources.standalone.map { file ->

@@ -8,9 +8,9 @@ import java.io.File
  * `@Describe` annotations in the catalog itself; markdown files carry only what markdown is best at:
  *
  *  - `rules/<layer>/<Group>.examples.md` — the layer's example blocks (optional)
- *  - `rules/<layer>/<Group>.<Construct>.examples.md` — one construct's examples (optional)
+ *  - `rules/<layer>/<Construct>.examples.md` — one construct's examples, beside `<Construct>.kt` (optional)
  *  - README template `rules/UkptArchitecture.md` — next to the catalog object
- *  - any other `.md` under `rules/` is a standalone doc (e.g. `exceptions.md`) rendered to `docs/`
+ *  - any other `.md` directly in `rules/` is a standalone doc (e.g. `exceptions.md`) rendered to `docs/`
  */
 internal class DocSources(
     private val moduleRoot: File,
@@ -43,7 +43,7 @@ internal class DocSources(
                     group = group,
                     groupExamples = File(packageDir, "${group.id}.examples.md").takeIf { it.exists() },
                     constructExamples = group.constructs
-                        .map { it.id to File(packageDir, "${it.id}.examples.md") }
+                        .map { it.id to File(packageDir, "${it.javaClass.simpleName}.examples.md") }
                         .filter { (_, file) -> file.exists() }
                         .toMap(),
                 )
@@ -58,12 +58,13 @@ internal class DocSources(
                 .filter { it.isFile && it.extension == "md" && it.canonicalFile !in claimed }
                 .sortedBy { it.name }
                 .partition { file ->
-                    file.name == "UkptArchitecture.md" ||
+                    file.parentFile.canonicalFile != rulesDir.canonicalFile ||
+                        file.name.endsWith(".examples.md") ||
                         file.name.substringBefore('.') in groupIds
                 }
             check(misnamed.isEmpty()) {
-                "These sources look like `<Id>.examples.md` files but match nothing in the catalog " +
-                    "(typo, wrong package directory, or a leftover narrative fragment?):\n" +
+                "These sources match nothing in the catalog (a `<Construct>.examples.md` typo, the wrong " +
+                    "package directory, or a leftover narrative fragment?):\n" +
                     misnamed.joinToString("\n") { " - ${it.relativeTo(moduleRoot).path}" }
             }
             return DocSources(moduleRoot, layers, standalone, readmeTemplate)

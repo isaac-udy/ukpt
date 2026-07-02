@@ -2,9 +2,9 @@
 
 How this works:
 
-- The **rules** are Kotlin (Konsist tests), maintained by hand: one `RuleGroup` object per layer, one top-level `Construct<Group>` object per code shape (in its own file, e.g. `DataLayer.Repository.kt`, listed in the group's `constructs`), a rule or guidance property on each. They live in [`src/test/kotlin/architecture/rules/`](src/test/kotlin/architecture/rules).
+- The **rules** are Kotlin (Konsist tests), maintained by hand: one `RuleGroup` object per layer, one top-level `Construct<Group>` object per code shape (in its own file, e.g. `Repository.kt`, listed in the group's `constructs`), a rule or guidance property on each. They live in [`src/test/kotlin/architecture/rules/`](src/test/kotlin/architecture/rules).
 - The **narrative** lives in the catalog too: `@Describe("…")` annotations carry the documentation text for every group, construct, rule, and guidance entry.
-- **Examples** are markdown files next to the rules they belong to: `DataLayer.Repository.examples.md` holds the example blocks for that construct, rendered after its rules.
+- **Examples** are markdown files next to the rules they belong to: `Repository.examples.md` beside `Repository.kt` holds the example blocks for that construct, rendered after its rules.
 - The **documentation** — this README and everything under `docs/` — is **generated** from those sources. Never edit the generated files; edit the catalog or an examples file, then regenerate.
 
 ## Running the checks
@@ -19,7 +19,7 @@ How this works:
 ## Changing rules or docs
 
 - Change a **rule or its documentation**: edit the layer's `.kt` in `src/test/kotlin/architecture/rules/<layer>/` — statements and narrative are `@Describe` annotations there.
-- Change an **example**: edit the `<Id>.examples.md` file next to that `.kt` (each generated file's banner names its sources).
+- Change an **example**: edit the `<Construct>.examples.md` file next to that construct's `.kt` (each generated file's banner names its sources).
 - Then regenerate the docs:
 
 ```

@@ -1,6 +1,6 @@
 > [!NOTE]
 > **This file is generated — do not edit it by hand.**
-> Sources: @Describe annotations in `src/test/kotlin/architecture/rules/project/ProjectRules.kt` (narrative + rules) and the `*.examples.md` files beside it.
+> Sources: @Describe annotations in the Kotlin catalog in `src/test/kotlin/architecture/rules/project/` (narrative + rules), plus the `*.examples.md` files beside it.
 > Regenerate with `UPDATE_ARCHITECTURE_DOCS=true ./gradlew :platform:common:architecture:test`.
 
 # Project Rules
