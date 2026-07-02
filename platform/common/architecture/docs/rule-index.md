@@ -22,9 +22,9 @@ The complete catalog, one row per construct or rule. Ids are object/property pat
 | `ModuleRules.platformMayUsePlatform` | guidance | A `:platform` module may depend on other `:platform` modules |
 | `DomainLayer.DomainInterface` | construct | resides in `feature..domain..` · is a `fun interface` · has a primary function that is an `operator fun invoke` · declares all functions as `suspend` or returning a `Flow<T>` · is prefixed with `FlowOf` when its primary function returns a `Flow` |
 | `DomainLayer.DomainInterface.interfaceDefaults` | guidance | A Domain Interface may define additional default functions that call the primary function |
-| `DomainLayer.DomainInterface.primaryParameterTypes` | guidance | A Domain Interface's primary-function parameters must be domain objects, nested types, primitives, or collections of those |
-| `DomainLayer.DomainInterface.primaryReturnType` | guidance | A Domain Interface's primary-function return type must be domain objects, nested types, primitives, collections of those, or no value |
-| `DomainLayer.DomainInterface.implementedByRepositoryOrUseCase` | guidance | A Domain Interface must be implemented by a Repository (as a property) or by a UseCase |
+| `DomainLayer.DomainInterface.primaryParameterTypes` | tested | A Domain Interface's primary-function parameters must be domain objects, nested types, primitives, or collections of those |
+| `DomainLayer.DomainInterface.primaryReturnType` | tested | A Domain Interface's primary-function return type must be domain objects, nested types, primitives, collections of those, or no value |
+| `DomainLayer.DomainInterface.implementedByRepositoryOrUseCase` | tested | A Domain Interface must be implemented by a Repository (as a property) or by a UseCase |
 | `DomainLayer.DomainInterface.errorsViaExceptions` | tested | A Domain Interface's functions propagate errors via thrown exceptions, never via the return type |
 | `DomainLayer.DomainObject` | construct | resides in `feature..domain..` · is a class or interface · satisfies one of: {is `sealed`, is a `data class`, is an `enum class`, is a `value class`} · is annotated with `@Serializable` |
 | `DomainLayer.DomainObject.immutable` | tested | A Domain Object must be immutable (val properties only) |
@@ -146,6 +146,6 @@ The complete catalog, one row per construct or rule. Ids are object/property pat
 | `ProjectRules.sealedActionVariants` | guidance | An action/request type must model its variants as a `sealed interface`/`sealed class` (each variant a `data class`), not as a single type with an `enum` discriminator and nullable fields |
 | `ProjectRules.exceptionsNeedHumanSignOff` | guidance | An architecture exception may only be added after discussing the exception with a human author |
 | `ProjectRules.exceptionNotForFailingTests` | guidance | An architecture exception is not a valid way to resolve an immediate architecture-test failure without user feedback — fix the code or the rule first |
-| `ProjectRules.exceptionNeedsKdoc` | guidance | An architecture exception must include a KDoc-style (`/** ... */`) comment explaining why it exists and the intended resolution |
+| `ProjectRules.exceptionNeedsKdoc` | tested | An architecture exception must include a KDoc-style (`/** ... */`) comment explaining why it exists and the intended resolution |
 | `ProjectRules.exceptionsAreTemporary` | guidance | An architecture exception is temporary — revisit it periodically and remove it once the underlying issue is resolved |
 | `architecture.everyDeclarationBelongsToALayer` | tested | Every feature-module declaration matches exactly one construct across all layers |

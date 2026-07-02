@@ -3,7 +3,7 @@
 > Sources: @Describe annotations in the Kotlin catalog in `src/test/kotlin/architecture/rules/domain/` (narrative + rules), plus the `*.examples.md` files beside it.
 > Regenerate with `UPDATE_ARCHITECTURE_DOCS=true ./gradlew :platform:common:architecture:test`.
 
-# Domain Layer
+# Domain Layer[↗](../src/test/kotlin/architecture/rules/domain/DomainLayer.kt)
 
 The `domain` axis is the deepest layer of a feature and appears in all three modules — `:api`,
 `:client`, and `:server`. Its contents are pure Kotlin: data models
@@ -47,7 +47,7 @@ The [Rules](#rules) below apply across the whole `feature.[name].domain` package
 
 ---
 
-## Domain Interface
+## Domain Interface[↗](../src/test/kotlin/architecture/rules/domain/DomainInterface.kt)
 
 A functional interface representing domain-level functionality/business logic.
 
@@ -70,6 +70,10 @@ A functional interface representing domain-level functionality/business logic.
 
 ##### Rules
 
+* A Domain Interface's primary-function parameters must be domain objects, nested types, primitives, or collections of those
+* A Domain Interface's primary-function return type must be domain objects, nested types, primitives, collections of those, or no value
+* A Domain Interface must be implemented by a Repository (as a property) or by a UseCase
+    * **Note**: The check accepts either a class whose parents include the interface (a UseCase) or a `[Name]Repository` whose properties reference the interface.
 * A Domain Interface's functions propagate errors via thrown exceptions, never via the return type
     * **Why**: @Throws on suspend functions must include CancellationException (or a superclass like Exception) — required for Kotlin/Native: kotlinc rejects the function on iOS targets otherwise.
     * **Note**: Known exceptions should be their own type extending RuntimeException, marked with `@Throws`.
@@ -78,9 +82,6 @@ A functional interface representing domain-level functionality/business logic.
 ##### Guidance
 
 * A Domain Interface may define additional default functions that call the primary function
-* A Domain Interface's primary-function parameters must be domain objects, nested types, primitives, or collections of those
-* A Domain Interface's primary-function return type must be domain objects, nested types, primitives, collections of those, or no value
-* A Domain Interface must be implemented by a Repository (as a property) or by a UseCase
 
 ##### Examples
 
@@ -145,7 +146,7 @@ class UserNotFoundException : RuntimeException()
 
 ---
 
-## Domain Object
+## Domain Object[↗](../src/test/kotlin/architecture/rules/domain/DomainObject.kt)
 
 An immutable type representing data at the domain-level.
 
@@ -170,6 +171,7 @@ An immutable type representing data at the domain-level.
 * A Domain Object should use nested value classes for identifiers where appropriate
 * A Domain Object should use sealed interface hierarchies to model polymorphic data where appropriate
 * A Domain Object should include `init` blocks that enforce invariants
+    * **Audited**: the test suite reports non-conforming code, without failing.
 * A Domain Object should use nested types when conceptually inseparable from the parent
 
 ##### Examples
@@ -242,7 +244,7 @@ sealed interface Transport {
 
 ---
 
-## Use Case
+## Use Case[↗](../src/test/kotlin/architecture/rules/domain/UseCase.kt)
 
 A class that implements a single [domain interface](#domain-interface).
 
@@ -273,7 +275,7 @@ A class that implements a single [domain interface](#domain-interface).
 
 ---
 
-## Domain Exception
+## Domain Exception[↗](../src/test/kotlin/architecture/rules/domain/DomainException.kt)
 
 A class that represents a known failure mode raised by a domain interface.
 
@@ -289,7 +291,7 @@ A class that represents a known failure mode raised by a domain interface.
 
 ---
 
-## Domain Constants
+## Domain Constants[↗](../src/test/kotlin/architecture/rules/domain/DomainConstants.kt)
 
 An `object` declaration whose only members are `val` constants — used to anchor
 domain-level magic numbers, lookup tables, or named tags.
@@ -305,7 +307,7 @@ domain-level magic numbers, lookup tables, or named tags.
 
 ---
 
-## Domain Extension Function
+## Domain Extension Function[↗](../src/test/kotlin/architecture/rules/domain/DomainExtensionFunction.kt)
 
 A top-level extension function on a domain object that adds derived or convenience
 behavior.
@@ -326,7 +328,7 @@ behavior.
 
 ---
 
-## Domain Extension Property
+## Domain Extension Property[↗](../src/test/kotlin/architecture/rules/domain/DomainExtensionProperty.kt)
 
 A top-level extension property on a domain object that exposes derived state.
 

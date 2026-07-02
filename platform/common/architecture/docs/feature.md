@@ -3,7 +3,7 @@
 > Sources: @Describe annotations in the Kotlin catalog in `src/test/kotlin/architecture/rules/feature/` (narrative + rules), plus the `*.examples.md` files beside it.
 > Regenerate with `UPDATE_ARCHITECTURE_DOCS=true ./gradlew :platform:common:architecture:test`.
 
-# Feature Rules
+# Feature Rules[↗](../src/test/kotlin/architecture/rules/feature/FeatureRules.kt)
 
 The top-level `feature.[name]` package (in `:client` and `:server`) is reserved for
 dependency-injection wiring: Koin modules that define the feature's DI bindings, wiring its
@@ -23,7 +23,7 @@ and [Service](services.md#service-interface) implementations into the graph. Con
 
 ---
 
-## Dependency Module
+## Dependency Module[↗](../src/test/kotlin/architecture/rules/feature/DependencyModule.kt)
 
 The configuration for Dependency Injection (DI) that wires the feature together.
 
@@ -92,7 +92,7 @@ internal class UserServiceImpl(
 
 ---
 
-## Dependency Module Helper
+## Dependency Module Helper[↗](../src/test/kotlin/architecture/rules/feature/DependencyModuleHelper.kt)
 
 An `internal` function with a Koin `Module` receiver that a `Dependencies` module calls to
 register a group of bindings — used to split a large module into readable, named chunks.

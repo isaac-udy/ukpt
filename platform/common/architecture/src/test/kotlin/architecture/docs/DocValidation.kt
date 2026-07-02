@@ -56,16 +56,21 @@ internal fun validateLinks(docs: List<GeneratedDoc>, moduleRoot: File, errors: M
     }
 }
 
-/** The doc's title: its first heading. */
+/** The doc's title: its first heading, with any inline link (the ↗ source link) dropped. */
 internal fun titleOf(doc: GeneratedDoc): String {
     var title: String? = null
     forEachProseLine(doc.content) { line ->
-        if (title == null && line.startsWith("# ")) title = line.removePrefix("# ").trim()
+        if (title == null && line.startsWith("# ")) {
+            title = line.removePrefix("# ").replace(inlineLink, "").trim()
+        }
     }
     return title ?: doc.relativePath
 }
 
 private val codeSpan = Regex("""`([^`]+)`""")
+
+/** An inline markdown link — stripped from headings before slugging (GitHub keeps only the text). */
+internal val inlineLink = Regex("""\[([^\]]*)]\(([^)\s]+)\)""")
 
 private fun normalize(fromDir: String, path: String): String {
     val resolved = if (fromDir.isEmpty()) Paths.get(path) else Paths.get(fromDir, path)
@@ -80,7 +85,7 @@ private fun anchorsOf(content: String): Set<String> {
         if (!line.startsWith("#")) return@forEachProseLine
         val text = line.trimStart('#')
         if (!text.startsWith(" ")) return@forEachProseLine
-        val slug = githubAnchor(text.trim())
+        val slug = githubAnchor(text.replace(inlineLink, "$1").trim())
         val seen = counts.getOrDefault(slug, 0)
         counts[slug] = seen + 1
         anchors += if (seen == 0) slug else "$slug-$seen"

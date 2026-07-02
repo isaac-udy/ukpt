@@ -3,6 +3,8 @@ package architecture.rules.project
 import architecture.registry.*
 
 import architecture.definitions.isFeatureModule
+import com.lemonappdev.konsist.api.provider.KoAnnotationProvider
+import com.lemonappdev.konsist.api.provider.KoKDocProvider
 import com.lemonappdev.konsist.api.provider.KoResideInPackageProvider
 
 /*
@@ -133,7 +135,16 @@ object ProjectRules : RuleGroup() {
     val exceptionNotForFailingTests by guidance
 
     @Describe("An architecture exception must include a KDoc-style (`/** ... */`) comment explaining why it exists and the intended resolution")
-    val exceptionNeedsKdoc by guidance
+    val exceptionNeedsKdoc by rule {
+        note("Checked for `@ArchitectureException` on declarations; `// architecture-exception:` comments in build files carry their reason inline and are out of scope.")
+        scope { scope, exempt ->
+            scope.declarations(includeNested = true)
+                .filter { (it as? KoAnnotationProvider)?.hasAnnotationWithName("ArchitectureException") == true }
+                .filterNot { exempt(it) }
+                .filterNot { (it as? KoKDocProvider)?.hasKDoc == true }
+                .map { Violation(it, "declaration carries @ArchitectureException without a KDoc explaining why and the intended resolution") }
+        }
+    }
 
     @Describe("An architecture exception is temporary — revisit it periodically and remove it once the underlying issue is resolved")
     val exceptionsAreTemporary by guidance

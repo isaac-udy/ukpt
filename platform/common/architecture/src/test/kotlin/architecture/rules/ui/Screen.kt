@@ -90,7 +90,16 @@ object Screen : Construct<UiLayer>(
     @Describe("A Screen function has a 1:1 relationship with a ViewModel and ViewModel State")
     val viewModelStateRelationship by guidance
     @Describe("A Screen function must observe the ViewModel's `state` property and use it to drive the UI")
-    val observesState by guidance
+    val observesState by guidance {
+        audit { decl, _ ->
+            val fn = decl as? KoFunctionDeclaration ?: return@audit emptyList()
+            if (fn.text.contains(".state")) {
+                emptyList()
+            } else {
+                listOf(Violation(fn, "Screen function does not appear to read `viewModel.state`"))
+            }
+        }
+    }
     @Describe("A Screen function should delegate all user interaction handling to the ViewModel")
     val delegatesInteraction by guidance
     @Describe("A dialog/overlay Screen must use the `navigationDestination` DSL with `metadata = { directOverlay() }`")

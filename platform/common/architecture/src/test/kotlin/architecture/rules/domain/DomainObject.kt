@@ -39,7 +39,16 @@ object DomainObject : Construct<DomainLayer>(
     @Describe("A Domain Object should use sealed interface hierarchies to model polymorphic data where appropriate")
     val sealedHierarchies by guidance
     @Describe("A Domain Object should include `init` blocks that enforce invariants")
-    val invariantInitBlocks by guidance
+    val invariantInitBlocks by guidance {
+        audit { decl, _ ->
+            val cls = decl as? KoClassDeclaration ?: return@audit emptyList()
+            if (cls.text.contains("init {")) {
+                emptyList()
+            } else {
+                listOf(Violation(cls, "domain object has no `init` block — consider one if it has invariants"))
+            }
+        }
+    }
     @Describe("A Domain Object should use nested types when conceptually inseparable from the parent")
     val nestedTypes by guidance
 }

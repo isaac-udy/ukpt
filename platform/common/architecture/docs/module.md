@@ -3,7 +3,7 @@
 > Sources: @Describe annotations in the Kotlin catalog in `src/test/kotlin/architecture/rules/module/` (narrative + rules), plus the `*.examples.md` files beside it.
 > Regenerate with `UPDATE_ARCHITECTURE_DOCS=true ./gradlew :platform:common:architecture:test`.
 
-# Module Rules
+# Module Rules[↗](../src/test/kotlin/architecture/rules/module/ModuleRules.kt)
 
 The project is organized into three root-level module groups — `:app`, `:feature`, and
 `:platform`. The dependency rules between them are **module-graph rules**: they are checked
@@ -63,5 +63,7 @@ source. Build-file exemptions use the `// architecture-exception:` comment (see
     * **Audited**: the test suite reports non-conforming code, without failing.
 * A `:feature` module may be grouped (`:feature:[group]:[name]:…`)
     * **Note**: A module that serves as a group should exist only as a group, and should not itself contain `:api`, `:server` or `:client` modules.
+    * **Audited**: the test suite reports non-conforming code, without failing.
 * A `:platform` module may depend on other `:platform` modules
     * **Note**: `:platform` to `:platform` dependencies are allowed, but should be used sparingly, treated with caution, and minimised where possible.
+    * **Audited**: the test suite reports non-conforming code, without failing.

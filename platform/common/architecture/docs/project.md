@@ -3,7 +3,7 @@
 > Sources: @Describe annotations in the Kotlin catalog in `src/test/kotlin/architecture/rules/project/` (narrative + rules), plus the `*.examples.md` files beside it.
 > Regenerate with `UPDATE_ARCHITECTURE_DOCS=true ./gradlew :platform:common:architecture:test`.
 
-# Project Rules
+# Project Rules[↗](../src/test/kotlin/architecture/rules/project/ProjectRules.kt)
 
 These rules are not tied to a construct or a single package — they apply across every feature
 module. The guidance entries govern the process for [architecture exceptions](exceptions.md);
@@ -27,6 +27,8 @@ async-result wrapper that [ViewModels](ui.md#view-model) consume.
     * **Why**: Wildcards hide which symbols a file depends on, break a number of architecture-test checks (which inspect import names directly), and silently pull in new names when the imported package adds members.
 * An `AsyncState` must never be constructed directly via `Loading`/`Success`/`Error` — use `AsyncState.fromSuspending`/`fromFlow`
     * **Why**: Direct construction skips the exception capture, cancellation, and state-flow protocol that `AsyncState.fromSuspending`/`fromFlow` handle uniformly — silently breaking the contract the rest of the codebase relies on. Files that legitimately build AsyncState values (defining its semantics, or the server-side status pattern) opt out with `@file:ArchitectureException`.
+* An architecture exception must include a KDoc-style (`/** ... */`) comment explaining why it exists and the intended resolution
+    * **Note**: Checked for `@ArchitectureException` on declarations; `// architecture-exception:` comments in build files carry their reason inline and are out of scope.
 
 ##### Guidance
 
@@ -35,7 +37,6 @@ async-result wrapper that [ViewModels](ui.md#view-model) consume.
     * **Note**: Enforced by review, not a static test — "an enum that should be a sealed class" can't be detected reliably by Konsist.
 * An architecture exception may only be added after discussing the exception with a human author
 * An architecture exception is not a valid way to resolve an immediate architecture-test failure without user feedback — fix the code or the rule first
-* An architecture exception must include a KDoc-style (`/** ... */`) comment explaining why it exists and the intended resolution
 * An architecture exception is temporary — revisit it periodically and remove it once the underlying issue is resolved
 
 ##### Examples

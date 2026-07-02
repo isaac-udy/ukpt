@@ -99,6 +99,16 @@ object ModuleRules : RuleGroup() {
     @Describe("A `:feature` module may be grouped (`:feature:[group]:[name]:…`)")
     val featuresMayBeGrouped by guidance {
         note("A module that serves as a group should exist only as a group, and should not itself contain `:api`, `:server` or `:client` modules.")
+        auditModuleGraph { graph, _ ->
+            val featureParents = graph.edges
+                .flatMap { listOf(it.from, it.to) }
+                .filter { it.startsWith(":feature:") && it.substringAfterLast(':') in setOf("api", "client", "server") }
+                .map { it.substringBeforeLast(':') }
+                .toSet()
+            featureParents
+                .filter { parent -> featureParents.any { other -> other != parent && other.startsWith("$parent:") } }
+                .map { Violation(it, "module is both a feature (direct :api/:client/:server) and a group (contains nested features) — groups should stay pure") }
+        }
     }
 
     @Describe("A `:platform` module must never depend on an `:app` module")
@@ -122,6 +132,11 @@ object ModuleRules : RuleGroup() {
     @Describe("A `:platform` module may depend on other `:platform` modules")
     val platformMayUsePlatform by guidance {
         note("`:platform` to `:platform` dependencies are allowed, but should be used sparingly, treated with caution, and minimised where possible.")
+        auditModuleGraph { graph, exempt ->
+            graph.edges
+                .filter { isPlatform(it.from) && isPlatform(it.to) && !exempt(it) }
+                .map { Violation(it.location, ":platform → :platform dependency — allowed, but keep these minimal") }
+        }
     }
 }
 

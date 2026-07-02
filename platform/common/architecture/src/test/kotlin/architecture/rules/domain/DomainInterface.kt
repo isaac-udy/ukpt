@@ -35,12 +35,55 @@ object DomainInterface : Construct<DomainLayer>(
 ) {
     @Describe("A Domain Interface may define additional default functions that call the primary function")
     val interfaceDefaults by guidance
+
     @Describe("A Domain Interface's primary-function parameters must be domain objects, nested types, primitives, or collections of those")
-    val primaryParameterTypes by guidance
+    val primaryParameterTypes by rule {
+        constrain { decl, _ ->
+            val iface = decl as? KoInterfaceDeclaration ?: return@constrain emptyList()
+            iface.functions()
+                .filter { it.name == "invoke" && it.hasOperatorModifier }
+                .flatMap { fn ->
+                    fn.parameters
+                        .filterNot { isDomainCompatibleType(it.type.name, iface.containingFile) }
+                        .map { Violation(fn, "primary-function parameter `${it.name}: ${it.type.name}` is not a domain-compatible type") }
+                }
+        }
+    }
+
     @Describe("A Domain Interface's primary-function return type must be domain objects, nested types, primitives, collections of those, or no value")
-    val primaryReturnType by guidance
+    val primaryReturnType by rule {
+        constrain { decl, _ ->
+            val iface = decl as? KoInterfaceDeclaration ?: return@constrain emptyList()
+            iface.functions()
+                .filter { it.name == "invoke" && it.hasOperatorModifier }
+                .mapNotNull { fn ->
+                    val returnType = fn.returnType ?: return@mapNotNull null
+                    if (isDomainCompatibleType(returnType.name, iface.containingFile)) {
+                        null
+                    } else {
+                        Violation(fn, "primary-function return type `${returnType.name}` is not a domain-compatible type")
+                    }
+                }
+        }
+    }
+
     @Describe("A Domain Interface must be implemented by a Repository (as a property) or by a UseCase")
-    val implementedByRepositoryOrUseCase by guidance
+    val implementedByRepositoryOrUseCase by rule {
+        note("The check accepts either a class whose parents include the interface (a UseCase) or a `[Name]Repository` whose properties reference the interface.")
+        scope { scope, exempt ->
+            scope.interfaces()
+                .filter { test(it) }
+                .filterNot { exempt(it) }
+                .filterNot { iface ->
+                    val implementedByClass = scope.classes().any { cls -> cls.parents().any { it.name == iface.name } }
+                    val exposedByRepository = scope.classes()
+                        .filter { it.name.endsWith("Repository") }
+                        .any { repo -> repo.properties().any { prop -> prop.text.contains(iface.name) } }
+                    implementedByClass || exposedByRepository
+                }
+                .map { Violation(it, "domain interface `${it.name}` has no Repository property or UseCase implementation") }
+        }
+    }
 
     @Describe("A Domain Interface's functions propagate errors via thrown exceptions, never via the return type")
     val errorsViaExceptions by rule {
