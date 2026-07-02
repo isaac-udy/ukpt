@@ -54,7 +54,9 @@ The exemption applies to the immediately-following dependency line. Multiple `ar
 ## Rules for adding exceptions
 
 * An architecture exception may only be added after discussing the exception with a human author
+    * **Verification**: not automatically verifiable — enforced by review.
 * An architecture exception is not a valid way to resolve an immediate architecture-test failure without user feedback — fix the code or the rule first
+    * **Verification**: not automatically verifiable — enforced by review.
 * An architecture exception must include a KDoc-style (`/** ... */`) comment explaining why it exists and the intended resolution
     * **Note**: Checked for `@ArchitectureException` on declarations; `// architecture-exception:` comments in build files carry their reason inline and are out of scope.
 * An architecture exception is temporary — revisit it periodically and remove it once the underlying issue is resolved

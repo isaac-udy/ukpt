@@ -64,6 +64,11 @@ site.
 ##### Rules
 
 * A Screen function must be annotated with `@Composable`
+* A Screen function must observe the ViewModel's `state` property and use it to drive the UI
+    * **Verification**: not automatically verifiable — enforced by review.
+    * **Audited**: the test suite reports non-conforming code, without failing.
+* A dialog/overlay Screen must use the `navigationDestination` DSL with `metadata = { directOverlay() }`
+    * **Verification**: not automatically verifiable — enforced by review.
 * A Screen function must be paired with an `internal [Name]ScreenContent` composable in the same file
     * **Why**: The Screen function plumbs the ViewModel; the `ScreenContent` function takes only state + callbacks so snapshot tests can render every state without a ViewModel. Marking it `internal` lets the host-test source set call it; `private` makes the screen untestable.
 * A ViewModel must be injected into its Screen using `viewModel()`, not `koinViewModel()`
@@ -72,10 +77,7 @@ site.
 ##### Guidance
 
 * A Screen function has a 1:1 relationship with a ViewModel and ViewModel State
-* A Screen function must observe the ViewModel's `state` property and use it to drive the UI
-    * **Audited**: the test suite reports non-conforming code, without failing.
 * A Screen function should delegate all user interaction handling to the ViewModel
-* A dialog/overlay Screen must use the `navigationDestination` DSL with `metadata = { directOverlay() }`
 * A dialog/overlay Screen that needs a ViewModel should call `viewModel()` inside the `navigationDestination` block
 
 ##### Examples
@@ -240,16 +242,18 @@ The complete, immutable representation of a Screen's data at a single point in t
 ##### Rules
 
 * A ViewModel State object must be immutable (val properties only)
+* A ViewModel State object must use `AsyncState<T>` / `UpdatableState<T>` for asynchronously loaded data and action progress
+    * **Verification**: not automatically verifiable — enforced by review.
 * A ViewModel State object must not define custom sealed types for loading/success/error — use `AsyncState<T>`
+* A ViewModel State object's formatting and visual representation must be handled by the Screen or specialized `@Composable` properties/functions
+    * **Verification**: not automatically verifiable — enforced by review.
 
 ##### Guidance
 
 * A ViewModel State object has a 1:1 relationship with a ViewModel type
-* A ViewModel State object must use `AsyncState<T>` / `UpdatableState<T>` for asynchronously loaded data and action progress
 * A ViewModel State object should be a transparent container for domain objects, not a lossy UI-level mapping
 * A ViewModel State object should include `init` blocks that enforce invariants
     * **Audited**: the test suite reports non-conforming code, without failing.
-* A ViewModel State object's formatting and visual representation must be handled by the Screen or specialized `@Composable` properties/functions
 
 ##### Examples
 

@@ -261,6 +261,8 @@ server binding, and the wire descriptors from the annotated interface.
 
 ##### Rules
 
+* A Service must always be implemented as urpc service functions in the appropriate server module — never as a client-only local service
+    * **Verification**: not automatically verifiable — enforced by review.
 * A Service function is a plain `suspend fun f(req): Res`, `fun f(req): Flow<Res>`, or `fun f(reqs: Flow<Req>): Flow<Res>`, taking 0 or 1 parameter
     * **Note**: The check enforces the parameter count; the suspend/Flow shape is validated by the urpc KSP processor at compile time.
 * A Service interface lives in `feature.[name].services` of the `:api` module
@@ -271,7 +273,6 @@ server binding, and the wire descriptors from the annotated interface.
 
 ##### Guidance
 
-* A Service must always be implemented as urpc service functions in the appropriate server module — never as a client-only local service
 * A Service function's `Request`/`Response` types are nested `@Serializable` types grouped under a per-function `object` namespace
 
 ##### Examples

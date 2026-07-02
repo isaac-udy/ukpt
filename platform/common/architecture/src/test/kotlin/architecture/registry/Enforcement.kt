@@ -7,12 +7,15 @@ import com.lemonappdev.konsist.api.provider.KoNameProvider
 import com.lemonappdev.konsist.api.provider.KoResideInPackageProvider
 
 /**
- * The four enforcement statuses from the architecture README legend. The tag is *derived* from a
+ * The enforcement statuses from the architecture README legend. The tag is *derived* from a
  * rule's [Enforcement], never set by hand.
  */
 enum class Tag(val marker: String) {
     TESTED("tested"),
     CONSTRUCT("construct"),
+
+    /** A mandatory rule that static analysis can't reliably check — enforced by review. */
+    UNVERIFIABLE("unverifiable"),
     GUIDANCE("guidance"),
     CODEGEN("codegen"),
 }
@@ -93,9 +96,9 @@ class DelegatedConstraint(
 }
 
 /**
- * guidance / codegen — never fails the build. Guidance may carry an optional [audit]: a
- * ScopeConstraint/ModuleGraphConstraint the suite runs and *reports* (without failing), so
- * soft conventions like "keep cross-feature `:api` dependencies minimal" stay visible.
+ * unverifiable / guidance / codegen — never fails the build. Unverifiable rules and guidance may
+ * carry an optional [audit]: a ScopeConstraint/ModuleGraphConstraint the suite runs and *reports*
+ * (without failing), so soft or uncheckable conventions stay visible.
  */
 class NotEnforced(
     override val tag: Tag,

@@ -21,7 +21,7 @@ object ServiceInterface : Construct<ServicesLayer>(
     ),
 ) {
     @Describe("A Service must always be implemented as urpc service functions in the appropriate server module — never as a client-only local service")
-    val noClientOnlyServices by guidance
+    val noClientOnlyServices by rule { unverifiable() }
     @Describe("A Service function is a plain `suspend fun f(req): Res`, `fun f(req): Flow<Res>`, or `fun f(reqs: Flow<Req>): Flow<Res>`, taking 0 or 1 parameter")
     val plainFunctionShapes by rule {
         note("The check enforces the parameter count; the suspend/Flow shape is validated by the urpc KSP processor at compile time.")

@@ -82,5 +82,6 @@ Each entry's status is **derived from how it is declared in the catalog**, so it
 | --- | --- | --- |
 | `tested` | a `rule` ending in `scope { }` / `constrain { }` / `moduleGraph { }` / `enforcedBy(...)` | A Konsist check enforces the rule and fails citing its id. `enforcedBy(...)` rules are enforced transitively by the rules they name. |
 | `construct` | a `Construct(...)`'s requirement predicates | A classification. A declaration matching no construct (or more than one) fails the layer exhaustiveness / membership check. |
-| `guidance` | `@Describe("…") val x by guidance` | A convention static analysis can't reliably check. Enforced by review. Renders under **Guidance** in the docs, separate from **Rules**. Guidance may declare an `audit { }` — a check that never fails the build but reports non-conforming code in the test output. |
+| `unverifiable` | a `rule` ending in `unverifiable()` | A mandatory rule that static analysis can't reliably check — enforced by review. Renders under **Rules** with an automatic "not automatically verifiable" note, and may carry an audit. |
+| `guidance` | `@Describe("…") val x by guidance` | An advisory convention (may/should). Enforced by review; renders under **Guidance**, separate from **Rules**. Guidance may declare an `audit { }` — a check that never fails the build but reports non-conforming code in the test output. |
 | `codegen` | a `rule` ending in `codegen()` | Guaranteed by the `dev.isaacudy.udytils.postgres` code generator — nothing in `src/` for Konsist to scan. |

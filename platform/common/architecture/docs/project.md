@@ -6,8 +6,8 @@
 # [Project Rules](../src/test/kotlin/architecture/rules/project/ProjectRules.kt)
 
 These rules are not tied to a construct or a single package — they apply across every feature
-module. The guidance entries govern the process for [architecture exceptions](exceptions.md);
-the mechanism itself is documented there.
+module. Several govern the process for [architecture exceptions](exceptions.md); the mechanism
+itself is documented there.
 
 Context for the exception-handling rules: exceptions defined in the
 [services contract](services.md#service-interface) cross the client/server wire as serialised
@@ -27,16 +27,19 @@ async-result wrapper that [ViewModels](ui.md#view-model) consume.
     * **Why**: Wildcards hide which symbols a file depends on, break a number of architecture-test checks (which inspect import names directly), and silently pull in new names when the imported package adds members.
 * An `AsyncState` must never be constructed directly via `Loading`/`Success`/`Error` — use `AsyncState.fromSuspending`/`fromFlow`
     * **Why**: Direct construction skips the exception capture, cancellation, and state-flow protocol that `AsyncState.fromSuspending`/`fromFlow` handle uniformly — silently breaking the contract the rest of the codebase relies on. Files that legitimately build AsyncState values (defining its semantics, or the server-side status pattern) opt out with `@file:ArchitectureException`.
+* An action/request type must model its variants as a `sealed interface`/`sealed class` (each variant a `data class`), not as a single type with an `enum` discriminator and nullable fields
+    * **Why**: A sealed hierarchy makes illegal field combinations unrepresentable and lets `when` exhaustiveness drive handling, so adding a variant surfaces every site that must handle it.
+    * **Note**: "An enum that should be a sealed class" can't be detected reliably by Konsist.
+    * **Verification**: not automatically verifiable — enforced by review.
+* An architecture exception may only be added after discussing the exception with a human author
+    * **Verification**: not automatically verifiable — enforced by review.
+* An architecture exception is not a valid way to resolve an immediate architecture-test failure without user feedback — fix the code or the rule first
+    * **Verification**: not automatically verifiable — enforced by review.
 * An architecture exception must include a KDoc-style (`/** ... */`) comment explaining why it exists and the intended resolution
     * **Note**: Checked for `@ArchitectureException` on declarations; `// architecture-exception:` comments in build files carry their reason inline and are out of scope.
 
 ##### Guidance
 
-* An action/request type must model its variants as a `sealed interface`/`sealed class` (each variant a `data class`), not as a single type with an `enum` discriminator and nullable fields
-    * **Why**: A sealed hierarchy makes illegal field combinations unrepresentable and lets `when` exhaustiveness drive handling, so adding a variant surfaces every site that must handle it.
-    * **Note**: Enforced by review, not a static test — "an enum that should be a sealed class" can't be detected reliably by Konsist.
-* An architecture exception may only be added after discussing the exception with a human author
-* An architecture exception is not a valid way to resolve an immediate architecture-test failure without user feedback — fix the code or the rule first
 * An architecture exception is temporary — revisit it periodically and remove it once the underlying issue is resolved
 
 ##### Examples

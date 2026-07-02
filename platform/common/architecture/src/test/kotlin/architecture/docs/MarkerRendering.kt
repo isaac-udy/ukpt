@@ -128,11 +128,16 @@ internal fun renderRuleBullet(rule: Rule): String = buildString {
     rule.notes.forEach { appendLine("    * **Note**: ${collapse(it)}") }
     when (val enforcement = rule.enforcement) {
         is DelegatedConstraint -> appendLine("    * **Enforced by**: ${enforcement.by.joinToString(", ") { "`$it`" }}")
-        is NotEnforced -> when {
-            enforcement.tag == Tag.CODEGEN ->
+        is NotEnforced -> {
+            if (enforcement.tag == Tag.CODEGEN) {
                 appendLine("    * **Enforced by**: the `dev.isaacudy.udytils.postgres` code generator")
-            enforcement.audit != null ->
+            }
+            if (enforcement.tag == Tag.UNVERIFIABLE) {
+                appendLine("    * **Verification**: not automatically verifiable — enforced by review.")
+            }
+            if (enforcement.audit != null) {
                 appendLine("    * **Audited**: the test suite reports non-conforming code, without failing.")
+            }
         }
         else -> {}
     }

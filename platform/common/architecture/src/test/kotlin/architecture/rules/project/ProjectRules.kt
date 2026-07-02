@@ -12,8 +12,8 @@ import com.lemonappdev.konsist.api.provider.KoResideInPackageProvider
  */
 @Describe("""
     These rules are not tied to a construct or a single package — they apply across every feature
-    module. The guidance entries govern the process for [architecture exceptions](exceptions.md);
-    the mechanism itself is documented there.
+    module. Several govern the process for [architecture exceptions](exceptions.md); the mechanism
+    itself is documented there.
 
     Context for the exception-handling rules: exceptions defined in the
     [services contract](services.md#service-interface) cross the client/server wire as serialised
@@ -117,22 +117,23 @@ object ProjectRules : RuleGroup() {
 
     // ---- §5.3 Action and request types -------------------------------------------------------
     @Describe("An action/request type must model its variants as a `sealed interface`/`sealed class` (each variant a `data class`), not as a single type with an `enum` discriminator and nullable fields")
-    val sealedActionVariants by guidance {
+    val sealedActionVariants by rule {
         rationale(
             """
             A sealed hierarchy makes illegal field combinations unrepresentable and lets `when`
             exhaustiveness drive handling, so adding a variant surfaces every site that must handle it.
             """.trimIndent(),
         )
-        note("Enforced by review, not a static test — \"an enum that should be a sealed class\" can't be detected reliably by Konsist.")
+        note("\"An enum that should be a sealed class\" can't be detected reliably by Konsist.")
+        unverifiable()
     }
 
     // ---- §6.3 Architecture-exception sign-off (all guidance — enforced by human review) ----
     @Describe("An architecture exception may only be added after discussing the exception with a human author")
-    val exceptionsNeedHumanSignOff by guidance
+    val exceptionsNeedHumanSignOff by rule { unverifiable() }
 
     @Describe("An architecture exception is not a valid way to resolve an immediate architecture-test failure without user feedback — fix the code or the rule first")
-    val exceptionNotForFailingTests by guidance
+    val exceptionNotForFailingTests by rule { unverifiable() }
 
     @Describe("An architecture exception must include a KDoc-style (`/** ... */`) comment explaining why it exists and the intended resolution")
     val exceptionNeedsKdoc by rule {

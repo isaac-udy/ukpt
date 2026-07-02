@@ -27,12 +27,21 @@ abstract class BaseRuleScope internal constructor() {
 
     /** Guaranteed by the postgres code generator — nothing in `src/` for Konsist to scan. */
     fun codegen(): Enforcement = NotEnforced(Tag.CODEGEN)
+
+    /**
+     * A mandatory rule that static analysis can't reliably check — enforced by review. The docs
+     * carry an automatic "not automatically verifiable" note.
+     */
+    fun unverifiable(): Enforcement = NotEnforced(Tag.UNVERIFIABLE)
 }
 
 /** Block receiver for a group-level `rule { }`. */
 class RuleScope internal constructor() : BaseRuleScope() {
     /** Tested over the parsed module dependency graph. */
     fun moduleGraph(check: ModuleGraphCheck): Enforcement = ModuleGraphConstraint(check)
+
+    /** An unverifiable rule with an audit: the suite reports (never fails) where it looks violated. */
+    fun unverifiable(audit: ScopeCheck): Enforcement = NotEnforced(Tag.UNVERIFIABLE, ScopeConstraint(audit))
 }
 
 /**
@@ -89,4 +98,15 @@ class ConstructRuleScope internal constructor(private val construct: Construct<*
             .filterNot { exempt(it) }
             .flatMap { check.run(it, exempt) }
     }
+
+    /** An unverifiable rule with an audit over the construct's population (reported, never failing). */
+    fun unverifiable(audit: ConstructCheck): Enforcement = NotEnforced(
+        Tag.UNVERIFIABLE,
+        ScopeConstraint { scope, exempt ->
+            scope.declarations(includeNested = false)
+                .filter { construct.test(it) }
+                .filterNot { exempt(it) }
+                .flatMap { audit.run(it, exempt) }
+        },
+    )
 }
