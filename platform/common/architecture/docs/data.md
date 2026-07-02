@@ -12,14 +12,14 @@ Repositories fan out across [Services](services.md#service-interface) (the `:api
 client-side local storage, and expose [domain interfaces](domain.md#domain-interface) for the
 rest of the feature to consume.
 
-## Rules
+##### Rules
 
 * Forbidden from injecting `domain` interfaces — logic requiring multiple domain interfaces must be moved to a UseCase
     * **Why**: Repositories *implement* domain interfaces — if one injects a domain interface, it's calling a sibling Repository through the abstract layer, which makes the dependency graph unreadable and easy to cycle. Logic that needs multiple domain interfaces belongs in a UseCase.
 * Must not depend on the `ui` package
     * **Why**: UI is the outermost layer; `data` sits beneath it and supplies the domain interfaces the UI consumes. If `data` imports a UI type the layering becomes circular and the Repository can no longer be tested without a Compose runtime.
 
-## Guidance
+##### Guidance
 
 * Provides implementations of `domain` interfaces — by exposing them as properties, not by inheriting them
     * **Note**: Enforced via the `DataLayer.Repository` construct's classification: a class that implements a domain interface (or doesn't expose one as a `public val`) isn't recognised as a Repository.

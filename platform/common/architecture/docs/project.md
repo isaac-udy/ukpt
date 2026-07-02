@@ -14,7 +14,7 @@ Context for the exception-handling rules: exceptions defined in the
 payloads, and the deserialised types don't always extend `Exception`. `AsyncState` is the
 async-result wrapper that [ViewModels](ui.md#view-model) consume.
 
-## Rules
+##### Rules
 
 * `try/catch` blocks must never catch `Exception` — use `catch (t: Throwable)` or a specific exception type
     * **Why**: The urpc transport (`dev.isaacudy.udytils:urpc-*`) deserialises server-side exceptions into types that may not extend `Exception` (e.g. kotlinx-serialization / kRPC error types). A `catch (Exception)` block silently misses these, so the error propagates uncaught and crashes on an internal thread instead of being handled by application code.
@@ -28,7 +28,7 @@ async-result wrapper that [ViewModels](ui.md#view-model) consume.
 * `AsyncState.Loading`/`Success`/`Error` must not be constructed directly — use `AsyncState.fromSuspending`/`fromFlow`
     * **Why**: Direct construction skips the exception capture, cancellation, and state-flow protocol that `AsyncState.fromSuspending`/`fromFlow` handle uniformly — silently breaking the contract the rest of the codebase relies on. Files that legitimately build AsyncState values (defining its semantics, or the server-side status pattern) opt out with `@file:ArchitectureException`.
 
-## Guidance
+##### Guidance
 
 * Model action/request variants as a `sealed interface`/`sealed class` (each variant a `data class`), not a single type with an `enum` discriminator and nullable fields
     * **Why**: A sealed hierarchy makes illegal field combinations unrepresentable and lets `when` exhaustiveness drive handling, so adding a variant surfaces every site that must handle it.

@@ -14,7 +14,7 @@ or mutates arrives through [domain interfaces](domain.md#domain-interface), impl
 
 The layer rules below apply across the whole `feature.[name].ui` package.
 
-## Rules
+##### Rules
 
 * Forbidden from implementing `domain` interfaces
     * **Why**: Domain interfaces are the contract between presentation and persistence — implementations belong in `data` (Repositories) or `domain` (UseCases). A ViewModel that implements one would couple two layers' lifecycles and make the ViewModel un-injectable elsewhere.
@@ -23,7 +23,7 @@ The layer rules below apply across the whole `feature.[name].ui` package.
 * Must not use `koinInject` — all dependencies are injected through ViewModels
     * **Why**: Resolving from Koin inside a Composable side-steps the ViewModel as the single dependency surface, makes the screen untestable in snapshots (no Koin runtime), and re-resolves on every recomposition.
 
-## Guidance
+##### Guidance
 
 * May depend on `domain`
 

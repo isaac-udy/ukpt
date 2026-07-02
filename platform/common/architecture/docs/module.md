@@ -41,7 +41,7 @@ source. Build-file exemptions use the `// architecture-exception:` comment (see
     * **`:client`**: Client-only infrastructure (e.g., Design System, local DB drivers).
     * **`:server`**: Server-only infrastructure (e.g., Ktor plugins, and `:platform:server:postgres` — which owns the Flyway SQL migrations + `schema.sql` and applies the `dev.isaacudy.udytils.postgres` codegen plugin; the DB runtime itself lives in that udytils library).
 
-## Rules
+##### Rules
 
 * `:feature` modules must never depend on `:app` modules
 * `:feature:[name]:client` must never depend on another `:client`/`:server` module
@@ -55,7 +55,7 @@ source. Build-file exemptions use the `// architecture-exception:` comment (see
 * `:platform` modules must never depend on `:app` modules
 * `:platform` modules must never depend on `:feature` modules
 
-## Guidance
+##### Guidance
 
 * `:feature` modules may depend on `:platform` modules
 * `:feature:[name]:api` may depend on another feature's `:api` module to share models

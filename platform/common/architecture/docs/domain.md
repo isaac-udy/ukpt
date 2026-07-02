@@ -26,7 +26,7 @@ The [Rules](#rules) below apply across the whole `feature.[name].domain` package
   permitted because real-world domains have genuine dependencies between them. The important
   thing is getting the direction of dependencies correct and avoiding circular dependencies.
 
-## Rules
+##### Rules
 
 * Domain must not contain platform-specific dependencies (Android, Ktor, SQL, …)
     * **Why**: The domain layer stays pure Kotlin so it ports across :client/:server and every KMP target and stays unit-testable. Expose a domain interface and implement it in `data`/`services`.

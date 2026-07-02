@@ -11,7 +11,7 @@ dependency-injection wiring: Koin modules that define the feature's DI bindings,
 and [Service](services.md#service-interface) implementations into the graph. Concrete classes
 (ServiceImpls, helpers, etc.) live in their layer-specific package; nothing else belongs here.
 
-## Rules
+##### Rules
 
 * DI bindings must use the constructor reference style `singleOf(::Constructor).bind(BindingType::class)`, not the lambda style `single<BindingType> { Constructor(get()) }`
     * **Why**: The reference style lets Koin validate the constructor parameters against the graph at startup; the lambda style hides missing or cyclic dependencies until the first injection at runtime.

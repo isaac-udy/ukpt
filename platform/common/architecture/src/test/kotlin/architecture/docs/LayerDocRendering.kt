@@ -10,8 +10,8 @@ import java.io.File
  * nothing is embedded by hand and nothing can be missed.
  *
  *  1. `# <Group Name>` (PascalCase spaced) + the group's `@Describe` text
- *  2. `## Rules` / `## Guidance` — the group-level rules and guidance, from the catalog
- *  3. `**Examples**` — the group's `<Group>.examples.md`, when present
+ *  2. `##### Rules` / `##### Guidance` — the group-level rules and guidance, from the catalog
+ *  3. `##### Examples` — the group's `<Group>.examples.md`, when present
  *  4. one `## <Construct Name>` section per construct (catalog order): its `@Describe` text, the
  *     generated Definition/Rules/Guidance blocks, then its `<Group.Construct>.examples.md`
  */
@@ -30,13 +30,13 @@ internal fun renderLayerDoc(
     val rules = groupRules(group)
     val guidance = groupGuidance(group)
     if (rules.isNotEmpty()) {
-        appendLine("## Rules")
+        appendLine("##### Rules")
         appendLine()
         rules.forEach { append(renderRuleBullet(it)) }
         appendLine()
     }
     if (guidance.isNotEmpty()) {
-        appendLine("## Guidance")
+        appendLine("##### Guidance")
         appendLine()
         guidance.forEach { append(renderRuleBullet(it)) }
         appendLine()

@@ -186,7 +186,7 @@ Its isolation is enforced now, even though the package is empty —
   (extends `AssistantTool`, named `[Action][Entity]Tool`) on the `ServicesLayer` group to
   populate this layer.
 
-## Rules
+##### Rules
 
 * `services` may depend on `domain` and on other features' `:api` `services` contracts; it must not depend on `data`
     * **Why**: The server has no `data` layer, and the client's `data` depends on `services`, not the other way around. Reaching into client-only `data.storage` (Keychain, SharedPrefs) from a services file would fail at runtime or break the client/server split.
