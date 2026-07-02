@@ -5,7 +5,7 @@
 
 # Rule index
 
-The complete catalog, one row per construct or rule. Ids are object/property paths (see the [README](../README.md)). `tested` = executable check · `construct` = classification requirements · `unverifiable` = mandatory but review-enforced · `guidance` = advisory convention · `codegen` = delegated to code generation.
+The complete catalog, one row per construct or rule. Ids are object/property paths (see [Rule IDs](../README.md#rule-ids)). Enforcement markers link to the declaring source and are explained below the table.
 
 | Rule | Statement | Enforcement |
 | --- | --- | --- |
@@ -149,3 +149,15 @@ The complete catalog, one row per construct or rule. Ids are object/property pat
 | `ProjectRules.exceptionNeedsKdoc` | An architecture exception must include a KDoc-style (`/** ... */`) comment explaining why it exists and the intended resolution | [tested](../src/main/kotlin/architecture/rules/project/ProjectRules.kt) |
 | `ProjectRules.exceptionsAreTemporary` | An architecture exception should be temporary — revisit it periodically and remove it once the underlying issue is resolved | [guidance](../src/main/kotlin/architecture/rules/project/ProjectRules.kt) |
 | `architecture.everyDeclarationBelongsToALayer` | Every declaration in governed code matches exactly one construct across all layers | [tested](../src/main/kotlin/architecture/rules/UkptArchitecture.kt) |
+
+## Enforcement status
+
+Each status is derived from how the entry is declared in the catalog:
+
+| Status | Meaning | Declared as |
+| --- | --- | --- |
+| `tested` | A test enforces the rule and fails citing its id. | a `rule` ending in `scope { }` / `constrain { }` / `moduleGraph { }` / `enforcedBy(...)` |
+| `construct` | A classification. A declaration matching no construct (or more than one) fails the layer's exhaustiveness test. | a `Construct(...)`'s requirement predicates |
+| `unverifiable` | A mandatory rule that tests can't reliably verify; enforced by review. | a `rule` ending in `unverifiable()` |
+| `guidance` | An advisory convention (may/should); enforced by review. May declare an `audit { }` — a test that reports non-conforming code without ever failing. | `@Describe("…") val x by guidance` |
+| `codegen` | Guaranteed by a code generator; there is nothing in source to test. | a `rule` ending in `codegen()` |

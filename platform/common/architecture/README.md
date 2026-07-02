@@ -15,23 +15,7 @@ The rules govern the feature modules (`projectScope`, excluding the embedded com
 and test sources); the catalog itself is meta-code and is not scanned. `:feature:core` is the
 worked example the rules describe.
 
-## How this works
-
-- The **rules** are Kotlin (checked with Konsist), maintained by hand: one `RuleGroup` object per layer, one top-level `Construct<Group>` object per code shape (in its own file, listed in the group's `constructs`), a rule or guidance property on each. They live in [`src/main/kotlin/architecture/rules/`](src/main/kotlin/architecture/rules).
-- The **narrative** lives in the catalog too: `@Describe("…")` annotations carry the documentation text for every group, construct, rule, and guidance entry — including this README's introduction, which is the annotation on `UkptArchitecture`.
-- **Examples** are markdown files next to the rules they belong to: `<Construct>.examples.md` beside `<Construct>.kt` holds the example blocks for that construct, rendered after its rules.
-- The **documentation** — this README and everything under `docs/` — is **generated** from those sources. Never edit the generated files; edit the catalog or an examples file, then regenerate.
-- Read [authoring](docs/authoring.md) before adding rules: what should be a requirement vs a rule vs guidance, what audits are for, and the language conventions.
-
-## Running the checks
-
-- Run: `./gradlew :platform:common:architecture:verifyArchitecture`
-- Expect `BUILD SUCCESSFUL`. The task always re-executes — no `--rerun-tasks` needed.
-- Every rule reports as its own nested test: `<Layer> › <Construct> › <rule>`, so a failure names the exact rule.
-- HTML report: `platform/common/architecture/build/reports/tests/verifyArchitecture/index.html`.
-- After changing the catalog or an examples file, regenerate the docs with `./gradlew :platform:common:architecture:updateArchitectureDocumentation`. The suite fails if the generated docs drift from the sources, if prose references a rule id that doesn't exist, or if a link/anchor is broken.
-
-## The documents
+## Rules
 
 - [Module Rules](docs/module.md)
 - [Domain Layer](docs/domain.md)
@@ -40,13 +24,49 @@ worked example the rules describe.
 - [Services Layer](docs/services.md)
 - [Feature Rules](docs/feature.md)
 - [Project Rules](docs/project.md)
-- [Authoring rules](docs/authoring.md)
-- [Architecture exceptions](docs/exceptions.md)
-- [Rule index](docs/rule-index.md)
+
+## Reference
+
+- [Rule index](docs/rule-index.md) — all rules, ids, and enforcement
+- [Authoring rules](docs/authoring.md) — conventions for new rules
+- [Architecture exceptions](docs/exceptions.md) — exempting code from rules
+
+---
+
+# Architecture Testing System
+
+This project uses the [udytils architecture system](https://github.com/isaac-udy/udytils) to define, test, and document its architecture rules. Rules are declared in Kotlin code, built on the Konsist library, and structured using the following types:
+
+- **RuleGroup** — names and defines a set of Constructs, Rules, and Guidance.
+  - A RuleGroup can be (optionally) scoped to a particular package pattern
+- **Construct** — names and defines the rules for a code-level construct (such as a class, interface, function or property).  
+  - A Construct must be associated with a RuleGroup.
+  - A Construct defines a set of requirements in its constructor. If a piece of code matches the requirements for a particular Construct, it will be required to meet the rules associated with that construct. 
+  - To provide example code for a Construct, create a `<Construct>.examples.md` file next to the associated `<Construct.kt>` file
+- **Rule** — a mandatory statement about a `Construct` or `RuleGroup`.
+- **Guidance** — an advisory statement about a `Construct` or `RuleGroup`.
+ 
+Documentation for RuleGroups and Constructs is recorded by annotating the RuleGroup or Construct with the `@Describe` annotation. Documentation for Rules and Guidance is also provided by annotating the Rule or Guidance statement with `@Describe` but Rules and Guidance also provide the ability to add "rationale" and "notes" through functions in their builder definitions.
+
+This README and everything under `docs/` is generated from the catalog. Never edit these files directly — edit the catalog and regenerate. Read [authoring](docs/authoring.md) before adding rules.
+
+## Run the tests
+
+```
+./gradlew :platform:common:architecture:verifyArchitecture
+```
+
+## Regenerate the documentation
+
+```
+./gradlew :platform:common:architecture:updateArchitectureDocumentation
+```
+
+Run this after changing the catalog or an examples file. The tests fail if the generated documentation is manually edited, or if the documentation references a rule that doesn't exist.
 
 ## Rule IDs
 
-Every rule and construct has a stable ID: the **path of the object/property names that declare it**.
+Every rule and construct has a stable id: the path of the object/property names that declare it.
 
 | ID | Reads as |
 | --- | --- |
@@ -54,31 +74,4 @@ Every rule and construct has a stable ID: the **path of the object/property name
 | `DomainLayer.DomainInterface.interfaceDefaults` | the `interfaceDefaults` rule of the `DomainInterface` construct |
 | `ModuleRules.featureNotApp` | a layer-level rule (not tied to a construct) |
 
-- Groups and constructs are PascalCase `object`s; rules are camelCase properties on them.
-- A construct's **requirements** (the predicates that decide whether a declaration *is* that construct) are not individually identified — the construct is the unit.
-- Test failures, the [rule index](docs/rule-index.md), and [architecture exceptions](docs/exceptions.md) all reference rules by this path.
-- The layer docs don't repeat ids next to each rule — to find a rule's id (e.g. for an exception), look it up by statement in the [rule index](docs/rule-index.md) or in the layer's `.kt`.
-
-The groups:
-
-| Group | Doc |
-| --- | --- |
-| `ModuleRules` | [docs/module.md](docs/module.md) |
-| `DomainLayer` | [docs/domain.md](docs/domain.md) |
-| `UiLayer` | [docs/ui.md](docs/ui.md) |
-| `DataLayer` | [docs/data.md](docs/data.md) |
-| `ServicesLayer` | [docs/services.md](docs/services.md) |
-| `FeatureRules` | [docs/feature.md](docs/feature.md) |
-| `ProjectRules` | [docs/project.md](docs/project.md) |
-
-## Enforcement status
-
-Each entry's status is **derived from how it is declared in the catalog**, so it can never disagree with reality:
-
-| Status | Declared as | Meaning |
-| --- | --- | --- |
-| `tested` | a `rule` ending in `scope { }` / `constrain { }` / `moduleGraph { }` / `enforcedBy(...)` | A check enforces the rule and fails citing its id. `enforcedBy(...)` rules are enforced transitively by the rules they name. |
-| `construct` | a `Construct(...)`'s requirement predicates | A classification. A declaration matching no construct (or more than one) fails the layer exhaustiveness / membership check. |
-| `unverifiable` | a `rule` ending in `unverifiable()` | A mandatory rule that static analysis can't reliably check — enforced by review. Renders under **Rules** with an automatic "not automatically verifiable" note, and may carry an audit. |
-| `guidance` | `@Describe("…") val x by guidance` | An advisory convention (may/should). Enforced by review; renders under **Guidance**, separate from **Rules**. Guidance may declare an `audit { }` — a check that never fails the build but reports non-conforming code in the test output. |
-| `codegen` | a `rule` ending in `codegen()` | Guaranteed by a code generator — nothing in source for the checks to scan. |
+Test failures, the [rule index](docs/rule-index.md), and [architecture exceptions](docs/exceptions.md) reference rules by id. Requirements don't have their own ids — they belong to their construct.

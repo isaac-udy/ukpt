@@ -38,8 +38,8 @@ import dev.isaacudy.udytils.architecture.ArchitectureException
 `ruleIds` lists the rule path ids the declaration is exempt from (see [Rule IDs](../README.md#rule-ids)).
 `reason` is free-form prose; `trackingIssue` is optional but recommended.
 
-The architecture tests look up the annotation when checking each rule, and skip declarations /
-files that list the rule's id.
+The architecture tests look up the annotation when running each rule's test, and skip
+declarations / files that list the rule's id.
 
 ### Gradle build files: `// architecture-exception:` comment
 
