@@ -5,6 +5,9 @@ import architecture.registry.RuleGroup
 import architecture.registry.describeText
 import java.io.File
 
+// Options: ⤤⤴↪➔⇾➔→↗↳⇥⇲⤻
+private const val linkIcon = "→"
+
 /**
  * Layer docs are **compiled, not assembled by hand**: every layer doc has the same fixed shape, so
  * nothing is embedded by hand and nothing can be missed.
@@ -22,7 +25,7 @@ internal fun renderLayerDoc(
     errors: MutableList<String>,
 ): String = buildString {
     val group = layer.group
-    appendLine("# ${spacedName(group.id)}[↗](${sourceLink(group.javaClass, "${group.id}.kt")})")
+    appendLine("# ${spacedName(group.id)}[$linkIcon](${sourceLink(group.javaClass, "${group.id}.kt")})")
     appendLine()
     description(group, errors)?.let {
         appendLine(it)
@@ -55,7 +58,7 @@ internal fun renderLayerDoc(
     group.constructs.forEach { construct ->
         appendLine("---")
         appendLine()
-        appendLine("## ${spacedName(construct.id.substringAfterLast('.'))}[↗](${sourceLink(construct.javaClass, "${construct.javaClass.simpleName}.kt")})")
+        appendLine("## ${spacedName(construct.id.substringAfterLast('.'))}[$linkIcon](${sourceLink(construct.javaClass, "${construct.javaClass.simpleName}.kt")})")
         appendLine()
         description(construct, errors)?.let {
             appendLine(it)
@@ -71,7 +74,7 @@ internal fun renderLayerDoc(
 internal fun spacedName(name: String): String = name.replace(Regex("(?<=[a-z0-9])(?=[A-Z])"), " ")
 
 /**
- * The ↗ source link appended to a generated heading, relative to `docs/`. Attached without a space —
+ * The $linkIcon source link appended to a generated heading, relative to `docs/`. Attached without a space —
  * GitHub's anchor slugger keeps a pre-link space as a trailing hyphen, which would break every
  * `#construct-name` anchor.
  */
