@@ -1,6 +1,6 @@
 > [!NOTE]
 > **This file is generated — do not edit it by hand.**
-> Narrative source: `src/main/kotlin/architecture/rules/authoring.md`; rule content comes from the rule catalog.
+> Shipped by the architecture framework (`dev.isaacudy.udytils:architecture-core`); override it by adding `authoring.md` to the catalog root.
 > Regenerate with `./gradlew :platform:common:architecture:updateArchitectureDocumentation`.
 
 # Authoring rules
@@ -73,4 +73,3 @@ this still be an X?"* — no → requirement; yes → rule.
 ```
 ./gradlew :platform:common:architecture:updateArchitectureDocumentation
 ```
-
