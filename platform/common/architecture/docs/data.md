@@ -3,7 +3,7 @@
 > Sources: @Describe annotations in the Kotlin catalog in `src/test/kotlin/architecture/rules/data/` (narrative + rules), plus the `*.examples.md` files beside it.
 > Regenerate with `UPDATE_ARCHITECTURE_DOCS=true ./gradlew :platform:common:architecture:test`.
 
-# Data Layer[→](../src/test/kotlin/architecture/rules/data/DataLayer.kt)
+# [Data Layer](../src/test/kotlin/architecture/rules/data/DataLayer.kt)
 
 The `data` axis is **client-only**: Repository implementations and client-side local persistence
 (Keychain, SharedPreferences, etc.). Server-side persistence and service implementations live in
@@ -33,7 +33,7 @@ rest of the feature to consume.
 
 ---
 
-## Repository[→](../src/test/kotlin/architecture/rules/data/Repository.kt)
+## [Repository](../src/test/kotlin/architecture/rules/data/Repository.kt)
 
 A class that provides implementations for [domain interfaces](domain.md#domain-interface),
 providing the "edge" of the domain layer.
@@ -82,7 +82,7 @@ internal class UserRepository(
 
 ---
 
-## Client Data Interface[→](../src/test/kotlin/architecture/rules/data/ClientDataInterface.kt)
+## [Client Data Interface](../src/test/kotlin/architecture/rules/data/ClientDataInterface.kt)
 
 A client-side interface declared in `..data..` (but not `data.storage`) that is **not** a
 Repository — typically the contract for a low-level concern with platform-specific actuals
@@ -101,7 +101,7 @@ Repository — typically the contract for a low-level concern with platform-spec
 
 ---
 
-## Client Data Implementation[→](../src/test/kotlin/architecture/rules/data/ClientDataImplementation.kt)
+## [Client Data Implementation](../src/test/kotlin/architecture/rules/data/ClientDataImplementation.kt)
 
 A client-side class in `..data..` (but not `data.storage`) that is **not** a Repository —
 usually a platform-specific implementation of a [client data interface](#client-data-interface).
@@ -115,7 +115,7 @@ usually a platform-specific implementation of a [client data interface](#client-
 
 ---
 
-## Client Storage[→](../src/test/kotlin/architecture/rules/data/ClientStorage.kt)
+## [Client Storage](../src/test/kotlin/architecture/rules/data/ClientStorage.kt)
 
 A class responsible for local-device data persistence and retrieval (e.g., credentials,
 preferences, cached data on disk) — `expect`/`actual` `Storage` classes backed by Keychain

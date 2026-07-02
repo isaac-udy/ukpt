@@ -5,8 +5,12 @@ import architecture.registry.RuleGroup
 import architecture.registry.describeText
 import java.io.File
 
-// Options: ⤤⤴↪➔⇾➔→↗↳⇥⇲⤻
-private const val linkIcon = "→"
+/*
+ * Headings link to their source by making the whole title the link: `## [Repository](../src/…)`.
+ * An icon after a space (`## Repository [➔](…)`) is not an option: GitHub's anchor slugger strips
+ * the icon but keeps its preceding space as a trailing hyphen, so every heading anchor would become
+ * `#repository-` and break the jump lists and cross-doc links.
+ */
 
 /**
  * Layer docs are **compiled, not assembled by hand**: every layer doc has the same fixed shape, so
@@ -25,7 +29,7 @@ internal fun renderLayerDoc(
     errors: MutableList<String>,
 ): String = buildString {
     val group = layer.group
-    appendLine("# ${spacedName(group.id)}[$linkIcon](${sourceLink(group.javaClass, "${group.id}.kt")})")
+    appendLine("# [${spacedName(group.id)}](${sourceLink(group.javaClass, "${group.id}.kt")})")
     appendLine()
     description(group, errors)?.let {
         appendLine(it)
@@ -58,7 +62,7 @@ internal fun renderLayerDoc(
     group.constructs.forEach { construct ->
         appendLine("---")
         appendLine()
-        appendLine("## ${spacedName(construct.id.substringAfterLast('.'))}[$linkIcon](${sourceLink(construct.javaClass, "${construct.javaClass.simpleName}.kt")})")
+        appendLine("## [${spacedName(construct.id.substringAfterLast('.'))}](${sourceLink(construct.javaClass, "${construct.javaClass.simpleName}.kt")})")
         appendLine()
         description(construct, errors)?.let {
             appendLine(it)
@@ -73,11 +77,7 @@ internal fun renderLayerDoc(
 /** "DataLayer" → "Data Layer", "DomainInterface" → "Domain Interface". */
 internal fun spacedName(name: String): String = name.replace(Regex("(?<=[a-z0-9])(?=[A-Z])"), " ")
 
-/**
- * The $linkIcon source link appended to a generated heading, relative to `docs/`. Attached without a space —
- * GitHub's anchor slugger keeps a pre-link space as a trailing hyphen, which would break every
- * `#construct-name` anchor.
- */
+/** The heading source-link target, relative to `docs/`. */
 private fun sourceLink(owner: Class<*>, fileName: String): String =
     "../src/test/kotlin/${owner.packageName.replace('.', '/')}/$fileName"
 

@@ -3,7 +3,7 @@
 > Sources: @Describe annotations in the Kotlin catalog in `src/test/kotlin/architecture/rules/domain/` (narrative + rules), plus the `*.examples.md` files beside it.
 > Regenerate with `UPDATE_ARCHITECTURE_DOCS=true ./gradlew :platform:common:architecture:test`.
 
-# Domain Layer[→](../src/test/kotlin/architecture/rules/domain/DomainLayer.kt)
+# [Domain Layer](../src/test/kotlin/architecture/rules/domain/DomainLayer.kt)
 
 The `domain` axis is the deepest layer of a feature and appears in all three modules — `:api`,
 `:client`, and `:server`. Its contents are pure Kotlin: data models
@@ -47,7 +47,7 @@ The [Rules](#rules) below apply across the whole `feature.[name].domain` package
 
 ---
 
-## Domain Interface[→](../src/test/kotlin/architecture/rules/domain/DomainInterface.kt)
+## [Domain Interface](../src/test/kotlin/architecture/rules/domain/DomainInterface.kt)
 
 A functional interface representing domain-level functionality/business logic.
 
@@ -146,7 +146,7 @@ class UserNotFoundException : RuntimeException()
 
 ---
 
-## Domain Object[→](../src/test/kotlin/architecture/rules/domain/DomainObject.kt)
+## [Domain Object](../src/test/kotlin/architecture/rules/domain/DomainObject.kt)
 
 An immutable type representing data at the domain-level.
 
@@ -244,7 +244,7 @@ sealed interface Transport {
 
 ---
 
-## Use Case[→](../src/test/kotlin/architecture/rules/domain/UseCase.kt)
+## [Use Case](../src/test/kotlin/architecture/rules/domain/UseCase.kt)
 
 A class that implements a single [domain interface](#domain-interface).
 
@@ -275,7 +275,7 @@ A class that implements a single [domain interface](#domain-interface).
 
 ---
 
-## Domain Exception[→](../src/test/kotlin/architecture/rules/domain/DomainException.kt)
+## [Domain Exception](../src/test/kotlin/architecture/rules/domain/DomainException.kt)
 
 A class that represents a known failure mode raised by a domain interface.
 
@@ -291,7 +291,7 @@ A class that represents a known failure mode raised by a domain interface.
 
 ---
 
-## Domain Constants[→](../src/test/kotlin/architecture/rules/domain/DomainConstants.kt)
+## [Domain Constants](../src/test/kotlin/architecture/rules/domain/DomainConstants.kt)
 
 An `object` declaration whose only members are `val` constants — used to anchor
 domain-level magic numbers, lookup tables, or named tags.
@@ -307,7 +307,7 @@ domain-level magic numbers, lookup tables, or named tags.
 
 ---
 
-## Domain Extension Function[→](../src/test/kotlin/architecture/rules/domain/DomainExtensionFunction.kt)
+## [Domain Extension Function](../src/test/kotlin/architecture/rules/domain/DomainExtensionFunction.kt)
 
 A top-level extension function on a domain object that adds derived or convenience
 behavior.
@@ -328,7 +328,7 @@ behavior.
 
 ---
 
-## Domain Extension Property[→](../src/test/kotlin/architecture/rules/domain/DomainExtensionProperty.kt)
+## [Domain Extension Property](../src/test/kotlin/architecture/rules/domain/DomainExtensionProperty.kt)
 
 A top-level extension property on a domain object that exposes derived state.
 

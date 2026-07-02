@@ -3,7 +3,7 @@
 > Sources: @Describe annotations in the Kotlin catalog in `src/test/kotlin/architecture/rules/ui/` (narrative + rules), plus the `*.examples.md` files beside it.
 > Regenerate with `UPDATE_ARCHITECTURE_DOCS=true ./gradlew :platform:common:architecture:test`.
 
-# Ui Layer[→](../src/test/kotlin/architecture/rules/ui/UiLayer.kt)
+# [Ui Layer](../src/test/kotlin/architecture/rules/ui/UiLayer.kt)
 
 The `ui` axis spans `:api` and `:client`. **`:api` contents**: serializable Navigation Keys
 (Destinations) — a feature's shared navigation entry points. **`:client` contents**: Compose UI
@@ -38,7 +38,7 @@ The layer rules below apply across the whole `feature.[name].ui` package.
 
 ---
 
-## Screen[→](../src/test/kotlin/architecture/rules/ui/Screen.kt)
+## [Screen](../src/test/kotlin/architecture/rules/ui/Screen.kt)
 
 A Composable function (or property-based `navigationDestination`) that defines the layout
 and visual representation of a feature or portion of a feature.
@@ -110,7 +110,7 @@ val changeRoleScreen = navigationDestination<ChangeRoleDestination>(
 
 ---
 
-## Composable[→](../src/test/kotlin/architecture/rules/ui/Composable.kt)
+## [Composable](../src/test/kotlin/architecture/rules/ui/Composable.kt)
 
 A `@Composable` function defined in the `..ui..` package that is **not** a Screen —
 typically a sub-component used by one or more screens, an inline editor, or a
@@ -159,7 +159,7 @@ device or emulator — enforced by `UiLayer.Composable.screenContentSnapshotTest
 
 ---
 
-## Destination[→](../src/test/kotlin/architecture/rules/ui/Destination.kt)
+## [Destination](../src/test/kotlin/architecture/rules/ui/Destination.kt)
 
 A serializable data class or object representing the navigation contract for a particular
 screen; the input parameters required by that screen (if any) and the output result type
@@ -188,7 +188,7 @@ provided by that screen (if any).
 
 ---
 
-## View Model[→](../src/test/kotlin/architecture/rules/ui/ViewModel.kt)
+## [View Model](../src/test/kotlin/architecture/rules/ui/ViewModel.kt)
 
 A class that manages the UI state for a Screen and orchestrates calls to domain interfaces
 to load data and perform side effects based on user actions.
@@ -220,7 +220,7 @@ to load data and perform side effects based on user actions.
 
 ---
 
-## View Model State[→](../src/test/kotlin/architecture/rules/ui/ViewModelState.kt)
+## [View Model State](../src/test/kotlin/architecture/rules/ui/ViewModelState.kt)
 
 The complete, immutable representation of a Screen's data at a single point in time.
 
@@ -277,7 +277,7 @@ val User.displayRole: String
 
 ---
 
-## Ui Value Type[→](../src/test/kotlin/architecture/rules/ui/UiValueType.kt)
+## [Ui Value Type](../src/test/kotlin/architecture/rules/ui/UiValueType.kt)
 
 A small closed value type (enum, sealed class, or sealed interface) that lives in `..ui..`
 and crosses feature boundaries — e.g. a `Slot` tag that one feature's ViewModel passes back

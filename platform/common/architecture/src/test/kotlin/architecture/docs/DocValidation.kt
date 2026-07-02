@@ -56,12 +56,12 @@ internal fun validateLinks(docs: List<GeneratedDoc>, moduleRoot: File, errors: M
     }
 }
 
-/** The doc's title: its first heading, with any inline link (the ↗ source link) dropped. */
+/** The doc's title: its first heading, with any inline link unwrapped to its text. */
 internal fun titleOf(doc: GeneratedDoc): String {
     var title: String? = null
     forEachProseLine(doc.content) { line ->
         if (title == null && line.startsWith("# ")) {
-            title = line.removePrefix("# ").replace(inlineLink, "").trim()
+            title = line.removePrefix("# ").replace(inlineLink, "$1").trim()
         }
     }
     return title ?: doc.relativePath
