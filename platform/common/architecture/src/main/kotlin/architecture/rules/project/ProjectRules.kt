@@ -11,30 +11,30 @@ import com.lemonappdev.konsist.api.provider.KoResideInPackageProvider
  * Not a package layer: no classifying constructs, no `inPackage`, hence no exhaustiveness rule.
  */
 @Describe("""
-    These rules are not tied to a construct or a single package — they apply across every feature
+    These rules are not tied to a Construct or a single package; they apply across every feature
     module. Several govern the process for [architecture exceptions](exceptions.md); the mechanism
     itself is documented there.
 
     Context for the exception-handling rules: exceptions defined in the
-    [services contract](services.md#service-interface) cross the client/server wire as serialised
-    payloads, and the deserialised types don't always extend `Exception`. `AsyncState` is the
-    async-result wrapper that [ViewModels](ui.md#view-model) consume.
+    [services contract](services.md#service-interface) cross the client/server boundary as
+    serialised payloads, and the deserialised types don't always extend `Exception`. `AsyncState`
+    is the async-result wrapper that [ViewModels](ui.md#view-model) consume.
 """)
 object ProjectRules : RuleGroup() {
 
     // ---- §5.1 Exception handling -------------------------------------------------------------
-    @Describe("A `try/catch` block must never catch `Exception` — use `catch (t: Throwable)` or a specific exception type")
+    @Describe("A `try/catch` block must never catch `Exception`; use `catch (t: Throwable)` or a specific exception type instead")
     val noCatchException by rule {
         rationale(
             """
             The urpc transport (`dev.isaacudy.udytils:urpc-*`) deserialises server-side exceptions
-            into types that may not extend `Exception` (e.g. kotlinx-serialization / kRPC error
-            types). A `catch (Exception)` block silently misses these, so the error propagates
-            uncaught and crashes on an internal thread instead of being handled by application code.
+            into types that may not extend `Exception`, such as kotlinx-serialization error types.
+            A `catch (Exception)` block silently misses these, so the error propagates uncaught and
+            crashes on an internal thread instead of being handled by application code.
             """.trimIndent(),
         )
-        note("On the client, prefer `AsyncState.fromSuspending` over manual `try/catch` — it captures exceptions correctly and integrates with the ViewModel state pattern.")
-        note("Catching a specific exception type (e.g. `catch (t: IllegalArgumentException)`) is always acceptable when you only want to handle that case.")
+        note("On the client, prefer `AsyncState.fromSuspending` over manual `try/catch`: it captures exceptions correctly and integrates with the ViewModel state pattern.")
+        note("Catching a specific exception type, such as `catch (t: IllegalArgumentException)`, is always acceptable when you only want to handle that case.")
         scope { scope, exempt ->
             val tryDeclarationRegex = Regex(
                 pattern = ".*\\btry\\s*\\{.*\\}.*\\bcatch\\s*\\(.*\\bException\\s*\\).*",
@@ -47,17 +47,18 @@ object ProjectRules : RuleGroup() {
         }
     }
 
-    @Describe("An exception type defined in `services` (the cross-the-wire contract) must be annotated with `@Serializable`")
+    @Describe("An exception type defined in `services` (the client/server contract) must be annotated with `@Serializable`")
     val serviceExceptionsSerializable by rule {
         rationale(
             """
             The urpc transport (`dev.isaacudy.udytils:urpc-*`) deserialises server-side exceptions
             into typed payloads on the client; without `@Serializable` the type and message are lost
             in transit and the client receives a generic deserialisation failure. Exceptions inside
-            `services.internal.*` stay server-side and don't cross the wire, so they are out of scope.
+            `services.internal.*` stay server-side and never reach the client, so they are out of
+            scope.
             """.trimIndent(),
         )
-        note("Prefer subclassing `PresentableException` with a deliberate `retryable` flag — streaming flows auto-retry retryable errors and surface terminal ones; the unary error UI offers a Retry action only when `retryable`.")
+        note("Prefer subclassing `PresentableException` with a deliberate `retryable` flag: streaming flows auto-retry retryable errors and surface terminal ones, and the unary error UI offers a Retry action only when `retryable`.")
         scope { scope, exempt ->
             scope.classes(includeNested = true)
                 .filter { it.isFeatureModule() }
@@ -76,12 +77,12 @@ object ProjectRules : RuleGroup() {
     }
 
     // ---- §5.2 Imports ------------------------------------------------------------------------
-    @Describe("An import must not use a wildcard — always list the explicit symbols")
+    @Describe("An import must not use a wildcard; always list the explicit symbols")
     val noWildcardImports by rule {
         rationale(
             """
-            Wildcards hide which symbols a file depends on, break a number of architecture-test
-            checks (which inspect import names directly), and silently pull in new names when the
+            Wildcards hide which symbols a file depends on, break several architecture tests
+            (which inspect import names directly), and silently pull in new names when the
             imported package adds members.
             """.trimIndent(),
         )
@@ -94,12 +95,12 @@ object ProjectRules : RuleGroup() {
         }
     }
 
-    @Describe("An `AsyncState` must never be constructed directly via `Loading`/`Success`/`Error` — use `AsyncState.fromSuspending`/`fromFlow`")
+    @Describe("An `AsyncState` must never be constructed directly via `Loading`/`Success`/`Error`; use `AsyncState.fromSuspending`/`fromFlow` instead")
     val noDirectAsyncStateConstruction by rule {
         rationale(
             """
             Direct construction skips the exception capture, cancellation, and state-flow protocol
-            that `AsyncState.fromSuspending`/`fromFlow` handle uniformly — silently breaking the
+            that `AsyncState.fromSuspending`/`fromFlow` handle uniformly, silently breaking the
             contract the rest of the codebase relies on. Files that legitimately build AsyncState
             values (defining its semantics, or the server-side status pattern) opt out with
             `@file:ArchitectureException`.
@@ -124,7 +125,7 @@ object ProjectRules : RuleGroup() {
             exhaustiveness drive handling, so adding a variant surfaces every site that must handle it.
             """.trimIndent(),
         )
-        note("\"An enum that should be a sealed class\" can't be detected reliably by Konsist.")
+        note("\"An enum that should be a sealed class\" can't be detected reliably by the tests.")
         unverifiable()
     }
 
@@ -132,12 +133,12 @@ object ProjectRules : RuleGroup() {
     @Describe("An architecture exception may only be added after discussing the exception with a human author")
     val exceptionsNeedHumanSignOff by rule { unverifiable() }
 
-    @Describe("An architecture exception is not a valid way to resolve an immediate architecture-test failure without user feedback — fix the code or the rule first")
+    @Describe("An architecture exception is not a valid way to resolve an immediate architecture-test failure; fix the code or the rule first")
     val exceptionNotForFailingTests by rule { unverifiable() }
 
     @Describe("An architecture exception must include a KDoc-style (`/** ... */`) comment explaining why it exists and the intended resolution")
     val exceptionNeedsKdoc by rule {
-        note("Checked for `@ArchitectureException` on declarations; `// architecture-exception:` comments in build files carry their reason inline and are out of scope.")
+        note("The test covers `@ArchitectureException` on declarations; `// architecture-exception:` comments in build files carry their reason inline and are out of scope.")
         scope { scope, exempt ->
             scope.declarations(includeNested = true)
                 .filter { (it as? KoAnnotationProvider)?.hasAnnotationWithName("ArchitectureException") == true }
@@ -147,7 +148,7 @@ object ProjectRules : RuleGroup() {
         }
     }
 
-    @Describe("An architecture exception should be temporary — revisit it periodically and remove it once the underlying issue is resolved")
+    @Describe("An architecture exception should be temporary; revisit it periodically and remove it once the underlying issue is resolved")
     val exceptionsAreTemporary by guidance
 }
 

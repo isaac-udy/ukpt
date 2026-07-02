@@ -3,10 +3,10 @@ package architecture.rules.services
 import dev.isaacudy.udytils.architecture.*
 
 @Describe("""
-    Plain `internal fun` conversions between the storage `Row` shapes and domain types.
+    A plain `internal fun` conversion between the storage `Row` shapes and domain types.
 
-    * **Convention**: `XxxRow.toDomain()` for `Row → Domain`; `Domain.toRow(...)` for the
-      inverse.
+    * **Note:** The convention is `XxxRow.toDomain()` for `Row → Domain` and `Domain.toRow(...)`
+      for the inverse.
 """)
 object MappingFunction : Construct<ServicesLayer>(
     requirements = listOf(

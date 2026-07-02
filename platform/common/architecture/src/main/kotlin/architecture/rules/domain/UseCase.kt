@@ -8,13 +8,12 @@ import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 @Describe("""
     A class that implements a single [domain interface](#domain-interface).
 
-    * **Note**: Immutable helper properties (e.g., loggers) are permitted — "no mutable state"
+    * **Note:** Immutable helper properties, such as loggers, are permitted. "No mutable state"
       forbids `var` properties, not properties in general.
-    * **Note**: If a UseCase only injects a single other domain interface, consider whether
-      that logic should become a default function of the other domain interface instead.
-    * **Note**: When breaking down a complex UseCase, reach for file-private extension
-      functions, private functions, or nested classes — not additional domain
-      interfaces/UseCases that pollute the namespace.
+    * **Note:** If a UseCase only injects a single other domain interface, consider whether that
+      logic should become a default function of the other domain interface instead.
+    * **Note:** When breaking down a complex UseCase, use file-private extension functions,
+      private functions, or nested classes instead of additional domain interfaces or UseCases.
 """)
 object UseCase : Construct<DomainLayer>(
     requirements = listOf(
@@ -25,7 +24,7 @@ object UseCase : Construct<DomainLayer>(
         isClassWhere("implements exactly one domain interface") { it.associatedDomainInterfaceName() != null },
     ),
 ) {
-    @Describe("A UseCase must not contain mutable state — all properties are `val`")
+    @Describe("A UseCase must not contain mutable state: all properties must be `val`")
     val noMutableState by rule {
         constrain { decl, _ ->
             val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
@@ -37,8 +36,9 @@ object UseCase : Construct<DomainLayer>(
     val noOverridingDefaults by rule {
         rationale(
             """
-            The only abstract member is the primary `operator fun invoke`; every other function is a
-            default. Overriding a default per-implementation defeats the point of the interface helpers.
+            The only abstract member of a domain interface is the primary `operator fun invoke`;
+            every other function is a default. Overriding a default in an implementation defeats
+            the purpose of the interface helpers.
             """.trimIndent(),
         )
         constrain { decl, _ ->
@@ -52,7 +52,7 @@ object UseCase : Construct<DomainLayer>(
 
     @Describe("A UseCase may inject domain interfaces to perform its logic")
     val mayInjectDomainInterfaces by guidance
-    @Describe("A UseCase that becomes too complex should be broken into private/file-private/nested parts")
+    @Describe("A UseCase that becomes too complex should be broken into private, file-private, or nested parts")
     val breakDownComplexUseCases by guidance
 }
 

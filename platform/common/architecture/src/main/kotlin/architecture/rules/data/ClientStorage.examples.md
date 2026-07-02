@@ -1,3 +1,5 @@
+An `expect`/`actual` Storage class with a platform-specific backing store:
+
 ```kotlin
 // commonMain
 expect class AuthCredentialStorage() {

@@ -12,8 +12,8 @@ import com.lemonappdev.konsist.api.declaration.KoParentDeclaration
 @Describe("""
     The `data` axis is **client-only**: Repository implementations and client-side local persistence
     (Keychain, SharedPreferences, etc.). Server-side persistence and service implementations live in
-    the `services` axis — the server has no `data.*` package (see [the services layer](services.md)).
-    Repositories fan out across [Services](services.md#service-interface) (the `:api` contract) and
+    the `services` axis; the server has no `data.*` package (see [the services layer](services.md)).
+    Repositories call [Services](services.md#service-interface) (the `:api` contract) and
     client-side local storage, and expose [domain interfaces](domain.md#domain-interface) for the
     rest of the feature to consume.
 """)
@@ -28,17 +28,17 @@ object DataLayer : RuleGroup(
 ) {
 
     // §3.3 `data` package dependencies (layer-level — not tied to one construct)
-    @Describe("The `data` layer provides implementations of `domain` interfaces — by exposing them as properties, not by inheriting them")
+    @Describe("The `data` layer must provide implementations of `domain` interfaces by exposing them as properties, not by inheriting them")
     val providesDomainImplementations by rule {
         note("A Repository that implements a domain interface, or fails to expose one as a `public val`, fails the enforcing rules directly.")
         enforcedBy(Repository.doesNotImplementDomainInterfaces, Repository.exposesDomainInterfacesAsProperties)
     }
 
-    @Describe("A `data` class must not inject `domain` interfaces — logic requiring multiple domain interfaces must be moved to a UseCase")
+    @Describe("A `data` class must not inject `domain` interfaces; logic that requires multiple domain interfaces belongs in a UseCase")
     val noInjectingDomainInterfaces by rule {
         rationale(
             """
-            Repositories *implement* domain interfaces — if one injects a domain interface, it's calling
+            Repositories implement domain interfaces. If one injects a domain interface, it is calling
             a sibling Repository through the abstract layer, which makes the dependency graph unreadable
             and easy to cycle. Logic that needs multiple domain interfaces belongs in a UseCase.
             """.trimIndent(),
@@ -59,7 +59,7 @@ object DataLayer : RuleGroup(
         }
     }
 
-    @Describe("A `data.storage` class uses `internal` visibility where the language allows (see `DataLayer.ClientStorage.internalVisibility` for the canonical statement, incl. the `expect`/`actual` nuance)")
+    @Describe("A `data.storage` class must use `internal` visibility where the language allows (see `DataLayer.ClientStorage.internalVisibility`)")
     val storageInternalVisibility by rule {
         enforcedBy(ClientStorage.internalVisibility)
     }

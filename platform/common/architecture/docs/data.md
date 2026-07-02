@@ -7,8 +7,8 @@
 
 The `data` axis is **client-only**: Repository implementations and client-side local persistence
 (Keychain, SharedPreferences, etc.). Server-side persistence and service implementations live in
-the `services` axis — the server has no `data.*` package (see [the services layer](services.md)).
-Repositories fan out across [Services](services.md#service-interface) (the `:api` contract) and
+the `services` axis; the server has no `data.*` package (see [the services layer](services.md)).
+Repositories call [Services](services.md#service-interface) (the `:api` contract) and
 client-side local storage, and expose [domain interfaces](domain.md#domain-interface) for the
 rest of the feature to consume.
 
@@ -21,12 +21,12 @@ rest of the feature to consume.
 
 ##### Rules
 
-* The `data` layer provides implementations of `domain` interfaces — by exposing them as properties, not by inheriting them
+* The `data` layer must provide implementations of `domain` interfaces by exposing them as properties, not by inheriting them
     * **Note:** A Repository that implements a domain interface, or fails to expose one as a `public val`, fails the enforcing rules directly.
     * **Enforced by:** `DataLayer.Repository.doesNotImplementDomainInterfaces`, `DataLayer.Repository.exposesDomainInterfacesAsProperties`
-* A `data` class must not inject `domain` interfaces — logic requiring multiple domain interfaces must be moved to a UseCase
-    * **Why:** Repositories *implement* domain interfaces — if one injects a domain interface, it's calling a sibling Repository through the abstract layer, which makes the dependency graph unreadable and easy to cycle. Logic that needs multiple domain interfaces belongs in a UseCase.
-* A `data.storage` class uses `internal` visibility where the language allows (see `DataLayer.ClientStorage.internalVisibility` for the canonical statement, incl. the `expect`/`actual` nuance)
+* A `data` class must not inject `domain` interfaces; logic that requires multiple domain interfaces belongs in a UseCase
+    * **Why:** Repositories implement domain interfaces. If one injects a domain interface, it is calling a sibling Repository through the abstract layer, which makes the dependency graph unreadable and easy to cycle. Logic that needs multiple domain interfaces belongs in a UseCase.
+* A `data.storage` class must use `internal` visibility where the language allows (see `DataLayer.ClientStorage.internalVisibility`)
     * **Enforced by:** `DataLayer.ClientStorage.internalVisibility`
 * The `data` layer must not depend on the `ui` package
     * **Why:** UI is the outermost layer; `data` sits beneath it and supplies the domain interfaces the UI consumes. If `data` imports a UI type the layering becomes circular and the Repository can no longer be tested without a Compose runtime.
@@ -35,11 +35,11 @@ rest of the feature to consume.
 
 ## [Repository](../src/main/kotlin/architecture/rules/data/Repository.kt)
 
-A class that provides implementations for [domain interfaces](domain.md#domain-interface),
-providing the "edge" of the domain layer.
+A class that provides implementations for [domain interfaces](domain.md#domain-interface) by
+exposing them as `public val` properties.
 
-* **Note**: The property name must match the interface name using `lowerCamelCase`
-  (e.g., `val createUser = CreateUser { ... }`).
+* **Note:** The property name must match the interface name in `lowerCamelCase`, such as
+  `val createUser = CreateUser { ... }`.
 
 ##### Requirements
 
@@ -56,7 +56,7 @@ providing the "edge" of the domain layer.
 * A Repository must not inject domain interfaces
     * **Why:** Logic requiring multiple domain interfaces must be moved to a UseCase in the `domain` package.
 * A Repository must not inject other Repositories
-* A Repository's domain-interface properties must be initialized immediately — no `by lazy`, no custom getter
+* A Repository's domain-interface properties must be initialized immediately: no `by lazy`, no custom getter
     * **Why:** Eager initialisation lets Koin's graph validation catch missing or cyclic dependencies at startup instead of at the first injection at runtime, and it makes the wiring obvious from a quick read of the Repository constructor.
 
 ##### Guidance
@@ -64,6 +64,8 @@ providing the "edge" of the domain layer.
 * A Repository may inject Services, client-side `data.storage` Storage objects, or database clients to fulfill its domain properties
 
 ##### Examples
+
+A Repository that exposes domain interfaces as `public val` properties, backed by a Service and local storage:
 
 ```kotlin
 internal class UserRepository(
@@ -84,13 +86,13 @@ internal class UserRepository(
 
 ## [Client Data Interface](../src/main/kotlin/architecture/rules/data/ClientDataInterface.kt)
 
-A client-side interface declared in `..data..` (but not `data.storage`) that is **not** a
-Repository — typically the contract for a low-level concern with platform-specific actuals
-(e.g., `BinaryUploadClient` for chunked file upload).
+A client-side interface declared in `..data..` (but not `data.storage`) that is not a
+Repository. Typically the contract for a low-level concern with platform-specific actuals,
+such as `BinaryUploadClient` for chunked file upload.
 
-* **Note**: These exist to give Repositories a clean abstraction over a concrete platform
+* **Note:** These exist to give Repositories a clean abstraction over a concrete platform
   capability. If you find yourself writing one, ask whether it belongs in `:platform:client`
-  instead — feature-local data abstractions are appropriate when the contract is
+  instead; a feature-local data abstraction is appropriate when the contract is
   feature-specific.
 
 ##### Requirements
@@ -103,8 +105,8 @@ Repository — typically the contract for a low-level concern with platform-spec
 
 ## [Client Data Implementation](../src/main/kotlin/architecture/rules/data/ClientDataImplementation.kt)
 
-A client-side class in `..data..` (but not `data.storage`) that is **not** a Repository —
-usually a platform-specific implementation of a [client data interface](#client-data-interface).
+A client-side class in `..data..` (but not `data.storage`) that is not a Repository. Usually
+a platform-specific implementation of a [client data interface](#client-data-interface).
 
 ##### Requirements
 
@@ -117,12 +119,12 @@ usually a platform-specific implementation of a [client data interface](#client-
 
 ## [Client Storage](../src/main/kotlin/architecture/rules/data/ClientStorage.kt)
 
-A class responsible for local-device data persistence and retrieval (e.g., credentials,
-preferences, cached data on disk) — `expect`/`actual` `Storage` classes backed by Keychain
-(iOS), SharedPreferences (Android), DataStore, etc.
+A class responsible for local-device data persistence and retrieval, such as credentials,
+preferences, or cached data on disk. Backed by Keychain (iOS), SharedPreferences (Android),
+DataStore, etc.
 
-* **Note**: Client-side Storage classes may be `expect`/`actual` classes when the underlying
-  storage mechanism is platform-specific (e.g., Keychain on iOS, SharedPreferences on Android).
+* **Note:** A Storage class may be an `expect`/`actual` class when the underlying storage
+  mechanism is platform-specific, such as Keychain on iOS and SharedPreferences on Android.
 
 ##### Requirements
 
@@ -136,11 +138,13 @@ preferences, cached data on disk) — `expect`/`actual` `Storage` classes backed
 ##### Rules
 
 * A Storage class must be marked as `internal` (the `expect` declaration may be public, but `actual` implementations should be `internal` where the language allows)
-    * **Note:** The check skips `expect`/`actual` declarations — an `actual`'s visibility must match its `expect`, so the language decides there, not this rule.
+    * **Note:** The test skips `expect`/`actual` declarations: an `actual`'s visibility must match its `expect`, so the language decides there, not this Rule.
 * A Storage class must not inject domain interfaces, Repositories, or Services
-    * **Why:** Storage is the lowest layer of the stack — it should depend on the database/keychain client and nothing higher. Injecting a domain interface, Repository, or Service would embed orchestration logic in the persistence layer.
+    * **Why:** Storage is the lowest layer of the stack: it should depend on the database or keychain client and nothing higher. Injecting a domain interface, Repository, or Service would embed orchestration logic in the persistence layer.
 
 ##### Examples
+
+An `expect`/`actual` Storage class with a platform-specific backing store:
 
 ```kotlin
 // commonMain

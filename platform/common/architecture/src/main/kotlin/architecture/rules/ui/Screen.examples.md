@@ -5,8 +5,8 @@ A dialog/overlay screen: the Destination lives in `:api`, and the property-based
 @Serializable
 data class ChangeRoleDestination(
     val memberName: String,
-    val currentRole: CampaignRole,
-) : NavigationKey.WithResult<CampaignRole>
+    val currentRole: UserRole,
+) : NavigationKey.WithResult<UserRole>
 
 // Screen (in :client) — property-based with directOverlay metadata
 @NavigationDestination(ChangeRoleDestination::class)

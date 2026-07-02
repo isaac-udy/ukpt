@@ -5,15 +5,13 @@
 
 # UKPT Architecture
 
-The architecture of UKPT: a Kotlin Multiplatform template with vertical feature slices
-(`:feature:[name]:{api,client,server}`) over shared infrastructure (`:platform`), assembled by
-thin application shells (`:app`). Features are organised along four axes — `domain`, `ui`,
-`data` (client), and `services` (the urpc client↔server contract plus its server-side
-implementation) — with module-graph rules keeping the slices independent.
+UKPT is a Kotlin Multiplatform template. Its architecture is built from vertical feature
+slices (`:feature:[name]:{api,client,server}`) over shared infrastructure (`:platform`),
+assembled by thin application shells (`:app`). Each feature is organised along four axes:
+`domain`, `ui`, `data`, and `services`. Module-graph rules keep the slices independent.
 
-The rules govern the feature modules (`projectScope`, excluding the embedded composite builds
-and test sources); the catalog itself is meta-code and is not scanned. `:feature:core` is the
-worked example the rules describe.
+The rules govern the feature modules. The embedded composite builds, test sources, and this
+rule module itself are not tested. `:feature:core` is the worked example the rules describe.
 
 ## Rules
 

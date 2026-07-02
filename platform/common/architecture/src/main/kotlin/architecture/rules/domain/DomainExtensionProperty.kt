@@ -5,9 +5,9 @@ import dev.isaacudy.udytils.architecture.*
 @Describe("""
     A top-level extension property on a domain object that exposes derived state.
 
-    * **Note**: Same constraints as [domain extension functions](#domain-extension-function).
-      Prefer a property when the value is a pure projection of the receiver and is cheap to
-      compute on every read.
+    * **Note:** The same constraints as [domain extension functions](#domain-extension-function)
+      apply. Prefer a property when the value is a pure projection of the receiver and is cheap
+      to compute on every read.
 """)
 object DomainExtensionProperty : Construct<DomainLayer>(
     requirements = listOf(

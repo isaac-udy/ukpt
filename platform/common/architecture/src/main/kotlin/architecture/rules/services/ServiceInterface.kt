@@ -9,9 +9,9 @@ import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
     **urpc** (`dev.isaacudy.udytils:urpc-*`): KSP generates the client, the `UrpcService`
     server binding, and the wire descriptors from the annotated interface.
 
-    * **Note**: Service-level exception conventions — dedicated `@Serializable` exception
-      types, `PresentableException`, and the deliberate `retryable` flag — are covered in
-      [exception handling](exceptions.md).
+    * **Note:** Service-level exception conventions (dedicated `@Serializable` exception types,
+      `PresentableException`, and the deliberate `retryable` flag) are covered by
+      `ServicesLayer.ServiceInterface.errorsViaExceptions` below.
 """)
 object ServiceInterface : Construct<ServicesLayer>(
     requirements = listOf(
@@ -20,11 +20,11 @@ object ServiceInterface : Construct<ServicesLayer>(
         predicate("resides in the top-level `feature.[name].services` package") { it.isInServicesRoot() },
     ),
 ) {
-    @Describe("A Service must always be implemented as urpc service functions in the appropriate server module — never as a client-only local service")
+    @Describe("A Service must always be implemented as urpc service functions in the appropriate server module, never as a client-only local service")
     val noClientOnlyServices by rule { unverifiable() }
-    @Describe("A Service function is a plain `suspend fun f(req): Res`, `fun f(req): Flow<Res>`, or `fun f(reqs: Flow<Req>): Flow<Res>`, taking 0 or 1 parameter")
+    @Describe("A Service function must be a plain `suspend fun f(req): Res`, `fun f(req): Flow<Res>`, or `fun f(reqs: Flow<Req>): Flow<Res>`, taking 0 or 1 parameter")
     val plainFunctionShapes by rule {
-        note("The check enforces the parameter count; the suspend/Flow shape is validated by the urpc KSP processor at compile time.")
+        note("The test enforces the parameter count; the suspend/Flow shape is validated by the urpc KSP processor at compile time.")
         constrain { decl, _ ->
             val iface = decl as? KoInterfaceDeclaration ?: return@constrain emptyList()
             iface.functions()
@@ -36,7 +36,7 @@ object ServiceInterface : Construct<ServicesLayer>(
     @Describe("A Service function's `Request`/`Response` types must be nested `@Serializable` types grouped under a per-function `object` namespace")
     val nestedRequestResponseTypes by rule { unverifiable() }
 
-    @Describe("A Service interface lives in `feature.[name].services` of the `:api` module")
+    @Describe("A Service interface must live in `feature.[name].services` of the `:api` module")
     val contractLivesInApi by rule {
         constrain { decl, _ ->
             val iface = decl as? KoInterfaceDeclaration ?: return@constrain emptyList()
@@ -48,12 +48,12 @@ object ServiceInterface : Construct<ServicesLayer>(
         }
     }
 
-    @Describe("A Service function propagates errors via thrown exceptions; the return type only ever represents a successful result")
+    @Describe("A Service function must propagate errors via thrown exceptions; the return type only represents a successful result")
     val errorsViaExceptions by rule {
         rationale(
             """
-            @Throws on suspend functions must include CancellationException (or a superclass like
-            Exception) — required for Kotlin/Native: kotlinc rejects the function on iOS targets otherwise.
+            `@Throws` on a `suspend` function must include `CancellationException` (or a superclass
+            such as `Exception`); without it, kotlinc rejects the function on iOS targets.
             """.trimIndent(),
         )
         note("Known service exceptions should be their own `@Serializable` type (ideally a `PresentableException`).")

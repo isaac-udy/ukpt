@@ -2,7 +2,7 @@ package architecture.rules.services
 
 import dev.isaacudy.udytils.architecture.*
 
-@Describe("`object`s holding pure helper functions.")
+@Describe("An `object` that holds pure helper functions.")
 object InternalObjectHelper : Construct<ServicesLayer>(
     requirements = listOf(
         isObject,

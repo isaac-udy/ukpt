@@ -6,11 +6,11 @@ import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 
 @Describe("""
-    A class that provides implementations for [domain interfaces](domain.md#domain-interface),
-    providing the "edge" of the domain layer.
+    A class that provides implementations for [domain interfaces](domain.md#domain-interface) by
+    exposing them as `public val` properties.
 
-    * **Note**: The property name must match the interface name using `lowerCamelCase`
-      (e.g., `val createUser = CreateUser { ... }`).
+    * **Note:** The property name must match the interface name in `lowerCamelCase`, such as
+      `val createUser = CreateUser { ... }`.
 """)
 object Repository : Construct<DataLayer>(
     requirements = listOf(
@@ -76,7 +76,7 @@ object Repository : Construct<DataLayer>(
         }
     }
 
-    @Describe("A Repository's domain-interface properties must be initialized immediately — no `by lazy`, no custom getter")
+    @Describe("A Repository's domain-interface properties must be initialized immediately: no `by lazy`, no custom getter")
     val propertiesEagerlyInitialized by rule {
         rationale(
             """

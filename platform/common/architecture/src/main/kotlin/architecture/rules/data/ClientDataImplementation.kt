@@ -6,8 +6,8 @@ import architecture.definitions.containingFilePackage
 import architecture.definitions.containsPackageSegment
 
 @Describe("""
-    A client-side class in `..data..` (but not `data.storage`) that is **not** a Repository —
-    usually a platform-specific implementation of a [client data interface](#client-data-interface).
+    A client-side class in `..data..` (but not `data.storage`) that is not a Repository. Usually
+    a platform-specific implementation of a [client data interface](#client-data-interface).
 """)
 object ClientDataImplementation : Construct<DataLayer>(
     requirements = listOf(

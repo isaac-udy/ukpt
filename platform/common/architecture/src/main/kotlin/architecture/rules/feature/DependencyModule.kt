@@ -12,13 +12,13 @@ import com.lemonappdev.konsist.api.provider.KoContainingFileProvider
 @Describe("""
     The configuration for Dependency Injection (DI) that wires the feature together.
 
-    * **Note**: The naming convention is `[name]ClientDependencies` in `:client` and
-      `[name]ServerDependencies` in `:server` — the construct enforces the `Dependencies` suffix;
+    * **Note:** The naming convention is `[name]ClientDependencies` in `:client` and
+      `[name]ServerDependencies` in `:server`. The Construct enforces the `Dependencies` suffix;
       the `Client`/`Server` infix is convention.
-    * **Note**: It is the responsibility of `:app` level modules (application shells) to collect
-      all of the DI modules provided by feature modules and create the final dependency graph.
-      When a new dependency module is added, it must be registered in both `:app:client:shared`
-      and `:app:server`; when a new Service is added, it must be registered in `:app:server`.
+    * **Note:** The `:app` modules (application shells) are responsible for collecting the DI
+      modules provided by feature modules into the final dependency graph. When a new dependency
+      module is added, it must be registered in both `:app:client:shared` and `:app:server`; when
+      a new Service is added, it must be registered in `:app:server`.
 """)
 object DependencyModule : Construct<FeatureRules>(
     requirements = listOf(
@@ -41,9 +41,9 @@ object DependencyModule : Construct<FeatureRules>(
         rationale(
             """
             If feature A binds an implementation of feature B's domain interface, feature B's DI
-            graph silently depends on feature A — and removing/refactoring A breaks B's wiring at
-            runtime, not at compile time. Each feature owns its own bindings; cross-feature
-            consumption goes through `:api` interfaces only.
+            graph silently depends on feature A, and removing or refactoring A breaks B's wiring
+            at runtime rather than at compile time. Each feature owns its own bindings;
+            cross-feature consumption goes through `:api` interfaces only.
             """.trimIndent(),
         )
         constrain { decl, _ ->
@@ -65,7 +65,7 @@ object DependencyModule : Construct<FeatureRules>(
     @Describe("A Dependency Module registers a service's generated `[Name]ServiceUrpcBinding` by chaining `.bindService(::[Name]ServiceUrpcBinding)` off the implementation's binding, inside the per-call `scope<UrpcCall> { }` block")
     val urpcServiceBinding by rule {
         note("`bindService` (from `dev.isaacudy.udytils.urpc.koin`) registers the binding under its own concrete type, bound to `UrpcService`, with the impl resolved lazily.")
-        note("Do NOT use `scoped<UrpcService> { [Name]ServiceUrpcBinding { get() } }` — every such binding shares the `UrpcService` definition key, so co-registered services override each other and `getAll<UrpcService>()` returns only one; the check catches this form.")
+        note("Never use `scoped<UrpcService> { [Name]ServiceUrpcBinding { get() } }`: every such binding shares the `UrpcService` definition key, so co-registered services override each other and `getAll<UrpcService>()` returns only one. The test catches this form.")
         note("`urpcService(::[Name]ServiceUrpcBinding)` is the equivalent standalone form when there is no impl definition to chain off.")
         constrain { decl, _ ->
             val file = (decl as? KoContainingFileProvider)?.containingFile ?: return@constrain emptyList()

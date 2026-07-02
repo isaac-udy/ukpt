@@ -10,14 +10,13 @@ import architecture.utils.validateTypeName
 import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
 
 @Describe("""
-    The `domain` axis is the deepest layer of a feature and appears in all three modules — `:api`,
+    The `domain` axis is the deepest layer of a feature and appears in all three modules: `:api`,
     `:client`, and `:server`. Its contents are pure Kotlin: data models
-    ([domain objects](#domain-object)) and single-function interfaces, sometimes called Interactors
-    ([domain interfaces](#domain-interface)). `domain` is the centre of gravity on both sides of the
-    wire: it depends on no other axis, and every other axis depends on it — on the client,
-    [Repositories](data.md#repository) implement the domain interfaces that
-    [ViewModels](ui.md#view-model) consume; on the server, the [`services` axis](services.md)
-    implements them.
+    ([domain objects](#domain-object)) and single-function interfaces
+    ([domain interfaces](#domain-interface)). `domain` depends on no other axis, and every other
+    axis depends on it. On the client, [Repositories](data.md#repository) implement the domain
+    interfaces that [ViewModels](ui.md#view-model) consume; on the server, the
+    [`services` axis](services.md) implements them.
 
     The `domain` package must only contain [domain interfaces](#domain-interface),
     [domain objects](#domain-object), [UseCases](#use-case),
@@ -27,9 +26,9 @@ import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
 
     The [Rules](#rules) below apply across the whole `feature.[name].domain` package.
 
-    * **Note**: Cross-feature domain dependencies should be minimised where possible, but are
-      permitted because real-world domains have genuine dependencies between them. The important
-      thing is getting the direction of dependencies correct and avoiding circular dependencies.
+    * **Note:** Cross-feature domain dependencies are permitted, because real-world domains depend
+      on each other, but they should be kept to a minimum. Get the direction of each dependency
+      right and avoid circular dependencies.
 """)
 object DomainLayer : RuleGroup(
     inPackage = "feature..domain..",
@@ -45,12 +44,13 @@ object DomainLayer : RuleGroup(
 ) {
 
     // §3.1 domain package dependencies (layer-level — not tied to one construct)
-    @Describe("The `domain` layer must not contain platform-specific dependencies (Android, Ktor, SQL, …)")
+    @Describe("The `domain` layer must not contain platform-specific dependencies, such as Android, Ktor, or SQL")
     val noPlatformDeps by rule {
         rationale(
             """
-            The domain layer stays pure Kotlin so it ports across :client/:server and every KMP target
-            and stays unit-testable. Expose a domain interface and implement it in `data`/`services`.
+            The domain layer stays pure Kotlin so it can be used in `:client`, `:server`, and every
+            KMP target, and stays unit-testable. Expose a domain interface and implement it in
+            `data` or `services` instead.
             """.trimIndent(),
         )
         scope { scope, exempt ->

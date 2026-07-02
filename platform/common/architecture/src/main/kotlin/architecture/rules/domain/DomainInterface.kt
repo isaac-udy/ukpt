@@ -5,16 +5,15 @@ import dev.isaacudy.udytils.architecture.*
 import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
 
 @Describe("""
-    A functional interface representing domain-level functionality/business logic.
+    A `fun interface` that represents a piece of domain-level business logic.
 
-    * **Note**: Default functions don't need to be `operator fun invoke` and should use
-      expressive names; they should provide commonly used functionality (e.g. handling a
-      particular exception type) or simplify calling the primary function with particular
-      parameters.
-    * **Note**: Implementations must never override an interface's default functions;
-      convenience functions belong as default members, not top-level extensions, so they're
-      discoverable and co-located with the interface.
-    * **Note**: Generic/unknown errors don't need their own exception type or `@Throws` entry.
+    * **Note:** Default functions should use expressive names. They should provide commonly used
+      functionality, such as handling a particular exception type, or simplify calling the primary
+      function with particular parameters.
+    * **Note:** Implementations must never override an interface's default functions. Convenience
+      functions belong as default members, not top-level extensions, so they stay discoverable and
+      co-located with the interface.
+    * **Note:** Generic or unknown errors don't need their own exception type or `@Throws` entry.
 """)
 object DomainInterface : Construct<DomainLayer>(
     requirements = listOf(
@@ -69,7 +68,7 @@ object DomainInterface : Construct<DomainLayer>(
 
     @Describe("A Domain Interface must be implemented by a Repository (as a property) or by a UseCase")
     val implementedByRepositoryOrUseCase by rule {
-        note("The check accepts either a class whose parents include the interface (a UseCase) or a `[Name]Repository` whose properties reference the interface.")
+        note("The test accepts either a class whose parents include the interface (a UseCase) or a `[Name]Repository` with a property that references the interface.")
         scope { scope, exempt ->
             scope.interfaces()
                 .filter { test(it) }
@@ -85,12 +84,12 @@ object DomainInterface : Construct<DomainLayer>(
         }
     }
 
-    @Describe("A Domain Interface's functions propagate errors via thrown exceptions, never via the return type")
+    @Describe("A Domain Interface's functions must propagate errors via thrown exceptions, never via the return type")
     val errorsViaExceptions by rule {
         rationale(
             """
-            @Throws on suspend functions must include CancellationException (or a superclass like
-            Exception) — required for Kotlin/Native: kotlinc rejects the function on iOS targets otherwise.
+            `@Throws` on a `suspend` function must include `CancellationException` (or a superclass
+            such as `Exception`); without it, kotlinc rejects the function on iOS targets.
             """.trimIndent(),
         )
         note("Known exceptions should be their own type extending RuntimeException, marked with `@Throws`.")

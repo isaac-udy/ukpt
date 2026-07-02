@@ -8,12 +8,11 @@ import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
 
 @Describe("""
-    An immutable type representing data at the domain-level.
+    An immutable type that represents domain-level data.
 
-    * **Note**: Nested types (enums, value classes, sealed interfaces/classes) belong nested
-      only when conceptually inseparable from the parent — like `User.Id` or
-      `Transport.Car.FuelType` in the examples below; otherwise model them as their own domain
-      objects.
+    * **Note:** Nested types (enums, value classes, sealed interfaces/classes) belong nested only
+      when conceptually inseparable from the parent, such as `User.Id` or `Transport.Car.FuelType`
+      in the examples below. Otherwise, model them as their own domain objects.
 """)
 object DomainObject : Construct<DomainLayer>(
     requirements = listOf(

@@ -6,7 +6,7 @@ import architecture.definitions.primitiveTypeNames
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 
 @Describe("""
-    The hand-written entry point to a feature's persistence — see the
+    The hand-written entry point to a feature's persistence. See the
     [`services.storage` overview](#servicesstorage--postgres-persistence).
 """)
 object StorageClass : Construct<ServicesLayer>(
@@ -24,7 +24,7 @@ object StorageClass : Construct<ServicesLayer>(
         }
     }
 
-    @Describe("A Storage class must take and return `XxxRow` types only — never domain types")
+    @Describe("A Storage class must take and return `XxxRow` types only, never domain types")
     val returnsRowTypesOnly by rule {
         rationale(
             """
@@ -53,7 +53,7 @@ object StorageClass : Construct<ServicesLayer>(
         }
     }
 
-    @Describe("A Storage operation that touches only a subset of columns must keep the hand-written `update { … it[col] = value … }` block — `setFromRow` writes every column and is wrong here")
+    @Describe("A Storage operation that touches only a subset of columns must use a hand-written `update { … it[col] = value … }` block; `setFromRow` writes every column and is wrong here")
     val partialUpdatesByHand by rule { unverifiable() }
 }
 

@@ -3,9 +3,9 @@ package architecture.rules.services
 import dev.isaacudy.udytils.architecture.*
 
 @Describe("""
-    Payloads that flow from one subsystem through the orchestrator into another. A carrier
+    A payload that flows from one subsystem through the orchestrator into another. A carrier
     lives at the bare `services.internal` ancestor so both producer and consumer can name it
-    under the data-shape carve-out (see
+    under the data-shape exception (see
     [hierarchical visibility](#hierarchical-visibility-within-servicesinternal)).
 """)
 object InternalDataCarrier : Construct<ServicesLayer>(

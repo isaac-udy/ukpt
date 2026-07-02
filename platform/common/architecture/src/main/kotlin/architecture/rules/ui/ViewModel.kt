@@ -8,10 +8,10 @@ import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
     A class that manages the UI state for a Screen and orchestrates calls to domain interfaces
     to load data and perform side effects based on user actions.
 
-    * **Note**: The `navigation` handle is used to read Destination parameters and perform
-      navigation. When closing/completing a screen, use `NavigationHandle.close` when the user
-      is cancelling or backing out, and `NavigationHandle.complete` when the user has
-      successfully performed an action.
+    * **Note:** The `navigation` handle is used to read Destination parameters and perform
+      navigation. When closing a screen, use `NavigationHandle.close` when the user is cancelling
+      or backing out, and `NavigationHandle.complete` when the user has successfully performed
+      an action.
 """)
 object ViewModel : Construct<UiLayer>(
     requirements = listOf(
@@ -42,7 +42,7 @@ object ViewModel : Construct<UiLayer>(
         hasFileNameMatchingDeclaration,
     ),
 ) {
-    @Describe("A ViewModel exposes a single public `state` property, or no public properties at all")
+    @Describe("A ViewModel must expose a single public `state` property, or no public properties at all")
     val singlePublicStateProperty by rule {
         constrain { decl, _ ->
             val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
@@ -72,7 +72,7 @@ object ViewModel : Construct<UiLayer>(
     @Describe("A ViewModel should inject domain interfaces to load and manipulate domain objects")
     val injectsDomainInterfaces by guidance
 
-    @Describe("A ViewModel must use `JobManager` to manage coroutines — never hold `var job: Job?` references")
+    @Describe("A ViewModel must use `JobManager` to manage coroutines, never a `var job: Job?` reference")
     val usesJobManager by rule {
         rationale(
             """

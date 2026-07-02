@@ -8,9 +8,9 @@ import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 
 @Describe("""
-    Implementations of `Service` interfaces (see [Services](#service-interface)). A ServiceImpl
-    lives in `feature.[name].services` of `:server` — dual-life with the contract — so it
-    belongs to the `services` axis, not the top-level feature group.
+    An implementation of a `Service` interface (see [Service Interface](#service-interface)). A
+    ServiceImpl lives in `feature.[name].services` of `:server`, the same package as the contract,
+    so it belongs to the `services` axis, not the top-level feature group.
 """)
 object ServiceImpl : Construct<ServicesLayer>(
     requirements = listOf(
@@ -30,8 +30,8 @@ object ServiceImpl : Construct<ServicesLayer>(
     val noInjectingDomainInterfaces by rule {
         rationale(
             """
-            A ServiceImpl is the server-side request handler; it reaches *down* into services.storage
-            and services.internal, not sideways into the domain interfaces a client would consume.
+            A ServiceImpl is the server-side request handler; it reaches down into `services.storage`
+            and `services.internal`, not sideways into the domain interfaces a client would consume.
             """.trimIndent(),
         )
         constrain { decl, _ ->
@@ -48,10 +48,10 @@ object ServiceImpl : Construct<ServicesLayer>(
     val noUiDependency by rule {
         rationale(
             """
-            ServiceImpls run on the server and have no Compose runtime — a UI import here would
-            either fail to compile in `:server` or mean a UI type has been pulled out of `ui` and
-            is being treated as data, both of which are wrong (§4.4.2, §3.4.4). If you need a
-            shared shape with the UI, put it in the feature's `:api` domain or services package.
+            ServiceImpls run on the server and have no Compose runtime: a UI import here would
+            either fail to compile in `:server` or mean a UI type is being treated as data, both
+            of which are wrong. If you need a shape shared with the UI, put it in the feature's
+            `:api` domain or services package.
             """.trimIndent(),
         )
         constrain { decl, _ ->

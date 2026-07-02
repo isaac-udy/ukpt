@@ -5,14 +5,13 @@
 
 # [Domain Layer](../src/main/kotlin/architecture/rules/domain/DomainLayer.kt)
 
-The `domain` axis is the deepest layer of a feature and appears in all three modules — `:api`,
+The `domain` axis is the deepest layer of a feature and appears in all three modules: `:api`,
 `:client`, and `:server`. Its contents are pure Kotlin: data models
-([domain objects](#domain-object)) and single-function interfaces, sometimes called Interactors
-([domain interfaces](#domain-interface)). `domain` is the centre of gravity on both sides of the
-wire: it depends on no other axis, and every other axis depends on it — on the client,
-[Repositories](data.md#repository) implement the domain interfaces that
-[ViewModels](ui.md#view-model) consume; on the server, the [`services` axis](services.md)
-implements them.
+([domain objects](#domain-object)) and single-function interfaces
+([domain interfaces](#domain-interface)). `domain` depends on no other axis, and every other
+axis depends on it. On the client, [Repositories](data.md#repository) implement the domain
+interfaces that [ViewModels](ui.md#view-model) consume; on the server, the
+[`services` axis](services.md) implements them.
 
 The `domain` package must only contain [domain interfaces](#domain-interface),
 [domain objects](#domain-object), [UseCases](#use-case),
@@ -22,9 +21,9 @@ The `domain` package must only contain [domain interfaces](#domain-interface),
 
 The [Rules](#rules) below apply across the whole `feature.[name].domain` package.
 
-* **Note**: Cross-feature domain dependencies should be minimised where possible, but are
-  permitted because real-world domains have genuine dependencies between them. The important
-  thing is getting the direction of dependencies correct and avoiding circular dependencies.
+* **Note:** Cross-feature domain dependencies are permitted, because real-world domains depend
+  on each other, but they should be kept to a minimum. Get the direction of each dependency
+  right and avoid circular dependencies.
 
 ##### Constructs
 
@@ -38,8 +37,8 @@ The [Rules](#rules) below apply across the whole `feature.[name].domain` package
 
 ##### Rules
 
-* The `domain` layer must not contain platform-specific dependencies (Android, Ktor, SQL, …)
-    * **Why:** The domain layer stays pure Kotlin so it ports across :client/:server and every KMP target and stays unit-testable. Expose a domain interface and implement it in `data`/`services`.
+* The `domain` layer must not contain platform-specific dependencies, such as Android, Ktor, or SQL
+    * **Why:** The domain layer stays pure Kotlin so it can be used in `:client`, `:server`, and every KMP target, and stays unit-testable. Expose a domain interface and implement it in `data` or `services` instead.
 * The `domain` layer must not depend on `ui`, `data`, or `services` packages within the feature
     * **Why:** The dependency graph is `ui → domain ← data`, with `services` depending on domain. Importing those into domain would invert the graph or create a cycle.
 * The `domain` layer may depend on another feature's `domain` only via that feature's `:api` module
@@ -49,16 +48,15 @@ The [Rules](#rules) below apply across the whole `feature.[name].domain` package
 
 ## [Domain Interface](../src/main/kotlin/architecture/rules/domain/DomainInterface.kt)
 
-A functional interface representing domain-level functionality/business logic.
+A `fun interface` that represents a piece of domain-level business logic.
 
-* **Note**: Default functions don't need to be `operator fun invoke` and should use
-  expressive names; they should provide commonly used functionality (e.g. handling a
-  particular exception type) or simplify calling the primary function with particular
-  parameters.
-* **Note**: Implementations must never override an interface's default functions;
-  convenience functions belong as default members, not top-level extensions, so they're
-  discoverable and co-located with the interface.
-* **Note**: Generic/unknown errors don't need their own exception type or `@Throws` entry.
+* **Note:** Default functions should use expressive names. They should provide commonly used
+  functionality, such as handling a particular exception type, or simplify calling the primary
+  function with particular parameters.
+* **Note:** Implementations must never override an interface's default functions. Convenience
+  functions belong as default members, not top-level extensions, so they stay discoverable and
+  co-located with the interface.
+* **Note:** Generic or unknown errors don't need their own exception type or `@Throws` entry.
 
 ##### Requirements
 
@@ -73,9 +71,9 @@ A functional interface representing domain-level functionality/business logic.
 * A Domain Interface's primary-function parameters must be domain objects, nested types, primitives, or collections of those
 * A Domain Interface's primary-function return type must be domain objects, nested types, primitives, collections of those, or no value
 * A Domain Interface must be implemented by a Repository (as a property) or by a UseCase
-    * **Note:** The check accepts either a class whose parents include the interface (a UseCase) or a `[Name]Repository` whose properties reference the interface.
-* A Domain Interface's functions propagate errors via thrown exceptions, never via the return type
-    * **Why:** @Throws on suspend functions must include CancellationException (or a superclass like Exception) — required for Kotlin/Native: kotlinc rejects the function on iOS targets otherwise.
+    * **Note:** The test accepts either a class whose parents include the interface (a UseCase) or a `[Name]Repository` with a property that references the interface.
+* A Domain Interface's functions must propagate errors via thrown exceptions, never via the return type
+    * **Why:** `@Throws` on a `suspend` function must include `CancellationException` (or a superclass such as `Exception`); without it, kotlinc rejects the function on iOS targets.
     * **Note:** Known exceptions should be their own type extending RuntimeException, marked with `@Throws`.
     * **Note:** `@Throws` on `suspend` functions must include `kotlin.coroutines.cancellation.CancellationException`.
 
@@ -84,6 +82,8 @@ A functional interface representing domain-level functionality/business logic.
 * A Domain Interface may define additional default functions that call the primary function
 
 ##### Examples
+
+Domain interfaces showing `@Throws` exceptions, `Flow` returns (the `FlowOf` prefix), and default convenience functions:
 
 ```kotlin
 fun interface CreateUser {
@@ -148,12 +148,11 @@ class UserNotFoundException : RuntimeException()
 
 ## [Domain Object](../src/main/kotlin/architecture/rules/domain/DomainObject.kt)
 
-An immutable type representing data at the domain-level.
+An immutable type that represents domain-level data.
 
-* **Note**: Nested types (enums, value classes, sealed interfaces/classes) belong nested
-  only when conceptually inseparable from the parent — like `User.Id` or
-  `Transport.Car.FuelType` in the examples below; otherwise model them as their own domain
-  objects.
+* **Note:** Nested types (enums, value classes, sealed interfaces/classes) belong nested only
+  when conceptually inseparable from the parent, such as `User.Id` or `Transport.Car.FuelType`
+  in the examples below. Otherwise, model them as their own domain objects.
 
 ##### Requirements
 
@@ -175,6 +174,8 @@ An immutable type representing data at the domain-level.
 * A Domain Object should use nested types when conceptually inseparable from the parent
 
 ##### Examples
+
+Domain objects showing a nested value-class ID, an `init` invariant, and a sealed hierarchy with nested types:
 
 ```kotlin
 @Serializable
@@ -248,13 +249,12 @@ sealed interface Transport {
 
 A class that implements a single [domain interface](#domain-interface).
 
-* **Note**: Immutable helper properties (e.g., loggers) are permitted — "no mutable state"
+* **Note:** Immutable helper properties, such as loggers, are permitted. "No mutable state"
   forbids `var` properties, not properties in general.
-* **Note**: If a UseCase only injects a single other domain interface, consider whether
-  that logic should become a default function of the other domain interface instead.
-* **Note**: When breaking down a complex UseCase, reach for file-private extension
-  functions, private functions, or nested classes — not additional domain
-  interfaces/UseCases that pollute the namespace.
+* **Note:** If a UseCase only injects a single other domain interface, consider whether that
+  logic should become a default function of the other domain interface instead.
+* **Note:** When breaking down a complex UseCase, use file-private extension functions,
+  private functions, or nested classes instead of additional domain interfaces or UseCases.
 
 ##### Requirements
 
@@ -264,14 +264,14 @@ A class that implements a single [domain interface](#domain-interface).
 
 ##### Rules
 
-* A UseCase must not contain mutable state — all properties are `val`
+* A UseCase must not contain mutable state: all properties must be `val`
 * A UseCase must not override any default function of its domain interface
-    * **Why:** The only abstract member is the primary `operator fun invoke`; every other function is a default. Overriding a default per-implementation defeats the point of the interface helpers.
+    * **Why:** The only abstract member of a domain interface is the primary `operator fun invoke`; every other function is a default. Overriding a default in an implementation defeats the purpose of the interface helpers.
 
 ##### Guidance
 
 * A UseCase may inject domain interfaces to perform its logic
-* A UseCase that becomes too complex should be broken into private/file-private/nested parts
+* A UseCase that becomes too complex should be broken into private, file-private, or nested parts
 
 ---
 
@@ -279,10 +279,10 @@ A class that implements a single [domain interface](#domain-interface).
 
 A class that represents a known failure mode raised by a domain interface.
 
-* **Note**: Domain exceptions live at the top of the `domain` package when shared between
-  multiple domain interfaces, or as a nested class on the
-  [domain interface](#domain-interface) that throws them; they must be listed in `@Throws`
-  on the throwing interface's primary function.
+* **Note:** A domain exception lives at the top of the `domain` package when it is shared
+  between multiple domain interfaces, or as a nested class on the
+  [domain interface](#domain-interface) that throws it. It must be listed in `@Throws` on the
+  throwing interface's primary function.
 
 ##### Requirements
 
@@ -293,12 +293,12 @@ A class that represents a known failure mode raised by a domain interface.
 
 ## [Domain Constants](../src/main/kotlin/architecture/rules/domain/DomainConstants.kt)
 
-An `object` declaration whose only members are `val` constants — used to anchor
-domain-level magic numbers, lookup tables, or named tags.
+An `object` declaration whose only members are `val` constants. It holds domain-level magic
+numbers, lookup tables, and named tags.
 
-* **Note**: A constants object is the right home for things like `val MAX_PARTY_SIZE = 6`
-  or a sealed-but-keyed lookup table. Anything that wants behaviour belongs on a domain
-  object as a member or extension.
+* **Note:** A constants object is the right home for values such as `val MAX_PARTY_SIZE = 6`
+  or a lookup table. Anything with behaviour belongs on a domain object as a member or
+  extension.
 
 ##### Requirements
 
@@ -312,9 +312,9 @@ domain-level magic numbers, lookup tables, or named tags.
 A top-level extension function on a domain object that adds derived or convenience
 behavior.
 
-* **Note**: Prefer default member functions on [domain interfaces](#domain-interface) for
-  domain-interface convenience logic. Extension functions are appropriate for adding
-  behavior to domain objects (e.g., `CampaignRole.permissions()`).
+* **Note:** Prefer default member functions on [domain interfaces](#domain-interface) for
+  domain-interface convenience logic. Extension functions are appropriate for adding behavior
+  to domain objects, such as `User.isAdult()`.
 
 ##### Requirements
 
@@ -332,9 +332,9 @@ behavior.
 
 A top-level extension property on a domain object that exposes derived state.
 
-* **Note**: Same constraints as [domain extension functions](#domain-extension-function).
-  Prefer a property when the value is a pure projection of the receiver and is cheap to
-  compute on every read.
+* **Note:** The same constraints as [domain extension functions](#domain-extension-function)
+  apply. Prefer a property when the value is a pure projection of the receiver and is cheap
+  to compute on every read.
 
 ##### Requirements
 

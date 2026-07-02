@@ -3,8 +3,8 @@ package architecture.rules.services
 import dev.isaacudy.udytils.architecture.*
 
 @Describe("""
-    Exceptions thrown only by internal helpers; service-level exceptions belong on the
-    `Service` interface (see [Services](#service-interface)).
+    An exception thrown only by internal helpers. Service-level exceptions belong on the
+    `Service` interface (see [Service Interface](#service-interface)).
 """)
 object InternalException : Construct<ServicesLayer>(
     requirements = listOf(

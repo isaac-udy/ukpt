@@ -7,9 +7,9 @@ import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 @Describe("""
     The complete, immutable representation of a Screen's data at a single point in time.
 
-    * **Note**: `AsyncState` covers action progress as well as loads — e.g. a "save" action as
-      `AsyncState<Unit>`. Never directly construct `AsyncState.Loading`/`Success`/`Error` — use
-      `AsyncState.fromSuspending`/`fromFlow`; that prohibition is enforced project-wide by
+    * **Note:** `AsyncState` covers action progress as well as loads: a "save" action can be an
+      `AsyncState<Unit>`. Never directly construct `AsyncState.Loading`/`Success`/`Error`; use
+      `AsyncState.fromSuspending`/`fromFlow`. That prohibition is enforced project-wide by
       `ProjectRules.noDirectAsyncStateConstruction`.
 """)
 object ViewModelState : Construct<UiLayer>(
@@ -32,7 +32,7 @@ object ViewModelState : Construct<UiLayer>(
     val viewModelRelationship by rule { unverifiable() }
     @Describe("A ViewModel State object must use `AsyncState<T>` / `UpdatableState<T>` for asynchronously loaded data and action progress")
     val usesAsyncState by rule { unverifiable() }
-    @Describe("A ViewModel State object must not define custom sealed types for loading/success/error — use `AsyncState<T>`")
+    @Describe("A ViewModel State object must not define custom sealed types for loading/success/error; use `AsyncState<T>` instead")
     val noCustomAsyncSealedTypes by rule {
         constrain { decl, _ ->
             val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()

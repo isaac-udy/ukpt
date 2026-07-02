@@ -4,10 +4,10 @@ import dev.isaacudy.udytils.architecture.*
 
 
 @Describe("""
-    The project is organized into three root-level module groups — `:app`, `:feature`, and
-    `:platform`. The dependency rules between them are **module-graph rules**: they are checked
-    against the module dependency graph parsed from the `build.gradle.kts` files, not against Kotlin
-    source. Build-file exemptions use the `// architecture-exception:` comment (see
+    The project is organized into three root-level module groups: `:app`, `:feature`, and
+    `:platform`. The dependency rules between them are **module-graph rules**: they are tested
+    against the module dependency graph parsed from the `build.gradle.kts` files, not against
+    Kotlin source. Build-file exemptions use the `// architecture-exception:` comment (see
     [architecture exceptions](exceptions.md)).
 
     ## `:app` (Application shells)
@@ -88,7 +88,7 @@ object ModuleRules : RuleGroup() {
 
     @Describe("A `:feature:[name]:api` module may depend on another feature's `:api` module to share models")
     val apiMayUseApi by guidance {
-        note("`:api` to `:api` dependencies are allowed, but should be used sparingly, treated with caution, and minimised where possible.")
+        note("`:api` to `:api` dependencies are allowed, but should be kept to a minimum.")
         auditModuleGraph { graph, exempt ->
             graph.edges
                 .filter { featureSubmoduleType(it.from) == "api" && featureSubmoduleType(it.to) == "api" && !exempt(it) }
@@ -131,7 +131,7 @@ object ModuleRules : RuleGroup() {
 
     @Describe("A `:platform` module may depend on other `:platform` modules")
     val platformMayUsePlatform by guidance {
-        note("`:platform` to `:platform` dependencies are allowed, but should be used sparingly, treated with caution, and minimised where possible.")
+        note("`:platform` to `:platform` dependencies are allowed, but should be kept to a minimum.")
         auditModuleGraph { graph, exempt ->
             graph.edges
                 .filter { isPlatform(it.from) && isPlatform(it.to) && !exempt(it) }

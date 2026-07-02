@@ -6,9 +6,9 @@ import dev.isaacudy.udytils.architecture.*
     A top-level extension function on a domain object that adds derived or convenience
     behavior.
 
-    * **Note**: Prefer default member functions on [domain interfaces](#domain-interface) for
-      domain-interface convenience logic. Extension functions are appropriate for adding
-      behavior to domain objects (e.g., `CampaignRole.permissions()`).
+    * **Note:** Prefer default member functions on [domain interfaces](#domain-interface) for
+      domain-interface convenience logic. Extension functions are appropriate for adding behavior
+      to domain objects, such as `User.isAdult()`.
 """)
 object DomainExtensionFunction : Construct<DomainLayer>(
     requirements = listOf(

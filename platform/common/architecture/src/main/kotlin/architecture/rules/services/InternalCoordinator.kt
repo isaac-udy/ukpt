@@ -3,9 +3,9 @@ package architecture.rules.services
 import dev.isaacudy.udytils.architecture.*
 
 @Describe("""
-    The orchestrators that compose subsystems (e.g. `SessionProcessingManager`) — see the
-    [`services.internal` overview](#servicesinternal). Cross-subsystem composition belongs
-    here, at bare `services.internal`, not to imports between sibling subsystems.
+    An orchestrator that composes subsystems, such as a `SessionProcessingManager` (see the
+    [`services.internal` overview](#servicesinternal)). Cross-subsystem composition belongs here,
+    at bare `services.internal`, not in imports between sibling subsystems.
 """)
 object InternalCoordinator : Construct<ServicesLayer>(
     requirements = listOf(

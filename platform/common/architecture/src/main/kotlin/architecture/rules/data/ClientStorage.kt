@@ -8,12 +8,12 @@ import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 
 @Describe("""
-    A class responsible for local-device data persistence and retrieval (e.g., credentials,
-    preferences, cached data on disk) — `expect`/`actual` `Storage` classes backed by Keychain
-    (iOS), SharedPreferences (Android), DataStore, etc.
+    A class responsible for local-device data persistence and retrieval, such as credentials,
+    preferences, or cached data on disk. Backed by Keychain (iOS), SharedPreferences (Android),
+    DataStore, etc.
 
-    * **Note**: Client-side Storage classes may be `expect`/`actual` classes when the underlying
-      storage mechanism is platform-specific (e.g., Keychain on iOS, SharedPreferences on Android).
+    * **Note:** A Storage class may be an `expect`/`actual` class when the underlying storage
+      mechanism is platform-specific, such as Keychain on iOS and SharedPreferences on Android.
 """)
 object ClientStorage : Construct<DataLayer>(
     requirements = listOf(
@@ -29,7 +29,7 @@ object ClientStorage : Construct<DataLayer>(
 ) {
     @Describe("A Storage class must be marked as `internal` (the `expect` declaration may be public, but `actual` implementations should be `internal` where the language allows)")
     val internalVisibility by rule {
-        note("The check skips `expect`/`actual` declarations — an `actual`'s visibility must match its `expect`, so the language decides there, not this rule.")
+        note("The test skips `expect`/`actual` declarations: an `actual`'s visibility must match its `expect`, so the language decides there, not this Rule.")
         constrain { decl, _ ->
             val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
             if (cls.hasExpectModifier || cls.hasActualModifier || cls.hasInternalModifier) {
@@ -44,7 +44,7 @@ object ClientStorage : Construct<DataLayer>(
     val doesNotInjectDomainRepositoriesOrServices by rule {
         rationale(
             """
-            Storage is the lowest layer of the stack — it should depend on the database/keychain
+            Storage is the lowest layer of the stack: it should depend on the database or keychain
             client and nothing higher. Injecting a domain interface, Repository, or Service would
             embed orchestration logic in the persistence layer.
             """.trimIndent(),

@@ -7,12 +7,17 @@ import architecture.definitions.containsPackageSegment
 import architecture.definitions.isFeatureModule
 
 @Describe("""
-    The `ui` axis spans `:api` and `:client`. **`:api` contents**: serializable Navigation Keys
-    (Destinations) — a feature's shared navigation entry points. **`:client` contents**: Compose UI
-    (Screens and supporting composables), ViewModels, and UI-state models. Everything the UI loads
-    or mutates arrives through [domain interfaces](domain.md#domain-interface), implemented by
-    [Repositories](data.md#repository) in `data` — which is also how server calls (via
-    [Services](services.md#service-interface)) reach the screen.
+    The `ui` axis spans `:api` and `:client`:
+
+    * **`:api`:** serializable Navigation Keys ([Destinations](#destination)), a feature's shared
+      navigation entry points.
+    * **`:client`:** Compose UI ([Screens](#screen) and supporting composables),
+      [ViewModels](#view-model), and UI-state models.
+
+    Everything the UI loads or mutates arrives through
+    [domain interfaces](domain.md#domain-interface), implemented by
+    [Repositories](data.md#repository) in `data`. Server calls (via
+    [Services](services.md#service-interface)) reach the screen the same way.
 
     The layer rules below apply across the whole `feature.[name].ui` package.
 """)
@@ -32,13 +37,13 @@ object UiLayer : RuleGroup(
     @Describe("The `ui` layer may depend on `domain`")
     val mayDependOnDomain by guidance
 
-    @Describe("The `ui` layer is forbidden from implementing `domain` interfaces")
+    @Describe("The `ui` layer must never implement `domain` interfaces")
     val noImplementingDomainInterfaces by rule {
         rationale(
             """
-            Domain interfaces are the contract between presentation and persistence — implementations
+            Domain interfaces are the contract between presentation and persistence; implementations
             belong in `data` (Repositories) or `domain` (UseCases). A ViewModel that implements one
-            would couple two layers' lifecycles and make the ViewModel un-injectable elsewhere.
+            couples two layers' lifecycles and makes the ViewModel un-injectable elsewhere.
             """.trimIndent(),
         )
         scope { scope, exempt ->
@@ -58,12 +63,12 @@ object UiLayer : RuleGroup(
         }
     }
 
-    @Describe("The `ui` layer is forbidden from depending on `data` or `services`")
+    @Describe("The `ui` layer must never depend on `data` or `services`")
     val noDataServicesDeps by rule {
         rationale(
             """
-            UI consumes `domain` interactors only — Repositories (in `data`) fan out to `services`
-            (the cross-the-wire contract) on the UI's behalf. The UI must not reach either directly.
+            The UI consumes `domain` interfaces only. Repositories (in `data`) call `services` on
+            the UI's behalf; the UI must not reach either directly.
             """.trimIndent(),
         )
         scope { scope, exempt ->
@@ -81,13 +86,13 @@ object UiLayer : RuleGroup(
         }
     }
 
-    @Describe("The `ui` layer must not use `koinInject` — all dependencies are injected through ViewModels")
+    @Describe("The `ui` layer must not use `koinInject`: all dependencies are injected through ViewModels")
     val noKoinInject by rule {
         rationale(
             """
-            Resolving from Koin inside a Composable side-steps the ViewModel as the single dependency
-            surface, makes the screen untestable in snapshots (no Koin runtime), and re-resolves on
-            every recomposition.
+            Resolving from Koin inside a Composable bypasses the ViewModel as the single dependency
+            surface, makes the screen untestable in snapshot tests (there is no Koin runtime), and
+            re-resolves on every recomposition.
             """.trimIndent(),
         )
         scope { scope, exempt ->

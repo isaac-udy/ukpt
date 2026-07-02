@@ -5,10 +5,10 @@
 
 # [Module Rules](../src/main/kotlin/architecture/rules/module/ModuleRules.kt)
 
-The project is organized into three root-level module groups — `:app`, `:feature`, and
-`:platform`. The dependency rules between them are **module-graph rules**: they are checked
-against the module dependency graph parsed from the `build.gradle.kts` files, not against Kotlin
-source. Build-file exemptions use the `// architecture-exception:` comment (see
+The project is organized into three root-level module groups: `:app`, `:feature`, and
+`:platform`. The dependency rules between them are **module-graph rules**: they are tested
+against the module dependency graph parsed from the `build.gradle.kts` files, not against
+Kotlin source. Build-file exemptions use the `// architecture-exception:` comment (see
 [architecture exceptions](exceptions.md)).
 
 ## `:app` (Application shells)
@@ -59,11 +59,11 @@ source. Build-file exemptions use the `// architecture-exception:` comment (see
 
 * A `:feature` module may depend on `:platform` modules
 * A `:feature:[name]:api` module may depend on another feature's `:api` module to share models
-    * **Note:** `:api` to `:api` dependencies are allowed, but should be used sparingly, treated with caution, and minimised where possible.
+    * **Note:** `:api` to `:api` dependencies are allowed, but should be kept to a minimum.
     * **Audited:** a test reports non-conforming code without ever failing.
 * A `:feature` module may be grouped (`:feature:[group]:[name]:…`)
     * **Note:** A module that serves as a group should exist only as a group, and should not itself contain `:api`, `:server` or `:client` modules.
     * **Audited:** a test reports non-conforming code without ever failing.
 * A `:platform` module may depend on other `:platform` modules
-    * **Note:** `:platform` to `:platform` dependencies are allowed, but should be used sparingly, treated with caution, and minimised where possible.
+    * **Note:** `:platform` to `:platform` dependencies are allowed, but should be kept to a minimum.
     * **Audited:** a test reports non-conforming code without ever failing.

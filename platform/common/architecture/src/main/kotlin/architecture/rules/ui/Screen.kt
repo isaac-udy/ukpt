@@ -14,14 +14,13 @@ import com.lemonappdev.konsist.api.provider.KoNameProvider
 
     ### Dialog / Overlay Screens
 
-    A Screen that is presented as a dialog or overlay on top of the current screen, rather
-    than pushing onto the navigation backstack — governed by the `UiLayer.Screen.overlayViaDsl`
-    and `UiLayer.Screen.overlayViewModel` rules below. Regular screens that push to the
-    backstack should use the standard `@Composable fun` pattern; the property-based
-    `navigationDestination` DSL is specifically for screens that need to declare custom
-    metadata (such as `directOverlay()`). The property name may end in `Screen` or
-    `Destination` — both are accepted because the property *is* the destination declaration
-    site.
+    A Screen may be presented as a dialog or overlay on top of the current screen, rather than
+    pushing onto the navigation backstack. These are governed by the `UiLayer.Screen.overlayViaDsl`
+    and `UiLayer.Screen.overlayViewModel` rules below. Regular screens that push to the backstack
+    should use the standard `@Composable fun` pattern; the property-based `navigationDestination`
+    DSL is for screens that need to declare custom metadata, such as `directOverlay()`. The
+    property name may end in `Screen` or `Destination`; both are accepted because the property is
+    the destination declaration site.
 """)
 object Screen : Construct<UiLayer>(
     requirements = listOf(
@@ -111,10 +110,10 @@ object Screen : Construct<UiLayer>(
     val screenContentCompanion by rule {
         rationale(
             """
-            The Screen function plumbs the ViewModel; the `ScreenContent` function takes only
-            state + callbacks so snapshot tests can render every state without a ViewModel.
-            Marking it `internal` lets the host-test source set call it; `private` makes the
-            screen untestable.
+            The Screen function connects the ViewModel; the `ScreenContent` function takes only
+            state and callbacks, so snapshot tests can render every state without a ViewModel.
+            Marking it `internal` lets the test source set call it; `private` makes the screen
+            untestable.
             """.trimIndent(),
         )
         constrain { decl, _ ->
@@ -135,7 +134,7 @@ object Screen : Construct<UiLayer>(
     val viewModelInjection by rule {
         rationale(
             """
-            `viewModel()` ties the ViewModel's lifecycle to the navigation backstack entry — when
+            `viewModel()` ties the ViewModel's lifecycle to the navigation backstack entry: when
             the entry is popped, the ViewModel is cleared. `koinViewModel()` resolves through Koin
             and either scopes to the wrong lifecycle or returns a singleton, leaking state between
             screens or returning stale state on re-entry.

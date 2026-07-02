@@ -7,11 +7,11 @@ import com.lemonappdev.konsist.api.declaration.KoObjectDeclaration
 import com.lemonappdev.konsist.api.provider.KoContainingFileProvider
 
 @Describe("""
-    A serializable data class or object representing the navigation contract for a particular
-    screen; the input parameters required by that screen (if any) and the output result type
+    A serializable data class or object that represents the navigation contract for a particular
+    screen: the input parameters required by that screen (if any) and the output result type
     provided by that screen (if any).
 
-    * **Note**: "Minimal data" means identifiers, not payloads — a Destination should accept a
+    * **Note:** "Minimal data" means identifiers, not payloads. A Destination should accept a
       `User.Id` and let the Screen load the associated `User`, rather than accepting an entire
       `User`.
 """)
@@ -29,7 +29,7 @@ object Destination : Construct<UiLayer>(
 ) {
     @Describe("A Destination should accept the minimal data required to initialise the associated Screen")
     val minimalData by guidance
-    @Describe("A Destination may live in `:api` (shared entry point / server-driven) or `:client` (internal only)")
+    @Describe("A Destination may live in `:api` (shared or server-driven entry point) or `:client` (internal to the feature)")
     val definedInApiOrClient by rule {
         constrain { decl, _ ->
             val path = (decl as? KoContainingFileProvider)?.containingFile?.path ?: return@constrain emptyList()

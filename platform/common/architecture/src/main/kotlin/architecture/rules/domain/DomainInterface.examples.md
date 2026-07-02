@@ -1,3 +1,5 @@
+Domain interfaces showing `@Throws` exceptions, `Flow` returns (the `FlowOf` prefix), and default convenience functions:
+
 ```kotlin
 fun interface CreateUser {
     @Throws(UserAlreadyExistsException::class, CancellationException::class)

@@ -1,3 +1,5 @@
+Domain objects showing a nested value-class ID, an `init` invariant, and a sealed hierarchy with nested types:
+
 ```kotlin
 @Serializable
 data class User(

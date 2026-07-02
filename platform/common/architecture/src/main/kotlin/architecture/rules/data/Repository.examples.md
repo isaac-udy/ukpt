@@ -1,3 +1,5 @@
+A Repository that exposes domain interfaces as `public val` properties, backed by a Service and local storage:
+
 ```kotlin
 internal class UserRepository(
     private val userService: UserService,
