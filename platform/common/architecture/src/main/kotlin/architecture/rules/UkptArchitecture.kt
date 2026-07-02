@@ -21,30 +21,30 @@ import architecture.rules.ui.UiLayer
 
     How this works:
 
-    - The **rules** are Kotlin (Konsist tests), maintained by hand: one `RuleGroup` object per layer, one top-level `Construct<Group>` object per code shape (in its own file, e.g. `Repository.kt`, listed in the group's `constructs`), a rule or guidance property on each. They live in [`src/test/kotlin/architecture/rules/`](src/test/kotlin/architecture/rules).
+    - The **rules** are Kotlin (checked with Konsist), maintained by hand: one `RuleGroup` object per layer, one top-level `Construct<Group>` object per code shape (in its own file, e.g. `Repository.kt`, listed in the group's `constructs`), a rule or guidance property on each. They live in [`src/main/kotlin/architecture/rules/`](src/main/kotlin/architecture/rules).
     - The **narrative** lives in the catalog too: `@Describe("…")` annotations carry the documentation text for every group, construct, rule, and guidance entry — including this README, which is the annotation on `UkptArchitecture`.
     - **Examples** are markdown files next to the rules they belong to: `Repository.examples.md` beside `Repository.kt` holds the example blocks for that construct, rendered after its rules.
     - The **documentation** — this README and everything under `docs/` — is **generated** from those sources. Never edit the generated files; edit the catalog or an examples file, then regenerate.
 
     ## Running the checks
 
-    - Run: `./gradlew :platform:common:architecture:test --rerun-tasks`
-    - Expect `BUILD SUCCESSFUL`.
+    - Run: `./gradlew :platform:common:architecture:verifyArchitecture`
+    - Expect `BUILD SUCCESSFUL`. The task always re-executes — no `--rerun-tasks` needed.
     - Every rule reports as its own nested test: `<Layer> › <Construct> › <rule>`. A failure names the exact rule (e.g. `DataLayer › Repository › doesNotInjectDomainInterfaces`).
-    - HTML report: `platform/common/architecture/build/reports/tests/test/index.html`.
-    - `--rerun-tasks` is load-bearing: Konsist caches the project scope, and a stale cache hides new violations.
+    - HTML report: `platform/common/architecture/build/reports/tests/verifyArchitecture/index.html`.
+    - The module's plain `test` task runs nothing — the suite lives in its own `architectureTest` source set.
     - Not wired into CI yet — to enforce automatically, run the command above on pull requests.
 
     ## Changing rules or docs
 
     - Read [authoring](docs/authoring.md) first: what should be a requirement vs a rule vs guidance, what audits are for, and the language conventions for statements, notes, and requirement descriptions.
-    - Change a **rule or its documentation**: edit the layer's `.kt` in `src/test/kotlin/architecture/rules/<layer>/` — statements and narrative are `@Describe` annotations there.
+    - Change a **rule or its documentation**: edit the layer's `.kt` in `src/main/kotlin/architecture/rules/<layer>/` — statements and narrative are `@Describe` annotations there.
     - Change an **example**: edit the `<Construct>.examples.md` file next to that construct's `.kt` (each generated file's banner names its sources).
     - Change **this README**: edit the `@Describe` on `UkptArchitecture`.
     - Then regenerate the docs:
 
     ```
-    ./gradlew :platform:common:architecture:test -PupdateArchitectureDocs=true
+    ./gradlew :platform:common:architecture:updateArchitectureDocumentation
     ```
 
     - The test suite fails if the generated docs drift from the sources, if prose references a rule id that doesn't exist, or if a link/anchor is broken.
@@ -107,6 +107,7 @@ object UkptArchitecture : ArchitectureDefinition(
     membership = { it.isFeatureModule() },
     docs = DocsConfig(
         module = "platform/common/architecture",
-        regenerateCommand = "./gradlew :platform:common:architecture:test -PupdateArchitectureDocs=true",
+        sourceRoot = "src/main/kotlin",
+        regenerateCommand = "./gradlew :platform:common:architecture:updateArchitectureDocumentation",
     ),
 )

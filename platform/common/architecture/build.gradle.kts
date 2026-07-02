@@ -1,24 +1,21 @@
+// The architecture Gradle plugin arrives via buildscript-classpath substitution from the
+// embedded-udytils composite build (including that build in pluginManagement would silently
+// disable the explicit dependency substitutions in settings.gradle.kts).
+buildscript {
+    dependencies {
+        classpath(libs.udytils.architectureGradlePlugin)
+    }
+}
+
 plugins {
     alias(libs.plugins.kotlinJvm)
 }
 
+// Adds the architectureTest source set and the standalone verifyArchitecture /
+// updateArchitectureDocumentation tasks (plain `test` runs nothing here).
+apply(plugin = "dev.isaacudy.udytils.architecture")
+
 dependencies {
-    // Forwards @ArchitectureException to modules that depend on this one for exemptions.
-    api(libs.udytils.architectureAnnotations)
-
-    // The architecture framework (rule DSL, doc generator, JUnit harnesses); Konsist,
-    // the JUnit 5 API, and kotlin.test arrive transitively via its api surface.
-    testImplementation(libs.udytils.architectureCore)
-    // The JUnit 5 engine that actually runs the suite.
-    testImplementation(libs.junit.jupiter)
-}
-
-tasks.withType<Test> {
-    useJUnitPlatform()
-    outputs.upToDateWhen { false }
-    // `-PupdateArchitectureDocs=true` regenerates README.md + docs/ — the IDE/CLI-friendly form of
-    // the UPDATE_ARCHITECTURE_DOCS=true environment variable (which also still works).
-    providers.gradleProperty("updateArchitectureDocs").orNull?.let {
-        environment("UPDATE_ARCHITECTURE_DOCS", it)
-    }
+    // The rule catalog lives in this module's main source set and programs against the DSL.
+    api(libs.udytils.architectureCore)
 }

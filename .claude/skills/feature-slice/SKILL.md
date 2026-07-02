@@ -42,7 +42,7 @@ Do **not** copy the literal `ukpt`/`Ukpt` from core — substitute `<name>`/`<Na
    - Server DI: the template's `Server.kt` is a placeholder with **no** Koin host — standing that up is the
      `urpc-service` skill's job (do it when the feature gets its first service, not at scaffold time).
 6. **Verify** — compile sweep (all 6 targets, CLAUDE.md), record + verify Paparazzi for the new client
-   module, and `./gradlew :platform:common:architecture:test --rerun-tasks`. If the feature has web UI, run
+   module, and `./gradlew :platform:common:architecture:verifyArchitecture`. If the feature has web UI, run
    the `verify-web` skill — a forgotten `viewModelOf` only crashes at runtime on wasm, invisible to compile.
 
 ## Load-bearing gotchas (from `:feature:core`)
@@ -54,7 +54,7 @@ Do **not** copy the literal `ukpt`/`Ukpt` from core — substitute `<name>`/`<Na
 - **`android.experimental.kmp.enableAndroidResources = true`** (client) — generates the R class for Paparazzi.
 - **No `ktor-client-cio` in `commonMain`** — it pulls `node:net` and breaks the wasm bundle. CIO lives in
   `jvmMain`; web uses `ktor-client-js`.
-- **`:server` depends on `projects.platform.common.architecture`** — solely so `@ArchitectureException` imports.
+- **`:server` depends on `libs.udytils.architectureAnnotations`** — solely so `@ArchitectureException` imports.
 - **wasm ViewModel factory**: every screen VM must be `viewModelOf(::<Name>ViewModel)`-registered in
   `<name>ClientDependencies`, or web throws `Factory.create … not implemented` at runtime (the Koin-backed
   factory is installed once in `app/client/shared/.../UkptNavigation.kt` — don't regenerate it per feature).

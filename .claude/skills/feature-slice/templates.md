@@ -157,9 +157,9 @@ plugins {
 dependencies {
     api(projects.feature.<name>.api)
 
-    // Makes the `@ArchitectureException` annotation (in :platform:common:architecture's main
-    // source set) importable so server declarations can declare rule-scoped exemptions.
-    implementation(projects.platform.common.architecture)
+    // Makes the `@ArchitectureException` annotation importable so server declarations can
+    // declare rule-scoped exemptions (a tiny artifact — no Konsist or test machinery).
+    implementation(libs.udytils.architectureAnnotations)
 
     implementation(libs.ktor.serverCore)
     implementation(libs.ktor.serverWebsockets)

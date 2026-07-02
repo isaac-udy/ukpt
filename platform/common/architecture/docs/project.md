@@ -1,9 +1,9 @@
 > [!NOTE]
 > **This file is generated — do not edit it by hand.**
-> Sources: @Describe annotations in the Kotlin catalog in `src/test/kotlin/architecture/rules/project/` (narrative + rules), plus the `*.examples.md` files beside it.
-> Regenerate with `./gradlew :platform:common:architecture:test -PupdateArchitectureDocs=true`.
+> Sources: @Describe annotations in the Kotlin catalog in `src/main/kotlin/architecture/rules/project/` (narrative + rules), plus the `*.examples.md` files beside it.
+> Regenerate with `./gradlew :platform:common:architecture:updateArchitectureDocumentation`.
 
-# [Project Rules](../src/test/kotlin/architecture/rules/project/ProjectRules.kt)
+# [Project Rules](../src/main/kotlin/architecture/rules/project/ProjectRules.kt)
 
 These rules are not tied to a construct or a single package — they apply across every feature
 module. Several govern the process for [architecture exceptions](exceptions.md); the mechanism

@@ -1,7 +1,7 @@
 > [!NOTE]
 > **This file is generated — do not edit it by hand.**
-> Narrative source: `src/test/kotlin/architecture/rules/authoring.md`; rule content comes from the rule catalog.
-> Regenerate with `./gradlew :platform:common:architecture:test -PupdateArchitectureDocs=true`.
+> Narrative source: `src/main/kotlin/architecture/rules/authoring.md`; rule content comes from the rule catalog.
+> Regenerate with `./gradlew :platform:common:architecture:updateArchitectureDocumentation`.
 
 # Authoring rules
 
@@ -71,6 +71,6 @@ this still be an X?"* — no → requirement; yes → rule.
 4. Regenerate the docs and commit them with the change:
 
 ```
-./gradlew :platform:common:architecture:test -PupdateArchitectureDocs=true
+./gradlew :platform:common:architecture:updateArchitectureDocumentation
 ```
 

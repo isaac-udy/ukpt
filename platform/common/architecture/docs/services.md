@@ -1,9 +1,9 @@
 > [!NOTE]
 > **This file is generated — do not edit it by hand.**
-> Sources: @Describe annotations in the Kotlin catalog in `src/test/kotlin/architecture/rules/services/` (narrative + rules), plus the `*.examples.md` files beside it.
-> Regenerate with `./gradlew :platform:common:architecture:test -PupdateArchitectureDocs=true`.
+> Sources: @Describe annotations in the Kotlin catalog in `src/main/kotlin/architecture/rules/services/` (narrative + rules), plus the `*.examples.md` files beside it.
+> Regenerate with `./gradlew :platform:common:architecture:updateArchitectureDocumentation`.
 
-# [Services Layer](../src/test/kotlin/architecture/rules/services/ServicesLayer.kt)
+# [Services Layer](../src/main/kotlin/architecture/rules/services/ServicesLayer.kt)
 
 The `services` axis defines the contract that crosses the wire between client and server. The
 contract lives in `:api` (so both sides see it); the server-side implementation lives in
@@ -242,7 +242,7 @@ UserProfilesTable.upsert(UserProfilesTable.userId) {
 
 ---
 
-## [Service Interface](../src/test/kotlin/architecture/rules/services/ServiceInterface.kt)
+## [Service Interface](../src/main/kotlin/architecture/rules/services/ServiceInterface.kt)
 
 The client-server contract (in `:api`) and its implementation (in `:server`). Services use
 **urpc** (`dev.isaacudy.udytils:urpc-*`): KSP generates the client, the `UrpcService`
@@ -295,7 +295,7 @@ interface UserService {
 
 ---
 
-## [Service Impl](../src/test/kotlin/architecture/rules/services/ServiceImpl.kt)
+## [Service Impl](../src/main/kotlin/architecture/rules/services/ServiceImpl.kt)
 
 Implementations of `Service` interfaces (see [Services](#service-interface)). A ServiceImpl
 lives in `feature.[name].services` of `:server` — dual-life with the contract — so it
@@ -321,7 +321,7 @@ belongs to the `services` axis, not the top-level feature group.
 
 ---
 
-## [Internal Coordinator](../src/test/kotlin/architecture/rules/services/InternalCoordinator.kt)
+## [Internal Coordinator](../src/main/kotlin/architecture/rules/services/InternalCoordinator.kt)
 
 The orchestrators that compose subsystems (e.g. `SessionProcessingManager`) — see the
 [`services.internal` overview](#servicesinternal). Cross-subsystem composition belongs
@@ -335,7 +335,7 @@ here, at bare `services.internal`, not to imports between sibling subsystems.
 
 ---
 
-## [Internal Data Carrier](../src/test/kotlin/architecture/rules/services/InternalDataCarrier.kt)
+## [Internal Data Carrier](../src/main/kotlin/architecture/rules/services/InternalDataCarrier.kt)
 
 Payloads that flow from one subsystem through the orchestrator into another. A carrier
 lives at the bare `services.internal` ancestor so both producer and consumer can name it
@@ -350,7 +350,7 @@ under the data-shape carve-out (see
 
 ---
 
-## [Internal Interface](../src/test/kotlin/architecture/rules/services/InternalInterface.kt)
+## [Internal Interface](../src/main/kotlin/architecture/rules/services/InternalInterface.kt)
 
 Abstractions used inside a subsystem (e.g. a strategy contract whose implementations live
 in the same subpackage).
@@ -363,7 +363,7 @@ in the same subpackage).
 
 ---
 
-## [Internal Exception](../src/test/kotlin/architecture/rules/services/InternalException.kt)
+## [Internal Exception](../src/main/kotlin/architecture/rules/services/InternalException.kt)
 
 Exceptions thrown only by internal helpers; service-level exceptions belong on the
 `Service` interface (see [Services](#service-interface)).
@@ -376,7 +376,7 @@ Exceptions thrown only by internal helpers; service-level exceptions belong on t
 
 ---
 
-## [Internal Object Helper](../src/test/kotlin/architecture/rules/services/InternalObjectHelper.kt)
+## [Internal Object Helper](../src/main/kotlin/architecture/rules/services/InternalObjectHelper.kt)
 
 `object`s holding pure helper functions.
 
@@ -388,7 +388,7 @@ Exceptions thrown only by internal helpers; service-level exceptions belong on t
 
 ---
 
-## [Storage Class](../src/test/kotlin/architecture/rules/services/StorageClass.kt)
+## [Storage Class](../src/main/kotlin/architecture/rules/services/StorageClass.kt)
 
 The hand-written entry point to a feature's persistence — see the
 [`services.storage` overview](#servicesstorage--postgres-persistence).
@@ -410,7 +410,7 @@ The hand-written entry point to a feature's persistence — see the
 
 ---
 
-## [Storage Record](../src/test/kotlin/architecture/rules/services/StorageRecord.kt)
+## [Storage Record](../src/main/kotlin/architecture/rules/services/StorageRecord.kt)
 
 The hand-written persistence record shapes — the `XxxRow`/`XxxRecord`/`XxxInsert`
 `data class`es that live in a feature's `services.storage`. The *generated* `XxxRow`
@@ -426,7 +426,7 @@ classes live in `platform.server.postgres.tables` instead — see
 
 ---
 
-## [Mapping Function](../src/test/kotlin/architecture/rules/services/MappingFunction.kt)
+## [Mapping Function](../src/main/kotlin/architecture/rules/services/MappingFunction.kt)
 
 Plain `internal fun` conversions between the storage `Row` shapes and domain types.
 
@@ -448,7 +448,7 @@ Plain `internal fun` conversions between the storage `Row` shapes and domain typ
 
 ---
 
-## [Codec Object](../src/test/kotlin/architecture/rules/services/CodecObject.kt)
+## [Codec Object](../src/main/kotlin/architecture/rules/services/CodecObject.kt)
 
 The read/write codec for a column whose on-disk shape differs from the domain shape —
 either an `object` holding discriminator constants (e.g. `ChatMessageContentTypeCodec`,

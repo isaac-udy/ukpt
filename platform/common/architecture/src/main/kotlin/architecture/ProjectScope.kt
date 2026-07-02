@@ -5,7 +5,10 @@ import com.lemonappdev.konsist.api.Konsist
 val projectScope = Konsist
     .scopeFromProject()
     .slice {
-        !it.path.contains("embedded-enro") &&
+        // The architecture module itself (the rule catalog + definition) is meta-code,
+        // not governed code — scanning it would classify the catalog's own objects.
+        !it.path.contains("/platform/common/architecture/") &&
+                !it.path.contains("embedded-enro") &&
                 !it.path.contains("embedded-udytils") &&
                 !it.path.contains("/src/test/") &&
                 // Under AGP 9.0's `com.android.kotlin.multiplatform.library` plugin, Paparazzi host

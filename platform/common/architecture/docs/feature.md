@@ -1,9 +1,9 @@
 > [!NOTE]
 > **This file is generated — do not edit it by hand.**
-> Sources: @Describe annotations in the Kotlin catalog in `src/test/kotlin/architecture/rules/feature/` (narrative + rules), plus the `*.examples.md` files beside it.
-> Regenerate with `./gradlew :platform:common:architecture:test -PupdateArchitectureDocs=true`.
+> Sources: @Describe annotations in the Kotlin catalog in `src/main/kotlin/architecture/rules/feature/` (narrative + rules), plus the `*.examples.md` files beside it.
+> Regenerate with `./gradlew :platform:common:architecture:updateArchitectureDocumentation`.
 
-# [Feature Rules](../src/test/kotlin/architecture/rules/feature/FeatureRules.kt)
+# [Feature Rules](../src/main/kotlin/architecture/rules/feature/FeatureRules.kt)
 
 The top-level `feature.[name]` package (in `:client` and `:server`) is reserved for
 dependency-injection wiring: Koin modules that define the feature's DI bindings, wiring its
@@ -23,7 +23,7 @@ and [Service](services.md#service-interface) implementations into the graph. Con
 
 ---
 
-## [Dependency Module](../src/test/kotlin/architecture/rules/feature/DependencyModule.kt)
+## [Dependency Module](../src/main/kotlin/architecture/rules/feature/DependencyModule.kt)
 
 The configuration for Dependency Injection (DI) that wires the feature together.
 
@@ -92,7 +92,7 @@ internal class UserServiceImpl(
 
 ---
 
-## [Dependency Module Helper](../src/test/kotlin/architecture/rules/feature/DependencyModuleHelper.kt)
+## [Dependency Module Helper](../src/main/kotlin/architecture/rules/feature/DependencyModuleHelper.kt)
 
 An `internal` function with a Koin `Module` receiver that a `Dependencies` module calls to
 register a group of bindings — used to split a large module into readable, named chunks.

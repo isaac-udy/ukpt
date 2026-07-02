@@ -1,9 +1,9 @@
 > [!NOTE]
 > **This file is generated — do not edit it by hand.**
-> Sources: @Describe annotations in the Kotlin catalog in `src/test/kotlin/architecture/rules/module/` (narrative + rules), plus the `*.examples.md` files beside it.
-> Regenerate with `./gradlew :platform:common:architecture:test -PupdateArchitectureDocs=true`.
+> Sources: @Describe annotations in the Kotlin catalog in `src/main/kotlin/architecture/rules/module/` (narrative + rules), plus the `*.examples.md` files beside it.
+> Regenerate with `./gradlew :platform:common:architecture:updateArchitectureDocumentation`.
 
-# [Module Rules](../src/test/kotlin/architecture/rules/module/ModuleRules.kt)
+# [Module Rules](../src/main/kotlin/architecture/rules/module/ModuleRules.kt)
 
 The project is organized into three root-level module groups — `:app`, `:feature`, and
 `:platform`. The dependency rules between them are **module-graph rules**: they are checked

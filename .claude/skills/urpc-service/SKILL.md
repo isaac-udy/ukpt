@@ -54,8 +54,8 @@ also stands up the host (Step 5). Copy-paste skeletons are in `templates.md`.
    client; prefer subclassing `PresentableException` with a deliberate `retryable` flag (templates.md §6). Never
    `catch (Exception)` — deserialized urpc errors may not extend `Exception`; use `catch (t: Throwable)` or a
    specific type (`ProjectRules.noCatchException`).
-7. **Verify** — the full compile sweep (all 6 targets) + `./gradlew :platform:common:architecture:test --rerun-tasks`
-   (`--rerun-tasks` is load-bearing). If a web client consumes the service, also run the `verify-web` skill.
+7. **Verify** — the full compile sweep (all 6 targets) + `./gradlew :platform:common:architecture:verifyArchitecture`.
+   If a web client consumes the service, also run the `verify-web` skill.
 
 ## Rule cheat-sheet (canonical text lives in `platform/common/architecture/docs/` — search the ID)
 - **`ServicesLayer.ServiceImpl`** (construct) + **`ServicesLayer.ServiceImpl.internalVisibility`** — impl is `<Name>ServiceImpl`, `internal`, in `feature.<name>.services` on `:server`.

@@ -74,5 +74,6 @@ includeBuild("embedded-udytils") {
         substitute(module("dev.isaacudy.udytils:urpc-processor")).using(project(":urpc:processor"))
         substitute(module("dev.isaacudy.udytils:architecture-core")).using(project(":architecture-core"))
         substitute(module("dev.isaacudy.udytils:architecture-annotations")).using(project(":architecture-annotations"))
+        substitute(module("dev.isaacudy.udytils:architecture-gradle-plugin")).using(project(":architecture-gradle-plugin"))
     }
 }

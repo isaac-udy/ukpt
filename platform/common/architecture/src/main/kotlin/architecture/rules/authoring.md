@@ -66,5 +66,5 @@ this still be an X?"* — no → requirement; yes → rule.
 4. Regenerate the docs and commit them with the change:
 
 ```
-./gradlew :platform:common:architecture:test -PupdateArchitectureDocs=true
+./gradlew :platform:common:architecture:updateArchitectureDocumentation
 ```

@@ -1,7 +1,7 @@
 > [!NOTE]
 > **This file is generated — do not edit it by hand.**
-> Narrative source: `src/test/kotlin/architecture/rules/exceptions.md`; rule content comes from the rule catalog.
-> Regenerate with `./gradlew :platform:common:architecture:test -PupdateArchitectureDocs=true`.
+> Narrative source: `src/main/kotlin/architecture/rules/exceptions.md`; rule content comes from the rule catalog.
+> Regenerate with `./gradlew :platform:common:architecture:updateArchitectureDocumentation`.
 
 # Architecture exceptions
 
