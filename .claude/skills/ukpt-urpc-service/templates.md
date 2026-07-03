@@ -1,4 +1,4 @@
-# urpc-service templates
+# ukpt-urpc-service templates
 
 Copy these and substitute the placeholders. `<Name>` = PascalCase service base (e.g. `User`);
 `<name>` = the lowercase feature/package segment (`ukpt` for `:feature:core`, else your feature);

@@ -1,5 +1,5 @@
 ---
-name: verify-web
+name: ukpt-verify-web
 description: >-
   Validate a web/wasm (wasmJs) client change by actually bundling (webpack) and
   serving it in a browser — because `compileKotlinWasmJs` only type-checks and
@@ -8,7 +8,7 @@ description: >-
   whenever the web build or render needs confirming.
 ---
 
-# verify-web
+# ukpt-verify-web
 
 `compileKotlinWasmJs` only **type-checks**. The four failure modes below all pass
 compilation and only bite at **bundle time** (webpack) or **runtime** (browser).
@@ -20,7 +20,7 @@ A green compile is necessary but not sufficient — you must bundle *and* serve.
 ```
 ./gradlew :app:client:web:wasmJsBrowserDevelopmentWebpack
 ```
-Ergonomics: `bash .claude/skills/verify-web/run-bundle-check.sh` runs this and flags the two build-time signatures for you.
+Ergonomics: `bash .claude/skills/ukpt-verify-web/run-bundle-check.sh` runs this and flags the two build-time signatures for you.
 
 **2. Runtime gate** — catches the navigation entry-point gap (mode 2) and the missing ViewModel factory (mode 3). These are **invisible to webpack**:
 ```

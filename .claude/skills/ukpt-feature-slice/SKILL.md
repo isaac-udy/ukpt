@@ -1,5 +1,5 @@
 ---
-name: feature-slice
+name: ukpt-feature-slice
 description: >-
   Scaffold a new feature vertical slice :feature:<name>:{api,client,server} in
   UKPT — the three build files, the Compose/Enro client (destination, screen,
@@ -9,7 +9,7 @@ description: >-
 argument-hint: <feature-name>
 ---
 
-# feature-slice
+# ukpt-feature-slice
 
 Scaffold `:feature:<name>:{api,client,server}` modeled on the canonical `:feature:core`.
 `templates.md` carries the build files + source skeletons; `:feature:core` is the living reference
@@ -40,10 +40,10 @@ Do **not** copy the literal `ukpt`/`Ukpt` from core — substitute `<name>`/`<Na
    - `app/client/shared/.../App.kt` → add `<name>ClientDependencies` to `modules(...)` + its import.
    - `app/server/build.gradle.kts` → `implementation(projects.feature.<name>.server)` (if using the server).
    - Server DI: the template's `Server.kt` is a placeholder with **no** Koin host — standing that up is the
-     `urpc-service` skill's job (do it when the feature gets its first service, not at scaffold time).
+     `ukpt-urpc-service` skill's job (do it when the feature gets its first service, not at scaffold time).
 6. **Verify** — compile sweep (all 6 targets, CLAUDE.md), record + verify Paparazzi for the new client
    module, and `./gradlew :platform:common:architecture:verifyArchitecture`. If the feature has web UI, run
-   the `verify-web` skill — a forgotten `viewModelOf` only crashes at runtime on wasm, invisible to compile.
+   the `ukpt-verify-web` skill — a forgotten `viewModelOf` only crashes at runtime on wasm, invisible to compile.
 
 ## Load-bearing gotchas (from `:feature:core`)
 - **KSP differs by module**: `:client` (enro) adds `kspCommonMainMetadata` **plus** every per-target `kspXxx`;
@@ -66,9 +66,9 @@ Do **not** copy the literal `ukpt`/`Ukpt` from core — substitute `<name>`/`<Na
   **`UiLayer.Composable.screenContentSnapshotTest`** — every ScreenContent is called from an `androidHostTest` snapshot test.
 - **`FeatureRules.DependencyModule`** (construct) — DI is a `val <name>…Dependencies` module in `feature.<name>`;
   **`FeatureRules.constructorReferenceBindings`** — constructor-ref bindings.
-- **`ServicesLayer.ServiceImpl`** (construct) — server-side services follow the `urpc-service` skill.
+- **`ServicesLayer.ServiceImpl`** (construct) — server-side services follow the `ukpt-urpc-service` skill.
 
 ## Reference
 - The living template: `feature/core/{api,client,server}` (build files + `src/.../feature/ukpt/...`).
 - App wiring: `app/client/shared/src/commonMain/kotlin/com/isaacudy/ukpt/{App.kt,UkptNavigation.kt}` and `settings.gradle.kts`.
-- Skeletons + the wiring checklist: `templates.md` (this skill). For server services: the `urpc-service` skill.
+- Skeletons + the wiring checklist: `templates.md` (this skill). For server services: the `ukpt-urpc-service` skill.

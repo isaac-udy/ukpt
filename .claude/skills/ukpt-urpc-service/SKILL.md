@@ -1,5 +1,5 @@
 ---
-name: urpc-service
+name: ukpt-urpc-service
 description: >-
   Add or change a urpc client/server service in UKPT end-to-end — the @Urpc
   contract in :api, the ServiceImpl + Koin binding on :server, and (for the very
@@ -8,7 +8,7 @@ description: >-
   :api/:server modules.
 ---
 
-# urpc-service
+# ukpt-urpc-service
 
 urpc is UKPT's typed client↔server contract. An `@Urpc` interface in `:feature:<name>:api` is
 processed by KSP into a **client** (consumed by `:client` Repositories) and a **server binding**
@@ -55,7 +55,7 @@ also stands up the host (Step 5). Copy-paste skeletons are in `templates.md`.
    `catch (Exception)` — deserialized urpc errors may not extend `Exception`; use `catch (t: Throwable)` or a
    specific type (`ProjectRules.noCatchException`).
 7. **Verify** — the full compile sweep (all 6 targets) + `./gradlew :platform:common:architecture:verifyArchitecture`.
-   If a web client consumes the service, also run the `verify-web` skill.
+   If a web client consumes the service, also run the `ukpt-verify-web` skill.
 
 ## Rule cheat-sheet (canonical text lives in `platform/common/architecture/docs/` — search the ID)
 - **`ServicesLayer.ServiceImpl`** (construct) + **`ServicesLayer.ServiceImpl.internalVisibility`** — impl is `<Name>ServiceImpl`, `internal`, in `feature.<name>.services` on `:server`.

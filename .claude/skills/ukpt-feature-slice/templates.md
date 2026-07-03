@@ -1,4 +1,4 @@
-# feature-slice templates
+# ukpt-feature-slice templates
 
 Substitute `<name>` (lowercase feature/package segment) and `<Name>` (PascalCase type prefix).
 These mirror `:feature:core` — if core's build files change materially, update these to match.
@@ -316,4 +316,4 @@ class <Name>ScreenSnapshotTest {
       and add it to `KoinApplication(application = { modules(ukptClientDependencies, <name>ClientDependencies) })`.
 - [ ] `app/server/build.gradle.kts` — `implementation(projects.feature.<name>.server)` (only if using the server).
 - [ ] Add a navigation entry to the new `<Name>Destination` from wherever the app should reach it.
-- [ ] (Server DI / urpc host: defer to the `urpc-service` skill — done when the feature gets its first service.)
+- [ ] (Server DI / urpc host: defer to the `ukpt-urpc-service` skill — done when the feature gets its first service.)
