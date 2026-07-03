@@ -31,10 +31,12 @@ Do **not** copy the literal `ukpt`/`Ukpt` from core — substitute `<name>`/`<Na
 3. **Client sources** (`feature.<name>.ui`): `<Name>Destination` in `:api`; `<Name>Screen` +
    `internal <Name>ScreenContent`, `<Name>ViewModel`, `<Name>State`, and `<name>ClientDependencies` in
    `:client` (templates.md §5).
-4. **Snapshot test** — copy `feature/core/client/src/androidHostTest/kotlin/platform/snapshot/SnapshotRule.kt`
-   **verbatim** into the new module's `androidHostTest/.../platform/snapshot/`, then add a
-   `<Name>ScreenSnapshotTest` that calls `<Name>ScreenContent` (templates.md §6). `UiLayer.Composable.screenContentSnapshotTest`
-   requires every ScreenContent to be exercised by an `androidHostTest` snapshot test.
+4. **Snapshot tests (preview-driven)** — copy `SnapshotRule.kt` and `PreviewSnapshotTest.kt` from
+   `feature/core/client/src/androidHostTest/kotlin/platform/snapshot/` into the new module's
+   `androidHostTest/.../platform/snapshot/`, changing PreviewSnapshotTest's scanned package to
+   `feature.<name>` (templates.md §6). The Screen template's `@Preview` (§5) is what gets
+   snapshotted — `UiLayer.Composable.screenContentPreview` requires every ScreenContent to be
+   called from a `@Preview`.
 5. **Wire it up** — the easy-to-forget edits to existing files (templates.md §7 checklist):
    - `app/client/shared/build.gradle.kts` → `implementation(projects.feature.<name>.client)`.
    - `app/client/shared/.../App.kt` → add `<name>ClientDependencies` to `modules(...)` + its import.
@@ -63,7 +65,8 @@ Do **not** copy the literal `ukpt`/`Ukpt` from core — substitute `<name>`/`<Na
 - **`UiLayer.Screen.screenContentCompanion`** — `<Name>Screen` pairs with an `internal <Name>ScreenContent(state, …)`;
   **`UiLayer.Screen.viewModelInjection`** — inject the VM with `viewModel()` (not `koinViewModel()`);
   **`UiLayer.ViewModel.usesJobManager`** — VMs use udytils `JobManager`, never `var job: Job?`;
-  **`UiLayer.Composable.screenContentSnapshotTest`** — every ScreenContent is called from an `androidHostTest` snapshot test.
+  **`UiLayer.Composable.screenContentPreview`** — every ScreenContent is called from a `@Preview` composable.
+  **`UiLayer.Composable.previewsAreSnapshotTested`** — a module with `@Preview` composables has a `PreviewSnapshotTest`.
 - **`FeatureRules.DependencyModule`** (construct) — DI is a `val <name>…Dependencies` module in `feature.<name>`;
   **`FeatureRules.constructorReferenceBindings`** — constructor-ref bindings.
 - **`ServicesLayer.ServiceImpl`** (construct) — server-side services follow the `ukpt-urpc-service` skill.

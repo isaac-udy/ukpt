@@ -3,37 +3,35 @@ package architecture.rules.ui
 import dev.isaacudy.udytils.architecture.*
 
 import com.lemonappdev.konsist.api.Konsist
-import com.lemonappdev.konsist.api.declaration.KoFunctionDeclaration
 
 @Describe("""
     A `@Composable` function defined in the `..ui..` package that is not a [Screen](#screen).
-    Typically a sub-component used by one or more screens, an inline editor, or a
-    feature-specific overlay.
+    Typically a sub-component used by one or more screens, an inline editor, a feature-specific
+    overlay, or a `@Preview` function.
 
     * **Note:** `[Name]ScreenContent` companions (see `UiLayer.Screen.screenContentCompanion`)
-      are non-Screen composables, which is why the snapshot-test rule lives on this Construct.
+      are non-Screen composables, which is why the snapshot rules live on this Construct.
       For reusable design-system primitives (buttons, fields), prefer a shared composable in
-      `:platform:client:ui`. Feature-local composables live alongside the Screen they support,
-      and may be `internal` so snapshot tests can drive them.
+      `:platform:client:ui`. Feature-local composables live alongside the Screen they support.
 
     ### Snapshot tests
 
-    A [Paparazzi](https://github.com/cashapp/paparazzi) host-side test renders a Screen's
-    `[Name]ScreenContent` and records a golden image, catching visual regressions without a
-    device or emulator. This is enforced by `UiLayer.Composable.screenContentSnapshotTest` below.
+    Snapshots are preview-driven: `PreviewSnapshotTest` (in `src/androidHostTest/`) discovers
+    every `@Preview` composable in the module from the compiled classes
+    (ComposablePreviewScanner) and renders each one with
+    [Paparazzi](https://github.com/cashapp/paparazzi), recording a golden image that catches
+    visual regressions without a device or emulator. Adding a `@Preview` to a composable is all
+    that is needed to snapshot it.
 
-    * **Note:** Snapshot tests live in `feature/.../src/androidHostTest/` (the host-test source
-      set under AGP 9.0's KMP library plugin) and use the `SnapshotRule` helper
-      (`platform.snapshot.SnapshotRule`):
-        * `snapshot.screen { ... }`: for screen content and composables that need bounded layout
-          constraints, such as `fillMaxSize()`. Renders in a fixed-size container.
-        * `snapshot.component { ... }`: for small, self-sizing composables. Renders at content
-          size with padding.
-    * **Note:** The composable under test must be `internal` (not `private`) so the host-test
-      source set can reach it; this is the same constraint `UiLayer.Screen.screenContentCompanion`
-      enforces. Add a `@Test` per meaningful state (loaded, empty, error) as a screen grows.
-    * **Note:** Record golden images after adding or changing a snapshot test, then verify they
-      match (goldens are committed under `src/androidHostTest/snapshots/images/`):
+    * **Note:** Use the unified `@Preview` (`androidx.compose.ui.tooling.preview.Preview`)
+      directly in common code; `compose.preview` must be a `commonMain` dependency. The same
+      previews render in the IDE.
+    * **Note:** Add a `@Preview` per meaningful state (loaded, empty, error) as a screen grows.
+    * **Note:** For one-off snapshot tests that aren't preview-driven, `SnapshotRule`
+      (`platform.snapshot.SnapshotRule`) provides `snapshot.screen { }` and
+      `snapshot.component { }`.
+    * **Note:** Record golden images after adding or changing a preview, then verify they match
+      (goldens are committed under `src/androidHostTest/snapshots/images/`):
 
       ```
       ./gradlew :feature:core:client:recordPaparazzi
@@ -46,36 +44,67 @@ object Composable : Construct<UiLayer>(
         isAnnotatedWith("Composable"),
     ),
 ) {
-    @Describe("A `[Name]ScreenContent` composable must be exercised by at least one snapshot test")
-    val screenContentSnapshotTest by rule {
+    @Describe("A `[Name]ScreenContent` composable must be called from a `@Preview` composable in the same module")
+    val screenContentPreview by rule {
         rationale(
             """
-            `ScreenContent` exists so the screen body can be rendered from state and callbacks.
-            The test only verifies that each ScreenContent is called from a `@Test` in an
-            `androidHostTest` source set; it does not require a minimum number of snapshots.
+            Previews are the snapshot surface: `PreviewSnapshotTest` renders every `@Preview` in
+            the module, so a ScreenContent without a preview has no snapshot coverage.
             """.trimIndent(),
         )
-        constrain { decl, _ ->
-            val fn = decl as? KoFunctionDeclaration ?: return@constrain emptyList()
-            if (!fn.name.endsWith("ScreenContent")) return@constrain emptyList()
-            if (!fn.resideInPackage("feature..ui..")) return@constrain emptyList()
-            // Snapshot tests live under `src/androidHostTest/`, which `projectScope` excludes —
-            // scan those files directly for a reference to each ScreenContent.
-            val tested = snapshotTestSources.any { source -> source.contains("${fn.name}(") }
-            if (tested) emptyList() else listOf(Violation(fn, "ScreenContent has no snapshot test that calls `${fn.name}(`"))
+        scope { scope, exempt ->
+            val previewsByModule = scope.functions()
+                .filter { it.hasAnnotationWithName("Preview") }
+                .groupBy { it.containingFile.path.substringBefore("/src/") }
+            scope.functions()
+                .filter { it.name.endsWith("ScreenContent") }
+                .filter { it.resideInPackage("feature..ui..") }
+                .filterNot { exempt(it) }
+                .filterNot { fn ->
+                    previewsByModule[fn.containingFile.path.substringBefore("/src/")]
+                        .orEmpty()
+                        .any { preview -> preview.text.contains("${fn.name}(") }
+                }
+                .map { Violation(it, "no @Preview composable calls `${it.name}(`") }
+        }
+    }
+
+    @Describe("A feature module that contains `@Preview` composables must have a `PreviewSnapshotTest` in its `androidHostTest` source set")
+    val previewsAreSnapshotTested by rule {
+        rationale(
+            """
+            The scanner test is what turns previews into snapshots; without it, previews render in
+            the IDE but nothing guards against visual regressions.
+            """.trimIndent(),
+        )
+        note("Snapshot tests live under `src/androidHostTest/`, which the governed scope excludes; the test reads those files directly.")
+        scope { scope, exempt ->
+            scope.functions()
+                .filter { it.hasAnnotationWithName("Preview") }
+                .filter { it.resideInPackage("feature..") }
+                .filterNot { exempt(it) }
+                .groupBy { it.containingFile.path.substringBefore("/src/") }
+                .filterNot { (module, _) ->
+                    hostTestFiles.any { (path, text) ->
+                        path.startsWith("$module/src/androidHostTest/") &&
+                            text.contains("AndroidComposablePreviewScanner")
+                    }
+                }
+                .map { (module, previews) ->
+                    Violation(previews.first(), "module `$module` has @Preview composables but no PreviewSnapshotTest in androidHostTest")
+                }
         }
     }
 }
 
 /**
  * Snapshot tests live under `src/androidHostTest/`, which `projectScope` deliberately excludes, so
- * `Composable.screenContentSnapshotTest` scans those source files directly. Computed once, lazily,
- * and reused across every `[Name]ScreenContent` checked by that rule.
+ * `Composable.previewsAreSnapshotTested` reads those source files directly. Computed once, lazily.
  */
-private val snapshotTestSources: List<String> by lazy {
+private val hostTestFiles: List<Pair<String, String>> by lazy {
     Konsist
         .scopeFromProject()
         .files
         .filter { it.path.contains("/src/androidHostTest/") }
-        .map { it.text }
+        .map { it.path to it.text }
 }

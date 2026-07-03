@@ -72,11 +72,13 @@ kotlin {
         }
     }
     sourceSets {
-        androidMain.dependencies {
-            implementation(compose.preview)
-        }
         commonMain.dependencies {
             api(projects.feature.<name>.api)
+
+            // Unified @Preview (androidx.compose.ui.tooling.preview.Preview) — multiplatform
+            // since Compose 1.10, usable directly in common code. PreviewSnapshotTest discovers
+            // annotated composables and snapshots them.
+            implementation(compose.preview)
 
             implementation(compose.runtime)
             implementation(compose.foundation)
@@ -105,6 +107,10 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+        }
+        getByName("androidHostTest").dependencies {
+            // Discovers @Preview composables on the test classpath and drives Paparazzi from them.
+            implementation(libs.composablePreviewScanner.android)
         }
         jvmMain.dependencies {
             implementation(libs.ktor.serverCore)
@@ -228,13 +234,24 @@ fun <Name>Screen(
     <Name>ScreenContent(state)
 }
 
-// UiLayer.Screen.screenContentCompanion: internal ScreenContent takes state (+ callbacks) so it's snapshot-testable without a ViewModel.
+// UiLayer.Screen.screenContentCompanion: internal ScreenContent takes state (+ callbacks) so it renders without a ViewModel.
 @Composable
 internal fun <Name>ScreenContent(state: <Name>State) {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(state.message)
         }
+    }
+}
+
+// UiLayer.Composable.screenContentPreview: every ScreenContent needs a @Preview — it becomes a
+// Paparazzi snapshot via PreviewSnapshotTest. Add a @Preview per meaningful state.
+// Import: androidx.compose.ui.tooling.preview.Preview
+@Preview
+@Composable
+internal fun <Name>ScreenPreview() {
+    MaterialTheme {
+        <Name>ScreenContent(<Name>State())
     }
 }
 ```
@@ -280,34 +297,16 @@ val <name>ClientDependencies = module {
 }
 ```
 
-## §6 — Snapshot test
+## §6 — Snapshot tests (preview-driven)
 1. Copy `feature/core/client/src/androidHostTest/kotlin/platform/snapshot/SnapshotRule.kt` **verbatim** into
    `feature/<name>/client/src/androidHostTest/kotlin/platform/snapshot/SnapshotRule.kt` (it's identical per module
    — copy the live file rather than a snapshot here, so it can't drift).
-2. Add the test → `feature/<name>/client/src/androidHostTest/kotlin/feature/<name>/ui/<Name>ScreenSnapshotTest.kt`:
-```kotlin
-package feature.<name>.ui
-
-import androidx.compose.material3.MaterialTheme
-import org.junit.Rule
-import org.junit.Test
-import platform.snapshot.SnapshotRule
-
-class <Name>ScreenSnapshotTest {
-    @get:Rule val snapshot = SnapshotRule()
-
-    @Test
-    fun <name>ScreenContent() {
-        snapshot.screen {
-            MaterialTheme {
-                <Name>ScreenContent(<Name>State())
-            }
-        }
-    }
-    // Add a @Test per meaningful state (loaded, empty, error, …) as the screen grows.
-    // Use snapshot.component { } for small self-sizing composables.
-}
-```
+2. Copy `feature/core/client/src/androidHostTest/kotlin/platform/snapshot/PreviewSnapshotTest.kt` into the same
+   location in the new module, changing ONE line — the package tree it scans:
+   `scanPackageTrees("feature.<name>")`.
+   PreviewSnapshotTest discovers every `@Preview` composable in the module and snapshots it with Paparazzi
+   (`UiLayer.Composable.previewsAreSnapshotTested`); the `@Preview` on `<Name>ScreenPreview` (§5) satisfies
+   `UiLayer.Composable.screenContentPreview`. No per-screen test files are needed.
 
 ## §7 — Wiring checklist (edits to EXISTING files — the easy-to-forget step)
 - [ ] `settings.gradle.kts` — three `include(":feature:<name>:…")` (§4).

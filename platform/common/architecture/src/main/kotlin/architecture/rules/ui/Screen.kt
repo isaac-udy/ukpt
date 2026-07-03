@@ -111,9 +111,9 @@ object Screen : Construct<UiLayer>(
         rationale(
             """
             The Screen function connects the ViewModel; the `ScreenContent` function takes only
-            state and callbacks, so snapshot tests can render every state without a ViewModel.
-            Marking it `internal` lets the test source set call it; `private` makes the screen
-            untestable.
+            state and callbacks, so previews and snapshot tests can render every state without a
+            ViewModel. Marking it `internal` lets the test source set call it; `private` makes
+            the screen untestable.
             """.trimIndent(),
         )
         constrain { decl, _ ->
