@@ -60,11 +60,13 @@ git merge-file <project-file> <translated-base> <translated-new>
 
 File classes:
 
-- **Template-owned (expect clean merges):** `gradle/wrapper/`, `build-logic/`,
+- **Template-owned (expect clean merges):** `UKPT.md`, `gradle/wrapper/`, `build-logic/`,
   `.claude/skills/ukpt-*`, `.claude/settings.json`, `gradle/libs.versions.toml` (projects add
   entries; the merge keeps both), root `build.gradle.kts`, `gradle.properties`.
+- **Project-owned (never sync):** `CLAUDE.md` — only verify it still imports `UKPT.md`
+  (`@UKPT.md`).
 - **Mixed (expect conflicts; resolve semantically):** `settings.gradle.kts` (project feature
-  includes stay), app shells (`app/`), `CLAUDE.md`, platform modules the project has extended.
+  includes stay), app shells (`app/`), platform modules the project has extended.
 - **Example code (do not sync):** `:feature:core` and anything under `feature/` — template
   changes here are patterns, carried by migrations (§6), not file syncs.
 - **Generated (do not merge by hand):** `platform/common/architecture/README.md` and `docs/` —
@@ -107,7 +109,7 @@ Projects tweak and extend their rule catalogs. Never treat the catalog as templa
 
 ## 7. Verify
 
-The full matrix, from CLAUDE.md:
+The full matrix, from UKPT.md:
 
 ```
 ./gradlew :app:client:android:compileDebugKotlin :app:client:desktop:compileKotlin \

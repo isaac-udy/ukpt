@@ -43,7 +43,7 @@ Do **not** copy the literal `ukpt`/`Ukpt` from core — substitute `<name>`/`<Na
    - `app/server/build.gradle.kts` → `implementation(projects.feature.<name>.server)` (if using the server).
    - Server DI: the template's `Server.kt` is a placeholder with **no** Koin host — standing that up is the
      `ukpt-urpc-service` skill's job (do it when the feature gets its first service, not at scaffold time).
-6. **Verify** — compile sweep (all 6 targets, CLAUDE.md), record + verify Paparazzi for the new client
+6. **Verify** — compile sweep (all 6 targets, UKPT.md), record + verify Paparazzi for the new client
    module, and `./gradlew :platform:common:architecture:verifyArchitecture`. If the feature has web UI, run
    the `ukpt-verify-web` skill — a forgotten `viewModelOf` only crashes at runtime on wasm, invisible to compile.
 

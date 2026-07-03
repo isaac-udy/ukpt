@@ -56,6 +56,8 @@ Ask the user for the project name and base package if not given. Then apply, pro
 - Do not rename anything under `embedded-enro/`, `embedded-udytils/`, or
   `platform/common/architecture/` (the rule catalog's `architecture.rules` package is not
   project-branded).
+- `CLAUDE.md` is project-owned: rewrite its intro for this project, but keep the `@UKPT.md`
+  import. `UKPT.md` is template-owned — leave it alone; `ukpt-template-update` syncs it.
 
 ## 4. Write the marker
 

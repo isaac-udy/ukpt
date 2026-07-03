@@ -26,7 +26,7 @@ also stands up the host (Step 5). Copy-paste skeletons are in `templates.md`.
    Function shapes — each takes 0 or 1 param: `suspend fun f(req): Res` (unary), `fun f(req): Flow<Res>`
    (server stream), `fun f(reqs: Flow<Req>): Flow<Res>` (bidi). Errors propagate as **thrown exceptions**;
    the return type only models success. **No `:api` build edit** — urpc KSP is already wired per-target.
-2. **Generate** — run the compile sweep (see CLAUDE.md §Compiling) so KSP emits `<Name>ServiceUrpcBinding`
+2. **Generate** — run the compile sweep (see UKPT.md §Compiling) so KSP emits `<Name>ServiceUrpcBinding`
    + the client before Steps 3–4 reference them.
 3. **Implement** (`:server`, `feature.<name>.services`): `internal class <Name>ServiceImpl(...) : <Name>Service`
    (the `ServicesLayer.ServiceImpl` construct). Orchestrate only — inject this feature's `services.storage`/`services.internal` or other
