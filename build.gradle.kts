@@ -32,7 +32,7 @@ apply<dev.isaacudy.udytils.metrics.gradle.MetricsPlugin>()
 
 // Codebase health metrics: `collectMetrics` gathers every integration,
 // `publishMetrics` appends the run to the `metrics` branch, and
-// `generateMetricsReport` renders build/metrics/report.html from the series.
+// `generateMetricsReport` renders build/metrics/report/ from the series.
 configure<dev.isaacudy.udytils.metrics.gradle.MetricsExtension> {
     integrations {
         architecture(":platform:common:architecture")

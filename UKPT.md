@@ -79,7 +79,7 @@ Codebase health metrics are collected by the udytils metrics plugin, configured 
 ```
 ./gradlew collectMetrics            # gather every integration into build/metrics/run.json
 ./gradlew publishMetrics            # append the run to the local `metrics` branch
-./gradlew generateMetricsReport     # render build/metrics/report.html from the series
+./gradlew generateMetricsReport     # render build/metrics/report/ from the series
 ```
 
 CI runs this on every push to main (`.github/workflows/metrics.yml`) and pushes the `metrics` branch. Build warnings are parsed from a captured log at `build/metrics/build.log` when one exists. Collection never fails the build; metrics are a report, not a gate.
