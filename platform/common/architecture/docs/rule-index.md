@@ -15,6 +15,7 @@ The complete catalog, one row per Construct or Rule. IDs are based on the object
 | `ModuleRules.clientMayUseApi` | A `:feature:[name]:client` module may depend on any `:feature:[name]:api` module | [tested](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |
 | `ModuleRules.serverApiOnly` | A `:feature:[name]:server` module must never depend on another `:client`/`:server` module | [tested](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |
 | `ModuleRules.serverMayUseApi` | A `:feature:[name]:server` module may depend on any `:feature:[name]:api` module | [tested](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |
+| `ModuleRules.crossFeatureCodeViaApi` | Code in one `feature.[name]` namespace must only depend on another feature's code that is declared in an `:api` module | [tested](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |
 | `ModuleRules.apiMayUseApi` | A `:feature:[name]:api` module may depend on another feature's `:api` module to share models | [guidance](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |
 | `ModuleRules.featuresMayBeGrouped` | A `:feature` module may be grouped (`:feature:[group]:[name]:…`) | [guidance](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |
 | `ModuleRules.platformNotApp` | A `:platform` module must never depend on an `:app` module | [tested](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |

@@ -235,7 +235,7 @@ object ServicesLayer : RuleGroup(
 
     @Describe("The `services` layer may depend on another feature's `services` only via that feature's `:api` module")
     val crossFeatureViaApi by rule {
-        enforcedBy("ModuleRules.clientApiOnly", "ModuleRules.serverApiOnly")
+        enforcedBy("ModuleRules.clientApiOnly", "ModuleRules.serverApiOnly", "ModuleRules.crossFeatureCodeViaApi")
     }
 
     @Describe("A class in `services.internal.<subsystem>.**` must not import from a different subsystem under `services.internal` (ancestor data-shape imports are allowed)")

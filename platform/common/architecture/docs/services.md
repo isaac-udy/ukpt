@@ -201,7 +201,7 @@ the [rules](#rules).
 * The `services` layer may depend on `domain` and on other features' `:api` `services` contracts; it must not depend on `data`
     * **Why:** The server has no `data` layer, and the client's `data` depends on `services`, not the other way around. Reaching into client-only `data.storage` (Keychain, SharedPreferences) from a services file would fail at runtime or break the client/server split.
 * The `services` layer may depend on another feature's `services` only via that feature's `:api` module
-    * **Enforced by:** `ModuleRules.clientApiOnly`, `ModuleRules.serverApiOnly`
+    * **Enforced by:** `ModuleRules.clientApiOnly`, `ModuleRules.serverApiOnly`, `ModuleRules.crossFeatureCodeViaApi`
 * A class in `services.internal.<subsystem>.**` must not import from a different subsystem under `services.internal` (ancestor data-shape imports are allowed)
     * **Why:** Each direct child of `services.internal` is isolated: a subsystem may use its own children freely, its ancestors only for shared data shapes, and its siblings never. Cross-subsystem composition belongs to the orchestrator at bare `services.internal`, with shared payloads defined at a common ancestor.
 * A `services.storage` file must not import from `services.internal`: the dependency direction inside `services` is `internal → storage`

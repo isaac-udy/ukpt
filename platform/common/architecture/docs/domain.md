@@ -42,7 +42,7 @@ The [Rules](#rules) below apply across the whole `feature.[name].domain` package
 * The `domain` layer must not depend on `ui`, `data`, or `services` packages within the feature
     * **Why:** The dependency graph is `ui → domain ← data`, with `services` depending on domain. Importing those into domain would invert the graph or create a cycle.
 * The `domain` layer may depend on another feature's `domain` only via that feature's `:api` module
-    * **Enforced by:** `ModuleRules.clientApiOnly`, `ModuleRules.serverApiOnly`
+    * **Enforced by:** `ModuleRules.clientApiOnly`, `ModuleRules.serverApiOnly`, `ModuleRules.crossFeatureCodeViaApi`
 
 ---
 

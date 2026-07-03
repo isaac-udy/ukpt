@@ -94,7 +94,7 @@ object DomainLayer : RuleGroup(
 
     @Describe("The `domain` layer may depend on another feature's `domain` only via that feature's `:api` module")
     val crossFeatureViaApi by rule {
-        enforcedBy("ModuleRules.clientApiOnly", "ModuleRules.serverApiOnly")
+        enforcedBy("ModuleRules.clientApiOnly", "ModuleRules.serverApiOnly", "ModuleRules.crossFeatureCodeViaApi")
     }
 }
 

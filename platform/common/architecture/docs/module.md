@@ -29,8 +29,8 @@ Kotlin source. Build-file exemptions use the `// architecture-exception:` commen
 * **Notes**:
     * Small projects may start with a single `:feature:core` containing all feature/domain code. As complexity increases, logic is migrated into specific `:feature:name` modules.
     * When starting with a single `:feature:core` feature module, it is a good idea to "preempt" the migration of `:feature:core` into individual `:feature:[name]` modules by using `feature.[name]` for package names within `:feature:core` (instead of `feature.core`)
-      * If you are following this pattern, the named feature packages within `:feature:core` should only depend on other named packages via the api module
-      * Example: If `:feature:core` contains `feature.auth` and `feature.invoices`, code in `feature.auth` should only depend on `feature.invoices` code which is in the `:feature:core:api` module
+      * The named feature packages within `:feature:core` must only depend on other named packages via the api module (enforced by `ModuleRules.crossFeatureCodeViaApi`), which keeps every feature liftable into its own module.
+      * Example: If `:feature:core` contains `feature.auth` and `feature.invoices`, code in `feature.auth` may only depend on `feature.invoices` code which is in the `:feature:core:api` module
     * `:client` and `:server` modules are optional, but at least one of the two should exist for every feature.
 
 ## `:platform` (Infrastructure)
@@ -52,6 +52,10 @@ Kotlin source. Build-file exemptions use the `// architecture-exception:` commen
     * **Why:** A feature's server may only reach other features through their `:api` contract, or `:platform`.
 * A `:feature:[name]:server` module may depend on any `:feature:[name]:api` module
     * **Enforced by:** `ModuleRules.serverApiOnly`
+* Code in one `feature.[name]` namespace must only depend on another feature's code that is declared in an `:api` module
+    * **Why:** Several features may share one module (the `:feature:core` starting pattern), where the module-graph rules can't see the dependencies between them. Keeping cross-feature imports on `:api`-declared code keeps every feature liftable into its own module at any time.
+    * **Note:** Between modules this is already enforced by `ModuleRules.clientApiOnly` and `ModuleRules.serverApiOnly`; this Rule adds the same guarantee within a module that hosts several feature namespaces.
+    * **Note:** Imports that don't resolve to project source, such as KSP-generated bindings, are not tested.
 * A `:platform` module must never depend on an `:app` module
 * A `:platform` module must never depend on a `:feature` module
 

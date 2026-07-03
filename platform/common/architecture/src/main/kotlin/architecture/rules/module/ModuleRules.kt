@@ -2,6 +2,12 @@ package architecture.rules.module
 
 import dev.isaacudy.udytils.architecture.*
 
+import architecture.definitions.featureName
+import architecture.definitions.isApiModule
+import architecture.definitions.isFeatureModule
+import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
+import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
+
 
 @Describe("""
     The project is organized into three root-level module groups: `:app`, `:feature`, and
@@ -28,8 +34,8 @@ import dev.isaacudy.udytils.architecture.*
     * **Notes**:
         * Small projects may start with a single `:feature:core` containing all feature/domain code. As complexity increases, logic is migrated into specific `:feature:name` modules.
         * When starting with a single `:feature:core` feature module, it is a good idea to "preempt" the migration of `:feature:core` into individual `:feature:[name]` modules by using `feature.[name]` for package names within `:feature:core` (instead of `feature.core`)
-          * If you are following this pattern, the named feature packages within `:feature:core` should only depend on other named packages via the api module
-          * Example: If `:feature:core` contains `feature.auth` and `feature.invoices`, code in `feature.auth` should only depend on `feature.invoices` code which is in the `:feature:core:api` module
+          * The named feature packages within `:feature:core` must only depend on other named packages via the api module (enforced by `ModuleRules.crossFeatureCodeViaApi`), which keeps every feature liftable into its own module.
+          * Example: If `:feature:core` contains `feature.auth` and `feature.invoices`, code in `feature.auth` may only depend on `feature.invoices` code which is in the `:feature:core:api` module
         * `:client` and `:server` modules are optional, but at least one of the two should exist for every feature.
 
     ## `:platform` (Infrastructure)
@@ -84,6 +90,53 @@ object ModuleRules : RuleGroup() {
     @Describe("A `:feature:[name]:server` module may depend on any `:feature:[name]:api` module")
     val serverMayUseApi by rule {
         enforcedBy(serverApiOnly)
+    }
+
+    @Describe("Code in one `feature.[name]` namespace must only depend on another feature's code that is declared in an `:api` module")
+    val crossFeatureCodeViaApi by rule {
+        rationale(
+            """
+            Several features may share one module (the `:feature:core` starting pattern), where the
+            module-graph rules can't see the dependencies between them. Keeping cross-feature
+            imports on `:api`-declared code keeps every feature liftable into its own module at
+            any time.
+            """.trimIndent(),
+        )
+        note("Between modules this is already enforced by `ModuleRules.clientApiOnly` and `ModuleRules.serverApiOnly`; this Rule adds the same guarantee within a module that hosts several feature namespaces.")
+        note("Imports that don't resolve to project source, such as KSP-generated bindings, are not tested.")
+        scope { scope, exempt ->
+            // Index of project declarations by fully-qualified name, so imports resolve to the
+            // module that declares them (nested types resolve via longest matching prefix).
+            val declaredInApi: Map<String, Boolean> = scope.declarations(includeNested = true)
+                .filterIsInstance<KoFullyQualifiedNameProvider>()
+                .mapNotNull { decl ->
+                    val fqn = decl.fullyQualifiedName ?: return@mapNotNull null
+                    fqn to (decl as KoBaseDeclaration).isApiModule()
+                }
+                .toMap()
+
+            fun resolvesOutsideApi(importName: String): Boolean {
+                var candidate = importName
+                while (candidate.contains('.')) {
+                    declaredInApi[candidate]?.let { isApi -> return !isApi }
+                    candidate = candidate.substringBeforeLast('.')
+                }
+                return false // unresolved (generated or external) — not tested
+            }
+
+            scope.files
+                .filter { it.isFeatureModule() }
+                .filterNot { exempt(it) }
+                .flatMap { file ->
+                    val ownFeature = file.featureName()
+                    if (ownFeature.isBlank()) return@flatMap emptyList<Violation>()
+                    file.imports
+                        .filter { it.name.startsWith("feature.") }
+                        .filter { it.featureName().isNotBlank() && it.featureName() != ownFeature }
+                        .filter { resolvesOutsideApi(it.name) }
+                        .map { Violation(file.path, "cross-feature import `${it.name}` resolves outside an `:api` module") }
+                }
+        }
     }
 
     @Describe("A `:feature:[name]:api` module may depend on another feature's `:api` module to share models")
