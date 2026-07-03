@@ -72,6 +72,18 @@ The shared module's Android / JVM / wasm targets compile transitively via the pe
 ```
 - **Unit tests**: per KMP module via the umbrella task, e.g. `./gradlew :feature:core:api:allTests :feature:core:client:allTests`; the server uses `./gradlew :app:server:test`.
 
+## Metrics
+
+Codebase health metrics are collected by the udytils metrics plugin, configured in the root `build.gradle.kts` (integrations: architecture, lines of code, README health, build warnings):
+
+```
+./gradlew collectMetrics            # gather every integration into build/metrics/run.json
+./gradlew publishMetrics            # append the run to the local `metrics` branch
+./gradlew generateMetricsReport     # render build/metrics/report.html from the series
+```
+
+CI runs this on every push to main (`.github/workflows/metrics.yml`) and pushes the `metrics` branch. Build warnings are parsed from a captured log at `build/metrics/build.log` when one exists. Collection never fails the build; metrics are a report, not a gate.
+
 ## Server persistence (Postgres)
 
 Server persistence uses the `dev.isaacudy.udytils.postgres` toolkit (Exposed + Flyway); conventions are in [docs/services.md](./platform/common/architecture/docs/services.md) (the `services.storage` section). The `:platform:server:postgres` module (Flyway migrations + codegen) is created when the first server feature needs persistence — until then the `services.storage` rules pass vacuously.

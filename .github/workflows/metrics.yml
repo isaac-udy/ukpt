@@ -1,0 +1,50 @@
+name: metrics
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  metrics:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          # Full history: the metrics store branch, run parents, and README staleness dates.
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # The store appends to the local metrics branch; seed it from the remote so history accrues.
+      - name: Fetch metrics branch
+        run: git fetch origin metrics:metrics || true
+
+      # Compile with a captured log so the build-warnings integration has input.
+      # iOS targets are skipped: Kotlin/Native iOS compilation needs a macOS host.
+      - name: Build (capture warnings)
+        run: |
+          mkdir -p build/metrics
+          ./gradlew :app:client:android:compileDebugKotlin :app:client:desktop:compileKotlin \
+            :app:client:web:compileKotlinWasmJs :app:server:compileKotlin \
+            --continue 2>&1 | tee build/metrics/build.log
+
+      - name: Collect and publish metrics
+        run: ./gradlew collectMetrics publishMetrics generateMetricsReport
+
+      - name: Push metrics branch
+        run: git push origin metrics
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: metrics-report
+          path: build/metrics/report.html

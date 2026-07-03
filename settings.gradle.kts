@@ -75,5 +75,7 @@ includeBuild("embedded-udytils") {
         substitute(module("dev.isaacudy.udytils:architecture-core")).using(project(":architecture-core"))
         substitute(module("dev.isaacudy.udytils:architecture-annotations")).using(project(":architecture-annotations"))
         substitute(module("dev.isaacudy.udytils:architecture-gradle-plugin")).using(project(":architecture-gradle-plugin"))
+        substitute(module("dev.isaacudy.udytils:metrics-core")).using(project(":metrics-core"))
+        substitute(module("dev.isaacudy.udytils:metrics-gradle-plugin")).using(project(":metrics-gradle-plugin"))
     }
 }

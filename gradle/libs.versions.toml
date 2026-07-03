@@ -85,6 +85,7 @@ urpc-processor = { module = "dev.isaacudy.udytils:urpc-processor" }
 udytils-architectureCore = { module = "dev.isaacudy.udytils:architecture-core" }
 udytils-architectureAnnotations = { module = "dev.isaacudy.udytils:architecture-annotations" }
 udytils-architectureGradlePlugin = { module = "dev.isaacudy.udytils:architecture-gradle-plugin" }
+udytils-metricsGradlePlugin = { module = "dev.isaacudy.udytils:metrics-gradle-plugin" }
 
 # Build-logic dependencies (gradle plugin classpath artifacts)
 kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
