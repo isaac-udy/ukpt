@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.enro.annotations.NavigationDestination
 
@@ -30,5 +31,13 @@ internal fun UkptScreenContent(state: UkptState) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(state.message)
         }
+    }
+}
+
+@Preview
+@Composable
+internal fun UkptScreenPreview() {
+    MaterialTheme {
+        UkptScreenContent(UkptState())
     }
 }
