@@ -60,7 +60,7 @@ git merge-file <project-file> <translated-base> <translated-new>
 
 File classes:
 
-- **Template-owned (expect clean merges):** `UKPT.md`, `gradle/wrapper/`, `build-logic/`,
+- **Template-owned (expect clean merges):** `UKPT.md`, `.github/workflows/metrics.yml`, `gradle/wrapper/`, `build-logic/`,
   `.claude/skills/ukpt-*`, `.claude/settings.json`, `gradle/libs.versions.toml` (projects add
   entries; the merge keeps both), root `build.gradle.kts`, `gradle.properties`.
 - **Project-owned (never sync):** `CLAUDE.md` — only verify it still imports `UKPT.md`

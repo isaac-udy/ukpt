@@ -6,6 +6,8 @@ buildscript {
         // substitutions in settings.gradle.kts. With the classes on the root build classpath,
         // subprojects can apply it with a plain `plugins { id(...) }` block, no version needed.
         classpath(libs.udytils.architectureGradlePlugin)
+        // The udytils metrics Gradle plugin (same classpath mechanism as above).
+        classpath(libs.udytils.metricsGradlePlugin)
     }
 }
 
@@ -22,4 +24,20 @@ plugins {
     alias(libs.plugins.ktor) apply false
     alias(libs.plugins.kotlinKsp) apply false
     alias(libs.plugins.kotlinSerialization) apply false
+}
+
+// Applied by class rather than by id: the root project's own plugins { } block cannot see the
+// buildscript classpath above (subprojects can, which is how the architecture plugin is applied).
+apply<dev.isaacudy.udytils.metrics.gradle.MetricsPlugin>()
+
+// Codebase health metrics: `collectMetrics` gathers every integration,
+// `publishMetrics` appends the run to the `metrics` branch, and
+// `generateMetricsReport` renders build/metrics/report/ from the series.
+configure<dev.isaacudy.udytils.metrics.gradle.MetricsExtension> {
+    integrations {
+        architecture(":platform:common:architecture")
+        linesOfCode()
+        readmeHealth()
+        buildWarnings()
+    }
 }
