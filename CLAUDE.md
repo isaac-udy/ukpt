@@ -6,6 +6,10 @@ UKPT is a Kotlin Multiplatform project **template** — Compose UI, Enro navigat
 
 This file holds only operational guidance (commands, toolchain, submodules) and pointers to the rules. The architecture rules are the source of truth in [`platform/common/architecture/README.md`](./platform/common/architecture/README.md) — don't restate them here. The submodules carry their own CLAUDE.md files; this root file is authoritative for ukpt conventions.
 
+## Template versioning
+
+Downstream projects update from this template with the `ukpt-template-update` skill, driven by `.ukpt/template.json` and [`docs/template-migrations/`](./docs/template-migrations/README.md). When a change affects code that only exists downstream — a convention change, an architecture rule added/renamed/tightened, a structural change — bump `templateVersion` in `.ukpt/template.json` and add a migration entry in the same commit (see the migrations README for the format). Version bumps and template-owned file changes don't need an entry.
+
 ## Architecture
 
 Follow the rules in [`platform/common/architecture/README.md`](./platform/common/architecture/README.md), enforced by Konsist tests. Orientation:
