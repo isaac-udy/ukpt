@@ -19,11 +19,13 @@ kotlin {
         }
     }
     sourceSets {
-        androidMain.dependencies {
-            implementation(compose.preview)
-        }
         commonMain.dependencies {
             api(projects.feature.core.api)
+
+            // Unified @Preview (androidx.compose.ui.tooling.preview.Preview) — multiplatform
+            // since Compose 1.10, usable directly in common code. PreviewSnapshotTest discovers
+            // annotated composables and snapshots them.
+            implementation(compose.preview)
 
             implementation(compose.runtime)
             implementation(compose.foundation)
@@ -52,6 +54,10 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+        }
+        getByName("androidHostTest").dependencies {
+            // Discovers @Preview composables on the test classpath and drives Paparazzi from them.
+            implementation(libs.composablePreviewScanner.android)
         }
         jvmMain.dependencies {
             implementation(libs.ktor.serverCore)

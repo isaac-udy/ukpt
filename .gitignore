@@ -17,3 +17,6 @@ captures
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
+
+# Claude Code: track the shared .claude/settings.json baseline, ignore personal/local settings
+.claude/settings.local.json

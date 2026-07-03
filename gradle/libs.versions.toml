@@ -20,10 +20,16 @@ ktor = "3.5.1"
 logback = "1.5.37"
 konsist = "0.17.3"
 paparazzi = "2.0.0-alpha05"
+composablePreviewScanner = "0.9.0"
+junit5 = "5.11.4"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
+kotlin-testJunit5 = { module = "org.jetbrains.kotlin:kotlin-test-junit5", version.ref = "kotlin" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit5" }
+composablePreviewScanner-android = { module = "io.github.sergio-sastre.ComposablePreviewScanner:android", version.ref = "composablePreviewScanner" }
+kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "androidx-appcompat" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity" }
@@ -76,6 +82,10 @@ urpc-server = { module = "dev.isaacudy.udytils:urpc-server" }
 urpc-koin = { module = "dev.isaacudy.udytils:urpc-koin" }
 urpc-processor = { module = "dev.isaacudy.udytils:urpc-processor" }
 
+udytils-architectureCore = { module = "dev.isaacudy.udytils:architecture-core" }
+udytils-architectureAnnotations = { module = "dev.isaacudy.udytils:architecture-annotations" }
+udytils-architectureGradlePlugin = { module = "dev.isaacudy.udytils:architecture-gradle-plugin" }
+
 # Build-logic dependencies (gradle plugin classpath artifacts)
 kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlinx-serialization-gradlePlugin = { module = "org.jetbrains.kotlin.plugin.serialization:org.jetbrains.kotlin.plugin.serialization.gradle.plugin", version.ref = "kotlin" }
@@ -96,3 +106,5 @@ kotlinKsp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 paparazzi = { id = "app.cash.paparazzi", version.ref = "paparazzi" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+# Version-less: resolved from the root buildscript classpath (composite-substituted), not a repository.
+udytilsArchitecture = { id = "dev.isaacudy.udytils.architecture" }
