@@ -6,6 +6,7 @@ import architecture.definitions.containsPackageSegment
 import architecture.definitions.isFeatureModule
 import architecture.definitions.primitiveTypeNames
 import architecture.utils.collectionTypeNames
+import architecture.utils.reactiveWrapperTypeNames
 import architecture.utils.validateTypeName
 import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
 
@@ -98,8 +99,14 @@ object DomainLayer : RuleGroup(
     }
 }
 
-/** A type is domain-compatible if it (and its generics) are primitives, collections, platform, or domain types. */
+/**
+ * A type is domain-compatible if it (and its generics) are primitives, collections, reactive
+ * wrappers (`Flow`/`StateFlow`/`SharedFlow`), platform, or domain types. The wrapper base name is
+ * allowed but its type argument is still validated, so `Flow<Session?>` passes while
+ * `Flow<android.view.View>` does not.
+ */
 internal fun isDomainCompatibleType(typeName: String, declaredIn: KoFileDeclaration): Boolean =
     validateTypeName(typeName, declaredIn) {
-        it in primitiveTypeNames || it in collectionTypeNames || it.startsWith("platform.") || it.contains(".domain.")
+        it in primitiveTypeNames || it in collectionTypeNames || it in reactiveWrapperTypeNames ||
+            it.startsWith("platform.") || it.contains(".domain.")
     }

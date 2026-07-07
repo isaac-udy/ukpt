@@ -56,10 +56,19 @@ object UseCase : Construct<DomainLayer>(
     val breakDownComplexUseCases by guidance
 }
 
-/** The single domain interface a UseCase class implements, or null if it isn't exactly one. */
+/**
+ * The single domain interface a UseCase class implements, or null if it isn't exactly one.
+ *
+ * Matched by name: a UseCase is a `<X>Impl` class with exactly one parent whose simple name is
+ * `<X>`. We deliberately do NOT call `DomainInterface.test()` on the parent — `parents()` yields a
+ * parent *reference*, not the resolved interface declaration, so the interface predicates can't run
+ * against it, and in the normal case the interface lives in the sibling `:api` module and can't be
+ * resolved from the class alone. The "`<X>` is really a domain interface" guarantee is carried by
+ * the scope-level [DomainInterface.implementedByRepositoryOrUseCase] rule.
+ */
 private fun KoClassDeclaration.associatedDomainInterfaceName(): String? {
     val parents = this.parents()
     if (parents.size != 1) return null
-    val parent = parents.single()
-    return if (DomainInterface.test(parent)) parent.name else null
+    val parentName = parents.single().name
+    return if (name == "${parentName}Impl") parentName else null
 }
