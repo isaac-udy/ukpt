@@ -141,6 +141,8 @@ that is needed to snapshot it.
   directly in common code; `compose.preview` must be a `commonMain` dependency. The same
   previews render in the IDE.
 * **Note:** Add a `@Preview` per meaningful state (loaded, empty, error) as a screen grows.
+* **Note:** A screen's `@Preview`(s) live in the same file as the `[Name]ScreenContent` they
+  render, next to the Screen — not gathered into a shared "screen previews" file.
 * **Note:** For one-off snapshot tests that aren't preview-driven, `SnapshotRule`
   (`platform.snapshot.SnapshotRule`) provides `snapshot.screen { }` and
   `snapshot.component { }`.
@@ -160,8 +162,8 @@ that is needed to snapshot it.
 
 ##### Rules
 
-* A `[Name]ScreenContent` composable must be called from a `@Preview` composable in the same module
-    * **Why:** Previews are the snapshot surface: `PreviewSnapshotTest` renders every `@Preview` in the module, so a ScreenContent without a preview has no snapshot coverage.
+* A `[Name]ScreenContent` composable must be called from a `@Preview` composable in the same file
+    * **Why:** Previews are the snapshot surface: `PreviewSnapshotTest` renders every `@Preview` in the module, so a ScreenContent without a preview has no snapshot coverage. The preview must live in the same file as the ScreenContent it renders — co-locating it keeps each screen's preview next to the screen, discoverable and maintained with it, instead of drifting into a single shared "screen previews" file.
 * A feature module that contains `@Preview` composables must have a `PreviewSnapshotTest` in its `androidHostTest` source set
     * **Why:** The scanner test is what turns previews into snapshots; without it, previews render in the IDE but nothing guards against visual regressions.
     * **Note:** Snapshot tests live under `src/androidHostTest/`, which the governed scope excludes; the test reads those files directly.
