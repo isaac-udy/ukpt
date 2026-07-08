@@ -18,7 +18,7 @@ java {
 }
 
 dependencies {
-    implementation(projects.app.client.shared)
+    implementation(projects.app.client.common)
 
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutinesSwing)
@@ -41,7 +41,7 @@ compose.desktop {
 }
 
 // Preview-feature flags match the KMP convention plugins so this module can consume
-// :app:client:shared, whose output is marked pre-release by those features.
+// :app:client:common, whose output is marked pre-release by those features.
 tasks.withType<KotlinCompile>().configureEach {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_11)

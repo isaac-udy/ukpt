@@ -38,8 +38,8 @@ Do **not** copy the literal `ukpt`/`Ukpt` from core — substitute `<name>`/`<Na
    snapshotted — `UiLayer.Composable.screenContentPreview` requires every ScreenContent to be
    called from a `@Preview`.
 5. **Wire it up** — the easy-to-forget edits to existing files (templates.md §7 checklist):
-   - `app/client/shared/build.gradle.kts` → `implementation(projects.feature.<name>.client)`.
-   - `app/client/shared/.../App.kt` → add `<name>ClientDependencies` to `modules(...)` + its import.
+   - `app/client/common/build.gradle.kts` → `implementation(projects.feature.<name>.client)`.
+   - `app/client/common/.../App.kt` → add `<name>ClientDependencies` to `modules(...)` + its import.
    - `app/server/build.gradle.kts` → `implementation(projects.feature.<name>.server)` (if using the server).
    - Server DI: the template's `Server.kt` is a placeholder with **no** Koin host — standing that up is the
      `ukpt-urpc-service` skill's job (do it when the feature gets its first service, not at scaffold time).
@@ -59,7 +59,7 @@ Do **not** copy the literal `ukpt`/`Ukpt` from core — substitute `<name>`/`<Na
 - **`:server` depends on `libs.udytils.architectureAnnotations`** — solely so `@ArchitectureException` imports.
 - **wasm ViewModel factory**: every screen VM must be `viewModelOf(::<Name>ViewModel)`-registered in
   `<name>ClientDependencies`, or web throws `Factory.create … not implemented` at runtime (the Koin-backed
-  factory is installed once in `app/client/shared/.../UkptNavigation.kt` — don't regenerate it per feature).
+  factory is installed once in `app/client/common/.../UkptNavigation.kt` — don't regenerate it per feature).
 
 ## Rule cheat-sheet (canonical text in `platform/common/architecture/docs/` — search the ID)
 - **`UiLayer.Screen.screenContentCompanion`** — `<Name>Screen` pairs with an `internal <Name>ScreenContent(state, …)`;
@@ -73,5 +73,5 @@ Do **not** copy the literal `ukpt`/`Ukpt` from core — substitute `<name>`/`<Na
 
 ## Reference
 - The living template: `feature/core/{api,client,server}` (build files + `src/.../feature/ukpt/...`).
-- App wiring: `app/client/shared/src/commonMain/kotlin/com/isaacudy/ukpt/{App.kt,UkptNavigation.kt}` and `settings.gradle.kts`.
+- App wiring: `app/client/common/src/commonMain/kotlin/com/isaacudy/ukpt/{App.kt,UkptNavigation.kt}` and `settings.gradle.kts`.
 - Skeletons + the wiring checklist: `templates.md` (this skill). For server services: the `ukpt-urpc-service` skill.

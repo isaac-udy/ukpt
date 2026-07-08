@@ -34,7 +34,7 @@ Open the served URL, confirm the page actually renders (the `<body>` gets popula
 
 | Symptom | Gate | Cause | Fix |
 |---|---|---|---|
-| `UnhandledSchemeError` / `node:net` (or other `node:`) | bundle | A JVM/native-only dep reached the wasm classpath — classically `ktor-client-cio` → `ktor-network`. | Web uses **`ktor-client-js`** only; keep engine deps out of `commonMain`/`wasmJsMain`. See `app/client/web/build.gradle.kts` and the comments in `app/client/shared/build.gradle.kts` / `feature/core/client/build.gradle.kts`. |
+| `UnhandledSchemeError` / `node:net` (or other `node:`) | bundle | A JVM/native-only dep reached the wasm classpath — classically `ktor-client-cio` → `ktor-network`. | Web uses **`ktor-client-js`** only; keep engine deps out of `commonMain`/`wasmJsMain`. See `app/client/web/build.gradle.kts` and the comments in `app/client/common/build.gradle.kts` / `feature/core/client/build.gradle.kts`. |
 | `IC internal error: can not find removed library name` | bundle | macOS wrote `.DS_Store` into the Kotlin/Wasm klib IC cache. | `find app/client/web/build -name .DS_Store -delete`, then re-run. A `doFirst` purge hook already guards `*WasmJs*` tasks in `app/client/web/build.gradle.kts`. |
 | Blank page / navigation & URLs don't work | runtime | The web entry point didn't install the nav controller or wrap content in `EnroBrowserContent`. | `Main.kt` must call `UkptNavigation.installNavigationController(document)` then `ComposeViewport(document.body!!) { EnroBrowserContent { App() } }`. |
 | Console: `Factory.create(...) is not implemented` | runtime | wasm has no reflection, so the default ViewModel factory can't construct the VM. | Register the ViewModel with `viewModelOf(::YourViewModel)` in a Koin module loaded by `KoinApplication` in `App()`. The Koin-backed factory lives in `UkptNavigation.kt`. |
@@ -42,5 +42,5 @@ Open the served URL, confirm the page actually renders (the `<body>` gets popula
 ## Reference (read only if you hit the relevant mode)
 - `app/client/web/build.gradle.kts` — wasmJs config, the `ktor-client-js` dep, the `.DS_Store` purge hook.
 - `app/client/web/src/wasmJsMain/kotlin/com/isaacudy/ukpt/Main.kt` — the web entry point (mode 2).
-- `app/client/shared/src/commonMain/kotlin/com/isaacudy/ukpt/UkptNavigation.kt` + `App.kt` — Koin-backed VM factory + Koin startup (mode 3).
+- `app/client/common/src/commonMain/kotlin/com/isaacudy/ukpt/UkptNavigation.kt` + `App.kt` — Koin-backed VM factory + Koin startup (mode 3).
 - `feature/core/client/src/commonMain/kotlin/feature/ukpt/UkptClientDependencies.kt` — `viewModelOf` registration example (mode 3).

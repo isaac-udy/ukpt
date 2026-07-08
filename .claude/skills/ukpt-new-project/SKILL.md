@@ -88,8 +88,8 @@ Run the full matrix before the first commit:
 
 ```
 ./gradlew :app:client:android:compileDebugKotlin :app:client:desktop:compileKotlin \
-          :app:client:web:compileKotlinWasmJs :app:client:shared:compileKotlinIosArm64 \
-          :app:client:shared:compileKotlinIosSimulatorArm64 :app:server:compileKotlin
+          :app:client:web:compileKotlinWasmJs :app:client:common:compileKotlinIosArm64 \
+          :app:client:common:compileKotlinIosSimulatorArm64 :app:server:compileKotlin
 ./gradlew :platform:common:architecture:verifyArchitecture
 ./gradlew :feature:core:client:verifyPaparazzi
 bash .claude/skills/ukpt-verify-web/run-bundle-check.sh

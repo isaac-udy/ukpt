@@ -57,7 +57,7 @@ tasks.withType<KotlinCompile>().configureEach {
 }
 
 dependencies {
-    implementation(projects.app.client.shared)
+    implementation(projects.app.client.common)
 
     implementation(libs.androidx.activity.compose)
     implementation(compose.preview)

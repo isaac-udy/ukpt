@@ -23,7 +23,7 @@ kotlin {
     }
 
     compilerOptions {
-        // Match the KMP convention plugins so this module can consume :app:client:shared,
+        // Match the KMP convention plugins so this module can consume :app:client:common,
         // whose output is marked pre-release by these preview features.
         freeCompilerArgs.addAll(
             "-Xcontext-parameters",
@@ -34,7 +34,7 @@ kotlin {
 
     sourceSets {
         wasmJsMain.dependencies {
-            implementation(projects.app.client.shared)
+            implementation(projects.app.client.common)
 
             implementation(compose.runtime)
             implementation(compose.ui)

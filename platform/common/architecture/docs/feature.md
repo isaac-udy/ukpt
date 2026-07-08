@@ -32,7 +32,7 @@ The configuration for Dependency Injection (DI) that wires the feature together.
   the `Client`/`Server` infix is convention.
 * **Note:** The `:app` modules (application shells) are responsible for collecting the DI
   modules provided by feature modules into the final dependency graph. When a new dependency
-  module is added, it must be registered in both `:app:client:shared` and `:app:server`; when
+  module is added, it must be registered in both `:app:client:common` and `:app:server`; when
   a new Service is added, it must be registered in `:app:server`.
 
 ##### Requirements

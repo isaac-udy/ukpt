@@ -289,7 +289,7 @@ import feature.<name>.ui.<Name>ViewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
-// viewModelOf is mandatory: the Enro VM factory (in app/client/shared/.../UkptNavigation.kt) resolves
+// viewModelOf is mandatory: the Enro VM factory (in app/client/common/.../UkptNavigation.kt) resolves
 // VMs via Koin. On wasmJs/JS there is no reflection, so a missing registration crashes at runtime
 // (Factory.create … not implemented) — invisible to compileKotlinWasmJs.
 val <name>ClientDependencies = module {
@@ -310,8 +310,8 @@ val <name>ClientDependencies = module {
 
 ## §7 — Wiring checklist (edits to EXISTING files — the easy-to-forget step)
 - [ ] `settings.gradle.kts` — three `include(":feature:<name>:…")` (§4).
-- [ ] `app/client/shared/build.gradle.kts` — `commonMain` → `implementation(projects.feature.<name>.client)`.
-- [ ] `app/client/shared/src/commonMain/kotlin/com/isaacudy/ukpt/App.kt` — `import feature.<name>.<name>ClientDependencies`
+- [ ] `app/client/common/build.gradle.kts` — `commonMain` → `implementation(projects.feature.<name>.client)`.
+- [ ] `app/client/common/src/commonMain/kotlin/com/isaacudy/ukpt/App.kt` — `import feature.<name>.<name>ClientDependencies`
       and add it to `KoinApplication(application = { modules(ukptClientDependencies, <name>ClientDependencies) })`.
 - [ ] `app/server/build.gradle.kts` — `implementation(projects.feature.<name>.server)` (only if using the server).
 - [ ] Add a navigation entry to the new `<Name>Destination` from wherever the app should reach it.

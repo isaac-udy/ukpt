@@ -50,11 +50,11 @@ After making changes, compile every platform (client + server) to verify correct
 ./gradlew :app:client:android:compileDebugKotlin \
           :app:client:desktop:compileKotlin \
           :app:client:web:compileKotlinWasmJs \
-          :app:client:shared:compileKotlinIosArm64 \
-          :app:client:shared:compileKotlinIosSimulatorArm64 \
+          :app:client:common:compileKotlinIosArm64 \
+          :app:client:common:compileKotlinIosSimulatorArm64 \
           :app:server:compileKotlin
 ```
-The shared module's Android / JVM / wasm targets compile transitively via the per-platform app modules; the iOS targets are built directly from `:app:client:shared` (ukpt has no separate `:app:client:ios` module).
+The common module's Android / JVM / wasm targets compile transitively via the per-platform app modules; the iOS targets are built directly from `:app:client:common` (ukpt has no separate `:app:client:ios` module).
 
 **Web (wasm) caveat — compiling is not enough.** `compileKotlinWasmJs` only type-checks; it does **not** catch wasm bundle/runtime failures — a `node:`-scheme import pulled in by a JVM-only dependency (e.g. `ktor-client-cio`), a missing ViewModel factory (`Factory.create … not implemented`), or the macOS `.DS_Store` IC-cache crash. For any web change, build the actual bundle and run it in a browser:
 ```

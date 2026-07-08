@@ -10,7 +10,7 @@ kotlin {
     @Suppress("UnstableApiUsage")
     androidLibrary {
         // Distinct from the application module's namespace (AGP 9 requires unique namespaces).
-        namespace = "$projectNamespace.shared"
+        namespace = "$projectNamespace.common"
     }
 
     // iOS framework consumed by the iOS application (an Xcode project consuming `App.framework`).
