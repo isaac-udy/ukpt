@@ -40,8 +40,9 @@ New code may rely on APIs that only exist in a newer submodule commit.
 
 - **Desktop**: `./gradlew :app:client:desktop:run`
 - **Server** (Ktor): `./gradlew :app:server:run`
-- **Web** (dev server): `./gradlew :app:client:web:wasmJsBrowserDevelopmentRun` — then open the served URL
+- **Web** (dev server): `./gradlew :app:client:web:wasmJsBrowserDevelopmentRun --no-configuration-cache` — then open the served URL (the flag is required; see the config-cache note in Compiling)
 - **Android**: run from Android Studio, or `./gradlew :app:client:android:installDebug` to a connected device/emulator
+- **iOS**: open `app/client/ios/iosApp.xcodeproj` in Xcode and run (⌘R). There is no Gradle command: the Xcode project's "Compile Kotlin framework" build phase invokes `:app:client:common:embedAndSignAppleFrameworkForXcode`, which builds `App.framework` and puts it where the linker expects. Simulator builds are **Apple Silicon only** — `:app:client:common` declares `iosArm64` + `iosSimulatorArm64`, so the Xcode project excludes the `x86_64` simulator slice. Add an `iosX64()` target if you need Intel Macs.
 
 ## Compiling
 
@@ -54,7 +55,7 @@ After making changes, compile every platform (client + server) to verify correct
           :app:client:common:compileKotlinIosSimulatorArm64 \
           :app:server:compileKotlin
 ```
-The common module's Android / JVM / wasm targets compile transitively via the per-platform app modules; the iOS targets are built directly from `:app:client:common` (ukpt has no separate `:app:client:ios` module).
+The common module's Android / JVM / wasm targets compile transitively via the per-platform app modules; the iOS targets are built directly from `:app:client:common`. There is no `:app:client:ios` **Gradle** module — the iOS app is an Xcode project at `app/client/ios`, which consumes `App.framework` from `:app:client:common`. Compiling the iOS targets does **not** exercise the app: the Compose/Enro entry point (`iosMain/MainViewController.kt`) is only executed when the Xcode app runs, so a change to it must be verified by actually launching the app.
 
 **Web (wasm) caveat — compiling is not enough.** `compileKotlinWasmJs` only type-checks; it does **not** catch wasm bundle/runtime failures — a `node:`-scheme import pulled in by a JVM-only dependency (e.g. `ktor-client-cio`), a missing ViewModel factory (`Factory.create … not implemented`), or the macOS `.DS_Store` IC-cache crash. For any web change, build the actual bundle and run it in a browser:
 ```

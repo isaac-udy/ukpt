@@ -31,7 +31,12 @@ git submodule update --init --recursive     # required, see Embedded libraries
 ./gradlew :app:server:run                                  # Server, on :8080
 ./gradlew :app:client:android:installDebug                 # Android
 ./gradlew :app:client:web:wasmJsBrowserDevelopmentRun --no-configuration-cache   # Web
+open app/client/ios/iosApp.xcodeproj                       # iOS — then run (⌘R)
 ```
+
+The iOS app has no Gradle command: an Xcode build phase invokes
+`:app:client:common:embedAndSignAppleFrameworkForXcode`, which builds `App.framework` from the shared
+module. Simulator builds are Apple Silicon only.
 
 To start a real project from the template, use the
 [`ukpt-new-project`](.claude/skills/ukpt-new-project) skill. It renames the packages and app
