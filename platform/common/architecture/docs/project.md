@@ -27,6 +27,7 @@ is the async-result wrapper that [ViewModels](ui.md#view-model) consume.
     * **Why:** Wildcards hide which symbols a file depends on, break several architecture tests (which inspect import names directly), and silently pull in new names when the imported package adds members.
 * An `AsyncState` must never be constructed directly via `Loading`/`Success`/`Error`; use `AsyncState.fromSuspending`/`fromFlow` instead
     * **Why:** Direct construction skips the exception capture, cancellation, and state-flow protocol that `AsyncState.fromSuspending`/`fromFlow` handle uniformly, silently breaking the contract the rest of the codebase relies on. Files that legitimately build AsyncState values (defining its semantics, or the server-side status pattern) opt out with `@file:ArchitectureException`.
+    * **Note:** A construction inside a `@Preview` function is sample state for a snapshot/preview, not production wiring, so it is exempt — no `@ArchitectureException` is needed. The rule still flags direct construction in any real code, including a `@Preview`'s non-preview helpers.
 * An action/request type must model its variants as a `sealed interface`/`sealed class` (each variant a `data class`), not as a single type with an `enum` discriminator and nullable fields
     * **Why:** A sealed hierarchy makes illegal field combinations unrepresentable and lets `when` exhaustiveness drive handling, so adding a variant surfaces every site that must handle it.
     * **Note:** "An enum that should be a sealed class" can't be detected reliably by the tests.
@@ -35,8 +36,9 @@ is the async-result wrapper that [ViewModels](ui.md#view-model) consume.
     * **Verification:** not automatically verifiable; enforced by review.
 * An architecture exception is not a valid way to resolve an immediate architecture-test failure; fix the code or the rule first
     * **Verification:** not automatically verifiable; enforced by review.
-* An architecture exception must include a KDoc-style (`/** ... */`) comment explaining why it exists and the intended resolution
-    * **Note:** The test covers `@ArchitectureException` on declarations; `// architecture-exception:` comments in build files carry their reason inline and are out of scope.
+* An architecture exception must explain why it exists and the intended resolution in a non-blank `reason` argument on the `@ArchitectureException`
+    * **Note:** The test covers `@ArchitectureException` on declarations, including file-level `@file:` annotations; `// architecture-exception:` comments in build files carry their reason inline and are out of scope.
+    * **Note:** The explanation must be the annotation's own `reason` argument — it is machine-readable, travels with the annotation, and is the natural form for a file-level `@file:ArchitectureException(reason = …)`. A KDoc comment alone does not satisfy this rule.
 
 ##### Guidance
 

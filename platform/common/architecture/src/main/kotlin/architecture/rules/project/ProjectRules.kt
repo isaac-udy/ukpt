@@ -4,7 +4,6 @@ import dev.isaacudy.udytils.architecture.*
 
 import architecture.definitions.isFeatureModule
 import com.lemonappdev.konsist.api.provider.KoAnnotationProvider
-import com.lemonappdev.konsist.api.provider.KoKDocProvider
 import com.lemonappdev.konsist.api.provider.KoResideInPackageProvider
 
 /*
@@ -106,13 +105,23 @@ object ProjectRules : RuleGroup() {
             `@file:ArchitectureException`.
             """.trimIndent(),
         )
+        note("A construction inside a `@Preview` function is sample state for a snapshot/preview, not production wiring, so it is exempt — no `@ArchitectureException` is needed. The rule still flags direct construction in any real code, including a `@Preview`'s non-preview helpers.")
         scope { scope, exempt ->
             val constructionRegex = Regex("""AsyncState\.(Loading|Success|Error)\s*[(<]""")
             scope.files
                 .filter { it.isFeatureModule() }
                 .filterNot { exempt(it) }
-                .filter { file -> file.text.lines().any { constructionRegex.containsMatchIn(it) } }
-                .map { Violation(it.path, "constructs AsyncState.Loading/Success/Error directly — use fromSuspending/fromFlow") }
+                .filter { file ->
+                    // A `@Preview` composable legitimately builds sample AsyncState values for each
+                    // previewed state. Strip every `@Preview` function's own text from the file, then
+                    // scan the remainder: constructions inside a preview are gone, real code stays.
+                    val remainder = file.functions(includeNested = true, includeLocal = true)
+                        .filter { it.hasAnnotationWithName("Preview") }
+                        .map { it.text }
+                        .fold(file.text) { acc, previewText -> acc.replace(previewText, "") }
+                    constructionRegex.containsMatchIn(remainder)
+                }
+                .map { Violation(it.path, "constructs AsyncState.Loading/Success/Error directly outside a `@Preview` — use fromSuspending/fromFlow") }
         }
     }
 
@@ -136,15 +145,21 @@ object ProjectRules : RuleGroup() {
     @Describe("An architecture exception is not a valid way to resolve an immediate architecture-test failure; fix the code or the rule first")
     val exceptionNotForFailingTests by rule { unverifiable() }
 
-    @Describe("An architecture exception must include a KDoc-style (`/** ... */`) comment explaining why it exists and the intended resolution")
-    val exceptionNeedsKdoc by rule {
-        note("The test covers `@ArchitectureException` on declarations; `// architecture-exception:` comments in build files carry their reason inline and are out of scope.")
+    @Describe("An architecture exception must explain why it exists and the intended resolution in a non-blank `reason` argument on the `@ArchitectureException`")
+    val exceptionNeedsReason by rule {
+        note("The test covers `@ArchitectureException` on declarations, including file-level `@file:` annotations; `// architecture-exception:` comments in build files carry their reason inline and are out of scope.")
+        note("The explanation must be the annotation's own `reason` argument — it is machine-readable, travels with the annotation, and is the natural form for a file-level `@file:ArchitectureException(reason = …)`. A KDoc comment alone does not satisfy this rule.")
         scope { scope, exempt ->
             scope.declarations(includeNested = true)
                 .filter { (it as? KoAnnotationProvider)?.hasAnnotationWithName("ArchitectureException") == true }
                 .filterNot { exempt(it) }
-                .filterNot { (it as? KoKDocProvider)?.hasKDoc == true }
-                .map { Violation(it, "declaration carries @ArchitectureException without a KDoc explaining why and the intended resolution") }
+                .filterNot { decl ->
+                    // The `reason = "…"` argument is the required, machine-readable explanation.
+                    (decl as? KoAnnotationProvider)?.annotations
+                        ?.firstOrNull { it.name == "ArchitectureException" }
+                        ?.text?.contains(Regex("""reason\s*=\s*"[^"]""")) == true
+                }
+                .map { Violation(it, "declaration carries @ArchitectureException without a non-blank `reason` explaining why and the intended resolution") }
         }
     }
 

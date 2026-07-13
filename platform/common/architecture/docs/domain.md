@@ -68,8 +68,8 @@ A `fun interface` that represents a piece of domain-level business logic.
 
 ##### Rules
 
-* A Domain Interface's primary-function parameters must be domain objects, nested types, primitives, collections of those, or a `Flow` of those
-* A Domain Interface's primary-function return type must be domain objects, nested types, primitives, collections of those, a `Flow` of those, or no value
+* A Domain Interface's primary-function parameters must be domain objects, nested types, primitives, standard date/time value types, collections of those, or a `Flow` of those
+* A Domain Interface's primary-function return type must be domain objects, nested types, primitives, standard date/time value types, collections of those, a `Flow` of those, or no value
 * A Domain Interface must be implemented by a Repository (as a property) or by a UseCase
     * **Note:** The test accepts either a class whose parents include the interface (a UseCase) or a `[Name]Repository` with a property that references the interface.
 * A Domain Interface's functions must propagate errors via thrown exceptions, never via the return type
@@ -170,7 +170,6 @@ An immutable type that represents domain-level data.
 * A Domain Object should use nested value classes for identifiers where appropriate
 * A Domain Object should use sealed interface hierarchies to model polymorphic data where appropriate
 * A Domain Object should include `init` blocks that enforce invariants
-    * **Audited:** a test reports non-conforming code without ever failing.
 * A Domain Object should use nested types when conceptually inseparable from the parent
 
 ##### Examples

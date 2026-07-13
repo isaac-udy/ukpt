@@ -2,6 +2,7 @@ package architecture.rules.ui
 
 import dev.isaacudy.udytils.architecture.*
 
+import com.lemonappdev.konsist.api.KoModifier
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 
 @Describe("""
@@ -60,12 +61,54 @@ object ViewModel : Construct<UiLayer>(
 
     @Describe("A ViewModel's `public`/`internal` functions must only return `Unit` (or omit a return type)")
     val publicFunctionsReturnUnit by rule {
+        rationale("State is the single source of truth; a public method that returns a value is a side channel around it.")
         constrain { decl, _ ->
             val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
             cls.functions()
-                .filter { (it.hasPublicModifier || it.hasInternalModifier) && !it.hasOverrideModifier }
+                // `hasPublicOrDefaultModifier` (not `hasPublicModifier`) so default-public functions,
+                // which carry no explicit visibility modifier, are also caught.
+                .filter { (it.hasPublicOrDefaultModifier || it.hasInternalModifier) && !it.hasOverrideModifier }
                 .filterNot { it.returnType?.name == "Unit" || it.returnType == null }
                 .map { Violation(it, "ViewModel function `${it.name}` returns `${it.returnType?.name}` — public/internal ViewModel functions must return `Unit`") }
+        }
+    }
+
+    @Describe("A ViewModel's `public`/`internal` functions must not be `suspend`")
+    val publicFunctionsNotSuspend by rule {
+        rationale(
+            """
+            A suspending public method makes the caller await work the ViewModel should own; on
+            Android the awaiter (a composition scope, a `CompletableDeferred`) is lost on process
+            death, silently dropping the result. Launch into `viewModelScope` and reflect the
+            outcome in `state` instead.
+            """.trimIndent(),
+        )
+        constrain { decl, _ ->
+            val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
+            cls.functions()
+                .filter { (it.hasPublicOrDefaultModifier || it.hasInternalModifier) && !it.hasOverrideModifier }
+                .filter { it.hasModifier(KoModifier.SUSPEND) }
+                .map { Violation(it, "ViewModel function `${it.name}` is `suspend` — launch into `viewModelScope` and reflect the outcome in `state` instead") }
+        }
+    }
+
+    @Describe("A ViewModel must not declare `private var` properties")
+    val noPrivateVarProperties by rule {
+        rationale(
+            """
+            A mutable private field is a side channel around `state` (the source of truth) and is
+            lost on process death — for example a `pendingX` captured across a navigation round-trip.
+            Carry per-open context on the navigation itself (key fields, or `instance.metadata` via a
+            `NavigationKey.MetadataKey`) so the result handler recovers it process-death-safe; put
+            genuine UI state in `state`.
+            """.trimIndent(),
+        )
+        constrain { decl, _ ->
+            val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
+            // includeNested = false so a private nested helper's own vars don't count against the VM.
+            cls.properties(includeNested = false)
+                .filter { it.hasPrivateModifier && it.isVar }
+                .map { Violation(it, "ViewModel declares `private var ${it.name}` — state is the source of truth; carry per-open context on the navigation instead") }
         }
     }
 
