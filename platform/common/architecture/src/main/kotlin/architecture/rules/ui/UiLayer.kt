@@ -30,6 +30,7 @@ object UiLayer : RuleGroup(
         ViewModel,
         ViewModelState,
         UiValueType,
+        CompositionLocal,
     ),
 ) {
 

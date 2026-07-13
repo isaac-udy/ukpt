@@ -66,7 +66,7 @@ object StorageClass : Construct<ServicesLayer>(
 private fun isAllowedStorageReturnTypeName(name: String): Boolean {
     val rowSuffixes = listOf("Row", "Record", "Insert")
     val containerTypes = setOf("List", "Set", "Map", "Flow", "StateFlow", "SharedFlow", "Pair", "Triple")
-    val timeTypes = setOf("Instant", "LocalDate", "LocalDateTime", "Duration", "UUID")
+    val timeTypes = setOf("Instant", "LocalDate", "LocalDateTime", "Duration", "Uuid")
 
     // Strip nullability, generics, and whitespace so we can check the head.
     val head = name.substringBefore('<').trimEnd('?').trim()

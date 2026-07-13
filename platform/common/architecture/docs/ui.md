@@ -27,6 +27,7 @@ The layer rules below apply across the whole `feature.[name].ui` package.
 * [View Model](#view-model)
 * [View Model State](#view-model-state)
 * [Ui Value Type](#ui-value-type)
+* [Composition Local](#composition-local)
 
 ##### Rules
 
@@ -222,6 +223,11 @@ to load data and perform side effects based on user actions.
 
 * A ViewModel must expose a single public `state` property, or no public properties at all
 * A ViewModel's `public`/`internal` functions must only return `Unit` (or omit a return type)
+    * **Why:** State is the single source of truth; a public method that returns a value is a side channel around it.
+* A ViewModel's `public`/`internal` functions must not be `suspend`
+    * **Why:** A suspending public method makes the caller await work the ViewModel should own; on Android the awaiter (a composition scope, a `CompletableDeferred`) is lost on process death, silently dropping the result. Launch into `viewModelScope` and reflect the outcome in `state` instead.
+* A ViewModel must not declare `private var` properties
+    * **Why:** A mutable private field is a side channel around `state` (the source of truth) and is lost on process death — for example a `pendingX` captured across a navigation round-trip. Carry per-open context on the navigation itself (key fields, or `instance.metadata` via a `NavigationKey.MetadataKey`) so the result handler recovers it process-death-safe; put genuine UI state in `state`.
 * A ViewModel must use `JobManager` to manage coroutines, never a `var job: Job?` reference
     * **Why:** Manual `var job: Job?` tracking is error-prone: the previous job leaks if a new one starts before the old one completes, and lifecycle cancellation is easy to forget. `dev.isaacudy.udytils.coroutines.JobManager` handles cancel-then-replace and ties everything to `viewModelScope`.
 
@@ -305,3 +311,25 @@ to another feature's screen.
 * An Ui Value Type resides in `feature..ui..`
 * An Ui Value Type satisfies one of: {is an `enum class`, is `sealed`}
 * An Ui Value Type has no member functions
+
+---
+
+## [Composition Local](../src/main/kotlin/architecture/rules/ui/CompositionLocal.kt)
+
+A top-level `Local…` [`CompositionLocal`](https://developer.android.com/jetpack/compose/compositionlocal)
+declared in a `..ui..` package — the Compose-native channel for supplying ambient behaviour to a
+composable without threading it as a parameter (for example a `LocalImageLoader` that lets a
+reusable component reach a DI-provided dependency without every call site passing it down). The
+value is provided once near the composition root and read by leaf composables.
+
+##### Requirements
+
+* A Composition Local resides in `feature..ui..`
+* A Composition Local is a property
+* A Composition Local is a top-level `Local…` val built via `compositionLocalOf` / `staticCompositionLocalOf`
+
+##### Rules
+
+* A composition local must be used as a dependency-access channel with an inert default (`null` / no-op), never as a back door for arbitrary mutable state
+    * **Why:** An inert default lets a composable degrade gracefully when no provider is present, such as in snapshots and previews; using a composition local to smuggle mutable state around re-introduces the hidden coupling that threading dependencies through ViewModels avoids.
+    * **Verification:** not automatically verifiable; enforced by review.

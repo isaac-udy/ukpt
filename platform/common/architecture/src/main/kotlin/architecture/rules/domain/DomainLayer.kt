@@ -100,13 +100,30 @@ object DomainLayer : RuleGroup(
 }
 
 /**
+ * Standard date/time types are domain-appropriate value types (a `Session.date` is an `Instant`),
+ * so a domain interface may name them directly even though they are neither primitives nor
+ * `.domain.` types. Matches both the short name and the fully-qualified forms `validateTypeName`
+ * resolves imports to.
+ */
+private val domainTimeTypeNames = setOf(
+    "Instant", "kotlin.time.Instant", "kotlinx.datetime.Instant",
+    "LocalDate", "kotlinx.datetime.LocalDate",
+    "LocalDateTime", "kotlinx.datetime.LocalDateTime",
+    "LocalTime", "kotlinx.datetime.LocalTime",
+    "Duration", "kotlin.time.Duration",
+    "DatePeriod", "kotlinx.datetime.DatePeriod",
+    "DateTimePeriod", "kotlinx.datetime.DateTimePeriod",
+)
+
+/**
  * A type is domain-compatible if it (and its generics) are primitives, collections, reactive
- * wrappers (`Flow`/`StateFlow`/`SharedFlow`), platform, or domain types. The wrapper base name is
- * allowed but its type argument is still validated, so `Flow<Session?>` passes while
- * `Flow<android.view.View>` does not.
+ * wrappers (`Flow`/`StateFlow`/`SharedFlow`), standard date/time value types, platform, or domain
+ * types. The wrapper base name is allowed but its type argument is still validated, so
+ * `Flow<Session?>` passes while `Flow<android.view.View>` does not.
  */
 internal fun isDomainCompatibleType(typeName: String, declaredIn: KoFileDeclaration): Boolean =
     validateTypeName(typeName, declaredIn) {
         it in primitiveTypeNames || it in collectionTypeNames || it in reactiveWrapperTypeNames ||
+            it in domainTimeTypeNames ||
             it.startsWith("platform.") || it.contains(".domain.")
     }

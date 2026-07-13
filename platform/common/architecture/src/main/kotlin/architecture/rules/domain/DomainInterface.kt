@@ -35,7 +35,7 @@ object DomainInterface : Construct<DomainLayer>(
     @Describe("A Domain Interface may define additional default functions that call the primary function")
     val interfaceDefaults by guidance
 
-    @Describe("A Domain Interface's primary-function parameters must be domain objects, nested types, primitives, collections of those, or a `Flow` of those")
+    @Describe("A Domain Interface's primary-function parameters must be domain objects, nested types, primitives, standard date/time value types, collections of those, or a `Flow` of those")
     val primaryParameterTypes by rule {
         constrain { decl, _ ->
             val iface = decl as? KoInterfaceDeclaration ?: return@constrain emptyList()
@@ -49,7 +49,7 @@ object DomainInterface : Construct<DomainLayer>(
         }
     }
 
-    @Describe("A Domain Interface's primary-function return type must be domain objects, nested types, primitives, collections of those, a `Flow` of those, or no value")
+    @Describe("A Domain Interface's primary-function return type must be domain objects, nested types, primitives, standard date/time value types, collections of those, a `Flow` of those, or no value")
     val primaryReturnType by rule {
         constrain { decl, _ ->
             val iface = decl as? KoInterfaceDeclaration ?: return@constrain emptyList()
