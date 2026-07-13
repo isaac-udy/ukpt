@@ -170,7 +170,6 @@ An immutable type that represents domain-level data.
 * A Domain Object should use nested value classes for identifiers where appropriate
 * A Domain Object should use sealed interface hierarchies to model polymorphic data where appropriate
 * A Domain Object should include `init` blocks that enforce invariants
-    * **Audited:** a test reports non-conforming code without ever failing.
 * A Domain Object should use nested types when conceptually inseparable from the parent
 
 ##### Examples

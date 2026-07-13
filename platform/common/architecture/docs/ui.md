@@ -269,7 +269,6 @@ The complete, immutable representation of a Screen's data at a single point in t
 
 * A ViewModel State object should be a transparent container for domain objects, not a lossy UI-level mapping
 * A ViewModel State object should include `init` blocks that enforce invariants
-    * **Audited:** a test reports non-conforming code without ever failing.
 
 ##### Examples
 

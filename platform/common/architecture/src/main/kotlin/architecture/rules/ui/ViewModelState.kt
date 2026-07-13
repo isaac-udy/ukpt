@@ -45,16 +45,7 @@ object ViewModelState : Construct<UiLayer>(
     @Describe("A ViewModel State object should be a transparent container for domain objects, not a lossy UI-level mapping")
     val transparentContainer by guidance
     @Describe("A ViewModel State object should include `init` blocks that enforce invariants")
-    val invariantInitBlocks by guidance {
-        audit { decl, _ ->
-            val cls = decl as? KoClassDeclaration ?: return@audit emptyList()
-            if (cls.text.contains("init {")) {
-                emptyList()
-            } else {
-                listOf(Violation(cls, "State has no `init` block — consider one if this state has invariants"))
-            }
-        }
-    }
+    val invariantInitBlocks by guidance
     @Describe("A ViewModel State object's formatting and visual representation must be handled by the Screen or specialized `@Composable` properties/functions")
     val formattingInScreen by rule { unverifiable() }
 }

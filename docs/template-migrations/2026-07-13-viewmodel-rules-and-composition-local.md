@@ -44,6 +44,13 @@ flag existing downstream code.
   `kotlin.uuid.Uuid` columns, so generated `XxxRow` types carry `Uuid`. The allowlist entry was
   `UUID`; it is now `Uuid`. No effect until a project has a `services.storage` module with a uuid
   column.
+- **`invariantInitBlocks` is now plain guidance — its audit is dropped.** Both
+  `DomainLayer.DomainObject.invariantInitBlocks` and `UiLayer.ViewModelState.invariantInitBlocks`
+  carried an audit that flagged every domain object / state class without an `init` block. Most have
+  no invariants to enforce, so the audit produced a large volume of findings that were noise rather
+  than signal. The rules remain as guidance (the advice still stands where a type *does* have
+  invariants); they simply no longer report. Both rule IDs are unchanged. No downstream action —
+  projects will just see these audit findings disappear from `verifyArchitecture`.
 
 ## Detection
 
