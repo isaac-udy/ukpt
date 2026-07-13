@@ -31,6 +31,8 @@ import org.junit.rules.TestRule
  * - [component] renders at content size with padding — use it for small, self-sizing composables.
  *
  * Composables under test must be `internal` (not `private`) so this source set can reach them.
+ *
+ * The preview-driven [PreviewSnapshotTest] also reads [desktopDeviceConfig] from here.
  */
 class SnapshotRule private constructor(
     private val paparazzi: Paparazzi,
