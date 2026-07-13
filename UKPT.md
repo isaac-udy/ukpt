@@ -58,18 +58,22 @@ The common module's Android / JVM / wasm targets compile transitively via the pe
 
 **Web (wasm) caveat — compiling is not enough.** `compileKotlinWasmJs` only type-checks; it does **not** catch wasm bundle/runtime failures — a `node:`-scheme import pulled in by a JVM-only dependency (e.g. `ktor-client-cio`), a missing ViewModel factory (`Factory.create … not implemented`), or the macOS `.DS_Store` IC-cache crash. For any web change, build the actual bundle and run it in a browser:
 ```
-./gradlew :app:client:web:wasmJsBrowserDevelopmentWebpack   # bundles via webpack — surfaces node:/IC errors
-./gradlew :app:client:web:wasmJsBrowserDevelopmentRun        # serves it — open the URL and confirm it renders
+./gradlew :app:client:web:wasmJsBrowserDevelopmentWebpack --no-configuration-cache   # bundles via webpack — surfaces node:/IC errors
+./gradlew :app:client:web:wasmJsBrowserDevelopmentRun --no-configuration-cache        # serves it — open the URL and confirm it renders
 ```
+`--no-configuration-cache` is **required** on both: the Kotlin plugin's `KotlinWebpack` task holds a `Project` reference and an unserializable `SoftReference`, so it cannot be stored in the configuration cache (upstream). Everything else, including `compileKotlinWasmJs`, is cache-clean.
 
 ## Testing
 
 - **Architecture rules**: `./gradlew :platform:common:architecture:verifyArchitecture` — a standalone task that always re-executes (no `--rerun-tasks` needed; the module's plain `test` task runs nothing — the test classes are plugin-generated from the `UkptArchitecture` definition, not checked in). The suite reports **one nested test per rule** (`<Layer> › <Construct> › <rule>`), so a failure names the exact rule. After changing a rule or an examples file, regenerate the generated docs (README + `docs/`): `./gradlew :platform:common:architecture:updateArchitectureDocumentation`.
 - **UI snapshots** are preview-driven: every `@Preview` composable is discovered by `PreviewSnapshotTest` and snapshotted with Paparazzi (`UiLayer.Composable.screenContentPreview` requires a `@Preview` per ScreenContent). Record then verify goldens, per client module:
 ```
-./gradlew :feature:core:client:recordPaparazzi
-./gradlew :feature:core:client:verifyPaparazzi
+./gradlew :feature:core:client:recordPaparazzi --no-configuration-cache
+./gradlew :feature:core:client:verifyPaparazzi --no-configuration-cache
 ```
+`--no-configuration-cache` is **required** on both: under the configuration cache the R class is dropped from the test runtime classpath and every snapshot test dies with `ClassNotFoundException: <module>.R`.
+
+  Goldens are **directory-grouped** by the preview's declaring package and function name, so a preview in `feature.ukpt.ui` lands at `src/androidHostTest/snapshots/images/feature/ukpt/ui/UkptScreenPreview.png`. `DirectorySnapshotHandler` (a custom Paparazzi `SnapshotHandler`) implements that layout; stock Paparazzi can only emit one long flat filename per golden. Two previews resolving to the same golden path fail fast at test-parameter creation rather than silently overwriting one another.
 - **Unit tests**: per KMP module via the umbrella task, e.g. `./gradlew :feature:core:api:allTests :feature:core:client:allTests`; the server uses `./gradlew :app:server:test`.
 
 ## Server persistence (Postgres)

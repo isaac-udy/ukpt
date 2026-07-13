@@ -49,8 +49,14 @@ kotlin {
 // "IC internal error: can not find removed library name". Purge them from this module's klib
 // cache before any wasm task runs, so incremental dev builds stay reliable on macOS.
 tasks.matching { it.name.contains("WasmJs", ignoreCase = true) }.configureEach {
+    // `klibDir` is deliberately a local of this configuration action, not a script-level `val`, and
+    // the `doFirst` action below closes over only it. A `doFirst` lambda that instead referenced
+    // `layout` (i.e. `project.layout`) or a script-level property would drag the `Project` / build
+    // script into the task's serialized state, which the configuration cache rejects — for every
+    // task this filter matches. Keeping the capture to a `Provider` keeps the cache working.
+    val klibDir = layout.buildDirectory.dir("klib")
     doFirst {
-        val klib = layout.buildDirectory.get().asFile.resolve("klib")
+        val klib = klibDir.get().asFile
         if (klib.exists()) {
             klib.walkTopDown().filter { it.name == ".DS_Store" }.forEach { it.delete() }
         }

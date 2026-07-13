@@ -298,15 +298,28 @@ val <name>ClientDependencies = module {
 ```
 
 ## §6 — Snapshot tests (preview-driven)
-1. Copy `feature/core/client/src/androidHostTest/kotlin/platform/snapshot/SnapshotRule.kt` **verbatim** into
-   `feature/<name>/client/src/androidHostTest/kotlin/platform/snapshot/SnapshotRule.kt` (it's identical per module
-   — copy the live file rather than a snapshot here, so it can't drift).
+1. Copy **both** of these **verbatim** from `feature/core/client/src/androidHostTest/kotlin/platform/snapshot/`
+   into `feature/<name>/client/src/androidHostTest/kotlin/platform/snapshot/` (they are identical in every
+   module — copy the live files rather than a snapshot here, so they can't drift):
+   - `SnapshotRule.kt`
+   - `DirectorySnapshotHandler.kt` — the custom Paparazzi `SnapshotHandler` that writes/verifies goldens at a
+     directory-grouped path. Without it the goldens fall back to one long flat filename per preview.
 2. Copy `feature/core/client/src/androidHostTest/kotlin/platform/snapshot/PreviewSnapshotTest.kt` into the same
    location in the new module, changing ONE line — the package tree it scans:
-   `scanPackageTrees("feature.<name>")`.
+   `scanPackageTrees("feature.<name>")`. That scan argument is the only intended per-module divergence.
    PreviewSnapshotTest discovers every `@Preview` composable in the module and snapshots it with Paparazzi
    (`UiLayer.Composable.previewsAreSnapshotTested`); the `@Preview` on `<Name>ScreenPreview` (§5) satisfies
    `UiLayer.Composable.screenContentPreview`. No per-screen test files are needed.
+3. Record and verify the new module's goldens. **`--no-configuration-cache` is required** — under the
+   configuration cache the R class is dropped from the test runtime classpath and every snapshot test dies with
+   `ClassNotFoundException: <module>.R`:
+   ```
+   ./gradlew :feature:<name>:client:recordPaparazzi --no-configuration-cache
+   ./gradlew :feature:<name>:client:verifyPaparazzi --no-configuration-cache
+   ```
+   Goldens are grouped by the preview's declaring package and function name, e.g.
+   `src/androidHostTest/snapshots/images/feature/<name>/ui/<Name>ScreenPreview.png`. Two previews resolving to
+   the same golden path fail fast at test-parameter creation rather than silently overwriting each other.
 
 ## §7 — Wiring checklist (edits to EXISTING files — the easy-to-forget step)
 - [ ] `settings.gradle.kts` — three `include(":feature:<name>:…")` (§4).

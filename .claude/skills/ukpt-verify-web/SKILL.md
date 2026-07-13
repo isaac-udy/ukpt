@@ -18,13 +18,13 @@ A green compile is necessary but not sufficient — you must bundle *and* serve.
 
 **1. Bundle gate** — catches `node:` imports (mode 1) and the `.DS_Store` IC crash (mode 4):
 ```
-./gradlew :app:client:web:wasmJsBrowserDevelopmentWebpack
+./gradlew :app:client:web:wasmJsBrowserDevelopmentWebpack --no-configuration-cache
 ```
 Ergonomics: `bash .claude/skills/ukpt-verify-web/run-bundle-check.sh` runs this and flags the two build-time signatures for you.
 
 **2. Runtime gate** — catches the navigation entry-point gap (mode 2) and the missing ViewModel factory (mode 3). These are **invisible to webpack**:
 ```
-./gradlew :app:client:web:wasmJsBrowserDevelopmentRun
+./gradlew :app:client:web:wasmJsBrowserDevelopmentRun --no-configuration-cache
 ```
 Open the served URL, confirm the page actually renders (the `<body>` gets populated by `ComposeViewport`), open the browser console, and **navigate to the changed screen(s)** — mode 3 only fires when a `viewModel()` destination first composes.
 
