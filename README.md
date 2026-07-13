@@ -40,37 +40,17 @@ later template updates depend on.
 
 ## Architecture
 
-The project is built from vertical feature slices over shared infrastructure. A feature is three
-modules — `:feature:<name>:{api,client,server}` — organised along four axes: `domain`, `ui`, `data`
-and `services`. `:platform` holds infrastructure shared between features, and `:app` holds thin
-executable shells that wire everything together. `:feature:core` is the worked example.
+**Read the [architecture README](platform/common/architecture/README.md)** for an overview of the
+project structure and the rules that govern it.
 
-The architecture is not a document that rots. It is a catalog of Kotlin objects that runs as a test
-suite:
-
-```bash
-./gradlew :platform:common:architecture:verifyArchitecture
-```
-
-Rules live in
-[`platform/common/architecture/src/main/kotlin/architecture/rules/`](platform/common/architecture/src/main/kotlin/architecture/rules).
-Each rule is a property on a RuleGroup or Construct, built on Konsist. Every rule has a stable ID —
-`DomainLayer.DomainInterface.primaryReturnType`, `UiLayer.ViewModel.noPrivateVarProperties` — and the
-suite reports one test per rule, so a failure names the rule you broke.
-
-The documentation is generated from the rules themselves, so it cannot drift from them. Do not edit
-it; edit the rule and regenerate:
+The rules are defined in code, using the [udytils](https://github.com/isaac-udy/udytils) architecture
+system over [Konsist](https://docs.konsist.lemonappdev.com/). They run as a test suite, and the
+documentation is generated from them.
 
 ```bash
-./gradlew :platform:common:architecture:updateArchitectureDocumentation
+./gradlew :platform:common:architecture:verifyArchitecture               # run the tests
+./gradlew :platform:common:architecture:updateArchitectureDocumentation  # regenerate the documentation
 ```
-
-**Read the [architecture README](platform/common/architecture/README.md).** It explains the module
-groups, the axes and the dependency rules in full, and the
-[rule index](platform/common/architecture/docs/rule-index.md) lists every rule with its ID and
-enforcement level. Code that cannot conform uses
-[`@ArchitectureException(reason = "…")`](platform/common/architecture/docs/exceptions.md), or a
-`// architecture-exception: <RuleId>` comment in a build file. The reason is required.
 
 ## Embedded libraries
 
