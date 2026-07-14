@@ -44,7 +44,7 @@ Ask the user for the project name and base package if not given. Then apply, pro
 
 | Template value | Becomes | Where |
 | --- | --- | --- |
-| `com.isaacudy.ukpt` | `<package>` | app shells (packages, directories, `applicationId`, bundle ids) |
+| `com.isaacudy.ukpt` | `<package>` | app shells (packages, directories, `applicationId`), and `PRODUCT_BUNDLE_IDENTIFIER` in `app/client/ios/iosApp.xcodeproj/project.pbxproj` |
 | `ukpt` (lowercase word) | `<project-name>` | app/window titles, `rootProject.name`, README |
 | `Ukpt` type prefix | `<ProjectName>` | `:feature:core` example types, app entry points |
 | `feature.ukpt` | `feature.<first-feature>` or leave | `:feature:core` example (see note) |
@@ -91,8 +91,15 @@ Run the full matrix before the first commit:
           :app:client:web:compileKotlinWasmJs :app:client:common:compileKotlinIosArm64 \
           :app:client:common:compileKotlinIosSimulatorArm64 :app:server:compileKotlin
 ./gradlew :platform:common:architecture:verifyArchitecture
-./gradlew :feature:core:client:verifyPaparazzi
+./gradlew :feature:core:client:verifyPaparazzi --no-configuration-cache
 bash .claude/skills/ukpt-verify-web/run-bundle-check.sh
+
+# iOS: the Xcode project must still build after the bundle id is renamed.
+xcodebuild -project app/client/ios/iosApp.xcodeproj -scheme iosApp \
+           -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
 ```
+
+Compiling the iOS targets does not exercise the app — the Compose/Enro entry point only runs when the
+app launches. If anything under `iosMain` changed, also run it in a simulator (⌘R from Xcode).
 
 Then commit everything as the project's initial commit.
