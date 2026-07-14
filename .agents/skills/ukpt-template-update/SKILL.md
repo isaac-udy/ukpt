@@ -38,9 +38,11 @@ Three kinds of change, three mechanisms:
 
 ## 2. Self-update first
 
-Sync `.claude/` (skills, settings) and `docs/template-migrations/` from the template clone before
-anything else, so the newest update logic runs. If this skill's own file changed, stop and tell
-the user to re-invoke the skill.
+Sync `.agents/skills/ukpt-*`, the matching `.claude/skills/ukpt-*` compatibility links,
+`.claude/settings.json`, and `docs/template-migrations/` from the template clone before anything
+else, so the newest update logic runs. The `.claude/skills/` entries must remain relative links to
+the canonical `.agents/skills/` directories, not copied skill trees. If this skill's own file
+changed, stop and tell the user to re-invoke the skill.
 
 ## 3. Read the delta
 
@@ -61,10 +63,13 @@ git merge-file <project-file> <translated-base> <translated-new>
 File classes:
 
 - **Template-owned (expect clean merges):** `UKPT.md`, `gradle/wrapper/`, `build-logic/`,
-  `.claude/skills/ukpt-*`, `.claude/settings.json`, `gradle/libs.versions.toml` (projects add
-  entries; the merge keeps both), root `build.gradle.kts`, `gradle.properties`.
-- **Project-owned (never sync):** `CLAUDE.md` — only verify it still imports `UKPT.md`
-  (`@UKPT.md`).
+  `.agents/skills/ukpt-*`, `.claude/settings.json`, `gradle/libs.versions.toml` (projects add
+  entries; the merge keeps both), root `build.gradle.kts`, `gradle.properties`. Recreate the
+  `.claude/skills/ukpt-*` links exactly; do not pass symlinks to `git merge-file`.
+- **Project-owned (never sync):** `AGENTS.md` and `CLAUDE.md`. For projects that predate
+  `AGENTS.md`, create it when applying the shared-agent-guidance migration in §6. Otherwise verify
+  `AGENTS.md` points agents to `UKPT.md`, and `CLAUDE.md` still imports both files (`@AGENTS.md` and
+  `@UKPT.md`).
 - **Mixed (expect conflicts; resolve semantically):** `settings.gradle.kts` (project feature
   includes stay), app shells (`app/`), platform modules the project has extended.
 - **Example code (do not sync):** `:feature:core` and anything under `feature/` — template
@@ -117,7 +122,7 @@ The full matrix, from UKPT.md:
           :app:client:common:compileKotlinIosSimulatorArm64 :app:server:compileKotlin
 ./gradlew :platform:common:architecture:verifyArchitecture
 ./gradlew :feature:<each>:client:verifyPaparazzi --no-configuration-cache
-bash .claude/skills/ukpt-verify-web/run-bundle-check.sh
+bash .agents/skills/ukpt-verify-web/run-bundle-check.sh
 ```
 
 Then update `.ukpt/template.json` (`templateVersion`, `templateCommit`, submodule pins), commit,

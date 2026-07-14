@@ -2,11 +2,11 @@
 
 This project is based on the [UKPT template](https://github.com/isaac-udy/ukpt). This file is
 template-owned: it is synced by the `ukpt-template-update` skill, so don't edit it in downstream
-projects — project-specific guidance belongs in CLAUDE.md.
+projects — project-specific guidance belongs in AGENTS.md.
 
 UKPT is a Kotlin Multiplatform project **template** — Compose UI, Enro navigation, Koin DI, urpc for the client/server contract, and a Ktor server. It targets Android, Desktop (JVM), Web (wasmJs), and iOS, plus a JVM server. It starts minimal; build features out from the documented patterns — `:feature:core` is the worked example to copy.
 
-This file holds operational guidance (commands, toolchain, submodules) and pointers to the rules. The architecture rules are the source of truth in [`platform/common/architecture/README.md`](./platform/common/architecture/README.md) — don't restate them here. The submodules carry their own CLAUDE.md files.
+This file holds operational guidance (commands, toolchain, submodules) and pointers to the rules. The architecture rules are the source of truth in [`platform/common/architecture/README.md`](./platform/common/architecture/README.md) — don't restate them here. The embedded builds carry their own repository guidance.
 
 ## Template versioning
 
