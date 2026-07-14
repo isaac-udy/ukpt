@@ -19,10 +19,12 @@ import kotlin.math.max
  * `feature/campaigns/ui/CampaignManagementEmptyRolesPreview`. This handler resolves that against the
  * module's `snapshots/images/` directory and appends `.png`.
  *
- * Why a custom handler: the stock `HtmlReportWriter` (record) and `SnapshotVerifier` (verify) both
+ * Why a custom handler: the stock `HtmlReportWriter` (report/record) and `SnapshotVerifier` (verify) both
  * compute the golden path via `Snapshot.toFileName`, which only joins with `_` (no directories) and
  * rejects `/`. So neither can produce a nested layout. This mirrors their behaviour otherwise:
  *
+ * - **report** (a plain test run): writes the rendered frame under `build/paparazzi/` without
+ *   changing the committed golden.
  * - **record** (`paparazzi.test.record=true`): writes the rendered frame to the golden path,
  *   creating parent directories as needed.
  * - **verify** (`paparazzi.test.verify=true`): compares the rendered frame against the committed
@@ -33,8 +35,9 @@ import kotlin.math.max
  *   paths.
  *
  * The system properties consumed here are exactly the ones the Paparazzi gradle plugin sets for the
- * test task (`paparazzi.snapshot.dir`, `paparazzi.failures.dir`, `paparazzi.test.record`,
- * `paparazzi.test.verify`, `app.cash.paparazzi.maxPercentDifferenceDefault`).
+ * test task (`paparazzi.snapshot.dir`, `paparazzi.report.dir`, `paparazzi.failures.dir`,
+ * `paparazzi.test.record`, `paparazzi.test.verify`,
+ * `app.cash.paparazzi.maxPercentDifferenceDefault`).
  */
 internal class DirectorySnapshotHandler : SnapshotHandler {
 
@@ -54,6 +57,10 @@ internal class DirectorySnapshotHandler : SnapshotHandler {
     private val failuresDir: File?
         get() = System.getProperty("paparazzi.failures.dir")?.let { File(it).apply { mkdirs() } }
 
+    private val reportImagesDir: File?
+        get() = System.getProperty("paparazzi.report.dir")
+            ?.let { File(it, "directory-snapshots").apply { mkdirs() } }
+
     override fun newFrameHandler(
         snapshot: Snapshot,
         frameCount: Int,
@@ -70,9 +77,9 @@ internal class DirectorySnapshotHandler : SnapshotHandler {
                 } else if (isVerifying) {
                     verify(golden, image)
                 } else {
-                    // No explicit mode (e.g. a plain `test` run): behave like record so goldens can
-                    // be produced, matching Paparazzi's own default-to-report behaviour of not failing.
-                    record(golden, image)
+                    // Match Paparazzi's default mode: render a report artifact, but never mutate
+                    // source-controlled goldens unless the explicit record task is running.
+                    report(relativePath, image)
                 }
             }
 
@@ -87,13 +94,19 @@ internal class DirectorySnapshotHandler : SnapshotHandler {
         ImageIO.write(image, "PNG", golden)
     }
 
+    private fun report(relativePath: String, image: BufferedImage) {
+        val output = reportImagesDir?.resolve("$relativePath.png") ?: return
+        output.parentFile?.mkdirs()
+        ImageIO.write(image, "PNG", output)
+    }
+
     private fun verify(golden: File, image: BufferedImage) {
         val expectedPath = golden.absolutePath
         if (!golden.exists()) {
             writeFailureArtifacts(golden, actual = image, delta = null)
             throw AssertionError(
                 "Missing golden image: no snapshot recorded at $expectedPath\n" +
-                    "Record it with: ./gradlew ${':'}${golden.parentFile?.name}… recordPaparazzi (or the module's recordPaparazzi task).",
+                    "Record it with the module's recordPaparazzi task and --no-configuration-cache.",
             )
         }
 
@@ -111,7 +124,7 @@ internal class DirectorySnapshotHandler : SnapshotHandler {
 
         val error: String? = when {
             percentDifference > maxPercentDifference ->
-                "Images differ (by %.4f%%, tolerance %.4f%%)".format(percentDifference, maxPercentDifference * 100)
+                "Images differ (by %.4f%%, tolerance %.4f%%)".format(percentDifference, maxPercentDifference)
             abs(goldenW - actualW) >= 2 ->
                 "Widths differ too much: ${goldenW}x$goldenH (golden) vs ${actualW}x$actualH (actual)"
             abs(goldenH - actualH) >= 2 ->

@@ -9,15 +9,18 @@ plugins {
 }
 
 private val projectNamespace = providers.gradleProperty("ukpt.projectNamespace").get()
+private val androidCompileSdk = libs.versions.android.compileSdk.get().toInt()
+private val androidMinSdk = libs.versions.android.minSdk.get().toInt()
+private val androidTargetSdk = libs.versions.android.targetSdk.get().toInt()
 
 android {
     namespace = projectNamespace
-    compileSdk = 36
+    compileSdk = androidCompileSdk
 
     defaultConfig {
         applicationId = projectNamespace
-        minSdk = 24
-        targetSdk = 36
+        minSdk = androidMinSdk
+        targetSdk = androidTargetSdk
         versionCode = 1
         versionName = "1.0"
     }

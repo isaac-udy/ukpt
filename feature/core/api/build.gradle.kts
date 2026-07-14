@@ -1,6 +1,5 @@
 plugins {
     id("ukpt.kmp-library")
-    alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.kotlinKsp)
 }
 

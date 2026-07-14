@@ -8,7 +8,6 @@ These mirror `:feature:core` — if core's build files change materially, update
 ```kotlin
 plugins {
     id("ukpt.kmp-library")
-    alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.kotlinKsp)
 }
 
@@ -54,7 +53,6 @@ dependencies {
 plugins {
     id("ukpt.compose-library")
     alias(libs.plugins.kotlinKsp)
-    alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.paparazzi)
 }
 
@@ -157,7 +155,6 @@ tasks.withType<Test>().configureEach {
 ```kotlin
 plugins {
     id("ukpt.jvm-library")
-    alias(libs.plugins.kotlinSerialization)
 }
 
 dependencies {
@@ -298,12 +295,13 @@ val <name>ClientDependencies = module {
 ```
 
 ## §6 — Snapshot tests (preview-driven)
-1. Copy **both** of these **verbatim** from `feature/core/client/src/androidHostTest/kotlin/platform/snapshot/`
+1. Copy **all three** of these **verbatim** from `feature/core/client/src/androidHostTest/kotlin/platform/snapshot/`
    into `feature/<name>/client/src/androidHostTest/kotlin/platform/snapshot/` (they are identical in every
    module — copy the live files rather than a snapshot here, so they can't drift):
    - `SnapshotRule.kt`
    - `DirectorySnapshotHandler.kt` — the custom Paparazzi `SnapshotHandler` that writes/verifies goldens at a
      directory-grouped path. Without it the goldens fall back to one long flat filename per preview.
+   - `DirectorySnapshotHandlerTest.kt` — regression coverage for plain-test, record, and verify behaviour.
 2. Copy `feature/core/client/src/androidHostTest/kotlin/platform/snapshot/PreviewSnapshotTest.kt` into the same
    location in the new module, changing ONE line — the package tree it scans:
    `scanPackageTrees("feature.<name>")`. That scan argument is the only intended per-module divergence.

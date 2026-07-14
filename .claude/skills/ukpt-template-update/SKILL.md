@@ -116,7 +116,7 @@ The full matrix, from UKPT.md:
           :app:client:web:compileKotlinWasmJs :app:client:common:compileKotlinIosArm64 \
           :app:client:common:compileKotlinIosSimulatorArm64 :app:server:compileKotlin
 ./gradlew :platform:common:architecture:verifyArchitecture
-./gradlew :feature:<each>:client:verifyPaparazzi
+./gradlew :feature:<each>:client:verifyPaparazzi --no-configuration-cache
 bash .claude/skills/ukpt-verify-web/run-bundle-check.sh
 ```
 

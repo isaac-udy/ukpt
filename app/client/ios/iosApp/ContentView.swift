@@ -6,7 +6,7 @@ import App
 ///
 /// `MainViewController()` is the Kotlin entry point in `:app:client:common`
 /// (`iosMain/.../MainViewController.kt`). It installs Enro navigation on first call and returns a
-/// `ComposeUIViewController` wrapping `App()`, so everything below this line is shared code.
+/// `EnroUIViewController` wrapping `App()`, so everything below this line is shared code.
 struct ContentView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIViewController {
         MainViewControllerKt.MainViewController()

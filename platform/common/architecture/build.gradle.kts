@@ -1,5 +1,5 @@
 plugins {
-    alias(libs.plugins.kotlinJvm)
+    id("ukpt.jvm-base")
     // Adds the architectureTest source set and the standalone verifyArchitecture /
     // updateArchitectureDocumentation tasks (plain `test` runs nothing here). The test classes
     // themselves are generated into build/generated/ from the definition below — none are checked
