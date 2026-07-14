@@ -12,6 +12,10 @@ This file holds operational guidance (commands, toolchain, submodules) and point
 
 Downstream projects update from this template with the `ukpt-template-update` skill, driven by `.ukpt/template.json` and [`docs/template-migrations/`](./docs/template-migrations/README.md). When a change affects code that only exists downstream — a convention change, an architecture rule added/renamed/tightened, a structural change — bump `templateVersion` in `.ukpt/template.json` and add a migration entry in the same commit (see the migrations README for the format). Version bumps and template-owned file changes don't need an entry.
 
+Before committing a template change, run `./gradlew validateTemplate`. It checks the marker and
+migration ordering/sections, shared agent guidance, Codex skill metadata, and Claude compatibility
+links. The validator and rename-planner unit tests run with `./gradlew -p build-logic test`.
+
 ## Architecture
 
 Follow the rules in [`platform/common/architecture/README.md`](./platform/common/architecture/README.md), enforced by Konsist tests. Orientation:
@@ -66,6 +70,9 @@ The common module's Android / JVM / wasm targets compile transitively via the pe
 
 ## Testing
 
+- **Template integrity**: `./gradlew validateTemplate` — validates template metadata, migrations,
+  shared agent guidance, and skills. `./gradlew -p build-logic test` runs the validator and safe
+  project-rename planner's unit tests.
 - **Architecture rules**: `./gradlew :platform:common:architecture:verifyArchitecture` — a standalone task that always re-executes (no `--rerun-tasks` needed; the module's plain `test` task runs nothing — the test classes are plugin-generated from the `UkptArchitecture` definition, not checked in). The suite reports **one nested test per rule** (`<Layer> › <Construct> › <rule>`), so a failure names the exact rule. After changing a rule or an examples file, regenerate the generated docs (README + `docs/`): `./gradlew :platform:common:architecture:updateArchitectureDocumentation`.
 - **UI snapshots** are preview-driven: every `@Preview` composable is discovered by `PreviewSnapshotTest` and snapshotted with Paparazzi (`UiLayer.Composable.screenContentPreview` requires a `@Preview` per ScreenContent). Record then verify goldens, per client module:
 ```

@@ -1,0 +1,248 @@
+package ukpt.template
+
+import java.nio.charset.StandardCharsets
+import java.nio.file.FileVisitResult
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.SimpleFileVisitor
+import java.nio.file.attribute.BasicFileAttributes
+import kotlin.io.path.invariantSeparatorsPathString
+import kotlin.io.path.name
+import kotlin.io.path.readText
+
+data class ProjectRenameRequest(
+    val projectName: String,
+    val packageName: String,
+    val typePrefix: String,
+)
+
+enum class RenameDisposition {
+    REPLACE,
+    REVIEW,
+    KEEP,
+}
+
+data class RenameOccurrence(
+    val path: String,
+    val line: Int,
+    val column: Int,
+    val source: String,
+    val replacement: String,
+    val disposition: RenameDisposition,
+    val reason: String,
+)
+
+data class DirectoryMove(
+    val source: String,
+    val destination: String,
+)
+
+data class ProjectRenamePlan(
+    val request: ProjectRenameRequest,
+    val occurrences: List<RenameOccurrence>,
+    val directoryMoves: List<DirectoryMove>,
+) {
+    fun render(): String = buildString {
+        appendLine("UKPT project rename plan")
+        appendLine("project name: ${request.projectName}")
+        appendLine("package:      ${request.packageName}")
+        appendLine("type prefix:  ${request.typePrefix}")
+        appendLine()
+        appendLine("Directory moves")
+        if (directoryMoves.isEmpty()) appendLine("  (none)")
+        directoryMoves.forEach { appendLine("  ${it.source} -> ${it.destination}") }
+        appendLine()
+        RenameDisposition.entries.forEach { disposition ->
+            val matching = occurrences.filter { it.disposition == disposition }
+            appendLine("$disposition (${matching.size})")
+            if (matching.isEmpty()) appendLine("  (none)")
+            if (disposition == RenameDisposition.KEEP) {
+                matching.groupingBy(RenameOccurrence::path).eachCount().forEach { (path, count) ->
+                    appendLine("  $path ($count protected occurrence(s))")
+                }
+            } else {
+                matching.forEach { occurrence ->
+                    appendLine(
+                        "  ${occurrence.path}:${occurrence.line}:${occurrence.column} " +
+                            "'${occurrence.source}' -> '${occurrence.replacement}' — ${occurrence.reason}",
+                    )
+                }
+            }
+            appendLine()
+        }
+    }
+}
+
+object ProjectRenamePlanner {
+    private val projectNamePattern = Regex("^[a-z][a-z0-9-]*$")
+    private val packagePattern = Regex("^[a-z][a-z0-9_]*(?:\\.[a-z][a-z0-9_]*)+$")
+    private val typePrefixPattern = Regex("^[A-Z][A-Za-z0-9]*$")
+    private val identityPattern = Regex(
+        "com\\.isaacudy\\.ukpt|feature\\.ukpt|Ukpt(?=[A-Z]|\\b)|ukpt(?=[A-Z]|\\b)",
+    )
+    private val skippedDirectories = setOf(
+        ".git",
+        ".gradle",
+        ".idea",
+        ".kotlin",
+        ".cxx",
+        ".externalNativeBuild",
+        "build",
+        "captures",
+        "node_modules",
+        "embedded-enro",
+        "embedded-udytils",
+    )
+    private val protectedPrefixes = listOf(
+        ".agents/",
+        ".claude/",
+        ".ukpt/",
+        "build-logic/",
+        "docs/template-migrations/",
+        "platform/common/architecture/",
+    )
+    private val workedCoreIdentifiers = setOf(
+        "UkptDestination",
+        "ukptClientDependencies",
+    )
+
+    fun validate(request: ProjectRenameRequest): List<String> = buildList {
+        if (!projectNamePattern.matches(request.projectName)) {
+            add("project name must be a lowercase slug such as my-project")
+        }
+        if (!packagePattern.matches(request.packageName)) {
+            add("package must contain at least two lowercase Java/Kotlin segments")
+        }
+        if (!typePrefixPattern.matches(request.typePrefix)) {
+            add("type prefix must be a PascalCase identifier such as MyProject")
+        }
+    }
+
+    fun plan(repository: Path, request: ProjectRenameRequest): ProjectRenamePlan {
+        val validationErrors = validate(request)
+        require(validationErrors.isEmpty()) { validationErrors.joinToString("; ") }
+
+        val occurrences = mutableListOf<RenameOccurrence>()
+        val directoryMoves = mutableListOf<DirectoryMove>()
+        Files.walkFileTree(repository, object : SimpleFileVisitor<Path>() {
+            override fun preVisitDirectory(directory: Path, attributes: BasicFileAttributes): FileVisitResult {
+                if (directory != repository && directory.name in skippedDirectories) {
+                    return FileVisitResult.SKIP_SUBTREE
+                }
+                val relativePath = repository.relativize(directory).invariantSeparatorsPathString
+                if (relativePath.endsWith("/com/isaacudy/ukpt")) {
+                    val parent = relativePath.removeSuffix("/com/isaacudy/ukpt")
+                    directoryMoves += DirectoryMove(
+                        source = relativePath,
+                        destination = "$parent/${request.packageName.replace('.', '/')}",
+                    )
+                }
+                return FileVisitResult.CONTINUE
+            }
+
+            override fun visitFile(file: Path, attributes: BasicFileAttributes): FileVisitResult {
+                if (attributes.isRegularFile && attributes.size() <= 1_048_576 && !Files.isSymbolicLink(file)) {
+                    collectOccurrences(repository, file, request, occurrences)
+                }
+                return FileVisitResult.CONTINUE
+            }
+        })
+
+        return ProjectRenamePlan(
+            request = request,
+            occurrences = occurrences.sortedWith(
+                compareBy<RenameOccurrence>({ it.disposition }, { it.path }, { it.line }, { it.column }),
+            ),
+            directoryMoves = directoryMoves.distinct().sortedBy(DirectoryMove::source),
+        )
+    }
+
+    private fun collectOccurrences(
+        repository: Path,
+        file: Path,
+        request: ProjectRenameRequest,
+        destination: MutableList<RenameOccurrence>,
+    ) {
+        val contents = try {
+            file.readText(StandardCharsets.UTF_8)
+        } catch (_: Exception) {
+            return
+        }
+        if ('\u0000' in contents) return
+
+        val relativePath = repository.relativize(file).invariantSeparatorsPathString
+        contents.lineSequence().forEachIndexed { lineIndex, line ->
+            identityPattern.findAll(line).forEach { match ->
+                val source = match.value
+                val (disposition, reason) = classify(relativePath, line, match.range.first, source)
+                destination += RenameOccurrence(
+                    path = relativePath,
+                    line = lineIndex + 1,
+                    column = match.range.first + 1,
+                    source = source,
+                    replacement = replacementFor(source, line, match.range.first, request),
+                    disposition = disposition,
+                    reason = reason,
+                )
+            }
+        }
+    }
+
+    private fun classify(
+        path: String,
+        line: String,
+        column: Int,
+        source: String,
+    ): Pair<RenameDisposition, String> {
+        if (path == "UKPT.md" || protectedPrefixes.any(path::startsWith)) {
+            return RenameDisposition.KEEP to "template identity is protected"
+        }
+        if (source == "ukpt" && line.substring(column).startsWith("ukpt.")) {
+            return RenameDisposition.KEEP to "UKPT Gradle property and convention-plugin keys are stable"
+        }
+        if (source == "feature.ukpt") {
+            return RenameDisposition.REVIEW to "rename only if the worked core feature is rebranded"
+        }
+        if (identifierAt(line, column) in workedCoreIdentifiers) {
+            return RenameDisposition.REVIEW to "rename only if the worked core feature is rebranded"
+        }
+        if (path == "README.md") {
+            return RenameDisposition.REVIEW to "project may keep or replace the worked template example"
+        }
+        if (source == "com.isaacudy.ukpt") {
+            return RenameDisposition.REPLACE to "application package reference"
+        }
+        if (path.startsWith("feature/core/")) {
+            return RenameDisposition.REVIEW to "project may keep or replace the worked template example"
+        }
+        if (path.startsWith("app/") || path == "gradle.properties") {
+            return RenameDisposition.REPLACE to "project identity in an app-owned file"
+        }
+        return RenameDisposition.REVIEW to "outside the deterministic app allowlist"
+    }
+
+    private fun replacementFor(
+        source: String,
+        line: String,
+        column: Int,
+        request: ProjectRenameRequest,
+    ): String = when (source) {
+        "com.isaacudy.ukpt" -> request.packageName
+        "feature.ukpt" -> "<feature package or keep feature.ukpt>"
+        "Ukpt" -> request.typePrefix
+        "ukpt" -> if (identifierAt(line, column).length > source.length) {
+            request.typePrefix.replaceFirstChar(Char::lowercaseChar)
+        } else {
+            request.projectName
+        }
+        else -> error("Unhandled identity token: $source")
+    }
+
+    private fun identifierAt(line: String, column: Int): String {
+        var start = column
+        while (start > 0 && Character.isJavaIdentifierPart(line[start - 1])) start--
+        var end = column
+        while (end < line.length && Character.isJavaIdentifierPart(line[end])) end++
+        return line.substring(start, end)
+    }
+}

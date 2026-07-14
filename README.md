@@ -43,6 +43,20 @@ To start a real project from the template, use the
 identity, sets up the repository and submodules, and writes the `.ukpt/template.json` marker that
 later template updates depend on.
 
+Before renaming, it generates a classified, non-mutating inventory so UKPT-owned identifiers are
+not caught in a global replacement:
+
+```bash
+./gradlew planProjectRename \
+  -Pukpt.newProjectName=my-project \
+  -Pukpt.newProjectPackage=com.example.myproject \
+  -Pukpt.newProjectTypePrefix=MyProject
+```
+
+The report is written to `build/reports/ukpt/project-rename-plan.txt` with `REPLACE`, `REVIEW`, and
+`KEEP` sections. Re-run with `-Pukpt.renameFailOnReplace=true` after renaming to fail if required
+project-identity replacements remain.
+
 ## Architecture
 
 **Read the [architecture README](platform/common/architecture/README.md)** for an overview of the
@@ -159,6 +173,14 @@ one is discovered and snapshotted. Goldens are grouped by package, for example
 The Gradle configuration cache is on. Two task families are incompatible with it and need
 `--no-configuration-cache`: the wasm browser and webpack tasks, and Paparazzi record/verify.
 Everything else, including the full compile sweep, is cache-clean.
+
+Template maintainers can validate the marker, migration documents, agent imports, shared skill
+metadata, and Claude compatibility links with:
+
+```bash
+./gradlew validateTemplate
+./gradlew -p build-logic test
+```
 
 ## Template updates
 

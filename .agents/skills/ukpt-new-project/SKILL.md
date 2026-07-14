@@ -42,10 +42,22 @@ renamed, which is what `ukpt-template-update` needs later. Do not skip it.
 Ask the user for the project name and base package if not given. Rename by semantic scope; never
 run an unrestricted repository-wide replacement for `ukpt` or `Ukpt`.
 
+Generate the deterministic rename inventory before editing. Read the `REPLACE`, `REVIEW`, and
+`KEEP` sections in `build/reports/ukpt/project-rename-plan.txt` and resolve the worked-core-feature
+choice in `REVIEW` with the user:
+
+```
+./gradlew planProjectRename \
+  -Pukpt.newProjectName=<project-name> \
+  -Pukpt.newProjectPackage=<package> \
+  -Pukpt.newProjectTypePrefix=<ProjectName>
+```
+
 | Template value | Becomes | Where |
 | --- | --- | --- |
 | `com.isaacudy.ukpt` | `<package>` | app shells (packages, directories, `applicationId`), and `PRODUCT_BUNDLE_IDENTIFIER` in `app/client/ios/iosApp.xcodeproj/project.pbxproj` |
 | `ukpt` (lowercase word) | `<project-name>` | app/window titles, `rootProject.name`, project-facing README copy |
+| `ukpt` (identifier prefix) | lower-camel `<ProjectName>` | code identifiers such as `ukptClientDependencies`; rename only with their declaring feature |
 | `Ukpt` type prefix | `<ProjectName>` | `:feature:core` example types, app entry points |
 | `feature.ukpt` | `feature.<first-feature>` or leave | `:feature:core` example (see note) |
 
@@ -65,6 +77,9 @@ run an unrestricted repository-wide replacement for `ukpt` or `Ukpt`.
   `ukpt-template-update` syncs it.
 - After renaming, search separately for the old package, lowercase name, and type prefix. Review
   every remaining match against the allowlist instead of assuming every match is stale.
+- Re-run `planProjectRename` with the same properties plus
+  `-Pukpt.renameFailOnReplace=true`. It must report zero `REPLACE` occurrences; `REVIEW` and `KEEP`
+  entries may remain by design.
 
 ## 4. Write the marker
 
@@ -99,6 +114,7 @@ Run the full matrix before the first commit:
           :app:client:common:compileKotlinIosSimulatorArm64 :app:server:compileKotlin
 ./gradlew :platform:common:architecture:verifyArchitecture
 ./gradlew :feature:core:client:verifyPaparazzi --no-configuration-cache
+./gradlew validateTemplate
 bash .agents/skills/ukpt-verify-web/run-bundle-check.sh
 
 # iOS: the Xcode project must still build after the bundle id is renamed.
