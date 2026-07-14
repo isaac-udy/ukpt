@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create UKPT Project"
+  short_description: "Turn UKPT into a renamed project"
+  default_prompt: "Use $ukpt-new-project to turn this template into my named project and package."

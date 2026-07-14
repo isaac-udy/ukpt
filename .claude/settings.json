@@ -6,7 +6,8 @@
       "Bash(git status:*)",
       "Bash(git diff:*)",
       "Bash(git log:*)",
-      "Bash(git show:*)"
+      "Bash(git show:*)",
+      "Bash(bash .agents/skills/ukpt-verify-web/run-bundle-check.sh:*)"
     ]
   }
 }

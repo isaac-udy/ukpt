@@ -1,0 +1,4 @@
+interface:
+  display_name: "Update from UKPT"
+  short_description: "Apply the latest UKPT template changes"
+  default_prompt: "Use $ukpt-template-update to update this project from the latest UKPT template."

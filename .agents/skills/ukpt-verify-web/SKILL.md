@@ -20,7 +20,7 @@ A green compile is necessary but not sufficient — you must bundle *and* serve.
 ```
 ./gradlew :app:client:web:wasmJsBrowserDevelopmentWebpack --no-configuration-cache
 ```
-Ergonomics: `bash .claude/skills/ukpt-verify-web/run-bundle-check.sh` runs this and flags the two build-time signatures for you.
+Ergonomics: `bash .agents/skills/ukpt-verify-web/run-bundle-check.sh` runs this and flags the two build-time signatures for you.
 
 **2. Runtime gate** — catches the navigation entry-point gap (mode 2) and the missing ViewModel factory (mode 3). These are **invisible to webpack**:
 ```

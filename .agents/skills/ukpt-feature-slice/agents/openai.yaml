@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create UKPT Feature"
+  short_description: "Scaffold and wire a UKPT feature slice"
+  default_prompt: "Use $ukpt-feature-slice to scaffold and wire a new feature named <name>."
