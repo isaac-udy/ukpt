@@ -1,7 +1,6 @@
 plugins {
     id("ukpt.compose-library")
     alias(libs.plugins.kotlinKsp)
-    alias(libs.plugins.kotlinSerialization)
 }
 
 private val projectNamespace = providers.gradleProperty("ukpt.projectNamespace").get()

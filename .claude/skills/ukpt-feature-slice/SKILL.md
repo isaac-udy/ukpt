@@ -31,7 +31,8 @@ Do **not** copy the literal `ukpt`/`Ukpt` from core — substitute `<name>`/`<Na
 3. **Client sources** (`feature.<name>.ui`): `<Name>Destination` in `:api`; `<Name>Screen` +
    `internal <Name>ScreenContent`, `<Name>ViewModel`, `<Name>State`, and `<name>ClientDependencies` in
    `:client` (templates.md §5).
-4. **Snapshot tests (preview-driven)** — copy `SnapshotRule.kt` and `PreviewSnapshotTest.kt` from
+4. **Snapshot tests (preview-driven)** — copy `SnapshotRule.kt`, `DirectorySnapshotHandler.kt`,
+   `DirectorySnapshotHandlerTest.kt`, and `PreviewSnapshotTest.kt` from
    `feature/core/client/src/androidHostTest/kotlin/platform/snapshot/` into the new module's
    `androidHostTest/.../platform/snapshot/`, changing PreviewSnapshotTest's scanned package to
    `feature.<name>` (templates.md §6). The Screen template's `@Preview` (§5) is what gets

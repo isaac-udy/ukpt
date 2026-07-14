@@ -22,12 +22,14 @@ plugins {
 }
 
 private val libs = versionCatalogs.named("libs")
+private val androidCompileSdk = libs.findVersion("android-compileSdk").get().requiredVersion.toInt()
+private val androidMinSdk = libs.findVersion("android-minSdk").get().requiredVersion.toInt()
 
 kotlin {
     @Suppress("UnstableApiUsage")
     androidLibrary {
-        compileSdk = 36
-        minSdk = 24
+        compileSdk = androidCompileSdk
+        minSdk = androidMinSdk
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)
@@ -41,16 +43,11 @@ kotlin {
         browser()
     }
 
-    listOf(
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
-    }
+    iosArm64()
+    iosSimulatorArm64()
 
     compilerOptions {
         freeCompilerArgs.addAll(
-            "-Xcontext-parameters",
-            "-Xexplicit-backing-fields",
             "-Xexpect-actual-classes",
         )
     }

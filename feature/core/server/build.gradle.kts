@@ -1,6 +1,5 @@
 plugins {
     id("ukpt.jvm-library")
-    alias(libs.plugins.kotlinSerialization)
 }
 
 dependencies {

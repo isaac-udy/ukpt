@@ -1,7 +1,6 @@
 plugins {
     id("ukpt.jvm-server")
     alias(libs.plugins.ktor)
-    alias(libs.plugins.kotlinSerialization)
 }
 
 private val projectNamespace = providers.gradleProperty("ukpt.projectNamespace").get()
