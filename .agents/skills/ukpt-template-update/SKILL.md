@@ -122,6 +122,7 @@ The full matrix, from UKPT.md:
           :app:client:common:compileKotlinIosSimulatorArm64 :app:server:compileKotlin
 ./gradlew :platform:common:architecture:verifyArchitecture
 ./gradlew :feature:<each>:client:verifyPaparazzi --no-configuration-cache
+./gradlew validateTemplate
 bash .agents/skills/ukpt-verify-web/run-bundle-check.sh
 ```
 
