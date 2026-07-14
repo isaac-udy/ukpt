@@ -6,7 +6,6 @@ description: >-
   viewmodel, state, snapshot test), the server stub, the settings include, and
   the Koin DI + app wiring — modeled on :feature:core. Use when adding a new
   feature module to the project.
-argument-hint: <feature-name>
 ---
 
 # ukpt-feature-slice
