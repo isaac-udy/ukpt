@@ -5,7 +5,6 @@ description: >-
   project — rename the packages/app identity, set up the git repo and submodules, and write the
   .ukpt/template.json marker that makes future ukpt-template-update runs possible. Use when
   starting a new project from ukpt.
-argument-hint: <project-name> <package>
 ---
 
 # ukpt-new-project
@@ -40,24 +39,47 @@ renamed, which is what `ukpt-template-update` needs later. Do not skip it.
 
 ## 3. Rename
 
-Ask the user for the project name and base package if not given. Then apply, project-wide:
+Ask the user for the project name and base package if not given. Rename by semantic scope; never
+run an unrestricted repository-wide replacement for `ukpt` or `Ukpt`.
+
+Generate the deterministic rename inventory before editing. Read the `REPLACE`, `REVIEW`, and
+`KEEP` sections in `build/reports/ukpt/project-rename-plan.txt` and resolve the worked-core-feature
+choice in `REVIEW` with the user:
+
+```
+./gradlew planProjectRename \
+  -Pukpt.newProjectName=<project-name> \
+  -Pukpt.newProjectPackage=<package> \
+  -Pukpt.newProjectTypePrefix=<ProjectName>
+```
 
 | Template value | Becomes | Where |
 | --- | --- | --- |
 | `com.isaacudy.ukpt` | `<package>` | app shells (packages, directories, `applicationId`), and `PRODUCT_BUNDLE_IDENTIFIER` in `app/client/ios/iosApp.xcodeproj/project.pbxproj` |
-| `ukpt` (lowercase word) | `<project-name>` | app/window titles, `rootProject.name`, README |
+| `ukpt` (lowercase word) | `<project-name>` | app/window titles, `rootProject.name`, project-facing README copy |
+| `ukpt` (identifier prefix) | lower-camel `<ProjectName>` | code identifiers such as `ukptClientDependencies`; rename only with their declaring feature |
 | `Ukpt` type prefix | `<ProjectName>` | `:feature:core` example types, app entry points |
 | `feature.ukpt` | `feature.<first-feature>` or leave | `:feature:core` example (see note) |
 
 - Move source directories to match renamed packages.
+- Treat the table's `Where` column as an allowlist. Do not rename the UKPT identity in `.agents/`,
+  `.claude/`, `.ukpt/`, `UKPT.md`, `docs/template-migrations/`, build convention plugin IDs, or
+  version-catalog aliases.
 - `:feature:core` is a worked example. Either keep it as-is (recommended until the first real
   feature exists — the architecture examples reference it) or delete it after the first real
   feature is scaffolded with `ukpt-feature-slice`.
 - Do not rename anything under `embedded-enro/`, `embedded-udytils/`, or
   `platform/common/architecture/` (the rule catalog's `architecture.rules` package is not
   project-branded).
-- `CLAUDE.md` is project-owned: rewrite its intro for this project, but keep the `@UKPT.md`
-  import. `UKPT.md` is template-owned — leave it alone; `ukpt-template-update` syncs it.
+- `AGENTS.md` is project-owned: rewrite its intro and add any project-specific guidance, but keep
+  the instruction to read `UKPT.md`. Keep `CLAUDE.md` as the compatibility file that imports both
+  `@AGENTS.md` and `@UKPT.md`. `UKPT.md` is template-owned — leave it alone;
+  `ukpt-template-update` syncs it.
+- After renaming, search separately for the old package, lowercase name, and type prefix. Review
+  every remaining match against the allowlist instead of assuming every match is stale.
+- Re-run `planProjectRename` with the same properties plus
+  `-Pukpt.renameFailOnReplace=true`. It must report zero `REPLACE` occurrences; `REVIEW` and `KEEP`
+  entries may remain by design.
 
 ## 4. Write the marker
 
@@ -92,7 +114,8 @@ Run the full matrix before the first commit:
           :app:client:common:compileKotlinIosSimulatorArm64 :app:server:compileKotlin
 ./gradlew :platform:common:architecture:verifyArchitecture
 ./gradlew :feature:core:client:verifyPaparazzi --no-configuration-cache
-bash .claude/skills/ukpt-verify-web/run-bundle-check.sh
+./gradlew validateTemplate
+bash .agents/skills/ukpt-verify-web/run-bundle-check.sh
 
 # iOS: the Xcode project must still build after the bundle id is renamed.
 xcodebuild -project app/client/ios/iosApp.xcodeproj -scheme iosApp \

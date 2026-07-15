@@ -39,9 +39,23 @@ The iOS app has no Gradle command: an Xcode build phase invokes
 module. Simulator builds are Apple Silicon only.
 
 To start a real project from the template, use the
-[`ukpt-new-project`](.claude/skills/ukpt-new-project) skill. It renames the packages and app
+[`ukpt-new-project`](.agents/skills/ukpt-new-project) skill. It renames the packages and app
 identity, sets up the repository and submodules, and writes the `.ukpt/template.json` marker that
 later template updates depend on.
+
+Before renaming, it generates a classified, non-mutating inventory so UKPT-owned identifiers are
+not caught in a global replacement:
+
+```bash
+./gradlew planProjectRename \
+  -Pukpt.newProjectName=my-project \
+  -Pukpt.newProjectPackage=com.example.myproject \
+  -Pukpt.newProjectTypePrefix=MyProject
+```
+
+The report is written to `build/reports/ukpt/project-rename-plan.txt` with `REPLACE`, `REVIEW`, and
+`KEEP` sections. Re-run with `-Pukpt.renameFailOnReplace=true` after renaming to fail if required
+project-identity replacements remain.
 
 ## Architecture
 
@@ -145,7 +159,7 @@ Compile every target after a cross-platform change:
 For web, compiling is not enough. `compileKotlinWasmJs` only type-checks, and will pass while the
 bundle fails to load in a browser — a `node:` import pulled in by a JVM-only dependency, a missing
 Koin ViewModel factory. Bundle it and open it. The
-[`ukpt-verify-web`](.claude/skills/ukpt-verify-web) skill does that.
+[`ukpt-verify-web`](.agents/skills/ukpt-verify-web) skill does that.
 
 Snapshot tests are preview-driven. You do not write them: you write `@Preview` composables, and every
 one is discovered and snapshotted. Goldens are grouped by package, for example
@@ -160,6 +174,14 @@ The Gradle configuration cache is on. Two task families are incompatible with it
 `--no-configuration-cache`: the wasm browser and webpack tasks, and Paparazzi record/verify.
 Everything else, including the full compile sweep, is cache-clean.
 
+Template maintainers can validate the marker, migration documents, agent imports, shared skill
+metadata, and Claude compatibility links with:
+
+```bash
+./gradlew validateTemplate
+./gradlew -p build-logic test
+```
+
 ## Template updates
 
 A project created from UKPT can pull later template changes down.
@@ -168,22 +190,27 @@ A project created from UKPT can pull later template changes down.
 - [`docs/template-migrations/`](docs/template-migrations) documents every change a file sync cannot
   express — a renamed rule, a changed convention, a restructured module — with how to detect it and
   what to do.
-- The [`ukpt-template-update`](.claude/skills/ukpt-template-update) skill walks those entries in order
+- The [`ukpt-template-update`](.agents/skills/ukpt-template-update) skill walks those entries in order
   and applies them.
 
-## Claude Code
+## Coding agents
 
-The repository is set up to be worked on with [Claude Code](https://claude.com/claude-code).
-[`CLAUDE.md`](CLAUDE.md) and [`UKPT.md`](UKPT.md) carry the operational guidance, and the architecture
-rules double as machine-readable instructions. Five skills cover the repetitive work:
+The repository works with [Codex](https://developers.openai.com/codex/) and
+[Claude Code](https://claude.com/claude-code). [`AGENTS.md`](AGENTS.md) holds project-owned guidance,
+[`UKPT.md`](UKPT.md) holds template-owned operational guidance, and [`CLAUDE.md`](CLAUDE.md) imports
+both for Claude Code. The architecture rules double as machine-readable instructions.
+
+Five shared skills cover repetitive work. Their canonical home is `.agents/skills/`, which Codex
+discovers directly; `.claude/skills/` contains links to the same directories so Claude Code uses
+the identical instructions:
 
 | Skill | Use it to |
 | --- | --- |
-| [`ukpt-new-project`](.claude/skills/ukpt-new-project) | Turn a fresh copy of the template into a renamed, real project |
-| [`ukpt-feature-slice`](.claude/skills/ukpt-feature-slice) | Scaffold `:feature:<name>:{api,client,server}` and wire it up |
-| [`ukpt-urpc-service`](.claude/skills/ukpt-urpc-service) | Add a client/server `@Urpc` service end to end |
-| [`ukpt-verify-web`](.claude/skills/ukpt-verify-web) | Bundle and run the web target, rather than only type-checking it |
-| [`ukpt-template-update`](.claude/skills/ukpt-template-update) | Pull the latest template version into a project |
+| [`ukpt-new-project`](.agents/skills/ukpt-new-project) | Turn a fresh copy of the template into a renamed, real project |
+| [`ukpt-feature-slice`](.agents/skills/ukpt-feature-slice) | Scaffold `:feature:<name>:{api,client,server}` and wire it up |
+| [`ukpt-urpc-service`](.agents/skills/ukpt-urpc-service) | Add a client/server `@Urpc` service end to end |
+| [`ukpt-verify-web`](.agents/skills/ukpt-verify-web) | Bundle and run the web target, rather than only type-checking it |
+| [`ukpt-template-update`](.agents/skills/ukpt-template-update) | Pull the latest template version into a project |
 
 None of this is required. The project is a normal Gradle build.
 

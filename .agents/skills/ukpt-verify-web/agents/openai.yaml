@@ -1,0 +1,4 @@
+interface:
+  display_name: "Verify UKPT Web"
+  short_description: "Bundle and smoke-test the UKPT web app"
+  default_prompt: "Use $ukpt-verify-web to bundle and smoke-test the current web changes."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Add UKPT uRPC Service"
+  short_description: "Add a typed uRPC service end to end"
+  default_prompt: "Use $ukpt-urpc-service to add a typed client/server service for <capability>."
