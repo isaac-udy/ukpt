@@ -11,6 +11,13 @@ import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.UntrackedTask
 
+/**
+ * Validates that the current checkout still satisfies UKPT's template-maintenance invariants.
+ *
+ * The task checks template metadata and migrations, shared agent guidance, canonical skill
+ * metadata, and Claude compatibility links. It reports all discovered issues in one failure and is
+ * deliberately untracked so every invocation inspects the live checkout.
+ */
 @UntrackedTask(because = "Validation should inspect the current repository on every run")
 abstract class ValidateTemplateTask : DefaultTask() {
     @get:Internal
@@ -27,6 +34,13 @@ abstract class ValidateTemplateTask : DefaultTask() {
     }
 }
 
+/**
+ * Writes a classified, non-mutating inventory for renaming a fresh UKPT project checkout.
+ *
+ * The report separates required replacements from project-specific review items and protected
+ * template identifiers. When [failOnReplace] is enabled, the task fails after writing the report if
+ * any required replacements remain, which makes it suitable for post-rename verification.
+ */
 @UntrackedTask(because = "The plan should inspect the current repository on every run")
 abstract class PlanProjectRenameTask : DefaultTask() {
     @get:Internal

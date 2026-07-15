@@ -12,11 +12,17 @@ import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
+/** A template validation failure associated with a repository-relative path. */
 data class TemplateValidationIssue(
     val path: String,
     val message: String,
 )
 
+/**
+ * A comparable representation of UKPT's date-based template version.
+ *
+ * Versions use `YYYY-MM-DD` with an optional positive revision suffix such as `.2`.
+ */
 data class TemplateVersion(
     val date: LocalDate,
     val revision: Int = 0,
@@ -27,6 +33,11 @@ data class TemplateVersion(
     companion object {
         private val pattern = Regex("""^(\d{4}-\d{2}-\d{2})(?:\.([1-9]\d*))?$""")
 
+        /**
+         * Parses a template version in `YYYY-MM-DD` or `YYYY-MM-DD.N` form.
+         *
+         * @throws IllegalArgumentException when [value] is malformed or is not a calendar date.
+         */
         fun parse(value: String): TemplateVersion {
             val match = pattern.matchEntire(value)
                 ?: throw IllegalArgumentException(
@@ -43,11 +54,18 @@ data class TemplateVersion(
     }
 }
 
+/**
+ * Validates the repository-wide contracts that keep UKPT safe to copy and update as a template.
+ *
+ * Validation covers the template marker, migration filenames and sections, shared agent guidance,
+ * canonical skill metadata, and the compatibility links exposed to Claude Code.
+ */
 object TemplateRepositoryValidator {
     private val migrationName =
         Regex("""^(\d{4}-\d{2}-\d{2}(?:\.[1-9]\d*)?)-[a-z0-9]+(?:-[a-z0-9]+)*\.md$""")
     private val requiredMigrationHeadings = listOf("## Detection", "## Migration", "## Verification")
 
+    /** Returns all validation issues in [repository] so callers can report them together. */
     fun validate(repository: Path): List<TemplateValidationIssue> = buildList {
         val templateVersion = validateMarker(repository, this)
         validateMigrations(repository, templateVersion, this)

@@ -10,18 +10,31 @@ import kotlin.io.path.invariantSeparatorsPathString
 import kotlin.io.path.name
 import kotlin.io.path.readText
 
+/**
+ * The replacement identity supplied when turning a fresh UKPT checkout into a named project.
+ *
+ * The project name is a lowercase slug, the package name is a dotted JVM package, and the type
+ * prefix is the PascalCase stem used for project-branded Kotlin types.
+ */
 data class ProjectRenameRequest(
     val projectName: String,
     val packageName: String,
     val typePrefix: String,
 )
 
+/** Describes how a matched UKPT identity token should be handled during a project rename. */
 enum class RenameDisposition {
+    /** The token is project-owned and must be replaced. */
     REPLACE,
+
+    /** The correct replacement depends on a project-specific choice. */
     REVIEW,
+
+    /** The token belongs to stable template infrastructure and must remain unchanged. */
     KEEP,
 }
 
+/** A single identity token found in the repository, including its proposed replacement and action. */
 data class RenameOccurrence(
     val path: String,
     val line: Int,
@@ -32,16 +45,24 @@ data class RenameOccurrence(
     val reason: String,
 )
 
+/** A package directory that must move so its path continues to match the renamed package. */
 data class DirectoryMove(
     val source: String,
     val destination: String,
 )
 
+/**
+ * The complete, non-mutating inventory produced for a project rename.
+ *
+ * It contains both content replacements and package-directory moves so an agent can review the
+ * rename before editing any files.
+ */
 data class ProjectRenamePlan(
     val request: ProjectRenameRequest,
     val occurrences: List<RenameOccurrence>,
     val directoryMoves: List<DirectoryMove>,
 ) {
+    /** Renders the plan as the deterministic, human-readable report written by the Gradle task. */
     fun render(): String = buildString {
         appendLine("UKPT project rename plan")
         appendLine("project name: ${request.projectName}")
@@ -73,6 +94,13 @@ data class ProjectRenamePlan(
     }
 }
 
+/**
+ * Scans a UKPT checkout and builds a safe project-rename inventory without modifying the checkout.
+ *
+ * Matches are classified as required replacements, project-specific review items, or protected
+ * template identifiers. Generated output, embedded repositories, and other non-source trees are
+ * excluded from the scan.
+ */
 object ProjectRenamePlanner {
     private val projectNamePattern = Regex("^[a-z][a-z0-9-]*$")
     private val packagePattern = Regex("^[a-z][a-z0-9_]*(?:\\.[a-z][a-z0-9_]*)+$")
@@ -106,6 +134,7 @@ object ProjectRenamePlanner {
         "ukptClientDependencies",
     )
 
+    /** Returns every validation error in [request], or an empty list when it is safe to plan. */
     fun validate(request: ProjectRenameRequest): List<String> = buildList {
         if (!projectNamePattern.matches(request.projectName)) {
             add("project name must be a lowercase slug such as my-project")
@@ -118,6 +147,11 @@ object ProjectRenamePlanner {
         }
     }
 
+    /**
+     * Builds a deterministic rename plan for [repository].
+     *
+     * @throws IllegalArgumentException when [request] contains an unsafe identity value.
+     */
     fun plan(repository: Path, request: ProjectRenameRequest): ProjectRenamePlan {
         val validationErrors = validate(request)
         require(validationErrors.isEmpty()) { validationErrors.joinToString("; ") }
