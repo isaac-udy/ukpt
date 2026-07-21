@@ -24,8 +24,9 @@ import architecture.rules.ui.UiLayer
     assembled by thin application shells (`:app`). Each feature is organised along four axes:
     `domain`, `ui`, `data`, and `services`. Module-graph rules keep the slices independent.
 
-    The rules govern the feature modules. The embedded composite builds, test sources, and this
-    rule module itself are not tested. `:feature:core` is the worked example the rules describe.
+    The rules govern the feature modules. The composite builds (`embedded-enro`,
+    `embedded-udytils`, and `build-logic`), test sources, and this rule module itself are not
+    tested. `:feature:core` is the worked example the rules describe.
 """)
 object UkptArchitecture : ArchitectureDefinition(
     groups = listOf(
