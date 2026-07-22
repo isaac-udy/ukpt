@@ -27,6 +27,32 @@ skill drives that, including renaming the `Ukpt` prefix to the project's own nam
 
 Every page below is written to be edited, not just read.
 
+## What to build primitives on
+
+The scaffold's one primitive is built from bare `foundation` — a `Box` with `clickable` — and that
+is a **scaffold choice, not a recommendation**. It keeps the template from imposing a component
+library on every project that starts from it. Most real applications should pick one of these
+instead, and should pick it early, because converting primitives later is a rewrite:
+
+| Basis | You get | You pay |
+|---|---|---|
+| **Material3** | Correct semantics, minimum touch targets, state layers, ripple, focus handling and a11y, for free. Restyle through `ButtonDefaults`/`ButtonColors`, shapes and typography. | Material's structural opinions — internal padding, sizing, its component vocabulary — which can be stubborn to override when the identity diverges. |
+| **Compose Unstyled** | Behaviourally complete primitives with no visual opinion: the interaction and accessibility work is done, the styling is entirely yours. | A dependency, and a smaller component set than Material's. |
+| **From scratch** (what this scaffold does) | Total control; nothing to override. | You re-implement interaction and accessibility yourself, and the omissions are the kind no visual review catches. |
+
+That last cost is not hypothetical. `UkptButton` has to set `role = Role.Button` by hand precisely
+because a bespoke clickable `Box` announces nothing to a screen reader — and it still lacks the
+minimum touch target, focus indication and state layers a Material button would have given it. Read
+[components/button.md](components/button.md) with that in mind: it is a worked example of the
+*shape* of a primitive, not a finished component.
+
+Basing primitives on Material3 composes cleanly with the rest of the system, because
+[`UkptTheme`](../src/commonMain/kotlin/platform/ui/UkptTheme.kt) already wraps a `MaterialTheme`
+derived from the tokens — a material3 `Button` inside `UkptTheme` picks up the palette and type
+scale automatically. If you take that route, change `material3` from `implementation` to `api` in
+the module's `build.gradle.kts`, since material types will then appear in the primitives' own
+surface.
+
 ## How the docs stay true
 
 Every image on these pages is a committed Paparazzi golden produced by a hand-written **doc-surface

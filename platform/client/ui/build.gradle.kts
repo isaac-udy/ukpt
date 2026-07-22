@@ -17,9 +17,12 @@ kotlin {
             api(compose.foundation)
             api(compose.ui)
 
-            // material3 is an implementation detail: UkptTheme wraps a MaterialTheme so raw
-            // material internals (text-field decoration, dividers, LocalContentColor) inherit
-            // the tokens, but no Ukpt* type exposes a material3 type.
+            // material3 is an implementation detail *while primitives are built from foundation*:
+            // UkptTheme wraps a MaterialTheme so raw material internals (text-field decoration,
+            // dividers, LocalContentColor) inherit the tokens, but no Ukpt* type exposes a
+            // material3 type. A project that bases its primitives on Material3 instead — see
+            // design-system/README.md, "What to build primitives on" — should promote this to
+            // `api`, since material types then appear in the primitives' own surface.
             implementation(compose.material3)
 
             // Bundled design-system assets (fonts, drawables) live in commonMain/composeResources.

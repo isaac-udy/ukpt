@@ -27,6 +27,9 @@ kotlin {
         commonMain.dependencies {
             implementation(projects.feature.core.client)
 
+            // The design system: App() installs UkptTheme once, above navigation.
+            implementation(projects.platform.client.ui)
+
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)

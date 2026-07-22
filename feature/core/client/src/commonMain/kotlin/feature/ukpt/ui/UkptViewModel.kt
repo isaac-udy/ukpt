@@ -10,4 +10,8 @@ class UkptViewModel : ViewModel() {
     private val navigation by navigationHandle<UkptDestination>()
 
     val state: ViewModelState<UkptState> = viewModelState(UkptState())
+
+    fun onGreetClicked() {
+        state.update { copy(greetings = greetings + 1) }
+    }
 }

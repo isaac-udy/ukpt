@@ -35,6 +35,12 @@ enum class UkptButtonVariant {
 /**
  * The button.
  *
+ * Built from bare `foundation` so the template imposes no component library on projects that start
+ * from it. That is a scaffold choice, not a recommendation: a real project should usually base its
+ * primitives on Material3 or Compose Unstyled and inherit their interaction and accessibility work
+ * — this one still lacks the minimum touch target, focus indication and state layers a Material
+ * button would provide. See `design-system/README.md` → "What to build primitives on".
+ *
  * Stateless: it renders [label] and reports [onClick]. It owns no pressed/loading/selected state,
  * because the caller already has that state and a component that hides it forces a second source of
  * truth.
