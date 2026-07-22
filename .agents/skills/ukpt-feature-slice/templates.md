@@ -51,27 +51,24 @@ dependencies {
 
 ```kotlin
 plugins {
-    id("ukpt.compose-library")
+    // Compose library + Paparazzi host-test wiring. Android resource processing (and the R class
+    // Paparazzi resolves reflectively), the host-test component and the stub-R classpath fix all
+    // come from the conventions — do not restate them here.
+    id("ukpt.snapshot-testing")
     alias(libs.plugins.kotlinKsp)
-    alias(libs.plugins.paparazzi)
 }
 
 kotlin {
     @Suppress("UnstableApiUsage")
     androidLibrary {
         namespace = "feature.<name>.client"
-        // Generate the R class + process Android resources so Paparazzi host tests can resolve
-        // R classes at runtime (otherwise ClassNotFoundException: feature.<name>.client.R).
-        experimentalProperties["android.experimental.kmp.enableAndroidResources"] = true
-        // Host (JVM) unit-test component — Paparazzi attaches its record/verify tasks here and
-        // reads the KMP `androidHostTest` source set.
-        withHostTestBuilder {
-        }.configure {
-        }
     }
     sourceSets {
         commonMain.dependencies {
             api(projects.feature.<name>.api)
+
+            // The design system. Screens read tokens and primitives from here, never literals.
+            implementation(projects.platform.client.ui)
 
             // Unified @Preview (androidx.compose.ui.tooling.preview.Preview) — multiplatform
             // since Compose 1.10, usable directly in common code. PreviewSnapshotTest discovers
@@ -107,8 +104,9 @@ kotlin {
             implementation(libs.kotlin.test)
         }
         getByName("androidHostTest").dependencies {
-            // Discovers @Preview composables on the test classpath and drives Paparazzi from them.
-            implementation(libs.composablePreviewScanner.android)
+            // The snapshot harness: preview discovery, directory-grouped goldens, the
+            // golden-path collision guard and the device/rendering defaults.
+            implementation(libs.udytils.snapshot)
         }
         jvmMain.dependencies {
             implementation(libs.ktor.serverCore)
@@ -129,24 +127,6 @@ dependencies {
     add("kspWasmJs", libs.enro.processor)
     add("kspIosArm64", libs.enro.processor)
     add("kspIosSimulatorArm64", libs.enro.processor)
-}
-
-// Paparazzi loads R classes (this module's + every dependency's: dev.enro.R, androidx.*.R, …)
-// reflectively at runtime. The KMP library plugin puts the aggregated host-test stub R jar on the
-// *compile* classpath only, so add it to the test runtime classpath via doFirst (which wins over
-// AGP's lazily-provided AndroidUnitTest classpath); otherwise the tests fail with
-// ClassNotFoundException. Adding it to androidHostTestRuntimeOnly would create a cycle, since the
-// stub-R task consumes the runtime classpath as input.
-tasks.withType<Test>().configureEach {
-    if (name == "testAndroidHostTest") {
-        dependsOn("generateAndroidHostTestStubRFile")
-        val rJar = files(
-            layout.buildDirectory.file("intermediates/compile_and_runtime_r_class_jar/androidHostTest/generateAndroidHostTestStubRFile/R.jar")
-        )
-        doFirst {
-            classpath = classpath + rJar
-        }
-    }
 }
 ```
 
@@ -210,10 +190,9 @@ object <Name>Destination : NavigationKey
 ```kotlin
 package feature.<name>.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -232,12 +211,21 @@ fun <Name>Screen(
 }
 
 // UiLayer.Screen.screenContentCompanion: internal ScreenContent takes state (+ callbacks) so it renders without a ViewModel.
+// Every colour, dimension and text style comes from the design system — DesignSystemRules.noLiteralsInFeatureUi
+// audits for literal Color(0x…)/.dp here. Imports: platform.ui.<Prefix>Theme, platform.ui.<Prefix>Spacing.
 @Composable
 internal fun <Name>ScreenContent(state: <Name>State) {
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(state.message)
-        }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(<Prefix>Theme.colors.background),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = state.message,
+            style = <Prefix>Theme.typography.body,
+            color = <Prefix>Theme.colors.onSurface,
+        )
     }
 }
 
@@ -247,7 +235,8 @@ internal fun <Name>ScreenContent(state: <Name>State) {
 @Preview
 @Composable
 internal fun <Name>ScreenPreview() {
-    MaterialTheme {
+    // Pin the palette rather than following the system, so the golden is deterministic.
+    <Prefix>Theme(colors = <Prefix>Colors.Light) {
         <Name>ScreenContent(<Name>State())
     }
 }
@@ -295,18 +284,34 @@ val <name>ClientDependencies = module {
 ```
 
 ## §6 — Snapshot tests (preview-driven)
-1. Copy **all three** of these **verbatim** from `feature/core/client/src/androidHostTest/kotlin/platform/snapshot/`
-   into `feature/<name>/client/src/androidHostTest/kotlin/platform/snapshot/` (they are identical in every
-   module — copy the live files rather than a snapshot here, so they can't drift):
-   - `SnapshotRule.kt`
-   - `DirectorySnapshotHandler.kt` — the custom Paparazzi `SnapshotHandler` that writes/verifies goldens at a
-     directory-grouped path. Without it the goldens fall back to one long flat filename per preview.
-   - `DirectorySnapshotHandlerTest.kt` — regression coverage for plain-test, record, and verify behaviour.
-2. Copy `feature/core/client/src/androidHostTest/kotlin/platform/snapshot/PreviewSnapshotTest.kt` into the same
-   location in the new module, changing ONE line — the package tree it scans:
-   `scanPackageTrees("feature.<name>")`. That scan argument is the only intended per-module divergence.
-   PreviewSnapshotTest discovers every `@Preview` composable in the module and snapshots it with Paparazzi
-   (`UiLayer.Composable.previewsAreSnapshotTested`); the `@Preview` on `<Name>ScreenPreview` (§5) satisfies
+1. The harness itself is the `dev.isaacudy.udytils:snapshot` artifact — there is **nothing to copy**.
+   Applying `ukpt.snapshot-testing` (§2) and depending on `libs.udytils.snapshot` in `androidHostTest`
+   is the whole setup.
+2. Write ONE file, `feature/<name>/client/src/androidHostTest/kotlin/platform/snapshot/PreviewSnapshotTest.kt`.
+   The scanned package tree is the only per-module fact:
+   ```kotlin
+   package platform.snapshot
+
+   import dev.isaacudy.udytils.snapshot.PreviewSnapshotCase
+   import dev.isaacudy.udytils.snapshot.PreviewSnapshotTestCase
+   import dev.isaacudy.udytils.snapshot.PreviewSnapshots
+   import org.junit.runners.Parameterized
+
+   class PreviewSnapshotTest(
+       case: PreviewSnapshotCase,
+   ) : PreviewSnapshotTestCase(case) {
+
+       companion object {
+           @JvmStatic
+           @Parameterized.Parameters(name = "{0}")
+           fun cases(): List<PreviewSnapshotCase> = PreviewSnapshots.scan("feature.<name>")
+       }
+   }
+   ```
+   `@RunWith(Parameterized::class)` is inherited from the base class; `@Parameterized.Parameters` must stay
+   on the concrete class because JUnit 4 insists on reading it there. This discovers every `@Preview` in the
+   module and snapshots it (`UiLayer.Composable.previewsAreSnapshotTested`, which detects the harness by
+   looking for `PreviewSnapshotTestCase`); the `@Preview` on `<Name>ScreenPreview` (§5) satisfies
    `UiLayer.Composable.screenContentPreview`. No per-screen test files are needed.
 3. Record and verify the new module's goldens. **`--no-configuration-cache` is required** — under the
    configuration cache the R class is dropped from the test runtime classpath and every snapshot test dies with

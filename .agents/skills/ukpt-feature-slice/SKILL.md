@@ -23,6 +23,11 @@ to read when in doubt.
 
 Do **not** copy the literal `ukpt`/`Ukpt` from core — substitute `<name>`/`<Name>`.
 
+`<Prefix>` in the templates is a different thing: the **project's** type prefix, which the design
+system's types carry (`<Prefix>Theme`, `<Prefix>Colors`). It is `Ukpt` in the template itself and
+whatever the project was renamed to downstream — read `platform/client/ui` to see which. It does
+**not** vary per feature.
+
 ## Steps
 1. **Module dirs + three `build.gradle.kts`** (templates.md §1–3). Substitute the namespace strings and
    the `projects.feature.<name>.*` accessors; keep everything else verbatim. Heed the gotchas below.
@@ -30,11 +35,9 @@ Do **not** copy the literal `ukpt`/`Ukpt` from core — substitute `<name>`/`<Na
 3. **Client sources** (`feature.<name>.ui`): `<Name>Destination` in `:api`; `<Name>Screen` +
    `internal <Name>ScreenContent`, `<Name>ViewModel`, `<Name>State`, and `<name>ClientDependencies` in
    `:client` (templates.md §5).
-4. **Snapshot tests (preview-driven)** — copy `SnapshotRule.kt`, `DirectorySnapshotHandler.kt`,
-   `DirectorySnapshotHandlerTest.kt`, and `PreviewSnapshotTest.kt` from
-   `feature/core/client/src/androidHostTest/kotlin/platform/snapshot/` into the new module's
-   `androidHostTest/.../platform/snapshot/`, changing PreviewSnapshotTest's scanned package to
-   `feature.<name>` (templates.md §6). The Screen template's `@Preview` (§5) is what gets
+4. **Snapshot tests (preview-driven)** — the harness is the `dev.isaacudy.udytils:snapshot` artifact, so
+   there is nothing to copy. Write the one `PreviewSnapshotTest` extending `PreviewSnapshotTestCase` and
+   scanning `feature.<name>` (templates.md §6). The Screen template's `@Preview` (§5) is what gets
    snapshotted — `UiLayer.Composable.screenContentPreview` requires every ScreenContent to be
    called from a `@Preview`.
 5. **Wire it up** — the easy-to-forget edits to existing files (templates.md §7 checklist):
@@ -50,10 +53,14 @@ Do **not** copy the literal `ukpt`/`Ukpt` from core — substitute `<name>`/`<Na
 ## Load-bearing gotchas (from `:feature:core`)
 - **KSP differs by module**: `:client` (enro) adds `kspCommonMainMetadata` **plus** every per-target `kspXxx`;
   `:api` (urpc) uses per-target only, **no** `kspCommonMainMetadata`. Don't cross-apply them.
-- **Paparazzi R.jar hack** (client build): the verbatim `tasks.withType<Test>()` block puts the stub `R.jar`
-  on the host-test *runtime* classpath, else tests fail with `ClassNotFoundException: feature.<name>.client.R`.
-  Its intermediates path is keyed to the source-set name (`androidHostTest`), not the feature — copy unchanged.
-- **`android.experimental.kmp.enableAndroidResources = true`** (client) — generates the R class for Paparazzi.
+- **Don't hand-wire Paparazzi** (client build): `ukpt.snapshot-testing` supplies the plugin, the host-test
+  component and the stub-`R.jar` classpath fix; `ukpt.compose-library` supplies `androidResources` (which
+  generates the R class Paparazzi resolves reflectively, and ships `composeResources` as APK assets).
+  Restating any of them per module is how these drifted before they were conventions.
+- **Read tokens, not literals** — a new screen's colours, spacing and text styles come from
+  `<Prefix>Theme` in `:platform:client:ui`; add `implementation(projects.platform.client.ui)` to the
+  `:client` module. `DesignSystemRules.noLiteralsInFeatureUi` audits for literal `Color(0x…)`/`.dp` in
+  `feature..ui..`.
 - **No `ktor-client-cio` in `commonMain`** — it pulls `node:net` and breaks the wasm bundle. CIO lives in
   `jvmMain`; web uses `ktor-client-js`.
 - **`:server` depends on `libs.udytils.architectureAnnotations`** — solely so `@ArchitectureException` imports.
