@@ -74,7 +74,23 @@ object TemplateRepositoryValidator {
         validateMigrations(repository, templateVersion, this)
         validateAgentGuidance(repository, this)
         validateSkills(repository, this)
-        validateSkillReferences(repository, this)
+        validateSkillReferences(repository, repositoryIsDownstream(repository), this)
+    }
+
+    /**
+     * A downstream project's marker carries a `project` rename map (see the `ukpt-new-project`
+     * skill); the template's own marker has only a `templateVersion`. This is what distinguishes a
+     * repository generated *from* the template from the template repository itself, and lets the
+     * template-repo-specific checks be scoped out of a downstream run.
+     */
+    private fun repositoryIsDownstream(repository: Path): Boolean {
+        val marker = repository.resolve(".ukpt/template.json")
+        if (!Files.isRegularFile(marker)) return false
+        return try {
+            Json.parseToJsonElement(marker.readText()).jsonObject["project"] != null
+        } catch (exception: Exception) {
+            false
+        }
     }
 
     private fun validateMarker(
@@ -282,9 +298,17 @@ object TemplateRepositoryValidator {
      * code moves, a skill silently starts instructing agents to copy files that no longer exist.
      * This is the mechanical half of that problem: it cannot tell whether prose is still *true*,
      * only whether the things it names are still *there*, which is where the rot has shown up.
+     *
+     * The **file-path** checks only make sense in the template repository: a [downstream] project
+     * legitimately omits surfaces the template ships (no server, no web, a renamed package), so a
+     * skill path like `app/client/web/build.gradle.kts` is *expected* to be absent there and must
+     * not fail the build. Those two checks are therefore skipped downstream. The **rule-id** check
+     * still runs everywhere — it resolves against the project's own generated rule index (and
+     * self-disables when that index is absent), so it stays meaningful after an update.
      */
     private fun validateSkillReferences(
         repository: Path,
+        downstream: Boolean,
         issues: MutableList<TemplateValidationIssue>,
     ) {
         val skillsRoot = repository.resolve(".agents/skills")
@@ -309,29 +333,33 @@ object TemplateRepositoryValidator {
             val relativePath = repository.relativize(page).toString()
             val contents = page.readText()
 
-            markdownLink.findAll(contents)
-                .map { it.groupValues[1].substringBefore('#') }
-                .filter { it.isNotEmpty() && !isRemoteOrTemplated(it) }
-                .distinct()
-                .forEach { link ->
-                    if (!Files.exists(page.parent.resolve(link).normalize())) {
-                        issues += TemplateValidationIssue(relativePath, "link target does not exist: $link")
+            if (!downstream) {
+                markdownLink.findAll(contents)
+                    .map { it.groupValues[1].substringBefore('#') }
+                    .filter { it.isNotEmpty() && !isRemoteOrTemplated(it) }
+                    .distinct()
+                    .forEach { link ->
+                        if (!Files.exists(page.parent.resolve(link).normalize())) {
+                            issues += TemplateValidationIssue(relativePath, "link target does not exist: $link")
+                        }
                     }
-                }
+            }
 
             val quoted = backtickQuoted.findAll(contents).map { it.groupValues[1].trim() }.distinct().toList()
 
             // A repository-rooted path: its first segment names something at the repository root.
             // Paths relative to some other module (`design-system/README.md`) are ambiguous from
             // here and are left alone rather than guessed at.
-            quoted
-                .filter { '/' in it && !isRemoteOrTemplated(it) }
-                .filter { it.substringBefore('/') in repositoryRoots }
-                .forEach { path ->
-                    if (!Files.exists(repository.resolve(path))) {
-                        issues += TemplateValidationIssue(relativePath, "referenced path does not exist: $path")
+            if (!downstream) {
+                quoted
+                    .filter { '/' in it && !isRemoteOrTemplated(it) }
+                    .filter { it.substringBefore('/') in repositoryRoots }
+                    .forEach { path ->
+                        if (!Files.exists(repository.resolve(path))) {
+                            issues += TemplateValidationIssue(relativePath, "referenced path does not exist: $path")
+                        }
                     }
-                }
+            }
 
             quoted
                 .filter { '.' in it && !isRemoteOrTemplated(it) }

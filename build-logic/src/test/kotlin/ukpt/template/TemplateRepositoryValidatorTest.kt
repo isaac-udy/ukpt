@@ -75,6 +75,42 @@ class TemplateRepositoryValidatorTest {
         assertEquals(3, messages.size, "unexpected extra issues: $messages")
     }
 
+    @Test
+    fun skipsSkillPathChecksForDownstreamProjectsButKeepsRuleIdChecks() {
+        createValidRepository()
+        // A downstream marker carries a `project` rename map; the template's marker does not.
+        repository.resolve(".ukpt/template.json").writeText(
+            """{"templateVersion":"2026-07-15.2","project":{"package":"com.example.app","name":"example","typePrefix":"Example"}}""",
+        )
+        repository.resolve("platform/common/architecture/docs").createDirectories()
+        repository.resolve("platform/common/architecture/docs/rule-index.md").writeText(
+            "| `UiLayer.Composable.screenContentPreview` | Statement | [tested](x) |\n",
+        )
+        repository.resolve(".agents/skills/ukpt-example/SKILL.md").writeText(
+            """
+            ---
+            name: ukpt-example
+            description: Example UKPT skill used by the validator test.
+            ---
+
+            # Example
+
+            Copy `app/client/web/build.gradle.kts` and honour `UiLayer.Composable.removedRule`.
+            See [missing](nope.md).
+            """.trimIndent(),
+        )
+
+        val issues = TemplateRepositoryValidator.validate(repository)
+        val messages = issues.filter { it.path.endsWith("ukpt-example/SKILL.md") }.map { it.message }
+
+        // The two file-path checks are scoped out downstream: the surface a skill names may be
+        // legitimately absent (no web, renamed package), so neither a referenced path nor a link
+        // target is required to resolve.
+        assertTrue(messages.none { "does not exist" in it }, "unexpected path issue downstream: $messages")
+        // The rule-id check still runs — it resolves against the project's own rule index.
+        assertEquals(listOf("unknown architecture rule id: UiLayer.Composable.removedRule"), messages)
+    }
+
     private fun createValidRepository() {
         repository.resolve(".ukpt").createDirectories()
         repository.resolve(".ukpt/template.json").writeText("""{"templateVersion":"2026-07-15.2"}""")
