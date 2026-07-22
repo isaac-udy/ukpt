@@ -56,6 +56,11 @@ Kotlin source. Build-file exemptions use the `// architecture-exception:` commen
     * **Why:** Several features may share one module (the `:feature:core` starting pattern), where the module-graph rules can't see the dependencies between them. Keeping cross-feature imports on `:api`-declared code keeps every feature liftable into its own module at any time.
     * **Note:** Between modules this is already enforced by `ModuleRules.clientApiOnly` and `ModuleRules.serverApiOnly`; this Rule adds the same guarantee within a module that hosts several feature namespaces.
     * **Note:** Imports that don't resolve to project source, such as KSP-generated bindings, are not tested.
+* The feature `:api` dependency graph must be acyclic
+    * **Why:** When features graduate from a shared module (the `:feature:core` starting pattern) into their own `:feature:[name]` modules, every cross-feature `:api` import becomes a real `:feature:X:api` → `:feature:Y:api` Gradle dependency, and Gradle rejects circular project dependencies. Features caught in an `:api` cycle can never be housed in separate modules — they must graduate as one lump. Keeping the graph acyclic keeps every feature independently liftable.
+    * **Note:** Only `:api` → `:api` edges can close a Gradle cycle: `:client`/`:server` code depends on other features' `:api` but never the reverse, so those edges can't form a ring. This Rule inspects only imports in `:api` sources that resolve to another feature's `:api` code.
+    * **Note:** Cross-feature imports that resolve outside `:api` are reported by `ModuleRules.crossFeatureCodeViaApi`, not here.
+    * **Note:** To keep a deliberate edge, annotate the `:api` source file holding the import with `@file:ArchitectureException(ruleIds = ["ModuleRules.apiGraphAcyclic"], reason = "…")`; its edges are then excluded from the graph.
 * A `:platform` module must never depend on an `:app` module
 * A `:platform` module must never depend on a `:feature` module
 
@@ -64,6 +69,11 @@ Kotlin source. Build-file exemptions use the `// architecture-exception:` commen
 * A `:feature` module may depend on `:platform` modules
 * A `:feature:[name]:api` module may depend on another feature's `:api` module to share models
     * **Note:** `:api` to `:api` dependencies are allowed, but should be kept to a minimum.
+    * **Note:** This audit reads the module graph, so it sees only features already housed in separate modules. `ModuleRules.apiMayUseApiSameModule` reports the same dependencies between features staged in one shared module.
+    * **Audited:** a test reports non-conforming code without ever failing.
+* Within a shared module, a feature's `:api` code may depend on another feature's `:api` code, but such dependencies should be kept minimal
+    * **Note:** The staged-module counterpart to `ModuleRules.apiMayUseApi`: while several features share one module (the `:feature:core` pattern), their cross-feature `:api` dependencies are imports, not module-graph edges, so that audit can't see them. Each import reported here becomes a real `:feature:X:api` → `:feature:Y:api` edge when the features graduate, and every such edge constrains `ModuleRules.apiGraphAcyclic`.
+    * **Note:** Only same-module dependencies are reported; once two features are housed separately, `ModuleRules.apiMayUseApi` takes over.
     * **Audited:** a test reports non-conforming code without ever failing.
 * A `:feature` module may be grouped (`:feature:[group]:[name]:…`)
     * **Note:** A module that serves as a group should exist only as a group, and should not itself contain `:api`, `:server` or `:client` modules.

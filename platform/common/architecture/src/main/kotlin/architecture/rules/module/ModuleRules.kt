@@ -2,6 +2,7 @@ package architecture.rules.module
 
 import dev.isaacudy.udytils.architecture.*
 
+import architecture.definitions.containingFilePath
 import architecture.definitions.featureName
 import architecture.definitions.isApiModule
 import architecture.definitions.isFeatureModule
@@ -139,13 +140,145 @@ object ModuleRules : RuleGroup() {
         }
     }
 
+    @Describe("The feature `:api` dependency graph must be acyclic")
+    val apiGraphAcyclic by rule {
+        rationale(
+            """
+            When features graduate from a shared module (the `:feature:core` starting pattern) into
+            their own `:feature:[name]` modules, every cross-feature `:api` import becomes a real
+            `:feature:X:api` → `:feature:Y:api` Gradle dependency, and Gradle rejects circular
+            project dependencies. Features caught in an `:api` cycle can never be housed in separate
+            modules — they must graduate as one lump. Keeping the graph acyclic keeps every feature
+            independently liftable.
+            """.trimIndent(),
+        )
+        note("Only `:api` → `:api` edges can close a Gradle cycle: `:client`/`:server` code depends on other features' `:api` but never the reverse, so those edges can't form a ring. This Rule inspects only imports in `:api` sources that resolve to another feature's `:api` code.")
+        note("Cross-feature imports that resolve outside `:api` are reported by `ModuleRules.crossFeatureCodeViaApi`, not here.")
+        note("To keep a deliberate edge, annotate the `:api` source file holding the import with `@file:ArchitectureException(ruleIds = [\"ModuleRules.apiGraphAcyclic\"], reason = \"…\")`; its edges are then excluded from the graph.")
+        scope { scope, exempt ->
+            // Index of project declarations by fully-qualified name, so imports resolve to the
+            // module that declares them (nested types resolve via longest matching prefix).
+            val declaredInApi: Map<String, Boolean> = scope.declarations(includeNested = true)
+                .filterIsInstance<KoFullyQualifiedNameProvider>()
+                .mapNotNull { decl ->
+                    val fqn = decl.fullyQualifiedName ?: return@mapNotNull null
+                    fqn to (decl as KoBaseDeclaration).isApiModule()
+                }
+                .toMap()
+
+            fun resolvesToApi(importName: String): Boolean {
+                var candidate = importName
+                while (candidate.contains('.')) {
+                    declaredInApi[candidate]?.let { isApi -> return isApi }
+                    candidate = candidate.substringBeforeLast('.')
+                }
+                return false // unresolved (generated or external), or resolves outside :api
+            }
+
+            // Feature → feature edges (X depends on Y), each with the import sites that create it.
+            val edges = mutableMapOf<Pair<String, String>, MutableList<String>>()
+            scope.files
+                .filter { it.isApiModule() && it.isFeatureModule() }
+                .filterNot { exempt(it) }
+                .forEach { file ->
+                    val from = file.featureName()
+                    if (from.isBlank()) return@forEach
+                    file.imports
+                        .filter { it.name.startsWith("feature.") }
+                        .filter { it.featureName().isNotBlank() && it.featureName() != from }
+                        .filter { resolvesToApi(it.name) }
+                        .forEach { import ->
+                            edges.getOrPut(from to import.featureName()) { mutableListOf() } += file.path
+                        }
+                }
+
+            val adjacency: Map<String, Set<String>> = edges.keys
+                .groupBy({ it.first }, { it.second })
+                .mapValues { it.value.toSet() }
+            val nodes = edges.keys.flatMap { listOf(it.first, it.second) }.toSet()
+
+            stronglyConnectedComponents(nodes, adjacency)
+                .filter { it.size > 1 }
+                .sortedBy { component -> component.sorted().joinToString(",") }
+                .map { component ->
+                    val members = component.toSet()
+                    val within = edges
+                        .filterKeys { it.first in members && it.second in members }
+                        .toSortedMap(compareBy({ it.first }, { it.second }))
+                    val detail = within.entries.joinToString("") { (edge, sites) ->
+                        "\n        ${edge.first} → ${edge.second} (${sites.size} import(s), e.g. ${sites.first()})"
+                    }
+                    Violation(
+                        "feature :api cycle [${component.sorted().joinToString(", ")}]",
+                        "these features form a cycle in the `:api` dependency graph and can't be housed " +
+                            "in separate modules until it is broken; cut the thinnest edge:$detail",
+                    )
+                }
+        }
+    }
+
     @Describe("A `:feature:[name]:api` module may depend on another feature's `:api` module to share models")
     val apiMayUseApi by guidance {
         note("`:api` to `:api` dependencies are allowed, but should be kept to a minimum.")
+        note("This audit reads the module graph, so it sees only features already housed in separate modules. `ModuleRules.apiMayUseApiSameModule` reports the same dependencies between features staged in one shared module.")
         auditModuleGraph { graph, exempt ->
             graph.edges
                 .filter { featureSubmoduleType(it.from) == "api" && featureSubmoduleType(it.to) == "api" && !exempt(it) }
                 .map { Violation(it.location, "cross-feature :api → :api dependency — allowed, but keep these minimal") }
+        }
+    }
+
+    @Describe("Within a shared module, a feature's `:api` code may depend on another feature's `:api` code, but such dependencies should be kept minimal")
+    val apiMayUseApiSameModule by guidance {
+        note("The staged-module counterpart to `ModuleRules.apiMayUseApi`: while several features share one module (the `:feature:core` pattern), their cross-feature `:api` dependencies are imports, not module-graph edges, so that audit can't see them. Each import reported here becomes a real `:feature:X:api` → `:feature:Y:api` edge when the features graduate, and every such edge constrains `ModuleRules.apiGraphAcyclic`.")
+        note("Only same-module dependencies are reported; once two features are housed separately, `ModuleRules.apiMayUseApi` takes over.")
+        audit { scope, exempt ->
+            // Index of project declarations by fully-qualified name to the module that declares them,
+            // so an import resolves to its module (nested types resolve via longest matching prefix).
+            val declaringModule: Map<String, String> = scope.declarations(includeNested = true)
+                .filterIsInstance<KoFullyQualifiedNameProvider>()
+                .mapNotNull { decl ->
+                    val fqn = decl.fullyQualifiedName ?: return@mapNotNull null
+                    fqn to (decl as KoBaseDeclaration).containingFilePath().substringBeforeLast("/src/")
+                }
+                .toMap()
+
+            fun resolveModule(importName: String): String? {
+                var candidate = importName
+                while (candidate.contains('.')) {
+                    declaringModule[candidate]?.let { return it }
+                    candidate = candidate.substringBeforeLast('.')
+                }
+                return null
+            }
+
+            // Same-module cross-feature :api → :api imports, counted per feature pair.
+            val pairCounts = mutableMapOf<Pair<String, String>, Int>()
+            scope.files
+                .filter { it.isApiModule() && it.isFeatureModule() }
+                .filterNot { exempt(it) }
+                .forEach { file ->
+                    val from = file.featureName()
+                    if (from.isBlank()) return@forEach
+                    val sourceModule = file.path.substringBeforeLast("/src/")
+                    file.imports
+                        .filter { it.name.startsWith("feature.") }
+                        .filter { it.featureName().isNotBlank() && it.featureName() != from }
+                        .filter { resolveModule(it.name) == sourceModule }
+                        .forEach { import ->
+                            val key = from to import.featureName()
+                            pairCounts[key] = (pairCounts[key] ?: 0) + 1
+                        }
+                }
+
+            pairCounts
+                .toSortedMap(compareBy({ it.first }, { it.second }))
+                .map { (pair, count) ->
+                    Violation(
+                        "feature :api ${pair.first} → ${pair.second}",
+                        "same-module cross-feature :api dependency ($count import(s)) — allowed, but keep these minimal; becomes a :feature:${pair.first}:api → :feature:${pair.second}:api edge on graduation",
+                    )
+                }
         }
     }
 
@@ -201,4 +334,50 @@ private fun isPlatform(path: String) = path.startsWith(":platform:") || path == 
 private fun featureSubmoduleType(path: String): String? {
     if (!isFeature(path)) return null
     return path.removePrefix(":").split(":").lastOrNull()?.takeIf { it in setOf("api", "client", "server") }
+}
+
+/**
+ * Tarjan's strongly-connected components over the feature graph. Returns every component; the
+ * caller keeps those of size > 1 — a set of features that can all reach each other, i.e. a cycle.
+ * Nodes and out-edges are visited in sorted order so the reported components are deterministic.
+ */
+private fun stronglyConnectedComponents(
+    nodes: Set<String>,
+    edges: Map<String, Set<String>>,
+): List<List<String>> {
+    var counter = 0
+    val index = mutableMapOf<String, Int>()
+    val low = mutableMapOf<String, Int>()
+    val onStack = mutableSetOf<String>()
+    val stack = ArrayDeque<String>()
+    val components = mutableListOf<List<String>>()
+
+    fun connect(v: String) {
+        index[v] = counter
+        low[v] = counter
+        counter++
+        stack.addLast(v)
+        onStack += v
+        edges[v].orEmpty().sorted().forEach { w ->
+            when {
+                w !in index -> {
+                    connect(w)
+                    low[v] = minOf(low.getValue(v), low.getValue(w))
+                }
+                w in onStack -> low[v] = minOf(low.getValue(v), index.getValue(w))
+            }
+        }
+        if (low.getValue(v) == index.getValue(v)) {
+            val component = mutableListOf<String>()
+            do {
+                val w = stack.removeLast()
+                onStack -= w
+                component += w
+            } while (w != v)
+            components += component
+        }
+    }
+
+    nodes.sorted().forEach { if (it !in index) connect(it) }
+    return components
 }
