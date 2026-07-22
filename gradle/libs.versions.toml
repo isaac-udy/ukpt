@@ -75,6 +75,7 @@ enro-processor = { module = "dev.enro:enro-processor" }
 
 udytils-core = { module = "dev.isaacudy.udytils:core" }
 udytils-ui = { module = "dev.isaacudy.udytils:ui" }
+udytils-snapshot = { module = "dev.isaacudy.udytils:snapshot" }
 
 urpc-protocol = { module = "dev.isaacudy.udytils:urpc-protocol" }
 urpc-client = { module = "dev.isaacudy.udytils:urpc-client" }

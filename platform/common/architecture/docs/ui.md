@@ -168,6 +168,7 @@ that is needed to snapshot it.
 * A feature module that contains `@Preview` composables must have a `PreviewSnapshotTest` in its `androidHostTest` source set
     * **Why:** The scanner test is what turns previews into snapshots; without it, previews render in the IDE but nothing guards against visual regressions.
     * **Note:** Snapshot tests live under `src/androidHostTest/`, which the governed scope excludes; the test reads those files directly.
+    * **Note:** A module opts in by extending `PreviewSnapshotTestCase` from `dev.isaacudy.udytils:snapshot`, which supplies the preview scanning and the golden layout.
 
 ---
 

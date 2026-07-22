@@ -67,6 +67,7 @@ includeBuild("embedded-udytils") {
     dependencySubstitution {
         substitute(module("dev.isaacudy.udytils:core")).using(project(":core"))
         substitute(module("dev.isaacudy.udytils:ui")).using(project(":ui"))
+        substitute(module("dev.isaacudy.udytils:snapshot")).using(project(":snapshot"))
         substitute(module("dev.isaacudy.udytils:urpc-protocol")).using(project(":urpc:protocol"))
         substitute(module("dev.isaacudy.udytils:urpc-client")).using(project(":urpc:client"))
         substitute(module("dev.isaacudy.udytils:urpc-server")).using(project(":urpc:server"))

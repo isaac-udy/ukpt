@@ -8,9 +8,8 @@ kotlin {
     @Suppress("UnstableApiUsage")
     androidLibrary {
         namespace = "feature.core.client"
-        // Generate the R class + process Android resources so Paparazzi host tests can resolve
-        // R classes at runtime (otherwise ClassNotFoundException: feature.core.client.R).
-        experimentalProperties["android.experimental.kmp.enableAndroidResources"] = true
+        // Android resource processing (and the R class Paparazzi needs) is enabled for every
+        // Compose module by the ukpt.compose-library convention.
         // Host (JVM) unit-test component — Paparazzi attaches its record/verify tasks here and
         // reads the KMP `androidHostTest` source set.
         withHostTestBuilder {
@@ -55,8 +54,10 @@ kotlin {
             implementation(libs.kotlin.test)
         }
         getByName("androidHostTest").dependencies {
-            // Discovers @Preview composables on the test classpath and drives Paparazzi from them.
-            implementation(libs.composablePreviewScanner.android)
+            // The snapshot harness: preview discovery, directory-grouped goldens, the
+            // golden-path collision guard and the device/rendering defaults. Brings
+            // ComposablePreviewScanner + JUnit4 with it; Paparazzi itself comes from the plugin.
+            implementation(libs.udytils.snapshot)
         }
         jvmMain.dependencies {
             implementation(libs.ktor.serverCore)

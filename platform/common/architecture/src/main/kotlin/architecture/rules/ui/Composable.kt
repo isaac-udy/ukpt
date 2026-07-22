@@ -83,6 +83,7 @@ object Composable : Construct<UiLayer>(
             """.trimIndent(),
         )
         note("Snapshot tests live under `src/androidHostTest/`, which the governed scope excludes; the test reads those files directly.")
+        note("A module opts in by extending `PreviewSnapshotTestCase` from `dev.isaacudy.udytils:snapshot`, which supplies the preview scanning and the golden layout.")
         scope { scope, exempt ->
             scope.functions()
                 .filter { it.hasAnnotationWithName("Preview") }
@@ -91,8 +92,12 @@ object Composable : Construct<UiLayer>(
                 .groupBy { it.containingFile.path.substringBefore("/src/") }
                 .filterNot { (module, _) ->
                     hostTestFiles.any { (path, text) ->
+                        // Match the harness base class, not the scanner it wraps: the scanner is an
+                        // implementation detail of `dev.isaacudy.udytils:snapshot` and no longer
+                        // appears in consumer code, while every preview-driven test must extend
+                        // this class regardless of whether it sources cases via `scan` or `of`.
                         path.startsWith("$module/src/androidHostTest/") &&
-                            text.contains("AndroidComposablePreviewScanner")
+                            text.contains("PreviewSnapshotTestCase")
                     }
                 }
                 .map { (module, previews) ->
