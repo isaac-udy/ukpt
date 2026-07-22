@@ -64,6 +64,9 @@ object TemplateRepositoryValidator {
     private val migrationName =
         Regex("""^(\d{4}-\d{2}-\d{2}(?:\.[1-9]\d*)?)-[a-z0-9]+(?:-[a-z0-9]+)*\.md$""")
     private val requiredMigrationHeadings = listOf("## Detection", "## Migration", "## Verification")
+    private val markdownLink = Regex("""\[[^\]]*]\(([^)\s]+)\)""")
+    private val backtickQuoted = Regex("""`([^`\n]+)`""")
+    private val ruleId = Regex("""`([A-Z][A-Za-z0-9]*(?:\.[A-Za-z][A-Za-z0-9]*)+)`""")
 
     /** Returns all validation issues in [repository] so callers can report them together. */
     fun validate(repository: Path): List<TemplateValidationIssue> = buildList {
@@ -71,6 +74,7 @@ object TemplateRepositoryValidator {
         validateMigrations(repository, templateVersion, this)
         validateAgentGuidance(repository, this)
         validateSkills(repository, this)
+        validateSkillReferences(repository, this)
     }
 
     private fun validateMarker(
@@ -270,4 +274,96 @@ object TemplateRepositoryValidator {
             issues += TemplateValidationIssue(metadataPath, "default_prompt must mention \$$skillName")
         }
     }
+
+    /**
+     * Checks that the file paths and architecture rule ids a skill cites still resolve.
+     *
+     * Skills describe code they do not contain, and nothing compiles that relationship — so when
+     * code moves, a skill silently starts instructing agents to copy files that no longer exist.
+     * This is the mechanical half of that problem: it cannot tell whether prose is still *true*,
+     * only whether the things it names are still *there*, which is where the rot has shown up.
+     */
+    private fun validateSkillReferences(
+        repository: Path,
+        issues: MutableList<TemplateValidationIssue>,
+    ) {
+        val skillsRoot = repository.resolve(".agents/skills")
+        if (!Files.isDirectory(skillsRoot)) return // already reported by validateSkills
+
+        val ruleIds = architectureRuleIds(repository)
+        // Only ids whose group is a real rule group are checked, so ordinary dotted expressions
+        // (`Modifier.padding`, `UkptTheme.colors`) are ignored without an allow-list to maintain.
+        val ruleGroups = ruleIds.mapTo(mutableSetOf()) { it.substringBefore('.') }
+        val repositoryRoots = Files.list(repository).use { paths ->
+            paths.map { it.name }.collect(Collectors.toSet())
+        }
+
+        val pages = Files.walk(skillsRoot).use { paths ->
+            paths
+                .filter { Files.isRegularFile(it) && it.name.endsWith(".md") }
+                .sorted()
+                .collect(Collectors.toList())
+        }
+
+        pages.forEach { page ->
+            val relativePath = repository.relativize(page).toString()
+            val contents = page.readText()
+
+            markdownLink.findAll(contents)
+                .map { it.groupValues[1].substringBefore('#') }
+                .filter { it.isNotEmpty() && !isRemoteOrTemplated(it) }
+                .distinct()
+                .forEach { link ->
+                    if (!Files.exists(page.parent.resolve(link).normalize())) {
+                        issues += TemplateValidationIssue(relativePath, "link target does not exist: $link")
+                    }
+                }
+
+            val quoted = backtickQuoted.findAll(contents).map { it.groupValues[1].trim() }.distinct().toList()
+
+            // A repository-rooted path: its first segment names something at the repository root.
+            // Paths relative to some other module (`design-system/README.md`) are ambiguous from
+            // here and are left alone rather than guessed at.
+            quoted
+                .filter { '/' in it && !isRemoteOrTemplated(it) }
+                .filter { it.substringBefore('/') in repositoryRoots }
+                .forEach { path ->
+                    if (!Files.exists(repository.resolve(path))) {
+                        issues += TemplateValidationIssue(relativePath, "referenced path does not exist: $path")
+                    }
+                }
+
+            quoted
+                .filter { '.' in it && !isRemoteOrTemplated(it) }
+                .filter { it.substringBefore('.') in ruleGroups }
+                .forEach { id ->
+                    if (id !in ruleIds) {
+                        issues += TemplateValidationIssue(relativePath, "unknown architecture rule id: $id")
+                    }
+                }
+        }
+    }
+
+    /**
+     * Every dotted, PascalCase-headed identifier named in the generated rule index — rule ids and
+     * the construct ids skills also cite. Empty when the index is absent, which disables the rule-id
+     * check rather than reporting a project that has restructured its architecture module.
+     */
+    private fun architectureRuleIds(repository: Path): Set<String> {
+        val index = repository.resolve("platform/common/architecture/docs/rule-index.md")
+        if (!Files.isRegularFile(index)) return emptySet()
+        return ruleId.findAll(index.readText()).map { it.groupValues[1] }.toSet()
+    }
+
+    /**
+     * Remote targets, and anything standing in for more than one concrete path: a `<name>`
+     * placeholder, an elided `.../` segment, a glob, or brace expansion such as
+     * `feature/core/{api,client,server}` — all of which are legitimate prose, and none of which
+     * name a file that could exist.
+     */
+    private fun isRemoteOrTemplated(value: String): Boolean =
+        value.startsWith("http://") ||
+            value.startsWith("https://") ||
+            value.contains("...") ||
+            value.any { it == '<' || it == '>' || it == '*' || it == '$' || it == '{' || it == '}' }
 }

@@ -37,6 +37,44 @@ class TemplateRepositoryValidatorTest {
         assertTrue(issues.any { it.path == ".claude/skills/ukpt-example" && "symbolic link" in it.message })
     }
 
+    @Test
+    fun reportsSkillReferencesThatNoLongerResolve() {
+        createValidRepository()
+        repository.resolve("platform/common/architecture/docs").createDirectories()
+        repository.resolve("platform/common/architecture/docs/rule-index.md").writeText(
+            "| `UiLayer.Composable.screenContentPreview` | Statement | [tested](x) |\n",
+        )
+        repository.resolve("feature/core/client").createDirectories()
+        repository.resolve("feature/core/client/Present.kt").writeText("// present\n")
+        repository.resolve(".agents/skills/ukpt-example/SKILL.md").writeText(
+            """
+            ---
+            name: ukpt-example
+            description: Example UKPT skill used by the validator test.
+            ---
+
+            # Example
+
+            Copy `feature/core/client/Present.kt` and `feature/core/client/Gone.kt`.
+            Honour `UiLayer.Composable.screenContentPreview` and `UiLayer.Composable.removedRule`.
+            Ignore `Modifier.padding`, `<name>/Templated.kt`, `design-system/README.md`,
+            `feature/core/{api,client,server}` and [the template](https://github.com/isaac-udy/ukpt).
+            See [templates](templates.md) and [missing](nope.md).
+            """.trimIndent(),
+        )
+        repository.resolve(".agents/skills/ukpt-example/templates.md").writeText("# Templates\n")
+
+        val issues = TemplateRepositoryValidator.validate(repository)
+        val messages = issues.filter { it.path.endsWith("ukpt-example/SKILL.md") }.map { it.message }
+
+        assertTrue(messages.any { it == "referenced path does not exist: feature/core/client/Gone.kt" })
+        assertTrue(messages.any { it == "unknown architecture rule id: UiLayer.Composable.removedRule" })
+        assertTrue(messages.any { it == "link target does not exist: nope.md" })
+        // Present paths, known rule ids, non-rule dotted names, placeholders, paths that are not
+        // repository-rooted, remote links and resolvable links must all stay quiet.
+        assertEquals(3, messages.size, "unexpected extra issues: $messages")
+    }
+
     private fun createValidRepository() {
         repository.resolve(".ukpt").createDirectories()
         repository.resolve(".ukpt/template.json").writeText("""{"templateVersion":"2026-07-15.2"}""")

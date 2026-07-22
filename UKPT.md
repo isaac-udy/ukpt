@@ -13,8 +13,10 @@ This file holds operational guidance (commands, toolchain, submodules) and point
 Downstream projects update from this template with the `ukpt-template-update` skill, driven by `.ukpt/template.json` and [`docs/template-migrations/`](./docs/template-migrations/README.md). When a change affects code that only exists downstream — a convention change, an architecture rule added/renamed/tightened, a structural change — bump `templateVersion` in `.ukpt/template.json` and add a migration entry in the same commit (see the migrations README for the format). Version bumps and template-owned file changes don't need an entry.
 
 Before committing a template change, run `./gradlew validateTemplate`. It checks the marker and
-migration ordering/sections, shared agent guidance, Codex skill metadata, and Claude compatibility
-links. The validator and rename-planner unit tests run with `./gradlew -p build-logic test`.
+migration ordering/sections, shared agent guidance, Codex skill metadata, Claude compatibility
+links, and that every file path, markdown link and architecture rule id a skill cites still
+resolves — skills describe code they don't contain, so moving code is what makes them rot. The
+validator and rename-planner unit tests run with `./gradlew -p build-logic test`.
 
 ## Architecture
 
