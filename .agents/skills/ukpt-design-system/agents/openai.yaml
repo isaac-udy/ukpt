@@ -1,0 +1,4 @@
+interface:
+  display_name: "UKPT Design System"
+  short_description: "Author a UKPT design system, or add a primitive to it"
+  default_prompt: "Use $ukpt-design-system to establish this project's design system, or to add a new primitive to it."
