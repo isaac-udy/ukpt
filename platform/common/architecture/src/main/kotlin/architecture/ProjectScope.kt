@@ -23,6 +23,10 @@ val projectScope = Konsist
                 // build-logic is an includeBuild composite of template tooling (not app code),
                 // sibling to the embedded composite builds — its sources aren't governed either.
                 !it.path.contains("/build-logic/") &&
+                // Agent worktrees under .claude/worktrees/ are throwaway checkouts of other
+                // branches; scanning them double-counts every file and fails rules against stale
+                // copies of the code. Nothing under .claude/ is governed code.
+                !it.path.contains("/.claude/") &&
                 // Test sources of every kind are out of scope (see testSourceSet above).
                 !testSourceSet.containsMatchIn(it.path)
     }
