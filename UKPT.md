@@ -25,6 +25,7 @@ Follow the rules in [`platform/common/architecture/README.md`](./platform/common
 - The rules are a machine-readable **object catalog** in [`platform/common/architecture/src/main/kotlin/architecture/rules/`](./platform/common/architecture/src/main/kotlin/architecture/rules) (a `RuleGroup` object per layer in its own sub-package; one top-level `Construct<Group>` object per construct in its own file, listed in the group's `constructs`; a rule per property; the engine is the `dev.isaacudy.udytils:architecture-core` artifact from `embedded-udytils`). Every rule has a stable **path ID** — the object/property path, e.g. `DomainLayer.UseCase.noOverridingDefaults` — and an enforcement tag; [`docs/rule-index.md`](./platform/common/architecture/docs/rule-index.md) lists them all.
 - The README and everything under `platform/common/architecture/docs/` are **generated**: rule statements and narrative come from `@Describe` annotations in the catalog itself; example blocks come from `<Construct>.examples.md` files next to the construct's `.kt` (e.g. `rules/data/Repository.examples.md`). The generator compiles a fixed per-layer structure (description → Requirements → Rules → Guidance → Examples). Edit the catalog or an examples file — never the generated files — then regenerate (see Testing).
 - Exempt a declaration that genuinely can't conform with `@ArchitectureException(ruleIds = ["…"])` ([docs/exceptions.md](./platform/common/architecture/docs/exceptions.md)), only with human sign-off.
+- Comment discipline: see [docs/code-comments.md](./docs/code-comments.md) — a comment must say something the code cannot.
 
 ## Toolchain & constraints
 
@@ -47,6 +48,20 @@ New code may rely on APIs that only exist in a newer submodule commit.
 - **Web** (dev server): `./gradlew :app:client:web:wasmJsBrowserDevelopmentRun --no-configuration-cache` — then open the served URL (the flag is required; see the config-cache note in Compiling)
 - **Android**: run from Android Studio, or `./gradlew :app:client:android:installDebug` to a connected device/emulator
 - **iOS**: open `app/client/ios/iosApp.xcodeproj` in Xcode and run (⌘R). There is no Gradle command: the Xcode project's "Compile Kotlin framework" build phase invokes `:app:client:common:embedAndSignAppleFrameworkForXcode`, which builds `App.framework` and puts it where the linker expects. Simulator builds are **Apple Silicon only** — `:app:client:common` declares `iosArm64` + `iosSimulatorArm64`, so the Xcode project excludes the `x86_64` simulator slice. Add an `iosX64()` target if you need Intel Macs.
+
+## Building as an agent
+
+Agents often run several at a time — subagents in one session, plus other sessions and other projects on the same machine. Nothing coordinates them, so each build has to be a good citizen on its own. The failure mode isn't a slow build, it's a machine that stops being usable: once memory is oversubscribed the box swaps, and swapping stalls everything, not just Gradle.
+
+**Memory is the binding constraint, not CPU.** Each concurrent build needs its own daemon pair — the Gradle daemon (`org.gradle.jvmargs`) and the *separate* Kotlin compile daemon (`kotlin.daemon.jvmargs`), both 3 GB in [`gradle.properties`](./gradle.properties) — plus out-of-process Kotlin/Native for the iOS targets and a test JVM for Paparazzi. A daemon serves one build at a time, so a second concurrent build forks a second pair instead of sharing the first. At roughly 6 GB a build, a 16 GB machine tops out near two.
+
+In order of leverage:
+
+1. **Don't build what you don't need.** A docs, comment, or guidance-only change has no runtime surface — there is nothing a compile would verify. Skip it.
+2. **Scope the build to the change.** Prefer one module's task (`:feature:core:client:compileKotlin`) over the full six-target sweep below. `verifyArchitecture` and `validateTemplate` are cheap; `assembleDebug`, the full sweep, `recordPaparazzi`, and anything Kotlin/Native are not. Never `clean` unless the task genuinely depends on it — the configuration and build caches are on, and `clean` discards exactly what makes a rebuild cheap.
+3. **Don't run heavy builds concurrently.** When orchestrating subagents, let them read, analyse, and edit in parallel — that part is cheap — then run compilation and verification one at a time. Parallelism belongs in the editing phase, not the build phase.
+4. **Throttle a background build** with `--max-workers=2`. Use a small *fixed* cap rather than a fraction of the core count: you can't know how many agents are running, and a per-agent fraction still multiplies by the number of agents, whereas a fixed cap bounds what each one contributes. A **foreground** build — one the user is waiting on — should not be throttled; it should finish fast.
+5. **Never override daemon memory on an invocation.** Passing `org.gradle.jvmargs` or `kotlin.daemon.jvmargs` on the command line means the running daemon no longer matches, so a new one is forked — asking for less memory gets you more of it. Those belong in `gradle.properties`, one value shared by everyone. For the same reason keep flags identical across agents doing the same kind of work: daemons are matched on their JVM args, so inconsistent flags fragment the daemon pool.
 
 ## Compiling
 
