@@ -9,6 +9,8 @@ dependencies {
     implementation(libs.android.gradlePlugin)
     implementation(libs.compose.gradlePlugin)
     implementation(libs.compose.compiler.gradlePlugin)
+    // Applied by ukpt.snapshot-testing, so it must be on the convention plugins' classpath.
+    implementation(libs.paparazzi.gradlePlugin)
 
     testImplementation(libs.kotlin.test)
     testImplementation(libs.junit.jupiter)
