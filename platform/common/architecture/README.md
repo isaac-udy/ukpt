@@ -22,6 +22,7 @@ tested. `:feature:core` is the worked example the rules describe.
 - [Data Layer](docs/data.md)
 - [Services Layer](docs/services.md)
 - [Feature Rules](docs/feature.md)
+- [Design System Rules](docs/designsystem.md)
 - [Project Rules](docs/project.md)
 
 ## Reference

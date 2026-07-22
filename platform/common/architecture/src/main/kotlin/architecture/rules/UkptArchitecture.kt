@@ -4,6 +4,7 @@ import architecture.definitions.isFeatureModule
 import architecture.projectScope
 import dev.isaacudy.udytils.architecture.*
 import architecture.rules.data.DataLayer
+import architecture.rules.designsystem.DesignSystemRules
 import architecture.rules.domain.DomainLayer
 import architecture.rules.feature.FeatureRules
 import architecture.rules.module.ModuleRules
@@ -36,6 +37,7 @@ object UkptArchitecture : ArchitectureDefinition(
         DataLayer,
         ServicesLayer,
         FeatureRules,
+        DesignSystemRules,
         ProjectRules,
     ),
     scope = { projectScope },
