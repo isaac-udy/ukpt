@@ -30,14 +30,16 @@ import com.lemonappdev.konsist.api.Konsist
     * **Note:** A screen's `@Preview`(s) live in the same file as the `[Name]ScreenContent` they
       render, next to the Screen — not gathered into a shared "screen previews" file.
     * **Note:** For one-off snapshot tests that aren't preview-driven, `SnapshotRule`
-      (`platform.snapshot.SnapshotRule`) provides `snapshot.screen { }` and
+      (`dev.isaacudy.udytils.snapshot.SnapshotRule`) provides `snapshot.screen { }` and
       `snapshot.component { }`.
     * **Note:** Record golden images after adding or changing a preview, then verify they match
-      (goldens are committed under `src/androidHostTest/snapshots/images/`):
+      (goldens are committed under `src/androidHostTest/snapshots/images/`). Both tasks need
+      `--no-configuration-cache` (under the cache the R class is dropped from the test classpath —
+      see the configuration-cache migration):
 
       ```
-      ./gradlew :feature:core:client:recordPaparazzi
-      ./gradlew :feature:core:client:verifyPaparazzi
+      ./gradlew :feature:core:client:recordPaparazzi --no-configuration-cache
+      ./gradlew :feature:core:client:verifyPaparazzi --no-configuration-cache
       ```
 """)
 object Composable : Construct<UiLayer>(

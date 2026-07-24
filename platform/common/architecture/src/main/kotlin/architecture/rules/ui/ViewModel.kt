@@ -103,6 +103,13 @@ object ViewModel : Construct<UiLayer>(
             genuine UI state in `state`.
             """.trimIndent(),
         )
+        note(
+            "This catches `private var` only. A `private val` holding a mutable value (a " +
+                "`MutableStateFlow`, a mutable collection) is a side channel too, but it is left to " +
+                "review: a legitimate derived-flow cache or debounce counter is statically " +
+                "indistinguishable from a navigation-context stash, so a hard rule would be mostly " +
+                "false positives.",
+        )
         constrain { decl, _ ->
             val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
             // includeNested = false so a private nested helper's own vars don't count against the VM.

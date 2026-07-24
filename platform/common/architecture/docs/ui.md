@@ -145,14 +145,16 @@ that is needed to snapshot it.
 * **Note:** A screen's `@Preview`(s) live in the same file as the `[Name]ScreenContent` they
   render, next to the Screen — not gathered into a shared "screen previews" file.
 * **Note:** For one-off snapshot tests that aren't preview-driven, `SnapshotRule`
-  (`platform.snapshot.SnapshotRule`) provides `snapshot.screen { }` and
+  (`dev.isaacudy.udytils.snapshot.SnapshotRule`) provides `snapshot.screen { }` and
   `snapshot.component { }`.
 * **Note:** Record golden images after adding or changing a preview, then verify they match
-  (goldens are committed under `src/androidHostTest/snapshots/images/`):
+  (goldens are committed under `src/androidHostTest/snapshots/images/`). Both tasks need
+  `--no-configuration-cache` (under the cache the R class is dropped from the test classpath —
+  see the configuration-cache migration):
 
   ```
-  ./gradlew :feature:core:client:recordPaparazzi
-  ./gradlew :feature:core:client:verifyPaparazzi
+  ./gradlew :feature:core:client:recordPaparazzi --no-configuration-cache
+  ./gradlew :feature:core:client:verifyPaparazzi --no-configuration-cache
   ```
 
 ##### Requirements
@@ -229,6 +231,7 @@ to load data and perform side effects based on user actions.
     * **Why:** A suspending public method makes the caller await work the ViewModel should own; on Android the awaiter (a composition scope, a `CompletableDeferred`) is lost on process death, silently dropping the result. Launch into `viewModelScope` and reflect the outcome in `state` instead.
 * A ViewModel must not declare `private var` properties
     * **Why:** A mutable private field is a side channel around `state` (the source of truth) and is lost on process death — for example a `pendingX` captured across a navigation round-trip. Carry per-open context on the navigation itself (key fields, or `instance.metadata` via a `NavigationKey.MetadataKey`) so the result handler recovers it process-death-safe; put genuine UI state in `state`.
+    * **Note:** This catches `private var` only. A `private val` holding a mutable value (a `MutableStateFlow`, a mutable collection) is a side channel too, but it is left to review: a legitimate derived-flow cache or debounce counter is statically indistinguishable from a navigation-context stash, so a hard rule would be mostly false positives.
 * A ViewModel must use `JobManager` to manage coroutines, never a `var job: Job?` reference
     * **Why:** Manual `var job: Job?` tracking is error-prone: the previous job leaks if a new one starts before the old one completes, and lifecycle cancellation is easy to forget. `dev.isaacudy.udytils.coroutines.JobManager` handles cancel-then-replace and ties everything to `viewModelScope`.
 

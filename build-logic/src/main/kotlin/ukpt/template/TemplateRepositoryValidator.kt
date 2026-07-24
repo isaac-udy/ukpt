@@ -8,9 +8,11 @@ import java.util.stream.Collectors
 import kotlin.io.path.name
 import kotlin.io.path.readText
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 
 /** A template validation failure associated with a repository-relative path. */
 data class TemplateValidationIssue(
@@ -67,6 +69,7 @@ object TemplateRepositoryValidator {
     private val markdownLink = Regex("""\[[^\]]*]\(([^)\s]+)\)""")
     private val backtickQuoted = Regex("""`([^`\n]+)`""")
     private val ruleId = Regex("""`([A-Z][A-Za-z0-9]*(?:\.[A-Za-z][A-Za-z0-9]*)+)`""")
+    private val gitSha = Regex("^[0-9a-fA-F]{40}$")
 
     /** Returns all validation issues in [repository] so callers can report them together. */
     fun validate(repository: Path): List<TemplateValidationIssue> = buildList {
@@ -104,15 +107,19 @@ object TemplateRepositoryValidator {
             return null
         }
 
-        val version = try {
-            Json.parseToJsonElement(marker.readText())
-                .jsonObject["templateVersion"]
-                ?.jsonPrimitive
-                ?.contentOrNull
+        val root = try {
+            Json.parseToJsonElement(marker.readText()).jsonObject
         } catch (exception: Exception) {
             issues += TemplateValidationIssue(relativePath, "invalid JSON: ${exception.message}")
             return null
         }
+
+        // A downstream marker (one carrying a `project` rename map) must also carry the rest of the
+        // schema the ukpt-template-update skill relies on; the template's own marker has only
+        // templateVersion and is exempt.
+        if (root["project"] != null) validateDownstreamMarker(root, relativePath, issues)
+
+        val version = (root["templateVersion"] as? JsonPrimitive)?.contentOrNull
         if (version == null) {
             issues += TemplateValidationIssue(relativePath, "templateVersion must be a string")
             return null
@@ -122,6 +129,52 @@ object TemplateRepositoryValidator {
         } catch (exception: IllegalArgumentException) {
             issues += TemplateValidationIssue(relativePath, "invalid templateVersion '$version': ${exception.message}")
             null
+        }
+    }
+
+    /**
+     * Validates the fields a downstream marker must carry beyond `templateVersion` (see the
+     * `ukpt-new-project` skill): the `templateCommit` SHA, the `project` rename map
+     * (`package`/`name`/`typePrefix`), and both `submodules` SHAs. The update skill depends on every
+     * one to resolve its base commit and translate template diffs into the project's names, so a
+     * marker missing or malforming any of them would pass silently and then misdirect the next
+     * update — a missing `templateCommit` falls back to a fuzzy `git log -S`, a missing rename map is
+     * worse.
+     */
+    private fun validateDownstreamMarker(
+        marker: JsonObject,
+        relativePath: String,
+        issues: MutableList<TemplateValidationIssue>,
+    ) {
+        fun sha(value: JsonElement?, field: String) {
+            when {
+                value == null -> issues += TemplateValidationIssue(relativePath, "downstream marker is missing `$field`")
+                value !is JsonPrimitive || !value.isString ->
+                    issues += TemplateValidationIssue(relativePath, "`$field` must be a string")
+                !gitSha.matches(value.content) ->
+                    issues += TemplateValidationIssue(relativePath, "`$field` must be a 40-character git SHA")
+            }
+        }
+        fun nonBlank(value: JsonElement?, field: String) {
+            when {
+                value == null -> issues += TemplateValidationIssue(relativePath, "downstream marker is missing `$field`")
+                value !is JsonPrimitive || !value.isString ->
+                    issues += TemplateValidationIssue(relativePath, "`$field` must be a string")
+                value.content.isBlank() ->
+                    issues += TemplateValidationIssue(relativePath, "`$field` must not be blank")
+            }
+        }
+
+        sha(marker["templateCommit"], "templateCommit")
+
+        when (val project = marker["project"]) {
+            is JsonObject -> listOf("package", "name", "typePrefix").forEach { nonBlank(project[it], "project.$it") }
+            else -> issues += TemplateValidationIssue(relativePath, "`project` must be an object with package, name and typePrefix")
+        }
+
+        when (val submodules = marker["submodules"]) {
+            is JsonObject -> listOf("embedded-enro", "embedded-udytils").forEach { sha(submodules[it], "submodules.$it") }
+            else -> issues += TemplateValidationIssue(relativePath, "`submodules` must be an object with embedded-enro and embedded-udytils SHAs")
         }
     }
 

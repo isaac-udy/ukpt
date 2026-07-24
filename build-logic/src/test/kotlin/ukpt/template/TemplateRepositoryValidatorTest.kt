@@ -78,10 +78,9 @@ class TemplateRepositoryValidatorTest {
     @Test
     fun skipsSkillPathChecksForDownstreamProjectsButKeepsRuleIdChecks() {
         createValidRepository()
-        // A downstream marker carries a `project` rename map; the template's marker does not.
-        repository.resolve(".ukpt/template.json").writeText(
-            """{"templateVersion":"2026-07-15.2","project":{"package":"com.example.app","name":"example","typePrefix":"Example"}}""",
-        )
+        // A complete downstream marker: a `project` rename map plus templateCommit and both
+        // submodule SHAs (the template's own marker has only a templateVersion).
+        repository.resolve(".ukpt/template.json").writeText(downstreamMarker())
         repository.resolve("platform/common/architecture/docs").createDirectories()
         repository.resolve("platform/common/architecture/docs/rule-index.md").writeText(
             "| `UiLayer.Composable.screenContentPreview` | Statement | [tested](x) |\n",
@@ -110,6 +109,50 @@ class TemplateRepositoryValidatorTest {
         // The rule-id check still runs — it resolves against the project's own rule index.
         assertEquals(listOf("unknown architecture rule id: UiLayer.Composable.removedRule"), messages)
     }
+
+    @Test
+    fun reportsIncompleteDownstreamMarkerSchema() {
+        createValidRepository()
+        // Downstream (has `project`) but missing templateCommit and submodules, with a blank name
+        // and no typePrefix — every field the update skill needs, unvalidated until now.
+        repository.resolve(".ukpt/template.json").writeText(
+            """{"templateVersion":"2026-07-15.2","project":{"package":"com.example.app","name":""}}""",
+        )
+
+        val messages = TemplateRepositoryValidator.validate(repository)
+            .filter { it.path == ".ukpt/template.json" }
+            .map { it.message }
+
+        assertTrue(messages.any { "templateCommit" in it }, messages.toString())
+        assertTrue(messages.any { "project.name" in it && "blank" in it }, messages.toString())
+        assertTrue(messages.any { "project.typePrefix" in it }, messages.toString())
+        assertTrue(messages.any { "submodules" in it }, messages.toString())
+    }
+
+    @Test
+    fun reportsMalformedDownstreamShaFields() {
+        createValidRepository()
+        repository.resolve(".ukpt/template.json").writeText(
+            """{"templateVersion":"2026-07-15.2","templateCommit":"abc123",""" +
+                """"project":{"package":"com.example.app","name":"example","typePrefix":"Example"},""" +
+                """"submodules":{"embedded-enro":"1234567890123456789012345678901234567890","embedded-udytils":"nope"}}""",
+        )
+
+        val messages = TemplateRepositoryValidator.validate(repository)
+            .filter { it.path == ".ukpt/template.json" }
+            .map { it.message }
+
+        assertTrue(messages.any { "templateCommit" in it && "40-character" in it }, messages.toString())
+        assertTrue(messages.any { "submodules.embedded-udytils" in it && "40-character" in it }, messages.toString())
+        // The valid enro SHA and project map raise nothing.
+        assertTrue(messages.none { "embedded-enro" in it }, messages.toString())
+    }
+
+    private fun downstreamMarker(): String =
+        """{"templateVersion":"2026-07-15.2","templateCommit":"0123456789abcdef0123456789abcdef01234567",""" +
+            """"project":{"package":"com.example.app","name":"example","typePrefix":"Example"},""" +
+            """"submodules":{"embedded-enro":"1111111111111111111111111111111111111111",""" +
+            """"embedded-udytils":"2222222222222222222222222222222222222222"}}"""
 
     private fun createValidRepository() {
         repository.resolve(".ukpt").createDirectories()
