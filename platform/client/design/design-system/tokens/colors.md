@@ -1,6 +1,6 @@
 # Colours
 
-Source: [`UkptColors.kt`](../../src/commonMain/kotlin/platform/ui/UkptColors.kt)
+Source: [`UkptColors.kt`](../../src/commonMain/kotlin/platform/design/UkptColors.kt)
 
 Colour is expressed as **semantic roles**, never as a palette of named hues. A screen asks for
 `surface` and `onSurface`; it never asks for "grey 100". That indirection is the whole point — it is

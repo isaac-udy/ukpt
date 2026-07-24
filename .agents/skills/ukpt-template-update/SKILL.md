@@ -74,7 +74,7 @@ File classes:
   includes stay), app shells (`app/`), platform modules the project has extended.
 - **Example code (do not sync):** `:feature:core` and anything under `feature/` — template
   changes here are patterns, carried by migrations (§6), not file syncs.
-- **Identity-bearing (sync structure, never values):** `platform/client/ui`. The module's *shape* is
+- **Identity-bearing (sync structure, never values):** `platform/client/design`. The module's *shape* is
   the template's — which token files exist, the `<Prefix>Theme` wrapper, `DesignSystemDocImagesTest`.
   Everything the project authored *inside* it is that project's identity: the palettes, the type
   scale, the bundled typefaces, the `design-system/` page prose and its prohibition list, every

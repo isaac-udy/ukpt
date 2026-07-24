@@ -1,4 +1,4 @@
-package platform.ui
+package platform.design
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -13,8 +13,8 @@ import androidx.compose.ui.unit.dp
 import dev.isaacudy.udytils.snapshot.SnapshotRule
 import org.junit.Rule
 import org.junit.Test
-import platform.ui.components.UkptButton
-import platform.ui.components.UkptButtonVariant
+import platform.design.components.UkptButton
+import platform.design.components.UkptButtonVariant
 
 /**
  * Documentation surface for [UkptButton] — every variant, in both palettes, in one image.

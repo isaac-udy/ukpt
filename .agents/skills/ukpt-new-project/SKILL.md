@@ -114,7 +114,7 @@ Run the full matrix before the first commit:
           :app:client:common:compileKotlinIosSimulatorArm64 :app:server:compileKotlin
 ./gradlew :platform:common:architecture:verifyArchitecture
 ./gradlew :feature:core:client:verifyPaparazzi --no-configuration-cache
-./gradlew :platform:client:ui:verifyPaparazzi --no-configuration-cache
+./gradlew :platform:client:design:verifyPaparazzi --no-configuration-cache
 ./gradlew validateTemplate
 bash .agents/skills/ukpt-verify-web/run-bundle-check.sh
 
@@ -130,7 +130,7 @@ Then commit everything as the project's initial commit.
 
 ## 6. Next: the design system
 
-The rename gives `:platform:client:ui` the project's type prefix, but its palette and typefaces are
+The rename gives `:platform:client:design` the project's type prefix, but its palette and typefaces are
 still the template's **neutral placeholders** — deliberately anonymous, not an identity. Point the
 user at the `ukpt-design-system` skill to author the real one, and to decide what primitives are
 built on (Material3, Compose Unstyled, or bare foundation) before any are written. That decision is

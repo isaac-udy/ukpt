@@ -1,7 +1,7 @@
 ---
 name: ukpt-design-system
 description: >-
-  Establish or extend a UKPT project's design system in :platform:client:ui —
+  Establish or extend a UKPT project's design system in :platform:client:design —
   author the identity (palette, type scale, typefaces, principles,
   prohibitions) over the template's neutral scaffold, choose what primitives
   are built on, and add new primitives together with their doc page and
@@ -11,11 +11,11 @@ description: >-
 
 # ukpt-design-system
 
-The template ships `:platform:client:ui` as a **working but anonymous** system: neutral greyscale
+The template ships `:platform:client:design` as a **working but anonymous** system: neutral greyscale
 palette, system typefaces, one primitive. This skill turns it into a project's own, and adds
 primitives to it afterwards.
 
-Read [`platform/client/ui/design-system/README.md`](../../../platform/client/ui/design-system/README.md)
+Read [`platform/client/design/design-system/README.md`](../../../platform/client/design/design-system/README.md)
 and `principles.md` first — they are the contract this skill maintains, not background reading.
 
 Two modes. Pick from what the user asked for; if it is ambiguous, ask.
@@ -54,7 +54,7 @@ Then **adapt the scaffold to the answer** — do not leave a basis the project d
 - **Material3** — rewrite the shipped primitive to wrap `androidx.compose.material3.Button`, styling
   it via `ButtonDefaults.buttonColors(...)`, `shape` and `contentPadding` from tokens
   (templates.md §1). Promote `material3` from `implementation` to `api` in
-  `platform/client/ui/build.gradle.kts`, since material types now appear in the primitive's surface.
+  `platform/client/design/build.gradle.kts`, since material types now appear in the primitive's surface.
   This composes cleanly: `<Prefix>Theme` already wraps a `MaterialTheme` derived from the tokens, so
   a material component inside it inherits the palette and type scale with no extra wiring.
 - **Compose Unstyled** — add the dependency to `gradle/libs.versions.toml` and the module, then
@@ -70,10 +70,10 @@ Record the decision in `design-system/README.md` so the next person doesn't reli
 ## Step 2 — Confirm the type prefix
 
 Design-system types carry the **project's** prefix (`<Prefix>Theme`, `<Prefix>Colors`). Read
-`platform/client/ui/src/commonMain/kotlin/platform/ui/` to see what it currently is.
+`platform/client/design/src/commonMain/kotlin/platform/design/` to see what it currently is.
 
 For a project created by `ukpt-new-project`, the rename already happened — `Ukpt` is the project type
-prefix `ProjectRenamePlanner` rewrites, and `platform/client/ui` is not a protected path, so its
+prefix `ProjectRenamePlanner` rewrites, and `platform/client/design` is not a protected path, so its
 sources *and* its `design-system/` pages were renamed with everything else. Usually there is nothing
 to do here.
 
@@ -109,8 +109,8 @@ list is ignored.
 ## Step 5 — Re-record and verify
 
 ```
-./gradlew :platform:client:ui:recordPaparazzi --no-configuration-cache --max-workers=2
-./gradlew :platform:client:ui:verifyPaparazzi --no-configuration-cache --max-workers=2
+./gradlew :platform:client:design:recordPaparazzi --no-configuration-cache --max-workers=2
+./gradlew :platform:client:design:verifyPaparazzi --no-configuration-cache --max-workers=2
 ```
 
 Then **look at the goldens** — a green snapshot run only proves determinism, not that the identity
@@ -139,12 +139,12 @@ Proceed only if the answer is genuinely "none of them".
 This is the rule the whole docs pipeline rests on. A primitive without its doc page and doc-surface
 test is how a system starts drifting from its documentation.
 
-1. **Component** — `src/commonMain/kotlin/platform/ui/components/<Prefix><Name>.kt`.
+1. **Component** — `src/commonMain/kotlin/platform/design/components/<Prefix><Name>.kt`.
    Stateless (props in, events out; no `remember`-ed state, no `rememberSomething()` API), variant
    `enum class` in the same file, every value a token, explicit `role`/semantics on anything
    interactive, and a non-interactive state that keeps its meaning in `stateDescription` rather than
    in colour alone. Match whatever basis Step 1 of Mode 1 chose (templates.md §1–3).
-2. **Doc surface** — a hand-written test in `src/androidHostTest/kotlin/platform/ui/`, using
+2. **Doc surface** — a hand-written test in `src/androidHostTest/kotlin/platform/design/`, using
    `SnapshotRule` (templates.md §5). A curated composition: every variant, in both palettes, labelled.
    Not a `@Preview` — doc surfaces are compositions *about* the system, their names are load-bearing,
    and they must not ship in the artifact.
@@ -153,14 +153,14 @@ test is how a system starts drifting from its documentation.
    detail, not a design decision. Add it to the table in `design-system/README.md`.
 
 Goldens from `SnapshotRule` use Paparazzi's **stock flat naming**, `<package>_<Class>_<method>.png`,
-so the page embeds `../../src/androidHostTest/snapshots/images/platform.ui_<Class>_<method>.png`.
+so the page embeds `../../src/androidHostTest/snapshots/images/platform.design_<Class>_<method>.png`.
 Renaming the test method renames the golden and breaks the embed.
 
 ## Step 2 — Record and verify
 
 ```
-./gradlew :platform:client:ui:recordPaparazzi --no-configuration-cache --max-workers=2
-./gradlew :platform:client:ui:verifyPaparazzi --no-configuration-cache --max-workers=2
+./gradlew :platform:client:design:recordPaparazzi --no-configuration-cache --max-workers=2
+./gradlew :platform:client:design:verifyPaparazzi --no-configuration-cache --max-workers=2
 ```
 
 `verifyPaparazzi` also runs `DesignSystemDocImagesTest`, which fails if the page links to an image

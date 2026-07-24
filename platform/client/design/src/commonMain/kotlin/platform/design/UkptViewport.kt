@@ -1,4 +1,4 @@
-package platform.ui
+package platform.design
 
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.runtime.Composable

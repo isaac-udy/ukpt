@@ -68,7 +68,7 @@ kotlin {
             api(projects.feature.<name>.api)
 
             // The design system. Screens read tokens and primitives from here, never literals.
-            implementation(projects.platform.client.ui)
+            implementation(projects.platform.client.design)
 
             // Unified @Preview (androidx.compose.ui.tooling.preview.Preview) — multiplatform
             // since Compose 1.10, usable directly in common code. PreviewSnapshotTest discovers
@@ -212,7 +212,7 @@ fun <Name>Screen(
 
 // UiLayer.Screen.screenContentCompanion: internal ScreenContent takes state (+ callbacks) so it renders without a ViewModel.
 // Every colour, dimension and text style comes from the design system — DesignSystemRules.noLiteralsInFeatureUi
-// audits for literal Color(0x…)/.dp here. Imports: platform.ui.<Prefix>Theme, platform.ui.<Prefix>Spacing.
+// audits for literal Color(0x…)/.dp here. Imports: platform.design.<Prefix>Theme, platform.design.<Prefix>Spacing.
 @Composable
 internal fun <Name>ScreenContent(state: <Name>State) {
     Box(

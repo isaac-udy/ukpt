@@ -28,7 +28,7 @@ kotlin {
             implementation(projects.feature.core.client)
 
             // The design system: App() installs UkptTheme once, above navigation.
-            implementation(projects.platform.client.ui)
+            implementation(projects.platform.client.design)
 
             implementation(compose.runtime)
             implementation(compose.foundation)

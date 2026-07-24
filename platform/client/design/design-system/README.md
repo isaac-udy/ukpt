@@ -1,8 +1,8 @@
 # Design system
 
 The design system for this project: its tokens, its primitives, and the rules that keep them
-coherent. It lives in `:platform:client:ui` (package root `platform.ui`) and is consumed by feature
-modules as `implementation(projects.platform.client.ui)`.
+coherent. It lives in `:platform:client:design` (package root `platform.design`) and is consumed by feature
+modules as `implementation(projects.platform.client.design)`.
 
 **Read [principles.md](principles.md) before any visual change.** It is short, and it is the part
 that stops the system eroding.
@@ -47,7 +47,7 @@ minimum touch target, focus indication and state layers a Material button would 
 *shape* of a primitive, not a finished component.
 
 Basing primitives on Material3 composes cleanly with the rest of the system, because
-[`UkptTheme`](../src/commonMain/kotlin/platform/ui/UkptTheme.kt) already wraps a `MaterialTheme`
+[`UkptTheme`](../src/commonMain/kotlin/platform/design/UkptTheme.kt) already wraps a `MaterialTheme`
 derived from the tokens — a material3 `Button` inside `UkptTheme` picks up the palette and type
 scale automatically. If you take that route, change `material3` from `implementation` to `api` in
 the module's `build.gradle.kts`, since material types will then appear in the primitives' own
@@ -73,10 +73,10 @@ reference them, and they stay in the test source set so they never ship in the a
 
 ```bash
 # Re-record after changing a token or a component's appearance
-./gradlew :platform:client:ui:recordPaparazzi --no-configuration-cache --max-workers=2
+./gradlew :platform:client:design:recordPaparazzi --no-configuration-cache --max-workers=2
 
 # Verify goldens still match
-./gradlew :platform:client:ui:verifyPaparazzi --no-configuration-cache --max-workers=2
+./gradlew :platform:client:design:verifyPaparazzi --no-configuration-cache --max-workers=2
 ```
 
 `--no-configuration-cache` is required: Paparazzi's resource-preparation task cannot be stored in

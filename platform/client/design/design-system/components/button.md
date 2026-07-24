@@ -1,9 +1,9 @@
 # Button
 
-Source: [`UkptButton.kt`](../../src/commonMain/kotlin/platform/ui/components/UkptButton.kt) ·
+Source: [`UkptButton.kt`](../../src/commonMain/kotlin/platform/design/components/UkptButton.kt) ·
 Doc surface: `UkptButtonDocTest.variants`
 
-![UkptButton variants in both palettes](../../src/androidHostTest/snapshots/images/platform.ui_UkptButtonDocTest_variants.png)
+![UkptButton variants in both palettes](../../src/androidHostTest/snapshots/images/platform.design_UkptButtonDocTest_variants.png)
 
 There is **one** button. Everything a project might reach for a second button composable to express
 is a variant of this one, and if a case genuinely doesn't fit, that is a discussion about the

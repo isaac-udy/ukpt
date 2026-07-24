@@ -1,4 +1,4 @@
-package platform.ui
+package platform.design
 
 import androidx.compose.ui.unit.dp
 

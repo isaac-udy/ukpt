@@ -3,18 +3,22 @@ package architecture.rules.designsystem
 import dev.isaacudy.udytils.architecture.*
 
 /*
- * Declared WITHOUT `inPackage`: `platform.ui` is not a governed layer with a construct catalog, and
- * the global layer-membership universe is feature modules only. These are two boundary rules about
- * the design system and how features consume it, not a classification of its contents.
+ * Declared WITHOUT `inPackage`: `platform.design` is not a governed layer with a construct catalog,
+ * and the global layer-membership universe is feature modules only. These are two boundary rules
+ * about the design system and how features consume it, not a classification of its contents.
  */
 @Describe("""
-    The design system lives in `:platform:client:ui` (package root `platform.ui`): a token layer,
-    the primitives built on it, and a `design-system/` docs folder whose every image is a committed
-    Paparazzi golden. Its own conventions are documented there — these two rules are the boundaries
-    that the architecture suite can check.
+    The design system lives in `:platform:client:design` (package root `platform.design`): a token
+    layer, the primitives built on it, and a `design-system/` docs folder whose every image is a
+    committed Paparazzi golden. Its own conventions are documented there — these two rules are the
+    boundaries that the architecture suite can check.
 
-    The first keeps the module lean. The second is the contract in the other direction: features
-    read tokens rather than restating values.
+    It is deliberately the leanest client module: pure Compose, no navigation or DI. Broader shared
+    UI that needs those — nav-aware scaffolds, common components — belongs in `:platform:client:ui`,
+    which builds on this module rather than the reverse.
+
+    The first rule keeps the module lean. The second is the contract in the other direction:
+    features read tokens rather than restating values.
 """)
 object DesignSystemRules : RuleGroup() {
 
@@ -24,14 +28,15 @@ object DesignSystemRules : RuleGroup() {
             """
             The design system is a pure Compose module: tokens and stateless primitives. Pulling in
             navigation or DI turns it into application infrastructure, and every consumer then
-            inherits those dependencies to draw a button. Other client-side infrastructure belongs
-            in sibling `:platform:client:*` modules, not here.
+            inherits those dependencies to draw a button. Shared UI that needs navigation or DI —
+            common scaffolds and nav-aware components — belongs in a sibling `:platform:client:*`
+            module such as `:platform:client:ui`, which builds on this one, not here.
             """.trimIndent(),
         )
         note("A primitive that seems to need navigation is usually missing a callback parameter — the caller navigates, the primitive reports.")
         scope { scope, exempt ->
             scope.files
-                .filter { it.path.contains("/platform/client/ui/") }
+                .filter { it.path.contains("/platform/client/design/") }
                 .filterNot { exempt(it) }
                 .filter { file ->
                     file.imports.any { import ->

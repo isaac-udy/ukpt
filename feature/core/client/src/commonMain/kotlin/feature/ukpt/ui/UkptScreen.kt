@@ -13,10 +13,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.enro.annotations.NavigationDestination
-import platform.ui.UkptColors
-import platform.ui.UkptSpacing
-import platform.ui.UkptTheme
-import platform.ui.components.UkptButton
+import platform.design.UkptColors
+import platform.design.UkptSpacing
+import platform.design.UkptTheme
+import platform.design.components.UkptButton
 
 @Composable
 @NavigationDestination(UkptDestination::class)
@@ -34,7 +34,7 @@ fun UkptScreen(
  * Stateless screen content: it renders [state] and reports intent through [onGreet].
  *
  * Every colour, dimension and text style comes from [UkptTheme] rather than a literal — see
- * `platform/client/ui/design-system/principles.md`.
+ * `platform/client/design/design-system/principles.md`.
  */
 @Composable
 internal fun UkptScreenContent(

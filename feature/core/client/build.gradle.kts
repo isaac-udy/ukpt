@@ -14,7 +14,7 @@ kotlin {
             api(projects.feature.core.api)
 
             // The design system. Features read tokens and primitives from here, never literals.
-            implementation(projects.platform.client.ui)
+            implementation(projects.platform.client.design)
 
             // Unified @Preview (androidx.compose.ui.tooling.preview.Preview) — multiplatform
             // since Compose 1.10, usable directly in common code. PreviewSnapshotTest discovers

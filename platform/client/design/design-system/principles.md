@@ -26,7 +26,7 @@ it?"
 
 ## One density
 
-Spacing is a fixed scale ([`UkptSpacing`](../src/commonMain/kotlin/platform/ui/UkptSpacing.kt)). It
+Spacing is a fixed scale ([`UkptSpacing`](../src/commonMain/kotlin/platform/design/UkptSpacing.kt)). It
 is not theme-scoped and it is not a user preference. Layouts adapt by changing *which* layout
 renders at a breakpoint, never by shrinking every gap.
 

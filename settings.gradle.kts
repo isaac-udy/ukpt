@@ -44,6 +44,7 @@ include(":feature:core:api")
 include(":feature:core:client")
 include(":feature:core:server")
 
+include(":platform:client:design")
 include(":platform:client:ui")
 include(":platform:common:architecture")
 

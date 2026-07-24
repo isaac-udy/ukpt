@@ -25,7 +25,7 @@ Do **not** copy the literal `ukpt`/`Ukpt` from core — substitute `<name>`/`<Na
 
 `<Prefix>` in the templates is a different thing: the **project's** type prefix, which the design
 system's types carry (`<Prefix>Theme`, `<Prefix>Colors`). It is `Ukpt` in the template itself and
-whatever the project was renamed to downstream — read `platform/client/ui` to see which. It does
+whatever the project was renamed to downstream — read `platform/client/design` to see which. It does
 **not** vary per feature.
 
 ## Steps
@@ -58,7 +58,7 @@ whatever the project was renamed to downstream — read `platform/client/ui` to 
   generates the R class Paparazzi resolves reflectively, and ships `composeResources` as APK assets).
   Restating any of them per module is how these drifted before they were conventions.
 - **Read tokens, not literals** — a new screen's colours, spacing and text styles come from
-  `<Prefix>Theme` in `:platform:client:ui`; add `implementation(projects.platform.client.ui)` to the
+  `<Prefix>Theme` in `:platform:client:design`; add `implementation(projects.platform.client.design)` to the
   `:client` module. `DesignSystemRules.noLiteralsInFeatureUi` audits for literal `Color(0x…)`/`.dp` in
   `feature..ui..`.
 - **No `ktor-client-cio` in `commonMain`** — it pulls `node:net` and breaks the wasm bundle. CIO lives in

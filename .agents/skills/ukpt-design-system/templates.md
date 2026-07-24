@@ -3,7 +3,7 @@
 `<Prefix>` is the project's type prefix (`Ukpt` in the template itself). `<Name>` is the primitive's
 PascalCase name, `<name>` its lowercase form.
 
-Read the live `platform/client/ui` module alongside these — it is the working reference, and it wins
+Read the live `platform/client/design` module alongside these — it is the working reference, and it wins
 if the two ever disagree.
 
 ---
@@ -13,11 +13,11 @@ if the two ever disagree.
 Wraps a material component and styles it entirely from tokens. Prefer this basis unless the project
 has a reason not to: it inherits semantics, minimum touch targets, state layers, ripple and focus.
 
-Requires `api(compose.material3)` in `platform/client/ui/build.gradle.kts` — material types now
+Requires `api(compose.material3)` in `platform/client/design/build.gradle.kts` — material types now
 appear in the primitive's own surface.
 
 ```kotlin
-package platform.ui.components
+package platform.design.components
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.Button
@@ -26,9 +26,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import platform.ui.<Prefix>Shapes
-import platform.ui.<Prefix>Spacing
-import platform.ui.<Prefix>Theme
+import platform.design.<Prefix>Shapes
+import platform.design.<Prefix>Spacing
+import platform.design.<Prefix>Theme
 
 enum class <Prefix><Name>Variant { Primary, Secondary, Ghost }
 
@@ -76,7 +76,7 @@ basis.
 
 ## §2 — Primitive on bare **foundation** (the scaffold default)
 
-Read `platform/client/ui/src/commonMain/kotlin/platform/ui/components/<Prefix>Button.kt` — it is the
+Read `platform/client/design/src/commonMain/kotlin/platform/design/components/<Prefix>Button.kt` — it is the
 worked example and is kept current.
 
 What it must carry that a material component would have given you for free:
@@ -107,10 +107,10 @@ worse than none. Add the dependency, read its current documentation, and hold to
 ```markdown
 # <Name>
 
-Source: [`<Prefix><Name>.kt`](../../src/commonMain/kotlin/platform/ui/components/<Prefix><Name>.kt) ·
+Source: [`<Prefix><Name>.kt`](../../src/commonMain/kotlin/platform/design/components/<Prefix><Name>.kt) ·
 Doc surface: `<Prefix><Name>DocTest.variants`
 
-![<Prefix><Name> variants in both palettes](../../src/androidHostTest/snapshots/images/platform.ui_<Prefix><Name>DocTest_variants.png)
+![<Prefix><Name> variants in both palettes](../../src/androidHostTest/snapshots/images/platform.design_<Prefix><Name>DocTest_variants.png)
 
 <One paragraph: what this primitive is for, and what it deliberately is not.>
 
@@ -152,12 +152,12 @@ Add a row for the page to the table in `design-system/README.md`.
 
 ---
 
-## §5 — Doc surface → `src/androidHostTest/kotlin/platform/ui/<Prefix><Name>DocTest.kt`
+## §5 — Doc surface → `src/androidHostTest/kotlin/platform/design/<Prefix><Name>DocTest.kt`
 
 A curated composition: every variant, in both palettes, labelled. Not a `@Preview`.
 
 ```kotlin
-package platform.ui
+package platform.design
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -172,8 +172,8 @@ import androidx.compose.ui.unit.dp
 import dev.isaacudy.udytils.snapshot.SnapshotRule
 import org.junit.Rule
 import org.junit.Test
-import platform.ui.components.<Prefix><Name>
-import platform.ui.components.<Prefix><Name>Variant
+import platform.design.components.<Prefix><Name>
+import platform.design.components.<Prefix><Name>Variant
 
 class <Prefix><Name>DocTest {
 

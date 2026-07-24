@@ -1,4 +1,4 @@
-package platform.ui.components
+package platform.design.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,9 +13,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import platform.ui.UkptShapes
-import platform.ui.UkptSpacing
-import platform.ui.UkptTheme
+import platform.design.UkptShapes
+import platform.design.UkptSpacing
+import platform.design.UkptTheme
 
 /**
  * How much weight a button carries. Growth means a new entry here, never a new button composable —

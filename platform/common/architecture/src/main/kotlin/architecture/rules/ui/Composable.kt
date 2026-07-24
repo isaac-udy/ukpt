@@ -12,7 +12,7 @@ import com.lemonappdev.konsist.api.Konsist
     * **Note:** `[Name]ScreenContent` companions (see `UiLayer.Screen.screenContentCompanion`)
       are non-Screen composables, which is why the snapshot rules live on this Construct.
       For reusable design-system primitives (buttons, fields), prefer a shared composable in
-      `:platform:client:ui`. Feature-local composables live alongside the Screen they support.
+      `:platform:client:design`. Feature-local composables live alongside the Screen they support.
 
     ### Snapshot tests
 

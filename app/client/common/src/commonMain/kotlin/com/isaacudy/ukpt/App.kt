@@ -10,8 +10,8 @@ import dev.enro.ui.rememberNavigationContainer
 import feature.ukpt.ukptClientDependencies
 import feature.ukpt.ui.UkptDestination
 import org.koin.compose.KoinApplication
-import platform.ui.ProvideUkptViewport
-import platform.ui.UkptTheme
+import platform.design.ProvideUkptViewport
+import platform.design.UkptTheme
 
 @Composable
 fun App() {

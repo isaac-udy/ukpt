@@ -1,4 +1,4 @@
-package platform.ui
+package platform.design
 
 import java.io.File
 import org.junit.Assert.assertTrue
