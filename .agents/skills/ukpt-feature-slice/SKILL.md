@@ -57,10 +57,13 @@ whatever the project was renamed to downstream — read `platform/client/design`
   component and the stub-`R.jar` classpath fix; `ukpt.compose-library` supplies `androidResources` (which
   generates the R class Paparazzi resolves reflectively, and ships `composeResources` as APK assets).
   Restating any of them per module is how these drifted before they were conventions.
-- **Read tokens, not literals** — a new screen's colours, spacing and text styles come from
-  `<Prefix>Theme` in `:platform:client:design`; add `implementation(projects.platform.client.design)` to the
-  `:client` module. `DesignSystemRules.noLiteralsInFeatureUi` audits for literal `Color(0x…)`/`.dp` in
-  `feature..ui..`.
+- **Read tokens, not literals** — a new screen's colours, spacing and text styles come from the
+  project's design-system API, exposed by its design module; add
+  `implementation(projects.platform.client.design)` to the `:client` module. On the scaffold that API is
+  `<Prefix>Theme.colors`/`.typography` and `<Prefix>Spacing`; a project that authored its own may expose a
+  different accessor (e.g. a `Gt.colors` object, a theme wrapper with no `colors` parameter) — read the
+  design module to confirm before copying the template. `DesignSystemRules.noLiteralsInFeatureUi` audits
+  for literal `Color(0x…)`/`.dp` in `feature..ui..`.
 - **No `ktor-client-cio` in `commonMain`** — it pulls `node:net` and breaks the wasm bundle. CIO lives in
   `jvmMain`; web uses `ktor-client-js`.
 - **`:server` depends on `libs.udytils.architectureAnnotations`** — solely so `@ArchitectureException` imports.

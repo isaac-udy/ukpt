@@ -15,7 +15,25 @@ The template ships `:platform:client:design` as a **working but anonymous** syst
 palette, system typefaces, one primitive. This skill turns it into a project's own, and adds
 primitives to it afterwards.
 
-Read [`platform/client/design/design-system/README.md`](../../../platform/client/design/design-system/README.md)
+## Orient first — read the project's actual design module
+
+Everything below describes the **scaffold** the template ships: a module at `:platform:client:design`
+(package `platform.design`), `<Prefix>Theme`/`<Prefix>Colors` tokens, a `design-system/` docs folder,
+and Paparazzi doc-surface goldens. A project that authored its own design system — a path the
+2026-07-22.3 migration explicitly endorses — may match none of it. Read the actual module first and
+treat the scaffold shapes as one possible answer, not the contract:
+
+- **Find the design module** (it may not be `:platform:client:design`) and read its sources. Note the
+  **theme wrapper's signature** — the scaffold's `<Prefix>Theme(colors, content)` may instead be a
+  `GtTheme(density, content)` with no `colors` parameter — the **token accessor** (`<Prefix>Theme.colors`
+  vs. a bare `Gt.colors` object), and the **type prefix**. Use what you find, not the names below.
+- **Check whether the doc pipeline exists**: a `design-system/` folder and Paparazzi on the module. If
+  it does, follow the doc-page / doc-surface / `recordPaparazzi` steps verbatim. If it does not, the
+  token-authoring steps still apply to whichever files hold the tokens, but there are no doc pages or
+  doc-surface goldens to maintain — skip those steps, or offer to set the pipeline up.
+
+On the scaffold (the common case, and any project from `ukpt-new-project`) read
+[`platform/client/design/design-system/README.md`](../../../platform/client/design/design-system/README.md)
 and `principles.md` first — they are the contract this skill maintains, not background reading.
 
 Two modes. Pick from what the user asked for; if it is ambiguous, ask.
@@ -108,6 +126,9 @@ list is ignored.
 
 ## Step 5 — Re-record and verify
 
+Scaffold doc pipeline only (see "Orient first"): a module without Paparazzi has no goldens to
+re-record — verify the identity by running the app and looking at it instead.
+
 ```
 ./gradlew :platform:client:design:recordPaparazzi --no-configuration-cache --max-workers=2
 ./gradlew :platform:client:design:verifyPaparazzi --no-configuration-cache --max-workers=2
@@ -138,6 +159,10 @@ Proceed only if the answer is genuinely "none of them".
 
 This is the rule the whole docs pipeline rests on. A primitive without its doc page and doc-surface
 test is how a system starts drifting from its documentation.
+
+This assumes the scaffold's doc pipeline (a `design-system/` folder + Paparazzi on the module — see
+"Orient first"). If the project doesn't have it, only file 1 (the component) applies; files 2–3 (the
+doc surface and doc page) exist only where that pipeline does — offer to set it up, or skip them.
 
 1. **Component** — `src/commonMain/kotlin/platform/design/components/<Prefix><Name>.kt`.
    Stateless (props in, events out; no `remember`-ed state, no `rememberSomething()` API), variant

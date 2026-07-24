@@ -213,6 +213,8 @@ fun <Name>Screen(
 // UiLayer.Screen.screenContentCompanion: internal ScreenContent takes state (+ callbacks) so it renders without a ViewModel.
 // Every colour, dimension and text style comes from the design system — DesignSystemRules.noLiteralsInFeatureUi
 // audits for literal Color(0x…)/.dp here. Imports: platform.design.<Prefix>Theme, platform.design.<Prefix>Spacing.
+// The <Prefix>Theme.* accessor below is the scaffold's design-system API; if the project authored its own,
+// use its accessor instead (read the design module — see the ukpt-design-system skill).
 @Composable
 internal fun <Name>ScreenContent(state: <Name>State) {
     Box(
@@ -235,7 +237,9 @@ internal fun <Name>ScreenContent(state: <Name>State) {
 @Preview
 @Composable
 internal fun <Name>ScreenPreview() {
-    // Pin the palette rather than following the system, so the golden is deterministic.
+    // Pin the palette rather than following the system, so the golden is deterministic. The
+    // <Prefix>Theme(colors = …) wrapper is the scaffold's signature; a project with its own theme
+    // (e.g. GtTheme(density, content), no colors parameter) pins the palette however that theme does.
     <Prefix>Theme(colors = <Prefix>Colors.Light) {
         <Name>ScreenContent(<Name>State())
     }
