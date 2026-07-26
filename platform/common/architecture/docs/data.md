@@ -65,6 +65,8 @@ exposing them as `public val` properties.
 
 ##### Examples
 
+> **Illustrative.** `:feature:core` ships its domain interfaces implemented directly as UseCases (`GetGreetingImpl`, `FlowOfGreetingsImpl`, …) and no Repository. The code below shows the shape a Repository takes once a feature composes a Service plus local storage behind its domain interfaces.
+
 A Repository that exposes domain interfaces as `public val` properties, backed by a Service and local storage:
 
 ```kotlin
@@ -78,6 +80,7 @@ internal class UserRepository(
 
     val deleteUser = DeleteUser { id ->
         userService.deleteUser(UserService.DeleteUser.Request(id))
+        userStorage.remove(id) // keep local storage in sync with the service
     }
 }
 ```
@@ -143,6 +146,8 @@ DataStore, etc.
     * **Why:** Storage is the lowest layer of the stack: it should depend on the database or keychain client and nothing higher. Injecting a domain interface, Repository, or Service would embed orchestration logic in the persistence layer.
 
 ##### Examples
+
+> **Illustrative.** `:feature:core` ships no client storage class. The `expect`/`actual` shape below is the pattern for a platform-backed store when a feature needs one.
 
 An `expect`/`actual` Storage class with a platform-specific backing store:
 

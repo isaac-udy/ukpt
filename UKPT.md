@@ -78,7 +78,7 @@ After making changes, compile every platform (client + server) to verify correct
 ```
 The common module's Android / JVM / wasm targets compile transitively via the per-platform app modules; the iOS targets are built directly from `:app:client:common`. There is no `:app:client:ios` **Gradle** module — the iOS app is an Xcode project at `app/client/ios`, which consumes `App.framework` from `:app:client:common`. Compiling the iOS targets does **not** exercise the app: the Compose/Enro entry point (`iosMain/MainViewController.kt`) is only executed when the Xcode app runs, so a change to it must be verified by actually launching the app.
 
-**Web (wasm) caveat — compiling is not enough.** `compileKotlinWasmJs` only type-checks; it does **not** catch wasm bundle/runtime failures — a `node:`-scheme import pulled in by a JVM-only dependency (e.g. `ktor-client-cio`), a missing ViewModel factory (`Factory.create … not implemented`), or the macOS `.DS_Store` IC-cache crash. For any web change, build the actual bundle and run it in a browser:
+**Web (wasm) caveat — compiling is not enough.** `compileKotlinWasmJs` only type-checks; it does **not** catch failures at wasm bundle time or runtime, so for any web change build the actual bundle and run it in a browser (the `ukpt-verify-web` skill catalogs the failure modes — `node:` imports, the missing ViewModel factory, the `.DS_Store` IC crash — and how to diagnose each):
 ```
 ./gradlew :app:client:web:wasmJsBrowserDevelopmentWebpack --no-configuration-cache   # bundles via webpack — surfaces node:/IC errors
 ./gradlew :app:client:web:wasmJsBrowserDevelopmentRun --no-configuration-cache        # serves it — open the URL and confirm it renders

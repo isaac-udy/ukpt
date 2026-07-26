@@ -106,12 +106,10 @@ project's names. Keep it accurate if the project is ever re-branded.
 
 ## 5. Verify
 
-Run the full matrix before the first commit:
+Run the full verification before the first commit — the six-target compile sweep (see UKPT.md §Compiling)
+first, then the project-specific checks:
 
 ```
-./gradlew :app:client:android:compileDebugKotlin :app:client:desktop:compileKotlin \
-          :app:client:web:compileKotlinWasmJs :app:client:common:compileKotlinIosArm64 \
-          :app:client:common:compileKotlinIosSimulatorArm64 :app:server:compileKotlin
 ./gradlew :platform:common:architecture:verifyArchitecture
 ./gradlew :feature:core:client:verifyPaparazzi --no-configuration-cache
 ./gradlew :platform:client:design:verifyPaparazzi --no-configuration-cache

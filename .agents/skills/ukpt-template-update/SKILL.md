@@ -124,12 +124,9 @@ Projects tweak and extend their rule catalogs. Never treat the catalog as templa
 
 ## 7. Verify
 
-The full matrix, from UKPT.md:
+Run the six-target compile sweep (see UKPT.md §Compiling), then:
 
 ```
-./gradlew :app:client:android:compileDebugKotlin :app:client:desktop:compileKotlin \
-          :app:client:web:compileKotlinWasmJs :app:client:common:compileKotlinIosArm64 \
-          :app:client:common:compileKotlinIosSimulatorArm64 :app:server:compileKotlin
 ./gradlew :platform:common:architecture:verifyArchitecture
 ./gradlew :feature:<each>:client:verifyPaparazzi --no-configuration-cache
 ./gradlew validateTemplate

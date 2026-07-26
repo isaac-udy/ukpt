@@ -1,4 +1,14 @@
-Domain objects showing a nested value-class ID, an `init` invariant, and a sealed hierarchy with nested types:
+`feature.ukpt`'s domain object is a flat, immutable `@Serializable data class` — the shape to copy for most domain data:
+
+```kotlin
+// feature.ukpt.domain.Greeting (:api)
+@Serializable
+data class Greeting(
+    val text: String,
+)
+```
+
+Richer shapes the rules also allow, illustrated (the base template's `Greeting` doesn't need them yet) — a nested value-class ID, an `init` invariant, and a sealed hierarchy with nested types:
 
 ```kotlin
 @Serializable
@@ -34,7 +44,7 @@ sealed interface Transport {
         override val id: String,
         override val name: String,
         val fuelType: FuelType,
-    ) {
+    ) : Transport {
         @Serializable
         enum class FuelType {
             Petrol,
@@ -49,7 +59,7 @@ sealed interface Transport {
         override val id: String,
         override val name: String,
         val type: Type,
-    ) {
+    ) : Transport {
         @Serializable
         enum class Type {
             Manual,
@@ -62,6 +72,6 @@ sealed interface Transport {
         override val id: String,
         override val name: String,
         val routeId: String,
-    )
+    ) : Transport
 }
 ```

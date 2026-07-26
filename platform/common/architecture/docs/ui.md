@@ -88,7 +88,26 @@ the destination declaration site.
 
 ##### Examples
 
-A dialog/overlay screen: the Destination lives in `:api`, and the property-based `navigationDestination` in `:client` declares `directOverlay()` metadata and resolves its ViewModel via `viewModel()` inside the block.
+`feature.ukpt`'s screen is a function-based `@NavigationDestination`: the entry `UkptScreen` injects its ViewModel with `viewModel()` and delegates to a stateless `internal UkptScreenContent` that takes state plus callbacks (the `screenContentCompanion` and `viewModelInjection` rules):
+
+```kotlin
+// UkptScreen (in :client) — feature.ukpt.ui
+@Composable
+@NavigationDestination(UkptDestination::class)
+fun UkptScreen(
+    viewModel: UkptViewModel = viewModel(),   // viewModel(), not koinViewModel()
+) {
+    val state by viewModel.state.collectAsState()
+    UkptScreenContent(state = state, onGreet = viewModel::onGreetClicked)
+}
+
+// Stateless content: renders state, reports intent via callbacks, so it renders without a
+// ViewModel and is snapshot-testable from a @Preview.
+@Composable
+internal fun UkptScreenContent(state: UkptState, onGreet: () -> Unit) { /* … */ }
+```
+
+A dialog/overlay screen, illustrated (the base template ships only the full-screen `UkptScreen`): the Destination lives in `:api`, and the property-based `navigationDestination` in `:client` declares `directOverlay()` metadata and resolves its ViewModel via `viewModel()` inside the block.
 
 ```kotlin
 // Destination (in :api)
@@ -276,7 +295,17 @@ The complete, immutable representation of a Screen's data at a single point in t
 
 ##### Examples
 
-A State that is a transparent container for domain objects plus calculated properties; display formatting lives with the Screen as a `@Composable` extension property, not in the State.
+`feature.ukpt`'s State is a plain, immutable data-class container; the ViewModel replaces it wholesale with `state.update { copy(...) }`:
+
+```kotlin
+// feature.ukpt.ui.UkptState
+data class UkptState(
+    val message: String = "Hello, ukpt!",
+    val greetings: Int = 0,
+)
+```
+
+When state carries domain objects, add calculated properties for logic — but keep display formatting out of the State and put it with the Screen as a `@Composable` extension property. Illustrated (the base template's `UkptState` is too simple to need either):
 
 ```kotlin
 // feature.user.ui.UserDetailState.kt
