@@ -46,7 +46,7 @@ whatever the project was renamed to downstream — read `platform/client/design`
    - `app/server/build.gradle.kts` → `implementation(projects.feature.<name>.server)` (if using the server).
    - Server DI: the template's `Server.kt` is a placeholder with **no** Koin host — standing that up is the
      `ukpt-urpc-service` skill's job (do it when the feature gets its first service, not at scaffold time).
-6. **Verify** — compile sweep (all 6 targets, UKPT.md), record + verify Paparazzi for the new client
+6. **Verify** — the six-target compile sweep (see UKPT.md §Compiling), record + verify Paparazzi for the new client
    module, and `./gradlew :platform:common:architecture:verifyArchitecture`. If the feature has web UI, run
    the `ukpt-verify-web` skill — a forgotten `viewModelOf` only crashes at runtime on wasm, invisible to compile.
 
@@ -60,16 +60,17 @@ whatever the project was renamed to downstream — read `platform/client/design`
 - **Read tokens, not literals** — a new screen's colours, spacing and text styles come from the
   project's design-system API, exposed by its design module; add
   `implementation(projects.platform.client.design)` to the `:client` module. On the scaffold that API is
-  `<Prefix>Theme.colors`/`.typography` and `<Prefix>Spacing`; a project that authored its own may expose a
-  different accessor (e.g. a `Gt.colors` object, a theme wrapper with no `colors` parameter) — read the
-  design module to confirm before copying the template. `DesignSystemRules.noLiteralsInFeatureUi` audits
-  for literal `Color(0x…)`/`.dp` in `feature..ui..`.
-- **No `ktor-client-cio` in `commonMain`** — it pulls `node:net` and breaks the wasm bundle. CIO lives in
-  `jvmMain`; web uses `ktor-client-js`.
+  `<Prefix>Theme.colors`/`.typography` and `<Prefix>Spacing`, but a project that authored its own may
+  expose a different accessor — read the design module (and the `ukpt-design-system` skill) to confirm
+  before copying the template. `DesignSystemRules.noLiteralsInFeatureUi` audits for literal
+  `Color(0x…)`/`.dp` in `feature..ui..`.
 - **`:server` depends on `libs.udytils.architectureAnnotations`** — solely so `@ArchitectureException` imports.
-- **wasm ViewModel factory**: every screen VM must be `viewModelOf(::<Name>ViewModel)`-registered in
-  `<name>ClientDependencies`, or web throws `Factory.create … not implemented` at runtime (the Koin-backed
-  factory is installed once in `app/client/common/.../UkptNavigation.kt` — don't regenerate it per feature).
+- **Two web/wasm traps at scaffold time** — both pass compilation; the `ukpt-verify-web` skill has the full
+  catalog and how to diagnose them. (1) Keep `ktor-client-cio` out of `commonMain`: it breaks the wasm
+  bundle, so CIO goes in `jvmMain` and web uses `ktor-client-js`. (2) Register every screen VM with
+  `viewModelOf(::<Name>ViewModel)` in `<name>ClientDependencies` (the Koin-backed VM factory itself lives
+  once in `app/client/common/.../UkptNavigation.kt` — don't recreate it per feature), or web crashes at
+  runtime with `Factory.create … not implemented`.
 
 ## Rule cheat-sheet (canonical text in `platform/common/architecture/docs/` — search the ID)
 - **`UiLayer.Screen.screenContentCompanion`** — `<Name>Screen` pairs with an `internal <Name>ScreenContent(state, …)`;
