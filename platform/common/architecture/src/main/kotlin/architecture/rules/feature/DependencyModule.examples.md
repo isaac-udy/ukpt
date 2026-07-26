@@ -1,10 +1,12 @@
+> **Illustrative.** `:feature:core`'s `:server` is an empty stub, so it registers no urpc service. The binding and `ServiceImpl` below show the shape; stand a real one up with the `ukpt-urpc-service` skill.
+
 Registering a urpc service in `:server`, per `FeatureRules.DependencyModule.urpcServiceBinding`:
 
 ```kotlin
 scope<UrpcCall> {
-    scopedOf(::UserProfileServiceImpl)
-        .bind(UserProfileService::class)
-        .bindService(::UserProfileServiceUrpcBinding)
+    scopedOf(::UserServiceImpl)
+        .bind(UserService::class)
+        .bindService(::UserServiceUrpcBinding)
 }
 ```
 

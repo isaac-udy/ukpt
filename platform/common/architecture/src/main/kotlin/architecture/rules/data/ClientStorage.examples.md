@@ -1,3 +1,5 @@
+> **Illustrative.** `:feature:core` ships no client storage class. The `expect`/`actual` shape below is the pattern for a platform-backed store when a feature needs one.
+
 An `expect`/`actual` Storage class with a platform-specific backing store:
 
 ```kotlin

@@ -1,4 +1,14 @@
-A State that is a transparent container for domain objects plus calculated properties; display formatting lives with the Screen as a `@Composable` extension property, not in the State.
+`feature.ukpt`'s State is a plain, immutable data-class container; the ViewModel replaces it wholesale with `state.update { copy(...) }`:
+
+```kotlin
+// feature.ukpt.ui.UkptState
+data class UkptState(
+    val message: String = "Hello, ukpt!",
+    val greetings: Int = 0,
+)
+```
+
+When state carries domain objects, add calculated properties for logic — but keep display formatting out of the State and put it with the Screen as a `@Composable` extension property. Illustrated (the base template's `UkptState` is too simple to need either):
 
 ```kotlin
 // feature.user.ui.UserDetailState.kt

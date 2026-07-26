@@ -1,3 +1,5 @@
+> **Illustrative.** `:feature:core` defines no `@Urpc` contract in `:api` (and its `:server` is an empty stub). The contract below shows the shape; add a real one with the `ukpt-urpc-service` skill.
+
 A `@Urpc` service contract in `:api`, with nested `@Serializable` `Request`/`Response` types grouped under per-function `object` namespaces:
 
 ```kotlin
