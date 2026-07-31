@@ -36,7 +36,14 @@ kotlin {
         }
     }
 
-    jvm()
+    jvm {
+        // Must be the DSL-level pin: a tasks.withType<KotlinJvmCompile> override changes the
+        // bytecode but not the target's published metadata, leaving ukpt.jvm-base-pinned consumers
+        // unable to consume (or inline from) a jvm() variant floated to the ambient JDK.
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_11)
+        }
+    }
 
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
