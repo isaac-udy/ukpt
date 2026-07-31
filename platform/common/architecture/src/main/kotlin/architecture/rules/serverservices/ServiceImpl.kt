@@ -3,6 +3,8 @@ package architecture.rules.serverservices
 import dev.isaacudy.udytils.architecture.*
 
 import architecture.definitions.containsPackageSegment
+import architecture.definitions.isServerModule
+import architecture.definitions.resolveTypeToken
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 import com.lemonappdev.konsist.api.declaration.KoParameterDeclaration
 import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
@@ -16,6 +18,10 @@ object ServiceImpl : Construct<ServerServices>(
     requirements = listOf(
         isClassWhere("is named `[Name]ServiceImpl`, matching its `[Name]Service` contract") { it.name.endsWith("ServiceImpl") },
         predicate("resides in `feature.[name].server.services` itself, beside the contract, not in a sub-package") { it.isInServicesRoot() },
+        // Not the contract's residence: the @Urpc interface lives in :api so both sides see it;
+        // the implementation is the server's own business, and one declared in :api would be
+        // published implementation code — it classifies as nothing and the membership test names it.
+        predicate("is declared in a `:server` module") { it.isServerModule() },
     ),
 ) {
     @Describe("A Service implementation must be `internal`")
@@ -23,6 +29,37 @@ object ServiceImpl : Construct<ServerServices>(
         constrain { decl, _ ->
             val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
             if (cls.hasInternalModifier) emptyList() else listOf(Violation(cls, "Service implementation must be `internal`"))
+        }
+    }
+
+    @Describe("A Service implementation must implement the `@Urpc` contract its name pairs with: `[Name]ServiceImpl` implements `[Name]Service`")
+    val implementsItsContract by rule {
+        rationale(
+            """
+            The name is a claim — `[Name]ServiceImpl` says this class answers the `[Name]Service`
+            contract — and a class that makes the claim without implementing the interface is either
+            unfinished or misnamed. Nothing else would catch it: the shape classifies on name and
+            package alone, so without this rule a contract-less impl passes every test while the
+            service it names returns 404.
+            """.trimIndent(),
+        )
+        note("The parent reference is resolved through the file's imports; the contract usually needs no import at all — it shares the impl's package from `:api` — so a same-package reference resolves to it directly.")
+        scope { scope, exempt ->
+            val contractFqns = scope.interfaces()
+                .filter { iface -> iface.annotations.any { it.name == "Urpc" } }
+                .mapNotNull { (it as? KoFullyQualifiedNameProvider)?.fullyQualifiedName }
+                .toSet()
+            scope.classes()
+                .filter { test(it) }
+                .filterNot { exempt(it) }
+                .filterNot { cls ->
+                    val expected = cls.name.removeSuffix("Impl")
+                    cls.parents().any { parent ->
+                        parent.name.substringAfterLast('.') == expected &&
+                            cls.containingFile.resolveTypeToken(parent.name) in contractFqns
+                    }
+                }
+                .map { Violation(it, "`${it.name}` does not implement the `@Urpc` contract `${it.name.removeSuffix("Impl")}`") }
         }
     }
 

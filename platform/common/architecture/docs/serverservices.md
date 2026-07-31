@@ -158,10 +158,14 @@ contract, so it belongs to this layer, not the top-level feature group.
 * A Service Impl resides in `feature..server.services..`
 * A Service Impl is named `[Name]ServiceImpl`, matching its `[Name]Service` contract
 * A Service Impl resides in `feature.[name].server.services` itself, beside the contract, not in a sub-package
+* A Service Impl is declared in a `:server` module
 
 ##### Rules
 
 * A Service implementation must be `internal`
+* A Service implementation must implement the `@Urpc` contract its name pairs with: `[Name]ServiceImpl` implements `[Name]Service`
+    * **Why:** The name is a claim — `[Name]ServiceImpl` says this class answers the `[Name]Service` contract — and a class that makes the claim without implementing the interface is either unfinished or misnamed. Nothing else would catch it: the shape classifies on name and package alone, so without this rule a contract-less impl passes every test while the service it names returns 404.
+    * **Note:** The parent reference is resolved through the file's imports; the contract usually needs no import at all — it shares the impl's package from `:api` — so a same-package reference resolves to it directly.
 * A Service implementation must not inject persistence: neither a Repository nor a StorageClass
     * **Why:** A ServiceImpl answers a request by composing the feature's `server.domain` interfaces; persistence sits on the far side of those interfaces, where `ServerServices.noDataImports` keeps it. A Repository is the wiring that provides those interfaces, not a thing to hold — injecting it, or the StorageClass under it, states the table the handler wants instead of the contract it needs, so nothing else can reuse that access and nothing names what the request actually required. It is the same rule that keeps ViewModels off client Repositories.
     * **Note:** Tested on the primary constructor: a parameter whose type is named `[Name]Repository`, `[Name]Storage`, or `[Name]Store`, or whose type resolves into a persistence package.

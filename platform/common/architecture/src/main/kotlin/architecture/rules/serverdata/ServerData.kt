@@ -203,7 +203,7 @@ object ServerData : RuleGroup(
         enforcedBy("ServerData.Repository.doesNotImplementDomainInterfaces", "ServerData.Repository.exposesDomainInterfacesAsProperties")
     }
 
-    @Describe("A generated Postgres source may only be imported by `server.data`")
+    @Describe("A generated Postgres source may only be imported by `server.data`, and a generated `Table` object only by the `server.data.storage` package")
     val tableAccessOwnedByStorage by rule {
         rationale(
             """
@@ -211,14 +211,16 @@ object ServerData : RuleGroup(
             `platform.server.postgres.tables` package, so any file at all can import one and read or
             write any table. That is the hole beneath every other storage rule: the Storage class
             stops being the single write path for its rows, and the invariants and side effects it
-            owns get skipped by whoever went around it. Confining the import to this layer is what
-            makes the Storage class the door.
+            owns get skipped by whoever went around it. The two generated shapes confine
+            differently: an `XxxRow` is data, which the layer's mapping functions legitimately
+            speak, but a `Table` object is the query and write path itself — a Repository holding
+            one has bypassed the StorageClass this rule exists to make the door.
             """.trimIndent(),
         )
         note("`feature.[name].server.data` is the only home a table has: a file that names one from anywhere else is reaching around the Storage class that owns it, whatever package that file is in.")
-        note("Covers the whole generated package — the `Table` object is the write path, and an `XxxRow` outside this layer is the persistence shape leaking into a caller that should be reading domain types.")
+        note("Within the layer, `Row` imports are legal anywhere — mapping functions at the data root take Rows as receivers — while `Table` imports are legal only in the flat `storage` package, where the owning StorageClass lives.")
         scope { scope, exempt ->
-            scope.files
+            val outsideLayer = scope.files
                 .filter { it.isFeatureModule() }
                 .filterNot { it.isInServerData() }
                 .filterNot { exempt(it) }
@@ -233,6 +235,21 @@ object ServerData : RuleGroup(
                             )
                         }
                 }
+            val tableOutsideStorage = scope.files
+                .filter { it.isFeatureModule() && it.isInServerData() && !it.isInServerDataStorage() }
+                .filterNot { exempt(it) }
+                .flatMap { file ->
+                    file.imports
+                        .filter { it.name.matches(generatedTableObjectRegex) }
+                        .map {
+                            Violation(
+                                file.path,
+                                "imports table object `${it.name}` outside `server.data.storage` — only the " +
+                                    "owning StorageClass queries a table; state what you need on it instead",
+                            )
+                        }
+                }
+            outsideLayer + tableOutsideStorage
         }
     }
 

@@ -387,7 +387,7 @@ governs them. The workflow holds the definition; the steps are the behaviour.
 
 * A Workflow Step resides in `feature..server.domain..`
 * A Workflow Step is a class
-* A Workflow Step implements a workflow's nested `Step` contract
+* A Workflow Step implements a `[Name]Workflow`'s nested `Step` contract
 
 ##### Rules
 
@@ -395,7 +395,7 @@ governs them. The workflow holds the definition; the steps are the behaviour.
     * **Why:** A step that holds another step calls it directly, which puts the order back in the code and takes it away from the declarations. Dependencies between steps are expressed as artifacts the workflow resolves.
 * Only a Workflow's composing UseCase may take steps as dependencies
     * **Why:** A step is meaningful only in the order its workflow derives. A ServiceImpl or an unrelated UseCase that injects one calls it out of that order, in a position nothing declared and the workflow cannot see — which is how half a process ends up running somewhere else.
-    * **Note:** The composer is the `[Interface]Impl` UseCase that injects the steps, asks the workflow to order them, and runs the plan.
+    * **Note:** The composer is the `[Interface]Impl` UseCase that injects the steps, asks the workflow to order them, and runs the plan — so the exemption is an `Impl` in the side's `domain` layer, where UseCases live. A ServiceImpl or any other outer-layer class holding a step is reported.
 
 ##### Guidance
 

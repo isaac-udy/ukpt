@@ -1,6 +1,7 @@
 package architecture.rules.shared
 
 import architecture.definitions.isFeatureModule
+import architecture.definitions.resolveTypeToken
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 import dev.isaacudy.udytils.architecture.*
 
@@ -15,12 +16,19 @@ abstract class WorkflowStepRules<G : RuleGroup>(
 ) : Construct<G>(
     requirements = listOf(
         isClass,
-        isClassWhere("implements a workflow's nested `Step` contract") { cls ->
-            cls.parents().any { it.name == "Step" || it.name.endsWith(".Step") }
+        isClassWhere("implements a `[Name]Workflow`'s nested `Step` contract") { cls ->
+            // Resolved through the file's imports so only a Workflow's own nested contract counts:
+            // a `Step` nested in a data class, or an unrelated top-level `Step` interface, is not
+            // a workflow step and must not classify as one.
+            cls.parents().any { parent ->
+                cls.containingFile.resolveTypeToken(parent.name)
+                    ?.let { fqn -> fqn.endsWith(".Step") && fqn.substringBeforeLast(".Step").endsWith("Workflow") } == true
+            }
         },
     ),
 ) {
     private val sideMarker = ".$side."
+    private val domainLayerMarker = ".$side.domain"
 
     @Describe("A WorkflowStep must not inject another step")
     val noSiblingInjection by rule {
@@ -54,14 +62,14 @@ abstract class WorkflowStepRules<G : RuleGroup>(
             somewhere else.
             """.trimIndent(),
         )
-        note("The composer is the `[Interface]Impl` UseCase that injects the steps, asks the workflow to order them, and runs the plan.")
+        note("The composer is the `[Interface]Impl` UseCase that injects the steps, asks the workflow to order them, and runs the plan — so the exemption is an `Impl` in the side's `domain` layer, where UseCases live. A ServiceImpl or any other outer-layer class holding a step is reported.")
         scope { scope, exempt ->
             val stepNames = scope.classes().filter { test(it) }.mapNotNull { it.name }.toSet()
             scope.classes()
                 .filter { it.isFeatureModule() && it.isOnThisSide() }
                 .filterNot { exempt(it) }
                 .filterNot { test(it) }
-                .filterNot { it.name.endsWith("Impl") }
+                .filterNot { it.name.endsWith("Impl") && it.isInSideDomain() }
                 .flatMap { cls ->
                     cls.primaryConstructor?.parameters.orEmpty()
                         .filter { it.type.name.namesAStep(stepNames) }
@@ -81,6 +89,10 @@ abstract class WorkflowStepRules<G : RuleGroup>(
     /** The side this construct governs — `composedNotInjected` reaches outside `domain`, so it is scoped by hand. */
     private fun KoClassDeclaration.isOnThisSide(): Boolean =
         containingFile.packagee?.name?.contains(sideMarker) == true
+
+    /** In the side's `domain` layer, where a workflow's composing UseCase lives. */
+    private fun KoClassDeclaration.isInSideDomain(): Boolean =
+        containingFile.packagee?.name.orEmpty().let { it.contains("$domainLayerMarker.") || it.endsWith(domainLayerMarker) }
 }
 
 /**
