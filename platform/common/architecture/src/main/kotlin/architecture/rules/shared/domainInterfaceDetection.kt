@@ -1,6 +1,7 @@
 package architecture.rules.shared
 
 import architecture.definitions.containingFilePackage
+import com.lemonappdev.konsist.api.container.KoScope
 import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
 import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
 import com.lemonappdev.konsist.api.declaration.KoParentDeclaration
@@ -30,3 +31,25 @@ internal fun isDomainInterfaceOnSide(declaration: KoBaseDeclaration?, side: Stri
         .any { it.name == "invoke" && it.returnType?.name?.contains("Flow") == true }
     return !hasFlowReturn || iface.name.startsWith("FlowOf")
 }
+
+/**
+ * The simple names of every domain interface classified on [side], for name-based matching of
+ * parent references and constructor-parameter types. Name-based rather than resolution-based
+ * deliberately: an `:api`-declared interface often resolves to no source declaration from its use
+ * site, so resolution-based matching silently skips exactly the published contracts.
+ */
+internal fun KoScope.domainInterfaceNamesOnSide(side: String): Set<String> =
+    interfaces()
+        .filter { isDomainInterfaceOnSide(it, side) }
+        .map { it.name }
+        .toSet()
+
+/**
+ * Every simple type name a type expression mentions, so a wrapped `Lazy<SomeInterface>` reads the
+ * same as a bare `SomeInterface`.
+ */
+internal fun String.simpleTypeNames(): List<String> =
+    Regex("""[A-Za-z_][A-Za-z0-9_.]*""")
+        .findAll(this)
+        .map { it.value.substringAfterLast('.') }
+        .toList()

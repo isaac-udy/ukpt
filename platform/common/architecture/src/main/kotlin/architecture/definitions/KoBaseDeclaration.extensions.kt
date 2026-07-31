@@ -318,7 +318,10 @@ fun KoBaseDeclaration.isInServerDataPackage(): Boolean = containingFilePackage()
 fun KoBaseDeclaration.isInServerDataStoragePackage(): Boolean =
     serverDataStoragePackageRegex.matches(containingFilePackage())
 
-private val serverDataStoragePackageRegex = Regex("""^feature\.[^.]+\.server\.data\.storage(\..+)?$""")
+// Exactly the flat package, no descendants: one flat surface is what gives a table one owning
+// StorageClass, so a declaration in a package nested under `storage` classifies as nothing and
+// the exhaustiveness rule reports it.
+private val serverDataStoragePackageRegex = Regex("""^feature\.[^.]+\.server\.data\.storage$""")
 
 /**
  * True when a `@Serializable` declaration's discriminator is written into a payload — i.e. it is
@@ -353,6 +356,23 @@ fun KoBaseDeclaration.sealedParentSimpleNames(): List<String> =
     (this as? KoParentProvider)?.parents().orEmpty()
         .filter { it.namesSealedType(this) }
         .map { it.name.substringAfterLast('.') }
+
+/**
+ * The type-nesting chain from the outermost declaring type down to this declaration, inclusive —
+ * `["FooDestination", "Action", "Delete"]` for a variant nested two deep, or just the declaration's
+ * own name at the top level. Package-free by construction, which is what makes it the identity a
+ * discriminator pins: it moves with the class when the package changes.
+ */
+fun KoBaseDeclaration.typeNestingChain(): List<String> {
+    val names = mutableListOf<String>()
+    var current: KoBaseDeclaration? = this
+    while (current is KoClassDeclaration || current is KoInterfaceDeclaration || current is KoObjectDeclaration) {
+        val name = (current as? KoNameProvider)?.name ?: break
+        names += name
+        current = (current as? KoContainingDeclarationProvider)?.containingDeclaration as? KoBaseDeclaration
+    }
+    return names.reversed()
+}
 
 /**
  * The string a declaration pins its discriminator to, or null when it pins none.

@@ -6,6 +6,7 @@ import architecture.definitions.containingFilePackage
 import architecture.definitions.featureName
 import architecture.definitions.featureNameFromContainingPackage
 import architecture.definitions.isFeatureModule
+import architecture.rules.shared.simpleTypeNames
 import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
 import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
 
@@ -147,9 +148,13 @@ object ServerServices : RuleGroup(
         note("Tested on the primary constructor of every class in `feature.[name].server.services` and its sub-packages: a parameter whose type — bare, or inside a wrapper such as `Lazy<…>` — is an `@Urpc` interface belonging to another feature.")
         note("A feature's own contract is unaffected: a class in this layer may wrap or delegate to its own feature's Service.")
         scope { scope, exempt ->
-            val contractOwnerByName: Map<String, String> = scope.interfaces()
+            // A simple name can belong to contracts in several features, so owners are kept as a
+            // set: collapsing to one owner would both misreport a feature's own contract as
+            // foreign and hide a real foreign injection behind the collapsed entry.
+            val contractOwnersByName: Map<String, Set<String>> = scope.interfaces()
                 .filter { iface -> iface.annotations.any { it.name == "Urpc" } }
-                .associate { it.name to it.featureName() }
+                .groupBy({ it.name }, { it.featureName() })
+                .mapValues { (_, owners) -> owners.toSet() }
             scope.classes()
                 .filter { it.isFeatureModule() }
                 .filter { servicesPackageRegex.matches(it.containingFilePackage()) }
@@ -158,11 +163,21 @@ object ServerServices : RuleGroup(
                     val ownFeature = cls.featureNameFromContainingPackage()
                     cls.primaryConstructor?.parameters.orEmpty()
                         .flatMap { param -> param.type.name.simpleTypeNames().map { param to it } }
-                        .filter { (_, name) -> contractOwnerByName[name].let { it != null && it != ownFeature } }
-                        .map { (param, name) ->
+                        .mapNotNull { (param, name) ->
+                            val owners = contractOwnersByName[name] ?: return@mapNotNull null
+                            // An ambiguous name is disambiguated by the file's import; a name with
+                            // no matching import is a same-package reference, i.e. the own feature's.
+                            val owner = when {
+                                owners.size == 1 -> owners.single()
+                                else -> cls.containingFile.imports
+                                    .firstOrNull { it.name.startsWith("feature.") && it.name.substringAfterLast('.') == name }
+                                    ?.featureName()
+                                    ?: ownFeature
+                            }
+                            if (owner == ownFeature) return@mapNotNull null
                             Violation(
                                 cls,
-                                "injects `$name`, the `${contractOwnerByName[name]}` feature's Service contract, as `${param.name}` — " +
+                                "injects `$name`, the `$owner` feature's Service contract, as `${param.name}` — " +
                                     "state a `server.domain` interface that feature publishes to `:api` instead",
                             )
                         }
@@ -208,13 +223,3 @@ internal fun KoFileDeclaration.isInServerServices(): Boolean {
     val pkg = packagee?.name ?: return false
     return pkg.contains(".server.services")
 }
-
-/**
- * Every simple type name a type expression mentions, so a wrapped `Lazy<SomeService>` reads the
- * same as a bare `SomeService`.
- */
-private fun String.simpleTypeNames(): List<String> =
-    Regex("""[A-Za-z_][A-Za-z0-9_.]*""")
-        .findAll(this)
-        .map { it.value.substringAfterLast('.') }
-        .toList()

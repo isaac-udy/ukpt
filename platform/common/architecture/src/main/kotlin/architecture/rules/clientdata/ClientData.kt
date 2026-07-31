@@ -6,8 +6,8 @@ import architecture.definitions.containsPackageSegment
 import architecture.definitions.isFeatureModule
 import architecture.definitions.isFeatureRootPackage
 import architecture.definitions.isServerModule
-import architecture.rules.shared.isDomainInterfaceOnSide
-import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
+import architecture.rules.shared.domainInterfaceNamesOnSide
+import architecture.rules.shared.simpleTypeNames
 import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
 
 @Describe("""
@@ -51,17 +51,16 @@ object ClientData : RuleGroup(
             and easy to cycle. Logic that needs multiple domain interfaces belongs in a UseCase.
             """.trimIndent(),
         )
+        note("Matched by name against the client's classified domain interfaces, bare or inside a wrapper such as `Lazy<…>` — an `:api`-declared parameter type often resolves to no source declaration, so resolution-based matching would silently skip exactly the published contracts.")
         scope { scope, exempt ->
+            val domainInterfaces = scope.domainInterfaceNamesOnSide("client")
             scope.classes()
                 .filter { it.isFeatureModule() }
                 .filter { it.resideInPackage("feature..client.data..") }
                 .filterNot { exempt(it) }
                 .flatMap { cls ->
                     cls.primaryConstructor?.parameters.orEmpty()
-                        .filter { param ->
-                            val source = param.type.sourceDeclaration as? KoBaseDeclaration
-                            isDomainInterfaceOnSide(source, "client")
-                        }
+                        .filter { param -> param.type.name.simpleTypeNames().any { it in domainInterfaces } }
                         .map { param -> Violation(cls, "data class injects domain interface `${param.type.name}`") }
                 }
         }

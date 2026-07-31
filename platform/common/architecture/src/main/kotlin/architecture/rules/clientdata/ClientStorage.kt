@@ -4,8 +4,8 @@ import dev.isaacudy.udytils.architecture.*
 
 import architecture.definitions.containingFilePackage
 import architecture.definitions.containsPackageSegment
-import architecture.rules.shared.isDomainInterfaceOnSide
-import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
+import architecture.rules.shared.domainInterfaceNamesOnSide
+import architecture.rules.shared.simpleTypeNames
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 
 @Describe("""
@@ -50,16 +50,21 @@ object ClientStorage : Construct<ClientData>(
             embed orchestration logic in the persistence layer.
             """.trimIndent(),
         )
-        constrain { decl, _ ->
-            val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
-            cls.primaryConstructor?.parameters.orEmpty()
-                .filter { param ->
-                    val source = param.type.sourceDeclaration as? KoBaseDeclaration
-                    val isDomainInterface = source != null && isDomainInterfaceOnSide(source, "client")
-                    val typeName = param.type.name
-                    isDomainInterface || typeName.endsWith("Repository") || typeName.endsWith("Service")
+        note("Domain interfaces are matched by name against the client's classified set — an `:api`-declared parameter type often resolves to no source declaration, so resolution-based matching would silently skip exactly the published contracts.")
+        scope { scope, exempt ->
+            val domainInterfaces = scope.domainInterfaceNamesOnSide("client")
+            scope.classes()
+                .filter { test(it) }
+                .filterNot { exempt(it) }
+                .flatMap { cls ->
+                    cls.primaryConstructor?.parameters.orEmpty()
+                        .filter { param ->
+                            val typeName = param.type.name
+                            typeName.simpleTypeNames().any { it in domainInterfaces } ||
+                                typeName.endsWith("Repository") || typeName.endsWith("Service")
+                        }
+                        .map { Violation(cls, "Storage class injects a forbidden dependency: ${it.name}: ${it.type.name}") }
                 }
-                .map { Violation(cls, "Storage class injects a forbidden dependency: ${it.name}: ${it.type.name}") }
         }
     }
 }

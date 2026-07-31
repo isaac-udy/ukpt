@@ -11,6 +11,7 @@ import architecture.definitions.isNavigationKey
 import architecture.definitions.participatesInPolymorphicSerialization
 import architecture.definitions.sealedParentSimpleNames
 import architecture.definitions.serialNameValue
+import architecture.definitions.typeNestingChain
 import architecture.rules.serverservices.servicesPackageRegex
 import dev.isaacudy.udytils.architecture.*
 
@@ -296,7 +297,7 @@ object ProjectRules : RuleGroup() {
         }
     }
 
-    @Describe("A `@SerialName` on a polymorphically serialized type must encode the type that encloses it: exactly `NavigationKey.<Name>` for a navigation destination, and a value ending `<SealedParent>.<Name>` for a sealed variant")
+    @Describe("A `@SerialName` on a polymorphically serialized type must encode the type that encloses it: exactly `NavigationKey.<Name>` for a navigation destination, and a value ending with the type-nesting chain from the outermost declaring type for a sealed variant")
     val serialNameEncodesEnclosingType by rule {
         rationale(
             """
@@ -314,6 +315,7 @@ object ProjectRules : RuleGroup() {
             """.trimIndent(),
         )
         note("Only the required suffix is checked for a sealed variant, so a hierarchy pinned to a pre-move fully-qualified name for compatibility already satisfies this — the type chain is the end of an FQN.")
+        note("The required chain runs from the outermost declaring type, not just the immediate sealed parent: two destinations each nesting a sealed `Action` with a `Delete` variant would otherwise share the discriminator `\"Action.Delete\"`, and a value two readers can claim identifies neither.")
         note("A destination is checked exactly, not by suffix: nothing durable rides on a navigation key, so there is no compatibility case that would justify a longer value.")
         scope { scope, exempt ->
             scope.classesAndInterfacesAndObjects(includeNested = true)
@@ -335,7 +337,14 @@ object ProjectRules : RuleGroup() {
                         }
                     }
 
-                    val accepted = declaration.sealedParentSimpleNames().map { "$it.$name" }
+                    // A nested variant's identity is its full nesting chain; a top-level variant
+                    // has no chain of its own, so its sealed parents' names stand in.
+                    val chain = declaration.typeNestingChain()
+                    val accepted = if (chain.size >= 2) {
+                        listOf(chain.joinToString("."))
+                    } else {
+                        declaration.sealedParentSimpleNames().map { "$it.$name" }
+                    }
                     when {
                         accepted.any { pinned.endsWith(it) } -> null
                         else -> Violation(
@@ -447,10 +456,21 @@ private fun packageResolver(scope: KoScope): (String) -> String? {
 /** A side-first name as it appears in a file body, where there is no import to inspect. */
 private val sideFirstReferenceRegex = Regex("""feature\.\w+\.(?:client|server)\.[\w.]+""")
 
+/**
+ * The file's text with string literals and comments blanked, so a fully-qualified name cited in a
+ * KDoc, a `//` note, or a log message is not mistaken for a code reference. Strings go first —
+ * a `//` inside a URL literal is not a comment — then block and line comments.
+ */
+private fun String.withoutStringsAndComments(): String =
+    replace(Regex('"'.toString().repeat(3) + ".*?" + '"'.toString().repeat(3), RegexOption.DOT_MATCHES_ALL), "\"\"")
+        .replace(Regex("\"(?:\\\\.|[^\"\\\\])*\""), "\"\"")
+        .replace(Regex("""/\*.*?\*/""", RegexOption.DOT_MATCHES_ALL), "")
+        .replace(Regex("""//[^\n]*"""), "")
+
 /** Every project declaration a file names — import or fully-qualified body reference — and its package. */
 private fun KoFileDeclaration.namedPackages(resolve: (String) -> String?): List<Pair<String, String>> {
     val body = imports
-        .fold(text) { stripped, import -> stripped.replace(import.text, "") }
+        .fold(text.withoutStringsAndComments()) { stripped, import -> stripped.replace(import.text, "") }
         .let { stripped -> packagee?.text?.let { stripped.replace(it, "") } ?: stripped }
     return (imports.map { it.name } + sideFirstReferenceRegex.findAll(body).map { it.value })
         .distinct()

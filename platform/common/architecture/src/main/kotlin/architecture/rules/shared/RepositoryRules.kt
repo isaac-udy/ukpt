@@ -1,6 +1,5 @@
 package architecture.rules.shared
 
-import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 import dev.isaacudy.udytils.architecture.*
 
@@ -31,11 +30,17 @@ abstract class RepositoryRules<G : RuleGroup>(
     @Describe("A Repository must not implement domain interfaces directly")
     val doesNotImplementDomainInterfaces by rule {
         rationale("Inheriting the interface makes one class *be* many contracts, so its surface can only grow; exposing them as properties keeps each contract separately nameable and separately injectable.")
-        constrain { decl, _ ->
-            val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
-            cls.parents()
-                .filter { isDomainInterfaceOnSide(it, side) }
-                .map { Violation(cls, "Repository implements domain interface `${it.name}` directly — expose it as a property instead") }
+        note("Matched by name against the side's classified domain interfaces: a parent reference to an `:api`-declared interface often resolves to no source declaration, so resolution-based matching would silently skip exactly the published contracts.")
+        scope { scope, exempt ->
+            val domainInterfaces = scope.domainInterfaceNamesOnSide(side)
+            scope.classes()
+                .filter { test(it) }
+                .filterNot { exempt(it) }
+                .flatMap { cls ->
+                    cls.parents()
+                        .filter { it.name.substringAfterLast('.') in domainInterfaces }
+                        .map { Violation(cls, "Repository implements domain interface `${it.name}` directly — expose it as a property instead") }
+                }
         }
     }
 
@@ -59,11 +64,17 @@ abstract class RepositoryRules<G : RuleGroup>(
     @Describe("A Repository must not inject domain interfaces")
     val doesNotInjectDomainInterfaces by rule {
         rationale("A Repository that injects a contract is calling a sibling adapter through the abstract layer, which makes the graph unreadable and easy to cycle. Logic that needs several interfaces is a UseCase.")
-        constrain { decl, _ ->
-            val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
-            cls.primaryConstructor?.parameters.orEmpty()
-                .filter { isDomainInterfaceOnSide(it.type.sourceDeclaration as? KoBaseDeclaration, side) }
-                .map { Violation(cls, "Repository injects domain interface `${it.type.name}` — move multi-interface logic to a UseCase") }
+        note("Matched by name against the side's classified domain interfaces, bare or inside a wrapper such as `Lazy<…>` — an `:api`-declared parameter type often resolves to no source declaration, so resolution-based matching would silently skip exactly the published contracts.")
+        scope { scope, exempt ->
+            val domainInterfaces = scope.domainInterfaceNamesOnSide(side)
+            scope.classes()
+                .filter { test(it) }
+                .filterNot { exempt(it) }
+                .flatMap { cls ->
+                    cls.primaryConstructor?.parameters.orEmpty()
+                        .filter { param -> param.type.name.simpleTypeNames().any { it in domainInterfaces } }
+                        .map { Violation(cls, "Repository injects domain interface `${it.type.name}` — move multi-interface logic to a UseCase") }
+                }
         }
     }
 

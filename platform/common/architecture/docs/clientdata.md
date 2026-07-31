@@ -33,6 +33,7 @@ This is also the only layer that may talk to the server: Repositories call
     * **Enforced by:** `ClientData.Repository.doesNotImplementDomainInterfaces`, `ClientData.Repository.exposesDomainInterfacesAsProperties`
 * A `client.data` class must not inject `domain` interfaces; logic that requires multiple domain interfaces belongs in a UseCase
     * **Why:** Repositories implement domain interfaces. If one injects a domain interface, it is calling a sibling Repository through the abstract layer, which makes the dependency graph unreadable and easy to cycle. Logic that needs multiple domain interfaces belongs in a UseCase.
+    * **Note:** Matched by name against the client's classified domain interfaces, bare or inside a wrapper such as `Lazy<…>` — an `:api`-declared parameter type often resolves to no source declaration, so resolution-based matching would silently skip exactly the published contracts.
 * A `client.data.storage` class must use `internal` visibility where the language allows (see `ClientData.ClientStorage.internalVisibility`)
     * **Enforced by:** `ClientData.ClientStorage.internalVisibility`
 * The `client.data` layer must not depend on the `ui` package
@@ -73,10 +74,12 @@ construct as a [server Repository](serverdata.md#repository).
     * **Why:** Callers depend on the domain interfaces it provides, never on the Repository itself; `internal` is what makes that the only reachable surface.
 * A Repository must not implement domain interfaces directly
     * **Why:** Inheriting the interface makes one class *be* many contracts, so its surface can only grow; exposing them as properties keeps each contract separately nameable and separately injectable.
+    * **Note:** Matched by name against the side's classified domain interfaces: a parent reference to an `:api`-declared interface often resolves to no source declaration, so resolution-based matching would silently skip exactly the published contracts.
 * A Repository must expose domain interfaces as `public val` properties
     * **Why:** The property name is the interface name in lowerCamelCase, so the wiring reads as a list of the contracts this Repository answers.
 * A Repository must not inject domain interfaces
     * **Why:** A Repository that injects a contract is calling a sibling adapter through the abstract layer, which makes the graph unreadable and easy to cycle. Logic that needs several interfaces is a UseCase.
+    * **Note:** Matched by name against the side's classified domain interfaces, bare or inside a wrapper such as `Lazy<…>` — an `:api`-declared parameter type often resolves to no source declaration, so resolution-based matching would silently skip exactly the published contracts.
 * A Repository must not inject other Repositories
     * **Why:** Two Repositories over one domain object have no single edge, and the second reaches its data through the first's mapping rather than through the source that owns it.
 * A Repository's domain-interface properties must be initialized immediately: no `by lazy`, no custom getter
@@ -165,6 +168,7 @@ DataStore, etc.
     * **Note:** The test skips `expect`/`actual` declarations: an `actual`'s visibility must match its `expect`, so the language decides there, not this Rule.
 * A Storage class must not inject domain interfaces, Repositories, or Services
     * **Why:** Storage is the lowest layer of the stack: it should depend on the database or keychain client and nothing higher. Injecting a domain interface, Repository, or Service would embed orchestration logic in the persistence layer.
+    * **Note:** Domain interfaces are matched by name against the client's classified set — an `:api`-declared parameter type often resolves to no source declaration, so resolution-based matching would silently skip exactly the published contracts.
 
 ##### Examples
 
