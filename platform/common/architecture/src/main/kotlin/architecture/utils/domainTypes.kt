@@ -50,8 +50,15 @@ fun isDomainCompatibleType(typeName: String, declaredIn: KoFileDeclaration): Boo
  */
 fun String.isGeneratedTableImport(): Boolean = startsWith("platform.server.postgres.tables.")
 
-/** Imports that make a package non-pure: Android, Compose, Ktor, SQL, persistence. */
+/**
+ * Imports that make a package non-pure: Android, Compose, Ktor, SQL, persistence — plus the
+ * project's own UI-carrying platform modules (the design system and shared UI shells), whose types
+ * are Compose-backed whatever their package reads as. Deliberately *not* all of `platform.`:
+ * pure cross-cutting primitives — a logger, an auth credential, the transaction runner — are
+ * legitimate domain dependencies, and banning them wholesale would flag the reference practice.
+ */
 fun String.isPlatformSpecificImport(): Boolean =
     startsWith("android.") || startsWith("androidx.") || startsWith("io.ktor.") ||
+        startsWith("platform.design.") || startsWith("platform.ui.") ||
         contains(".sql.") || contains("sqldelight") || contains("org.jetbrains.exposed") ||
         contains("room") || isGeneratedTableImport()

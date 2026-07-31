@@ -59,7 +59,7 @@ object ClientDomain : DomainGroupRules(
             Expose a domain interface and implement it in `client.data` instead.
             """.trimIndent(),
         )
-        note("A generated Exposed table (`platform.server.postgres.tables.**`) counts as a platform dependency — naming one is naming a column, whatever the package reads as.")
+        note("A generated Exposed table (`platform.server.postgres.tables.**`) counts as a platform dependency — naming one is naming a column, whatever the package reads as. So do the project's UI-carrying platform modules (`platform.design.**`, `platform.ui.**`): their types are Compose-backed. Pure cross-cutting primitives from other platform modules — a logger, an auth credential — are legitimate here.")
         scope(noPlatformDepsCheck("client.domain file imports a platform-specific dependency"))
     }
 

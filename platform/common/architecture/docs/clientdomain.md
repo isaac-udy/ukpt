@@ -43,7 +43,7 @@ same rules, opposite side. The layer supplies the context, so the names never re
     * **Note:** A file's own feature's `client.domain` is the layer itself, so it is not an import out of the layer; the exemption is scoped to the importing file's feature and to no other.
 * The `client.domain` layer must not contain platform-specific dependencies, such as Android, Compose, Ktor, or SQL
     * **Why:** The layer stays pure Kotlin so it compiles for every KMP target and stays unit-testable. Expose a domain interface and implement it in `client.data` instead.
-    * **Note:** A generated Exposed table (`platform.server.postgres.tables.**`) counts as a platform dependency — naming one is naming a column, whatever the package reads as.
+    * **Note:** A generated Exposed table (`platform.server.postgres.tables.**`) counts as a platform dependency — naming one is naming a column, whatever the package reads as. So do the project's UI-carrying platform modules (`platform.design.**`, `platform.ui.**`): their types are Compose-backed. Pure cross-cutting primitives from other platform modules — a logger, an auth credential — are legitimate here.
 * The `client.domain` layer may depend on another feature's root, but only via that feature's `:api` module
     * **Enforced by:** `ModuleRules.clientApiOnly`, `ModuleRules.crossFeatureCodeViaApi`
 * A `client.domain` package imports this layer only through its own package, its direct child subsystems, and its ancestors up to the layer root

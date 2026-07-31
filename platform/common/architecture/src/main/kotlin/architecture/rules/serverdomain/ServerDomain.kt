@@ -68,7 +68,7 @@ object ServerDomain : DomainGroupRules(
     @Describe("The `server.domain` layer must not contain persistence or transport dependencies, such as Exposed, Ktor, or SQL")
     val noPlatformDeps by rule {
         rationale("Pure logic stays testable without a database or a request. Declare a domain interface and let `server.data` satisfy it.")
-        note("A generated Exposed table (`platform.server.postgres.tables.**`) counts as a persistence dependency — naming one is naming a column, whatever the package reads as.")
+        note("A generated Exposed table (`platform.server.postgres.tables.**`) counts as a persistence dependency — naming one is naming a column, whatever the package reads as. The project's UI-carrying platform modules (`platform.design.**`, `platform.ui.**`) count too. Pure cross-cutting primitives from other platform modules — a logger, an auth credential, `platform.server.postgres.TransactionRunner` — are legitimate here.")
         scope(noPlatformDepsCheck("server.domain file imports a persistence or transport dependency"))
     }
 

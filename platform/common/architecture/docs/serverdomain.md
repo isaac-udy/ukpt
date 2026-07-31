@@ -56,7 +56,7 @@ or folded with its siblings into a [UseCase](#use-case) when the logic spans sev
     * **Note:** A file's own feature's `server.domain` is the layer itself, so it is not an import out of the layer; the exemption is scoped to the importing file's feature and to no other.
 * The `server.domain` layer must not contain persistence or transport dependencies, such as Exposed, Ktor, or SQL
     * **Why:** Pure logic stays testable without a database or a request. Declare a domain interface and let `server.data` satisfy it.
-    * **Note:** A generated Exposed table (`platform.server.postgres.tables.**`) counts as a persistence dependency — naming one is naming a column, whatever the package reads as.
+    * **Note:** A generated Exposed table (`platform.server.postgres.tables.**`) counts as a persistence dependency — naming one is naming a column, whatever the package reads as. The project's UI-carrying platform modules (`platform.design.**`, `platform.ui.**`) count too. Pure cross-cutting primitives from other platform modules — a logger, an auth credential, `platform.server.postgres.TransactionRunner` — are legitimate here.
 * A `server.domain` interface that another feature calls must be declared in the `:api` module
     * **Note:** Publishing is moving the file between modules — the package is unchanged, so no import churn.
     * **Note:** The layer root is the whole of the publication channel: a subsystem declaration is never published (`ModuleRules.subsystemsNotPublished`). A capability a subsystem computes that another feature needs is restated as a root contract the subsystem satisfies.
