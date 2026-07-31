@@ -174,7 +174,9 @@ include(":feature:<name>:server")
 
 ## §5 — Client source skeletons
 
-`:api` → `feature/<name>/api/src/commonMain/kotlin/feature/<name>/client/ui/<Name>Destination.kt`
+`:client` → `feature/<name>/client/src/commonMain/kotlin/feature/<name>/client/ui/<Name>Destination.kt`
+(the default home — move the file to `:api`, same package, only when a second feature navigates to it;
+an app-shell reference never forces the move: `ClientUi.Destination.definedInApiOrClient`)
 ```kotlin
 package feature.<name>.client.ui
 

@@ -32,9 +32,11 @@ whatever the project was renamed to downstream — read `platform/client/design`
 1. **Module dirs + three `build.gradle.kts`** (templates.md §1–3). Substitute the namespace strings and
    the `projects.feature.<name>.*` accessors; keep everything else verbatim. Heed the gotchas below.
 2. **`settings.gradle.kts`** — add three `include(...)` after the `:feature:core` block (templates.md §4).
-3. **Client sources** (`feature.<name>.client.ui`): `<Name>Destination` in `:api` (same package —
-   publication is module placement; it pins `@SerialName("NavigationKey.<Name>Destination")` per
-   `ProjectRules.serialNameEncodesEnclosingType`); `<Name>Screen` + `internal <Name>ScreenContent`,
+3. **Client sources** (`feature.<name>.client.ui`): `<Name>Destination` in `:client` — the default
+   home; move the file to `:api` (same package, no import churn) only when a **second feature**
+   navigates to it, per `ClientUi.Destination.definedInApiOrClient` — an app-shell reference never
+   forces the move. It pins `@SerialName("NavigationKey.<Name>Destination")` per
+   `ProjectRules.serialNameEncodesEnclosingType`. `<Name>Screen` + `internal <Name>ScreenContent`,
    `<Name>ViewModel`, `<Name>State` in `:client`; `<name>ClientDependencies` at the feature root
    `feature.<name>` in `:client` (templates.md §5).
 4. **Snapshot tests (preview-driven)** — the harness is the `dev.isaacudy.udytils:snapshot` artifact, so

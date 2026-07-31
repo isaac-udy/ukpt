@@ -99,10 +99,10 @@ the destination declaration site.
 
 ##### Examples
 
-A dialog/overlay screen: the Destination lives in `:api`, and the property-based `navigationDestination` in `:client` declares `directOverlay()` metadata and resolves its ViewModel via `viewModel()` inside the block.
+A dialog/overlay screen: the Destination lives in `:client` (published to `:api` only when a second feature navigates to it), and the property-based `navigationDestination` declares `directOverlay()` metadata and resolves its ViewModel via `viewModel()` inside the block.
 
 ```kotlin
-// Destination (in :api)
+// Destination (in :client)
 @Serializable
 @SerialName("NavigationKey.ChangeRoleDestination")
 data class ChangeRoleDestination(
