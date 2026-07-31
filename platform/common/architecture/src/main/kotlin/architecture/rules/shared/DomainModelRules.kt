@@ -2,6 +2,7 @@ package architecture.rules.shared
 
 import architecture.definitions.isMutable
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
+import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
 import dev.isaacudy.udytils.architecture.*
 
 /** The side-private domain model rules, shared by both sided domain groups. */
@@ -15,7 +16,14 @@ abstract class DomainModelRules<G : RuleGroup> : Construct<G>(
     val immutable by rule {
         rationale("Shared mutable state in the middle of the hexagon makes call order load-bearing and defeats the layer's testability.")
         constrain { decl, _ ->
-            (decl as? KoClassDeclaration)?.properties().orEmpty()
+            // The construct classifies interfaces too (a sealed interface hierarchy is a model),
+            // so both declaration kinds are checked.
+            val props = when (decl) {
+                is KoClassDeclaration -> decl.properties()
+                is KoInterfaceDeclaration -> decl.properties()
+                else -> emptyList()
+            }
+            props
                 .filter { it.isMutable() }
                 .map { Violation(it, "domain model has a mutable (`var`) property") }
         }

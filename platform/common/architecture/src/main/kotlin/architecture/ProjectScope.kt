@@ -20,6 +20,16 @@ private val buildRoot: String = generateSequence(File(System.getProperty("user.d
  */
 private val nestedWorktrees = "$buildRoot/.claude/"
 
+/**
+ * Matches any test source set so none of them are architecture-scanned: plain-JVM `src/test`, KMP's
+ * shared `commonTest`, every per-platform set (`desktopTest`, `iosSimulatorArm64Test`, `wasmJsTest`,
+ * …), and Android's `androidHostTest`/`androidUnitTest`/`screenshotTest` (under AGP 9.0's
+ * `com.android.kotlin.multiplatform.library` plugin, Paparazzi host tests live in `androidHostTest`,
+ * formerly `androidUnitTest`, rather than `src/test`). The `[^/]*[Tt]est` segment matches the source
+ * set directly after `/src/`; no `…Main` set ends in `test`, so production code is never excluded.
+ */
+private val testSourceSet = Regex("/src/[^/]*[Tt]est/")
+
 val projectScope = Konsist
     .scopeFromProject()
     .slice {
@@ -28,15 +38,13 @@ val projectScope = Konsist
         !it.path.contains("/platform/common/architecture/") &&
                 !it.path.contains("embedded-enro") &&
                 !it.path.contains("embedded-udytils") &&
-                // Agent worktrees under `.claude/worktrees/` are complete second copies of the
-                // repository. Scanning them double-counts every declaration, and — worse — makes
-                // any rule about cross-file uniqueness fail against a file's own reflection.
+                // build-logic is an includeBuild composite of template tooling (not app code),
+                // sibling to the embedded composite builds — its sources aren't governed either.
+                !it.path.contains("/build-logic/") &&
+                // Agent worktrees under `.claude/` are complete second copies of the repository.
+                // Scanning them double-counts every declaration, and — worse — makes any rule
+                // about cross-file uniqueness fail against a file's own reflection.
                 !it.path.startsWith(nestedWorktrees) &&
-                !it.path.contains("/src/test/") &&
-                // Under AGP 9.0's `com.android.kotlin.multiplatform.library` plugin, Paparazzi host
-                // tests live in the `androidHostTest` (formerly `androidUnitTest`) source set rather
-                // than `src/test`. Exclude both so test fixtures aren't architecture-scanned.
-                !it.path.contains("/src/androidHostTest/") &&
-                !it.path.contains("/src/androidUnitTest/") &&
-                !it.path.contains("/src/screenshotTest/")
+                // Test sources of every kind are out of scope (see testSourceSet above).
+                !testSourceSet.containsMatchIn(it.path)
     }

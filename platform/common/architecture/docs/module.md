@@ -73,6 +73,11 @@ Kotlin source. Build-file exemptions use the `// architecture-exception:` commen
     * **Why:** Publishing a file to `:api` shares a capability contract, never how it is satisfied. A class in `:api` that implements a domain interface would ship the implementation across the same channel as the interface, which is exactly what the `client.domain` / `server.domain` purity rules and the `:api` publication channel (D27) are there to prevent — the channel carries interfaces and models only.
     * **Note:** Tested against the client- and server-side Domain Interface Constructs, so a supertype counts only when it is both shaped like one — a `fun interface` with an `operator fun invoke` — and declared in a `client.domain`/`server.domain` package.
     * **Note:** A sealed interface is never a `fun interface`, so a sealed variant implementing its own nested sealed parent (e.g. `UpdateCampaign.Update`'s data classes) is not affected by this rule.
+* The feature `:api` dependency graph must be acyclic
+    * **Why:** When features graduate from a shared module (the `:feature:core` starting pattern) into their own `:feature:[name]` modules, every cross-feature `:api` import becomes a real `:feature:X:api` → `:feature:Y:api` Gradle dependency, and Gradle rejects circular project dependencies. Features caught in an `:api` cycle can never be housed in separate modules — they must graduate as one lump. Keeping the graph acyclic keeps every feature independently liftable.
+    * **Note:** Only `:api` → `:api` edges can close a Gradle cycle: `:client`/`:server` code depends on other features' `:api` but never the reverse, so those edges can't form a ring. This Rule inspects only imports in `:api` sources that resolve to another feature's `:api` code.
+    * **Note:** Cross-feature imports that resolve outside `:api` are reported by `ModuleRules.crossFeatureCodeViaApi`, not here.
+    * **Note:** To keep a deliberate edge, annotate the `:api` source file holding the import with `@file:ArchitectureException(ruleIds = ["ModuleRules.apiGraphAcyclic"], reason = "…")`; its edges are then excluded from the graph.
 * A `:platform` module must never depend on an `:app` module
 * A `:platform` module must never depend on a `:feature` module
 
@@ -81,6 +86,11 @@ Kotlin source. Build-file exemptions use the `// architecture-exception:` commen
 * A `:feature` module may depend on `:platform` modules
 * A `:feature:[name]:api` module may depend on another feature's `:api` module to share models
     * **Note:** `:api` to `:api` dependencies are allowed, but should be kept to a minimum.
+    * **Note:** This audit reads the module graph, so it sees only features already housed in separate modules. `ModuleRules.apiMayUseApiSameModule` reports the same dependencies between features staged in one shared module.
+    * **Audited:** a test reports non-conforming code without ever failing.
+* Within a shared module, a feature's `:api` code may depend on another feature's `:api` code, but such dependencies should be kept minimal
+    * **Note:** The staged-module counterpart to `ModuleRules.apiMayUseApi`: while several features share one module (the `:feature:core` pattern), their cross-feature `:api` dependencies are imports, not module-graph edges, so that audit can't see them. Each import reported here becomes a real `:feature:X:api` → `:feature:Y:api` edge when the features graduate, and every such edge constrains `ModuleRules.apiGraphAcyclic`.
+    * **Note:** Only same-module dependencies are reported; once two features are housed separately, `ModuleRules.apiMayUseApi` takes over.
     * **Audited:** a test reports non-conforming code without ever failing.
 * A `:feature` module may be grouped (`:feature:[group]:[name]:…`)
     * **Note:** A module that serves as a group should exist only as a group, and should not itself contain `:api`, `:server` or `:client` modules.

@@ -249,10 +249,12 @@ object ProjectRules : RuleGroup() {
                 .filter { (it as? KoAnnotationProvider)?.hasAnnotationWithName("ArchitectureException") == true }
                 .filterNot { exempt(it) }
                 .filterNot { decl ->
-                    // The `reason = "…"` argument is the required, machine-readable explanation.
+                    // The `reason = "…"` argument is the required, machine-readable explanation. The
+                    // regex demands a non-whitespace character after the opening quote, so a
+                    // blank sign-off like `reason = " "` does not satisfy the rule.
                     (decl as? KoAnnotationProvider)?.annotations
                         ?.firstOrNull { it.name == "ArchitectureException" }
-                        ?.text?.contains(Regex("""reason\s*=\s*"[^"]""")) == true
+                        ?.text?.contains(Regex("""reason\s*=\s*"\s*[^\s"]""")) == true
                 }
                 .map { Violation(it, "declaration carries @ArchitectureException without a non-blank `reason` explaining why and the intended resolution") }
         }

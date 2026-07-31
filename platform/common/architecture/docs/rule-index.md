@@ -20,7 +20,9 @@ The complete catalog, one row per Construct or Rule. IDs are based on the object
 | `ModuleRules.subsystemsNotPublished` | A declaration in a layer's subsystem package must reside in a `:client` or `:server` module | [tested](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |
 | `ModuleRules.noDuplicateFqnAcrossTrio` | A fully-qualified name under `feature.` must be declared in exactly one Gradle module | [tested](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |
 | `ModuleRules.noDomainImplementationsInApi` | A class in an `:api` module's `client.domain`/`server.domain` package must not implement a domain interface | [tested](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |
+| `ModuleRules.apiGraphAcyclic` | The feature `:api` dependency graph must be acyclic | [tested](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |
 | `ModuleRules.apiMayUseApi` | A `:feature:[name]:api` module may depend on another feature's `:api` module to share models | [guidance](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |
+| `ModuleRules.apiMayUseApiSameModule` | Within a shared module, a feature's `:api` code may depend on another feature's `:api` code, but such dependencies should be kept minimal | [guidance](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |
 | `ModuleRules.featuresMayBeGrouped` | A `:feature` module may be grouped (`:feature:[group]:[name]:…`) | [guidance](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |
 | `ModuleRules.platformNotApp` | A `:platform` module must never depend on an `:app` module | [tested](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |
 | `ModuleRules.platformNotFeature` | A `:platform` module must never depend on a `:feature` module | [tested](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |

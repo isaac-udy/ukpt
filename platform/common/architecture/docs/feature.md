@@ -160,11 +160,12 @@ sealed interface Transport {
     val name: String
 
     @Serializable
+    @SerialName("Transport.Car")
     data class Car(
         override val id: String,
         override val name: String,
         val fuelType: FuelType,
-    ) {
+    ) : Transport {
         @Serializable
         enum class FuelType {
             Petrol,
@@ -175,11 +176,12 @@ sealed interface Transport {
     }
 
     @Serializable
+    @SerialName("Transport.Bicycle")
     data class Bicycle(
         override val id: String,
         override val name: String,
         val type: Type,
-    ) {
+    ) : Transport {
         @Serializable
         enum class Type {
             Manual,
@@ -188,11 +190,12 @@ sealed interface Transport {
     }
 
     @Serializable
+    @SerialName("Transport.Bus")
     data class Bus(
         override val id: String,
         override val name: String,
         val routeId: String,
-    )
+    ) : Transport
 }
 ```
 

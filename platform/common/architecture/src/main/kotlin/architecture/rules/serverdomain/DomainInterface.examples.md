@@ -38,15 +38,15 @@ fun interface FlowOfUsers {
     operator fun invoke(params: Input): Flow<List<User>>
 
     fun allUsers(): Flow<List<User>> {
-        return invoke(UserSearchInput.AllUsers)
+        return invoke(Input.AllUsers)
     }
 
     fun nameContains(searchTerm: String): Flow<List<User>> {
-        return invoke(UserSearchInput.NameContains(searchTerm = searchTerm))
+        return invoke(Input.NameContains(searchTerm = searchTerm))
     }
 
     fun isFriendOf(userId: String): Flow<List<User>> {
-        return invoke(UserSearchInput.FriendOf(userId = userId))
+        return invoke(Input.FriendOf(userId = userId))
     }
 
     sealed interface Input {

@@ -104,6 +104,7 @@ A dialog/overlay screen: the Destination lives in `:api`, and the property-based
 ```kotlin
 // Destination (in :api)
 @Serializable
+@SerialName("NavigationKey.ChangeRoleDestination")
 data class ChangeRoleDestination(
     val memberName: String,
     val currentRole: UserRole,
@@ -138,7 +139,7 @@ overlay, or a `@Preview` function.
 * **Note:** `[Name]ScreenContent` companions (see `ClientUi.Screen.screenContentCompanion`)
   are non-Screen composables, which is why the snapshot rules live on this Construct.
   For reusable design-system primitives (buttons, fields), prefer a shared composable in
-  `:platform:client:ui`. Feature-local composables live alongside the Screen they support.
+  `:platform:client:design`. Feature-local composables live alongside the Screen they support.
 
 ### Snapshot tests
 
@@ -156,14 +157,16 @@ that is needed to snapshot it.
 * **Note:** A screen's `@Preview`(s) live in the same file as the `[Name]ScreenContent` they
   render, next to the Screen — not gathered into a shared "screen previews" file.
 * **Note:** For one-off snapshot tests that aren't preview-driven, `SnapshotRule`
-  (`platform.snapshot.SnapshotRule`) provides `snapshot.screen { }` and
+  (`dev.isaacudy.udytils.snapshot.SnapshotRule`) provides `snapshot.screen { }` and
   `snapshot.component { }`.
 * **Note:** Record golden images after adding or changing a preview, then verify they match
-  (goldens are committed under `src/androidHostTest/snapshots/images/`):
+  (goldens are committed under `src/androidHostTest/snapshots/images/`). Both tasks need
+  `--no-configuration-cache` (under the cache the R class is dropped from the test classpath —
+  see the configuration-cache migration):
 
   ```
-  ./gradlew :feature:core:client:recordPaparazzi
-  ./gradlew :feature:core:client:verifyPaparazzi
+  ./gradlew :feature:core:client:recordPaparazzi --no-configuration-cache
+  ./gradlew :feature:core:client:verifyPaparazzi --no-configuration-cache
   ```
 
 ##### Requirements
@@ -179,6 +182,7 @@ that is needed to snapshot it.
 * A feature module that contains `@Preview` composables must have a `PreviewSnapshotTest` in its `androidHostTest` source set
     * **Why:** The scanner test is what turns previews into snapshots; without it, previews render in the IDE but nothing guards against visual regressions.
     * **Note:** Snapshot tests live under `src/androidHostTest/`, which the governed scope excludes; the test reads those files directly.
+    * **Note:** A module opts in by extending `PreviewSnapshotTestCase` from `dev.isaacudy.udytils:snapshot`, which supplies the preview scanning and the golden layout.
 
 ---
 

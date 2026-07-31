@@ -30,11 +30,21 @@ contains `domain/`, `ui/`, `data/`, or `services/` sub-packages, or if any sourc
 1. Take the template's catalog (the sync's semantic merge), keeping any downstream-only constructs
    and each group's project-specific `@Describe` narrative.
 2. Re-root every `@ArchitectureException` id string — an exemption whose id no longer matches
-   simply stops exempting, silently:
-   - `DomainLayer.*` → `ClientDomain.*` (or `ServerDomain.*` once the declaration is server-side),
-   - `UiLayer.*` → `ClientUi.*`,
-   - `DataLayer.*` → `ClientData.*` (or `ServerData.*`),
-   - `ServicesLayer.*` → `ServerServices.*`; storage-construct ids under it → `ServerData.*`.
+   simply stops exempting, silently. The new id follows the declaration's **new home**, not a
+   mechanical prefix swap:
+   - `DomainLayer.DomainObject.*` → `FeatureRules.SharedDomainModel.*` when the model moves to the
+     feature root, or `ClientDomain.DomainModel.*` / `ServerDomain.DomainModel.*` when it stays
+     side-private;
+   - other `DomainLayer.*` → `ClientDomain.*` (or `ServerDomain.*` once the declaration is
+     server-side);
+   - `UiLayer.*` → `ClientUi.*`;
+   - `DataLayer.*` → `ClientData.*` (or `ServerData.*`);
+   - `ServicesLayer.*` → `ServerServices.*`; storage-construct ids under it → `ServerData.*` —
+     **except** the ServiceImpl dependency rules, whose semantics reversed rather than renamed: a
+     ServiceImpl now consumes domain interfaces and never persistence, so
+     `ServicesLayer.ServiceImpl.noInjectingDomainInterfaces` and
+     `ServicesLayer.ServiceImpl.mayInjectStorageAndInternal` have **no successor**. Remove those
+     exemptions and redesign the exempted code against `ServerServices.ServiceImpl.noPersistenceInjection`.
    The same applies to `// architecture-exception:` comments in build files.
 3. Regenerate the docs: `./gradlew :platform:common:architecture:updateArchitectureDocumentation`.
    Never hand-edit the README or `docs/` — they are generated.

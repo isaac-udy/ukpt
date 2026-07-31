@@ -3,6 +3,7 @@ A dialog/overlay screen: the Destination lives in `:api`, and the property-based
 ```kotlin
 // Destination (in :api)
 @Serializable
+@SerialName("NavigationKey.ChangeRoleDestination")
 data class ChangeRoleDestination(
     val memberName: String,
     val currentRole: UserRole,
