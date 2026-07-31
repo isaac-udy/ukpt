@@ -1,5 +1,6 @@
-package feature.ukpt.domain
+package feature.ukpt.client.domain
 
+import feature.ukpt.Greeting
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 

@@ -1,4 +1,4 @@
-package feature.ukpt.domain
+package feature.ukpt
 
 import kotlinx.serialization.Serializable
 

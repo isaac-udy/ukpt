@@ -1,4 +1,4 @@
-package feature.ukpt.ui
+package feature.ukpt.client.ui
 
 data class UkptState(
     val message: String = "Hello, ukpt!",

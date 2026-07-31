@@ -1,5 +1,6 @@
 package ukpt.template
 
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.LocalDate
@@ -7,6 +8,7 @@ import java.time.format.DateTimeParseException
 import java.util.stream.Collectors
 import kotlin.io.path.name
 import kotlin.io.path.readText
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -89,11 +91,9 @@ object TemplateRepositoryValidator {
     private fun repositoryIsDownstream(repository: Path): Boolean {
         val marker = repository.resolve(".ukpt/template.json")
         if (!Files.isRegularFile(marker)) return false
-        return try {
+        return runCatching {
             Json.parseToJsonElement(marker.readText()).jsonObject["project"] != null
-        } catch (exception: Exception) {
-            false
-        }
+        }.getOrDefault(false)
     }
 
     private fun validateMarker(
@@ -109,7 +109,13 @@ object TemplateRepositoryValidator {
 
         val root = try {
             Json.parseToJsonElement(marker.readText()).jsonObject
-        } catch (exception: Exception) {
+        } catch (exception: IOException) {
+            issues += TemplateValidationIssue(relativePath, "unreadable: ${exception.message}")
+            return null
+        } catch (exception: SerializationException) {
+            issues += TemplateValidationIssue(relativePath, "invalid JSON: ${exception.message}")
+            return null
+        } catch (exception: IllegalArgumentException) {
             issues += TemplateValidationIssue(relativePath, "invalid JSON: ${exception.message}")
             return null
         }

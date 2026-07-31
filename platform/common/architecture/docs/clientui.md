@@ -1,11 +1,11 @@
 > [!NOTE]
 > **This file is generated. Do not edit it directly.**
-> Generated from the `@Describe` annotations in `src/main/kotlin/architecture/rules/ui/` and the `*.examples.md` files beside them.
+> Generated from the `@Describe` annotations in `src/main/kotlin/architecture/rules/clientui/` and the `*.examples.md` files beside them.
 > Regenerate with `./gradlew :platform:common:architecture:updateArchitectureDocumentation`.
 
-# [Ui Layer](../src/main/kotlin/architecture/rules/ui/UiLayer.kt)
+# [Client Ui](../src/main/kotlin/architecture/rules/clientui/ClientUi.kt)
 
-The `ui` axis spans `:api` and `:client`:
+`feature.[name].client.ui` — the client's outermost layer. It spans two modules:
 
 * **`:api`:** serializable Navigation Keys ([Destinations](#destination)), a feature's shared
   navigation entry points.
@@ -13,11 +13,11 @@ The `ui` axis spans `:api` and `:client`:
   [ViewModels](#view-model), and UI-state models.
 
 Everything the UI loads or mutates arrives through
-[domain interfaces](domain.md#domain-interface), implemented by
-[Repositories](data.md#repository) in `data`. Server calls (via
-[Services](services.md#service-interface)) reach the screen the same way.
+[domain interfaces](clientdomain.md#domain-interface), provided by
+[Repositories](clientdata.md#repository) in `client.data`. Server calls (via
+[Services](serverservices.md#service-interface)) reach the screen the same way.
 
-The layer rules below apply across the whole `feature.[name].ui` package.
+The layer rules below apply across the whole `feature.[name].client.ui` package.
 
 ##### Constructs
 
@@ -31,20 +31,31 @@ The layer rules below apply across the whole `feature.[name].ui` package.
 
 ##### Rules
 
-* The `ui` layer must never implement `domain` interfaces
-    * **Why:** Domain interfaces are the contract between presentation and persistence; implementations belong in `data` (Repositories) or `domain` (UseCases). A ViewModel that implements one couples two layers' lifecycles and makes the ViewModel un-injectable elsewhere.
-* The `ui` layer must never depend on `data` or `services`
-    * **Why:** The UI consumes `domain` interfaces only. Repositories (in `data`) call `services` on the UI's behalf; the UI must not reach either directly.
-* The `ui` layer must not use `koinInject`: all dependencies are injected through ViewModels
+* A `client.ui` file may import another feature's `client.domain` only when the imported declaration is published to `:api`
+    * **Why:** `client.domain` is private to its feature except for what the feature publishes to `:api` (`ClientDomain.pure`). The UI reaches another feature's domain the same way it reaches everything else cross-feature: through the published surface, never the feature's own `:client` module.
+    * **Note:** Reuses the same published-FQN channel as `ClientDomain.pure` and `ServerDomain.pure` — publishing is moving the file, not changing the package.
+* The `client.ui` layer must never implement `domain` interfaces
+    * **Why:** Domain interfaces are the contract between presentation and persistence; implementations belong in `client.data` (Repositories) or `client.domain` (UseCases). A ViewModel that implements one couples two layers' lifecycles and makes the ViewModel un-injectable elsewhere.
+    * **Note:** Tested against the [Domain Interface](clientdomain.md#domain-interface) Construct, so a supertype counts only when it is both shaped like one and declared in `client.domain`.
+* The `client.ui` layer must never depend on `data` or `services`
+    * **Why:** The UI consumes `client.domain` interfaces only. Repositories (in `client.data`) call `server.services` on the UI's behalf; the UI must not reach either directly.
+    * **Note:** Tested over the import's package segments, so a `data` or `services` package is out of bounds wherever it sits and whichever feature owns it.
+* The `client.ui` layer must not use `koinInject`: all dependencies are injected through ViewModels
     * **Why:** Resolving from Koin inside a Composable bypasses the ViewModel as the single dependency surface, makes the screen untestable in snapshot tests (there is no Koin runtime), and re-resolves on every recomposition.
+* A `client.ui` package imports this layer only through its own package, its direct child subsystems, and its ancestors up to the layer root
+    * **Note:** A `client.ui` subsystem is a screen family the rest of the UI reaches through one entry point — an onboarding flow's steps, a sign-in provider's screens. It needs no `client.domain` twin: the mirror restricts what a subsystem may import, not what must exist.
+    * **Enforced by:** `ProjectRules.subsystemVisibility`
+* A `client.ui` subsystem package imports `client.domain` only through its mirror subsystem, that subsystem's direct children, and their ancestors
+    * **Note:** A file at the layer root is unconstrained — it sees the whole of its side's domain, as it always has. Only a file inside a subsystem package is bound to the mirror.
+    * **Enforced by:** `ProjectRules.subsystemMirrorsDomain`
 
 ##### Guidance
 
-* The `ui` layer may depend on `domain`
+* The `client.ui` layer may depend on `client.domain`
 
 ---
 
-## [Screen](../src/main/kotlin/architecture/rules/ui/Screen.kt)
+## [Screen](../src/main/kotlin/architecture/rules/clientui/Screen.kt)
 
 A Composable function (or property-based `navigationDestination`) that defines the layout
 and visual representation of a feature or portion of a feature.
@@ -52,8 +63,8 @@ and visual representation of a feature or portion of a feature.
 ### Dialog / Overlay Screens
 
 A Screen may be presented as a dialog or overlay on top of the current screen, rather than
-pushing onto the navigation backstack. These are governed by the `UiLayer.Screen.overlayViaDsl`
-and `UiLayer.Screen.overlayViewModel` rules below. Regular screens that push to the backstack
+pushing onto the navigation backstack. These are governed by the `ClientUi.Screen.overlayViaDsl`
+and `ClientUi.Screen.overlayViewModel` rules below. Regular screens that push to the backstack
 should use the standard `@Composable fun` pattern; the property-based `navigationDestination`
 DSL is for screens that need to declare custom metadata, such as `directOverlay()`. The
 property name may end in `Screen` or `Destination`; both are accepted because the property is
@@ -61,7 +72,7 @@ the destination declaration site.
 
 ##### Requirements
 
-* A Screen resides in `feature..ui..`
+* A Screen resides in `feature..client.ui..`
 * A Screen is bound to its Destination via the `@NavigationDestination` annotation
 * A Screen is named `[Name]Screen` (property-based screens may end in `Screen` or `Destination`)
 * A Screen has a single parameter — the associated `[Name]ViewModel` (property form exempt)
@@ -88,26 +99,7 @@ the destination declaration site.
 
 ##### Examples
 
-`feature.ukpt`'s screen is a function-based `@NavigationDestination`: the entry `UkptScreen` injects its ViewModel with `viewModel()` and delegates to a stateless `internal UkptScreenContent` that takes state plus callbacks (the `screenContentCompanion` and `viewModelInjection` rules):
-
-```kotlin
-// UkptScreen (in :client) — feature.ukpt.ui
-@Composable
-@NavigationDestination(UkptDestination::class)
-fun UkptScreen(
-    viewModel: UkptViewModel = viewModel(),   // viewModel(), not koinViewModel()
-) {
-    val state by viewModel.state.collectAsState()
-    UkptScreenContent(state = state, onGreet = viewModel::onGreetClicked)
-}
-
-// Stateless content: renders state, reports intent via callbacks, so it renders without a
-// ViewModel and is snapshot-testable from a @Preview.
-@Composable
-internal fun UkptScreenContent(state: UkptState, onGreet: () -> Unit) { /* … */ }
-```
-
-A dialog/overlay screen, illustrated (the base template ships only the full-screen `UkptScreen`): the Destination lives in `:api`, and the property-based `navigationDestination` in `:client` declares `directOverlay()` metadata and resolves its ViewModel via `viewModel()` inside the block.
+A dialog/overlay screen: the Destination lives in `:api`, and the property-based `navigationDestination` in `:client` declares `directOverlay()` metadata and resolves its ViewModel via `viewModel()` inside the block.
 
 ```kotlin
 // Destination (in :api)
@@ -137,16 +129,16 @@ val changeRoleScreen = navigationDestination<ChangeRoleDestination>(
 
 ---
 
-## [Composable](../src/main/kotlin/architecture/rules/ui/Composable.kt)
+## [Composable](../src/main/kotlin/architecture/rules/clientui/Composable.kt)
 
 A `@Composable` function defined in the `..ui..` package that is not a [Screen](#screen).
 Typically a sub-component used by one or more screens, an inline editor, a feature-specific
 overlay, or a `@Preview` function.
 
-* **Note:** `[Name]ScreenContent` companions (see `UiLayer.Screen.screenContentCompanion`)
+* **Note:** `[Name]ScreenContent` companions (see `ClientUi.Screen.screenContentCompanion`)
   are non-Screen composables, which is why the snapshot rules live on this Construct.
   For reusable design-system primitives (buttons, fields), prefer a shared composable in
-  `:platform:client:design`. Feature-local composables live alongside the Screen they support.
+  `:platform:client:ui`. Feature-local composables live alongside the Screen they support.
 
 ### Snapshot tests
 
@@ -164,21 +156,19 @@ that is needed to snapshot it.
 * **Note:** A screen's `@Preview`(s) live in the same file as the `[Name]ScreenContent` they
   render, next to the Screen — not gathered into a shared "screen previews" file.
 * **Note:** For one-off snapshot tests that aren't preview-driven, `SnapshotRule`
-  (`dev.isaacudy.udytils.snapshot.SnapshotRule`) provides `snapshot.screen { }` and
+  (`platform.snapshot.SnapshotRule`) provides `snapshot.screen { }` and
   `snapshot.component { }`.
 * **Note:** Record golden images after adding or changing a preview, then verify they match
-  (goldens are committed under `src/androidHostTest/snapshots/images/`). Both tasks need
-  `--no-configuration-cache` (under the cache the R class is dropped from the test classpath —
-  see the configuration-cache migration):
+  (goldens are committed under `src/androidHostTest/snapshots/images/`):
 
   ```
-  ./gradlew :feature:core:client:recordPaparazzi --no-configuration-cache
-  ./gradlew :feature:core:client:verifyPaparazzi --no-configuration-cache
+  ./gradlew :feature:core:client:recordPaparazzi
+  ./gradlew :feature:core:client:verifyPaparazzi
   ```
 
 ##### Requirements
 
-* A Composable resides in `feature..ui..`
+* A Composable resides in `feature..client.ui..`
 * A Composable is not a Screen
 * A Composable is annotated `@Composable`
 
@@ -189,11 +179,10 @@ that is needed to snapshot it.
 * A feature module that contains `@Preview` composables must have a `PreviewSnapshotTest` in its `androidHostTest` source set
     * **Why:** The scanner test is what turns previews into snapshots; without it, previews render in the IDE but nothing guards against visual regressions.
     * **Note:** Snapshot tests live under `src/androidHostTest/`, which the governed scope excludes; the test reads those files directly.
-    * **Note:** A module opts in by extending `PreviewSnapshotTestCase` from `dev.isaacudy.udytils:snapshot`, which supplies the preview scanning and the golden layout.
 
 ---
 
-## [Destination](../src/main/kotlin/architecture/rules/ui/Destination.kt)
+## [Destination](../src/main/kotlin/architecture/rules/clientui/Destination.kt)
 
 A serializable data class or object that represents the navigation contract for a particular
 screen: the input parameters required by that screen (if any) and the output result type
@@ -205,7 +194,7 @@ provided by that screen (if any).
 
 ##### Requirements
 
-* A Destination resides in `feature..ui..`
+* A Destination resides in `feature..client.ui..`
 * A Destination is a class or object
 * A Destination implements `dev.enro.NavigationKey` or `NavigationKey.WithResult<T>`
 * A Destination is named `[Name]Destination`
@@ -214,7 +203,10 @@ provided by that screen (if any).
 
 ##### Rules
 
-* A Destination may live in `:api` (shared or server-driven entry point) or `:client` (internal to the feature)
+* A Destination lives in the feature's `:client` module, and in `:api` only when another feature navigates to it
+    * **Why:** `:api` is what features share through — with each other, or across the network. A Destination another feature has to name is one of those things; a Destination only its own feature names is not, and publishing it widens the feature's surface for nothing.  App modules are not the test. The shell, the admin client and the server wiring depend on the side modules directly and are meant to see and compose every feature's declarations, so a reference from `app/…` — a graph binding, a start destination, a shell decorator — never makes a Destination `:api`.
+    * **Note:** The test measures the `:server` half: a Destination is client-side, so it is never declared in a `:server` module.
+    * **Note:** Which of `:api` and `:client` holds a Destination is a judgement about who navigates to it, so it is read rather than tested; the default is `:client`, and a Destination moves to `:api` when a second feature needs it.
 
 ##### Guidance
 
@@ -222,7 +214,7 @@ provided by that screen (if any).
 
 ---
 
-## [View Model](../src/main/kotlin/architecture/rules/ui/ViewModel.kt)
+## [View Model](../src/main/kotlin/architecture/rules/clientui/ViewModel.kt)
 
 A class that manages the UI state for a Screen and orchestrates calls to domain interfaces
 to load data and perform side effects based on user actions.
@@ -234,7 +226,7 @@ to load data and perform side effects based on user actions.
 
 ##### Requirements
 
-* A View Model resides in `feature..ui..`
+* A View Model resides in `feature..client.ui..`
 * A View Model extends `androidx.lifecycle.ViewModel`
 * A View Model is named `[Name]ViewModel`
 * A View Model declares its `state` property as a `ViewModelState<[Name]State>` (1:1 with the ViewModel's State type)
@@ -250,7 +242,6 @@ to load data and perform side effects based on user actions.
     * **Why:** A suspending public method makes the caller await work the ViewModel should own; on Android the awaiter (a composition scope, a `CompletableDeferred`) is lost on process death, silently dropping the result. Launch into `viewModelScope` and reflect the outcome in `state` instead.
 * A ViewModel must not declare `private var` properties
     * **Why:** A mutable private field is a side channel around `state` (the source of truth) and is lost on process death — for example a `pendingX` captured across a navigation round-trip. Carry per-open context on the navigation itself (key fields, or `instance.metadata` via a `NavigationKey.MetadataKey`) so the result handler recovers it process-death-safe; put genuine UI state in `state`.
-    * **Note:** This catches `private var` only. A `private val` holding a mutable value (a `MutableStateFlow`, a mutable collection) is a side channel too, but it is left to review: a legitimate derived-flow cache or debounce counter is statically indistinguishable from a navigation-context stash, so a hard rule would be mostly false positives.
 * A ViewModel must use `JobManager` to manage coroutines, never a `var job: Job?` reference
     * **Why:** Manual `var job: Job?` tracking is error-prone: the previous job leaks if a new one starts before the old one completes, and lifecycle cancellation is easy to forget. `dev.isaacudy.udytils.coroutines.JobManager` handles cancel-then-replace and ties everything to `viewModelScope`.
 
@@ -260,7 +251,7 @@ to load data and perform side effects based on user actions.
 
 ---
 
-## [View Model State](../src/main/kotlin/architecture/rules/ui/ViewModelState.kt)
+## [View Model State](../src/main/kotlin/architecture/rules/clientui/ViewModelState.kt)
 
 The complete, immutable representation of a Screen's data at a single point in time.
 
@@ -271,7 +262,7 @@ The complete, immutable representation of a Screen's data at a single point in t
 
 ##### Requirements
 
-* A View Model State resides in `feature..ui..`
+* A View Model State resides in `feature..client.ui..`
 * A View Model State is a class
 * A View Model State is a `data class`
 * A View Model State is named `[Name]State`
@@ -295,17 +286,7 @@ The complete, immutable representation of a Screen's data at a single point in t
 
 ##### Examples
 
-`feature.ukpt`'s State is a plain, immutable data-class container; the ViewModel replaces it wholesale with `state.update { copy(...) }`:
-
-```kotlin
-// feature.ukpt.ui.UkptState
-data class UkptState(
-    val message: String = "Hello, ukpt!",
-    val greetings: Int = 0,
-)
-```
-
-When state carries domain objects, add calculated properties for logic — but keep display formatting out of the State and put it with the Screen as a `@Composable` extension property. Illustrated (the base template's `UkptState` is too simple to need either):
+A State that is a transparent container for domain objects plus calculated properties; display formatting lives with the Screen as a `@Composable` extension property, not in the State.
 
 ```kotlin
 // feature.user.ui.UserDetailState.kt
@@ -329,7 +310,7 @@ val User.displayRole: String
 
 ---
 
-## [Ui Value Type](../src/main/kotlin/architecture/rules/ui/UiValueType.kt)
+## [Ui Value Type](../src/main/kotlin/architecture/rules/clientui/UiValueType.kt)
 
 A small closed value type (enum, sealed class, or sealed interface) that lives in `..ui..`
 and crosses feature boundaries, such as a `Slot` tag that one feature's ViewModel passes back
@@ -340,13 +321,13 @@ to another feature's screen.
 
 ##### Requirements
 
-* An Ui Value Type resides in `feature..ui..`
+* An Ui Value Type resides in `feature..client.ui..`
 * An Ui Value Type satisfies one of: {is an `enum class`, is `sealed`}
 * An Ui Value Type has no member functions
 
 ---
 
-## [Composition Local](../src/main/kotlin/architecture/rules/ui/CompositionLocal.kt)
+## [Composition Local](../src/main/kotlin/architecture/rules/clientui/CompositionLocal.kt)
 
 A top-level `Local…` [`CompositionLocal`](https://developer.android.com/jetpack/compose/compositionlocal)
 declared in a `..ui..` package — the Compose-native channel for supplying ambient behaviour to a
@@ -356,7 +337,7 @@ value is provided once near the composition root and read by leaf composables.
 
 ##### Requirements
 
-* A Composition Local resides in `feature..ui..`
+* A Composition Local resides in `feature..client.ui..`
 * A Composition Local is a property
 * A Composition Local is a top-level `Local…` val built via `compositionLocalOf` / `staticCompositionLocalOf`
 

@@ -1,4 +1,4 @@
-package feature.ukpt.ui
+package feature.ukpt.client.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement

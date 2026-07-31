@@ -1,4 +1,4 @@
-package feature.ukpt.ui
+package feature.ukpt.client.ui
 
 import androidx.lifecycle.ViewModel
 import dev.enro.navigationHandle

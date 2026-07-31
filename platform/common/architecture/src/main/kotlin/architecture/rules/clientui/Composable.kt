@@ -92,7 +92,10 @@ object Composable : Construct<ClientUi>(
                 .filterNot { (module, _) ->
                     hostTestFiles.any { (path, text) ->
                         path.startsWith("$module/src/androidHostTest/") &&
-                            text.contains("AndroidComposablePreviewScanner")
+                            // Either preview-scanning harness counts: the udytils snapshot
+                            // harness (`PreviewSnapshots.scan`) or a direct
+                            // AndroidComposablePreviewScanner test.
+                            (text.contains("PreviewSnapshots.scan") || text.contains("AndroidComposablePreviewScanner"))
                     }
                 }
                 .map { (module, previews) ->
