@@ -32,13 +32,15 @@ whatever the project was renamed to downstream — read `platform/client/design`
 1. **Module dirs + three `build.gradle.kts`** (templates.md §1–3). Substitute the namespace strings and
    the `projects.feature.<name>.*` accessors; keep everything else verbatim. Heed the gotchas below.
 2. **`settings.gradle.kts`** — add three `include(...)` after the `:feature:core` block (templates.md §4).
-3. **Client sources** (`feature.<name>.ui`): `<Name>Destination` in `:api`; `<Name>Screen` +
-   `internal <Name>ScreenContent`, `<Name>ViewModel`, `<Name>State`, and `<name>ClientDependencies` in
-   `:client` (templates.md §5).
+3. **Client sources** (`feature.<name>.client.ui`): `<Name>Destination` in `:api` (same package —
+   publication is module placement; it pins `@SerialName("NavigationKey.<Name>Destination")` per
+   `ProjectRules.serialNameEncodesEnclosingType`); `<Name>Screen` + `internal <Name>ScreenContent`,
+   `<Name>ViewModel`, `<Name>State` in `:client`; `<name>ClientDependencies` at the feature root
+   `feature.<name>` in `:client` (templates.md §5).
 4. **Snapshot tests (preview-driven)** — the harness is the `dev.isaacudy.udytils:snapshot` artifact, so
    there is nothing to copy. Write the one `PreviewSnapshotTest` extending `PreviewSnapshotTestCase` and
    scanning `feature.<name>` (templates.md §6). The Screen template's `@Preview` (§5) is what gets
-   snapshotted — `UiLayer.Composable.screenContentPreview` requires every ScreenContent to be
+   snapshotted — `ClientUi.Composable.screenContentPreview` requires every ScreenContent to be
    called from a `@Preview`.
 5. **Wire it up** — the easy-to-forget edits to existing files (templates.md §7 checklist):
    - `app/client/common/build.gradle.kts` → `implementation(projects.feature.<name>.client)`.
@@ -73,14 +75,14 @@ whatever the project was renamed to downstream — read `platform/client/design`
   runtime with `Factory.create … not implemented`.
 
 ## Rule cheat-sheet (canonical text in `platform/common/architecture/docs/` — search the ID)
-- **`UiLayer.Screen.screenContentCompanion`** — `<Name>Screen` pairs with an `internal <Name>ScreenContent(state, …)`;
-  **`UiLayer.Screen.viewModelInjection`** — inject the VM with `viewModel()` (not `koinViewModel()`);
-  **`UiLayer.ViewModel.usesJobManager`** — VMs use udytils `JobManager`, never `var job: Job?`;
-  **`UiLayer.Composable.screenContentPreview`** — every ScreenContent is called from a `@Preview` composable.
-  **`UiLayer.Composable.previewsAreSnapshotTested`** — a module with `@Preview` composables has a `PreviewSnapshotTest`.
+- **`ClientUi.Screen.screenContentCompanion`** — `<Name>Screen` pairs with an `internal <Name>ScreenContent(state, …)`;
+  **`ClientUi.Screen.viewModelInjection`** — inject the VM with `viewModel()` (not `koinViewModel()`);
+  **`ClientUi.ViewModel.usesJobManager`** — VMs use udytils `JobManager`, never `var job: Job?`;
+  **`ClientUi.Composable.screenContentPreview`** — every ScreenContent is called from a `@Preview` composable.
+  **`ClientUi.Composable.previewsAreSnapshotTested`** — a module with `@Preview` composables has a `PreviewSnapshotTest`.
 - **`FeatureRules.DependencyModule`** (construct) — DI is a `val <name>…Dependencies` module in `feature.<name>`;
   **`FeatureRules.constructorReferenceBindings`** — constructor-ref bindings.
-- **`ServicesLayer.ServiceImpl`** (construct) — server-side services follow the `ukpt-urpc-service` skill.
+- **`ServerServices.ServiceImpl`** (construct) — server-side services follow the `ukpt-urpc-service` skill.
 
 ## Reference
 - The living template: `feature/core/{api,client,server}` (build files + `src/.../feature/ukpt/...`).

@@ -376,7 +376,10 @@ object TemplateRepositoryValidator {
         val ruleIds = architectureRuleIds(repository)
         // Only ids whose group is a real rule group are checked, so ordinary dotted expressions
         // (`Modifier.padding`, `UkptTheme.colors`) are ignored without an allow-list to maintain.
-        val ruleGroups = ruleIds.mapTo(mutableSetOf()) { it.substringBefore('.') }
+        // Retired groups are listed explicitly: without them, deleting or renaming a whole group —
+        // the highest-blast-radius rule change there is — would silently exempt every skill that
+        // still cites it. A migration entry that renames a group adds the old name here.
+        val ruleGroups = ruleIds.mapTo(mutableSetOf()) { it.substringBefore('.') } + retiredRuleGroups
         val repositoryRoots = Files.list(repository).use { paths ->
             paths.map { it.name }.collect(Collectors.toSet())
         }
@@ -430,6 +433,19 @@ object TemplateRepositoryValidator {
                 }
         }
     }
+
+    /**
+     * Rule groups that no longer exist. A skill citation headed by one of these is always stale —
+     * the id can't resolve against any current rule index — so it is reported rather than skipped.
+     * Grows when a migration renames or deletes a group; never shrinks.
+     */
+    private val retiredRuleGroups = setOf(
+        "DomainLayer",
+        "UiLayer",
+        "DataLayer",
+        "ServicesLayer",
+        "FeatureRootRules",
+    )
 
     /**
      * Every dotted, PascalCase-headed identifier named in the generated rule index — rule ids and
