@@ -239,12 +239,12 @@ client, tables on the server.
     * **Why:** Callers depend on the domain interfaces it provides, never on the Repository itself; `internal` is what makes that the only reachable surface.
 * A Repository must not implement domain interfaces directly
     * **Why:** Inheriting the interface makes one class *be* many contracts, so its surface can only grow; exposing them as properties keeps each contract separately nameable and separately injectable.
-    * **Note:** Matched by name against the side's classified domain interfaces: a parent reference to an `:api`-declared interface often resolves to no source declaration, so resolution-based matching would silently skip exactly the published contracts.
+    * **Note:** A parent reference is resolved through its file's imports and matched against the side's classified domain interfaces by fully-qualified name — an `:api`-declared parent often resolves to no source declaration, and a simple-name match would collide with unrelated types sharing the name.
 * A Repository must expose domain interfaces as `public val` properties
     * **Why:** The property name is the interface name in lowerCamelCase, so the wiring reads as a list of the contracts this Repository answers.
 * A Repository must not inject domain interfaces
     * **Why:** A Repository that injects a contract is calling a sibling adapter through the abstract layer, which makes the graph unreadable and easy to cycle. Logic that needs several interfaces is a UseCase.
-    * **Note:** Matched by name against the side's classified domain interfaces, bare or inside a wrapper such as `Lazy<…>` — an `:api`-declared parameter type often resolves to no source declaration, so resolution-based matching would silently skip exactly the published contracts.
+    * **Note:** A parameter type — bare, aliased, or inside a wrapper such as `Lazy<…>` — is resolved through its file's imports and matched against the side's classified domain interfaces by fully-qualified name.
 * A Repository must not inject other Repositories
     * **Why:** Two Repositories over one domain object have no single edge, and the second reaches its data through the first's mapping rather than through the source that owns it.
 * A Repository's domain-interface properties must be initialized immediately: no `by lazy`, no custom getter
@@ -366,7 +366,7 @@ either an `object` named `[Name]Codec` holding discriminator constants (such as
 * A Codec Object resides in `feature..server.data..`
 * A Codec Object is an object
 * A Codec Object is named `[Name]Codec`
-* A Codec Object resides in `feature.[name].server.data`
+* A Codec Object resides in `feature.[name].server.data`, outside the `storage` subtree
 
 ##### Guidance
 
@@ -385,7 +385,7 @@ A plain `internal fun` conversion between the storage `Row` shapes and domain ty
 
 * A Mapping Function resides in `feature..server.data..`
 * A Mapping Function is a function
-* A Mapping Function resides in `feature.[name].server.data`
+* A Mapping Function resides in `feature.[name].server.data`, outside the `storage` subtree
 
 ##### Rules
 

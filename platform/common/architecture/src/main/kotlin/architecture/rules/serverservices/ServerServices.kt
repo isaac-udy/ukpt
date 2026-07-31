@@ -6,7 +6,9 @@ import architecture.definitions.containingFilePackage
 import architecture.definitions.featureName
 import architecture.definitions.featureNameFromContainingPackage
 import architecture.definitions.isFeatureModule
-import architecture.rules.shared.simpleTypeNames
+import architecture.definitions.resolveTypeToken
+import architecture.definitions.typeTokens
+import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
 import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
 import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
 
@@ -148,13 +150,17 @@ object ServerServices : RuleGroup(
         note("Tested on the primary constructor of every class in `feature.[name].server.services` and its sub-packages: a parameter whose type — bare, or inside a wrapper such as `Lazy<…>` — is an `@Urpc` interface belonging to another feature.")
         note("A feature's own contract is unaffected: a class in this layer may wrap or delegate to its own feature's Service.")
         scope { scope, exempt ->
-            // A simple name can belong to contracts in several features, so owners are kept as a
-            // set: collapsing to one owner would both misreport a feature's own contract as
-            // foreign and hide a real foreign injection behind the collapsed entry.
-            val contractOwnersByName: Map<String, Set<String>> = scope.interfaces()
+            // Keyed by fully-qualified name: a parameter reference is resolved through its file's
+            // imports (alias-aware) before lookup, so a simple name shared by two features'
+            // contracts, an aliased import, and a fully-qualified reference all land on the
+            // contract actually named.
+            val contractOwnerByFqn: Map<String, String> = scope.interfaces()
                 .filter { iface -> iface.annotations.any { it.name == "Urpc" } }
-                .groupBy({ it.name }, { it.featureName() })
-                .mapValues { (_, owners) -> owners.toSet() }
+                .mapNotNull { iface ->
+                    val fqn = (iface as? KoFullyQualifiedNameProvider)?.fullyQualifiedName ?: return@mapNotNull null
+                    fqn to iface.featureName()
+                }
+                .toMap()
             scope.classes()
                 .filter { it.isFeatureModule() }
                 .filter { servicesPackageRegex.matches(it.containingFilePackage()) }
@@ -162,22 +168,14 @@ object ServerServices : RuleGroup(
                 .flatMap { cls ->
                     val ownFeature = cls.featureNameFromContainingPackage()
                     cls.primaryConstructor?.parameters.orEmpty()
-                        .flatMap { param -> param.type.name.simpleTypeNames().map { param to it } }
-                        .mapNotNull { (param, name) ->
-                            val owners = contractOwnersByName[name] ?: return@mapNotNull null
-                            // An ambiguous name is disambiguated by the file's import; a name with
-                            // no matching import is a same-package reference, i.e. the own feature's.
-                            val owner = when {
-                                owners.size == 1 -> owners.single()
-                                else -> cls.containingFile.imports
-                                    .firstOrNull { it.name.startsWith("feature.") && it.name.substringAfterLast('.') == name }
-                                    ?.featureName()
-                                    ?: ownFeature
-                            }
+                        .flatMap { param -> typeTokens(param.type.name).map { param to it } }
+                        .mapNotNull { (param, token) ->
+                            val fqn = cls.containingFile.resolveTypeToken(token) ?: return@mapNotNull null
+                            val owner = contractOwnerByFqn[fqn] ?: return@mapNotNull null
                             if (owner == ownFeature) return@mapNotNull null
                             Violation(
                                 cls,
-                                "injects `$name`, the `$owner` feature's Service contract, as `${param.name}` — " +
+                                "injects `$token`, the `$owner` feature's Service contract, as `${param.name}` — " +
                                     "state a `server.domain` interface that feature publishes to `:api` instead",
                             )
                         }

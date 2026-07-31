@@ -5,12 +5,11 @@
 
 # [Client Ui](../src/main/kotlin/architecture/rules/clientui/ClientUi.kt)
 
-`feature.[name].client.ui` — the client's outermost layer. It spans two modules:
-
-* **`:api`:** serializable Navigation Keys ([Destinations](#destination)), a feature's shared
-  navigation entry points.
-* **`:client`:** Compose UI ([Screens](#screen) and supporting composables),
-  [ViewModels](#view-model), and UI-state models.
+`feature.[name].client.ui` — the client's outermost layer. It lives in `:client`: Compose UI
+([Screens](#screen) and supporting composables), [ViewModels](#view-model), UI-state models,
+and the serializable Navigation Keys ([Destinations](#destination)) that open the screens. A
+Destination moves to `:api` (same package, a file move) only when another feature navigates to
+it — that published key is the one part of this layer a second feature may see.
 
 Everything the UI loads or mutates arrives through
 [domain interfaces](clientdomain.md#domain-interface), provided by
@@ -36,7 +35,7 @@ The layer rules below apply across the whole `feature.[name].client.ui` package.
     * **Note:** Reuses the same published-FQN channel as `ClientDomain.pure` and `ServerDomain.pure` — publishing is moving the file, not changing the package.
 * The `client.ui` layer must never implement `domain` interfaces
     * **Why:** Domain interfaces are the contract between presentation and persistence; implementations belong in `client.data` (Repositories) or `client.domain` (UseCases). A ViewModel that implements one couples two layers' lifecycles and makes the ViewModel un-injectable elsewhere.
-    * **Note:** Tested against the [Domain Interface](clientdomain.md#domain-interface) Construct, so a supertype counts only when it is both shaped like one and declared in `client.domain`.
+    * **Note:** A parent reference is resolved through its file's imports and matched against the client's classified [Domain Interfaces](clientdomain.md#domain-interface) by fully-qualified name — an `:api`-declared parent often resolves to no source declaration, so resolution-based testing would silently skip exactly the published contracts.
 * The `client.ui` layer must never depend on `data` or `services`
     * **Why:** The UI consumes `client.domain` interfaces only. Repositories (in `client.data`) call `server.services` on the UI's behalf; the UI must not reach either directly.
     * **Note:** Tested over the import's package segments, so a `data` or `services` package is out of bounds wherever it sits and whichever feature owns it.
@@ -293,7 +292,7 @@ The complete, immutable representation of a Screen's data at a single point in t
 A State that is a transparent container for domain objects plus calculated properties; display formatting lives with the Screen as a `@Composable` extension property, not in the State.
 
 ```kotlin
-// feature.user.ui.UserDetailState.kt
+// feature.user.client.ui.UserDetailState.kt
 data class UserDetailState(
     val user: User,
     val isEditing: Boolean,
@@ -302,7 +301,7 @@ data class UserDetailState(
     val canEditName: Boolean get() = user.isVerified && isEditing
 }
 
-// feature.user.ui.UserDetailScreen.kt
+// feature.user.client.ui.UserDetailScreen.kt
 // Extension property for display
 val User.displayRole: String
     @Composable

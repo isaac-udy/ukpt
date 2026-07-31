@@ -1,6 +1,6 @@
 package architecture.rules.serverdata
 
-import architecture.definitions.isInServerDataPackage
+import architecture.definitions.isInServerDataOutsideStorage
 
 import dev.isaacudy.udytils.architecture.*
 
@@ -17,7 +17,7 @@ object CodecObject : Construct<ServerData>(
     requirements = listOf(
         isObject,
         hasNameEndingWith("Codec"),
-        predicate("resides in `feature.[name].server.data`") { it.isInServerDataPackage() },
+        predicate("resides in `feature.[name].server.data`, outside the `storage` subtree") { it.isInServerDataOutsideStorage() },
     ),
 ) {
     @Describe("A Codec should stay small and keyed to the column it serves; it encapsulates the read/write asymmetry `setFromRow` can't express")

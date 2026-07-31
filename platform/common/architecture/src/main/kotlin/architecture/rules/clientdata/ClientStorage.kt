@@ -4,8 +4,8 @@ import dev.isaacudy.udytils.architecture.*
 
 import architecture.definitions.containingFilePackage
 import architecture.definitions.containsPackageSegment
-import architecture.rules.shared.domainInterfaceNamesOnSide
-import architecture.rules.shared.simpleTypeNames
+import architecture.definitions.typeExpressionResolvesTo
+import architecture.rules.shared.domainInterfaceFqnsOnSide
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 
 @Describe("""
@@ -50,9 +50,9 @@ object ClientStorage : Construct<ClientData>(
             embed orchestration logic in the persistence layer.
             """.trimIndent(),
         )
-        note("Domain interfaces are matched by name against the client's classified set — an `:api`-declared parameter type often resolves to no source declaration, so resolution-based matching would silently skip exactly the published contracts.")
+        note("A domain-interface parameter — bare, aliased, or inside a wrapper such as `Lazy<…>` — is resolved through its file's imports and matched against the client's classified set by fully-qualified name.")
         scope { scope, exempt ->
-            val domainInterfaces = scope.domainInterfaceNamesOnSide("client")
+            val domainInterfaces = scope.domainInterfaceFqnsOnSide("client")
             scope.classes()
                 .filter { test(it) }
                 .filterNot { exempt(it) }
@@ -60,7 +60,7 @@ object ClientStorage : Construct<ClientData>(
                     cls.primaryConstructor?.parameters.orEmpty()
                         .filter { param ->
                             val typeName = param.type.name
-                            typeName.simpleTypeNames().any { it in domainInterfaces } ||
+                            cls.containingFile.typeExpressionResolvesTo(typeName, domainInterfaces) ||
                                 typeName.endsWith("Repository") || typeName.endsWith("Service")
                         }
                         .map { Violation(cls, "Storage class injects a forbidden dependency: ${it.name}: ${it.type.name}") }

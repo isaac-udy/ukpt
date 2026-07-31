@@ -1,23 +1,22 @@
 package architecture.rules.clientui
 
-import architecture.rules.clientdomain.DomainInterface
 import dev.isaacudy.udytils.architecture.*
 
 import architecture.definitions.containsPackageSegment
 import architecture.definitions.featureName
 import architecture.definitions.featureNameFromContainingPackage
 import architecture.definitions.isFeatureModule
+import architecture.definitions.resolveTypeToken
+import architecture.rules.shared.domainInterfaceFqnsOnSide
 import architecture.utils.publishedDomainFqns
 import architecture.utils.resolvesToPublishedFqn
-import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
 
 @Describe("""
-    `feature.[name].client.ui` — the client's outermost layer. It spans two modules:
-
-    * **`:api`:** serializable Navigation Keys ([Destinations](#destination)), a feature's shared
-      navigation entry points.
-    * **`:client`:** Compose UI ([Screens](#screen) and supporting composables),
-      [ViewModels](#view-model), and UI-state models.
+    `feature.[name].client.ui` — the client's outermost layer. It lives in `:client`: Compose UI
+    ([Screens](#screen) and supporting composables), [ViewModels](#view-model), UI-state models,
+    and the serializable Navigation Keys ([Destinations](#destination)) that open the screens. A
+    Destination moves to `:api` (same package, a file move) only when another feature navigates to
+    it — that published key is the one part of this layer a second feature may see.
 
     Everything the UI loads or mutates arrives through
     [domain interfaces](clientdomain.md#domain-interface), provided by
@@ -80,17 +79,16 @@ object ClientUi : RuleGroup(
             elsewhere.
             """.trimIndent(),
         )
-        note("Tested against the [Domain Interface](clientdomain.md#domain-interface) Construct, so a supertype counts only when it is both shaped like one and declared in `client.domain`.")
+        note("A parent reference is resolved through its file's imports and matched against the client's classified [Domain Interfaces](clientdomain.md#domain-interface) by fully-qualified name — an `:api`-declared parent often resolves to no source declaration, so resolution-based testing would silently skip exactly the published contracts.")
         scope { scope, exempt ->
+            val domainInterfaces = scope.domainInterfaceFqnsOnSide("client")
             scope.classes()
                 .filter { it.isFeatureModule() }
                 .filter { it.resideInPackage("feature..client.ui..") }
                 .filterNot { exempt(it) }
                 .filter { clazz ->
                     clazz.parents().any { parent ->
-                        // A parent is a *reference*; the Construct classifies declarations, so resolve
-                        // the reference to the interface it names before testing it.
-                        DomainInterface.test(parent.sourceDeclaration as? KoBaseDeclaration)
+                        clazz.containingFile.resolveTypeToken(parent.name) in domainInterfaces
                     }
                 }
                 .map { Violation(it, "UI class implements a domain interface — implement it in `client.data` (Repository) or `client.domain` (UseCase) instead") }

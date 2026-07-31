@@ -19,10 +19,10 @@ abstract class DomainInterfaceRules<G : RuleGroup> : Construct<G>(
         isInterfaceWhere("declares all functions as `suspend` or returning a `Flow<T>`") { decl ->
             decl.functions()
                 .filter { it.name == "invoke" || !it.text.contains("=") }
-                .all { it.hasSuspendModifier || it.returnType?.name?.contains("Flow") == true }
+                .all { it.hasSuspendModifier || isFlowTypeName(it.returnType?.name) }
         },
         isInterfaceWhere("is prefixed with `FlowOf` when its primary function returns a `Flow`") { decl ->
-            val hasFlowReturn = decl.functions().any { it.name == "invoke" && it.returnType?.name?.contains("Flow") == true }
+            val hasFlowReturn = decl.functions().any { it.name == "invoke" && isFlowTypeName(it.returnType?.name) }
             !hasFlowReturn || decl.name.startsWith("FlowOf")
         },
     ),

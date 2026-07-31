@@ -9,9 +9,11 @@ import architecture.definitions.isFeatureRootPackage
 import architecture.definitions.isKotlinxSerializable
 import architecture.definitions.isNavigationKey
 import architecture.definitions.participatesInPolymorphicSerialization
+import architecture.definitions.resolveTypeToken
 import architecture.definitions.sealedParentSimpleNames
 import architecture.definitions.serialNameValue
 import architecture.definitions.typeNestingChain
+import architecture.definitions.typeTokens
 import architecture.rules.serverservices.servicesPackageRegex
 import dev.isaacudy.udytils.architecture.*
 
@@ -379,7 +381,14 @@ object ProjectRules : RuleGroup() {
                 .filter { it.isFeatureModule() }
                 .filterNot { exempt(it) }
                 .filter { cls ->
-                    cls.primaryConstructor?.parameters.orEmpty().any { it.type.name == "TransactionRunner" }
+                    // Resolved through the file's imports so an alias (`import … as TxRunner`)
+                    // or a qualified reference is still recognized as the runner.
+                    cls.primaryConstructor?.parameters.orEmpty().any { param ->
+                        typeTokens(param.type.name).any { token ->
+                            cls.containingFile.resolveTypeToken(token)?.endsWith(".TransactionRunner") == true ||
+                                token == "TransactionRunner"
+                        }
+                    }
                 }
                 .filterNot { it.mayOpenTransactions() }
                 .map { Violation(it, "`${it.name}` injects `TransactionRunner` — only a UseCase or a Repository may open a transaction") }

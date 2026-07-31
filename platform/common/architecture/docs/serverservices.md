@@ -130,7 +130,7 @@ server binding, and the wire descriptors from the annotated interface.
 A `@Urpc` service contract in `:api`, with nested `@Serializable` `Request`/`Response` types grouped under per-function `object` namespaces:
 
 ```kotlin
-// feature.user.services.UserService.kt (:api)
+// feature.user.server.services.UserService.kt (:api)
 @Urpc
 interface UserService {
     suspend fun createUser(request: CreateUser.Request): CreateUser.Response

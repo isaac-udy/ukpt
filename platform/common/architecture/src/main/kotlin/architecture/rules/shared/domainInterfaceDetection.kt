@@ -5,6 +5,11 @@ import com.lemonappdev.konsist.api.container.KoScope
 import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
 import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
 import com.lemonappdev.konsist.api.declaration.KoParentDeclaration
+import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
+
+/** True for the name of a reactive return type — `Flow` or `Flow<…>`, not any name containing the substring. */
+internal fun isFlowTypeName(name: String?): Boolean =
+    name != null && (name == "Flow" || name.startsWith("Flow<"))
 
 /**
  * True if [declaration] (or, for a parent reference, its source declaration) is a domain interface
@@ -25,31 +30,22 @@ internal fun isDomainInterfaceOnSide(declaration: KoBaseDeclaration?, side: Stri
     if (!hasOperatorInvoke) return false
     val abstractFunctionsSuspendOrFlow = iface.functions()
         .filter { it.name == "invoke" || !it.text.contains("=") }
-        .all { it.hasSuspendModifier || it.returnType?.name?.contains("Flow") == true }
+        .all { it.hasSuspendModifier || isFlowTypeName(it.returnType?.name) }
     if (!abstractFunctionsSuspendOrFlow) return false
     val hasFlowReturn = iface.functions()
-        .any { it.name == "invoke" && it.returnType?.name?.contains("Flow") == true }
+        .any { it.name == "invoke" && isFlowTypeName(it.returnType?.name) }
     return !hasFlowReturn || iface.name.startsWith("FlowOf")
 }
 
 /**
- * The simple names of every domain interface classified on [side], for name-based matching of
- * parent references and constructor-parameter types. Name-based rather than resolution-based
- * deliberately: an `:api`-declared interface often resolves to no source declaration from its use
- * site, so resolution-based matching silently skips exactly the published contracts.
+ * The fully-qualified names of every domain interface classified on [side]. Use-site matching
+ * resolves a reference through its file's imports (see `resolveTypeToken`) and looks it up here:
+ * FQN-based rather than resolution-based because an `:api`-declared interface often resolves to no
+ * source declaration from its use site, and FQN-based rather than simple-name-based because an
+ * unrelated vendor type sharing a project interface's simple name must not collide with it.
  */
-internal fun KoScope.domainInterfaceNamesOnSide(side: String): Set<String> =
+internal fun KoScope.domainInterfaceFqnsOnSide(side: String): Set<String> =
     interfaces()
         .filter { isDomainInterfaceOnSide(it, side) }
-        .map { it.name }
+        .mapNotNull { (it as? KoFullyQualifiedNameProvider)?.fullyQualifiedName }
         .toSet()
-
-/**
- * Every simple type name a type expression mentions, so a wrapped `Lazy<SomeInterface>` reads the
- * same as a bare `SomeInterface`.
- */
-internal fun String.simpleTypeNames(): List<String> =
-    Regex("""[A-Za-z_][A-Za-z0-9_.]*""")
-        .findAll(this)
-        .map { it.value.substringAfterLast('.') }
-        .toList()

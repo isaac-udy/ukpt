@@ -306,6 +306,18 @@ fun KoBaseDeclaration.isSideFirstPackage(): Boolean = featureSide() != null
 fun KoBaseDeclaration.isInServerDataPackage(): Boolean = containingFilePackage().contains(".server.data")
 
 /**
+ * True for a declaration in the domain-naming half of `server.data` — the layer minus the
+ * Row-speaking `storage` subtree. Repositories, mapping functions, codec objects, and
+ * IntegrationClients name domain types by definition, so they live here; a declaration under
+ * `storage` claiming one of those constructs would quietly grow a second persistence surface.
+ */
+fun KoBaseDeclaration.isInServerDataOutsideStorage(): Boolean {
+    val pkg = containingFilePackage()
+    return pkg.contains(".server.data") &&
+        !pkg.contains(".server.data.storage.") && !pkg.endsWith(".server.data.storage")
+}
+
+/**
  * True for a declaration in `feature.[name].server.data.storage` — the Row-speaking subpackage that
  * holds the layer's Storage classes and hand-written storage records, mirroring `client.data.storage`.
  * The rest of `server.data` — Repositories, mapping functions, codec objects, IntegrationClients —

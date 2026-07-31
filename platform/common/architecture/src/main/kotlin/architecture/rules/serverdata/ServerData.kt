@@ -360,10 +360,10 @@ internal fun KoFileDeclaration.isInServerData(): Boolean {
     return pkg.contains(".server.data")
 }
 
-/** True for a file in `feature.[name].server.data.storage` — the layer's Row-only subpackage. */
+/** True for a file in exactly `feature.[name].server.data.storage` — the layer's flat, Row-only subpackage. */
 internal fun KoFileDeclaration.isInServerDataStorage(): Boolean {
     val pkg = packagee?.name ?: return false
-    return pkg.contains(".server.data.storage")
+    return pkg.endsWith(".server.data.storage")
 }
 
 /** An import of the services layer — `feature.x.server.services.*`, sub-packages included. */

@@ -1,7 +1,7 @@
 A State that is a transparent container for domain objects plus calculated properties; display formatting lives with the Screen as a `@Composable` extension property, not in the State.
 
 ```kotlin
-// feature.user.ui.UserDetailState.kt
+// feature.user.client.ui.UserDetailState.kt
 data class UserDetailState(
     val user: User,
     val isEditing: Boolean,
@@ -10,7 +10,7 @@ data class UserDetailState(
     val canEditName: Boolean get() = user.isVerified && isEditing
 }
 
-// feature.user.ui.UserDetailScreen.kt
+// feature.user.client.ui.UserDetailScreen.kt
 // Extension property for display
 val User.displayRole: String
     @Composable

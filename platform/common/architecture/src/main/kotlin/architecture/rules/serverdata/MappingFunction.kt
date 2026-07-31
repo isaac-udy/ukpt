@@ -1,6 +1,6 @@
 package architecture.rules.serverdata
 
-import architecture.definitions.isInServerDataPackage
+import architecture.definitions.isInServerDataOutsideStorage
 
 import dev.isaacudy.udytils.architecture.*
 
@@ -13,7 +13,7 @@ import dev.isaacudy.udytils.architecture.*
 object MappingFunction : Construct<ServerData>(
     requirements = listOf(
         isFunction,
-        predicate("resides in `feature.[name].server.data`") { it.isInServerDataPackage() },
+        predicate("resides in `feature.[name].server.data`, outside the `storage` subtree") { it.isInServerDataOutsideStorage() },
     ),
 ) {
     @Describe("A Mapping Function between a generated `XxxRow` and a domain type must be a plain `internal fun` declaration in `server.data`, conventionally collected in `[Name]Mappers.kt`")

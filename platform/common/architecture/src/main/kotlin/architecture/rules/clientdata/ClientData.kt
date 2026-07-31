@@ -6,8 +6,8 @@ import architecture.definitions.containsPackageSegment
 import architecture.definitions.isFeatureModule
 import architecture.definitions.isFeatureRootPackage
 import architecture.definitions.isServerModule
-import architecture.rules.shared.domainInterfaceNamesOnSide
-import architecture.rules.shared.simpleTypeNames
+import architecture.definitions.typeExpressionResolvesTo
+import architecture.rules.shared.domainInterfaceFqnsOnSide
 import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
 
 @Describe("""
@@ -51,16 +51,16 @@ object ClientData : RuleGroup(
             and easy to cycle. Logic that needs multiple domain interfaces belongs in a UseCase.
             """.trimIndent(),
         )
-        note("Matched by name against the client's classified domain interfaces, bare or inside a wrapper such as `Lazy<…>` — an `:api`-declared parameter type often resolves to no source declaration, so resolution-based matching would silently skip exactly the published contracts.")
+        note("A parameter type — bare, aliased, or inside a wrapper such as `Lazy<…>` — is resolved through its file's imports and matched against the client's classified domain interfaces by fully-qualified name.")
         scope { scope, exempt ->
-            val domainInterfaces = scope.domainInterfaceNamesOnSide("client")
+            val domainInterfaces = scope.domainInterfaceFqnsOnSide("client")
             scope.classes()
                 .filter { it.isFeatureModule() }
                 .filter { it.resideInPackage("feature..client.data..") }
                 .filterNot { exempt(it) }
                 .flatMap { cls ->
                     cls.primaryConstructor?.parameters.orEmpty()
-                        .filter { param -> param.type.name.simpleTypeNames().any { it in domainInterfaces } }
+                        .filter { param -> cls.containingFile.typeExpressionResolvesTo(param.type.name, domainInterfaces) }
                         .map { param -> Violation(cls, "data class injects domain interface `${param.type.name}`") }
                 }
         }

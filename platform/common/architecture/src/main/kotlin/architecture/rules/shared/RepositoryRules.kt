@@ -1,5 +1,7 @@
 package architecture.rules.shared
 
+import architecture.definitions.resolveTypeToken
+import architecture.definitions.typeExpressionResolvesTo
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 import dev.isaacudy.udytils.architecture.*
 
@@ -30,15 +32,15 @@ abstract class RepositoryRules<G : RuleGroup>(
     @Describe("A Repository must not implement domain interfaces directly")
     val doesNotImplementDomainInterfaces by rule {
         rationale("Inheriting the interface makes one class *be* many contracts, so its surface can only grow; exposing them as properties keeps each contract separately nameable and separately injectable.")
-        note("Matched by name against the side's classified domain interfaces: a parent reference to an `:api`-declared interface often resolves to no source declaration, so resolution-based matching would silently skip exactly the published contracts.")
+        note("A parent reference is resolved through its file's imports and matched against the side's classified domain interfaces by fully-qualified name — an `:api`-declared parent often resolves to no source declaration, and a simple-name match would collide with unrelated types sharing the name.")
         scope { scope, exempt ->
-            val domainInterfaces = scope.domainInterfaceNamesOnSide(side)
+            val domainInterfaces = scope.domainInterfaceFqnsOnSide(side)
             scope.classes()
                 .filter { test(it) }
                 .filterNot { exempt(it) }
                 .flatMap { cls ->
                     cls.parents()
-                        .filter { it.name.substringAfterLast('.') in domainInterfaces }
+                        .filter { cls.containingFile.resolveTypeToken(it.name) in domainInterfaces }
                         .map { Violation(cls, "Repository implements domain interface `${it.name}` directly — expose it as a property instead") }
                 }
         }
@@ -64,15 +66,15 @@ abstract class RepositoryRules<G : RuleGroup>(
     @Describe("A Repository must not inject domain interfaces")
     val doesNotInjectDomainInterfaces by rule {
         rationale("A Repository that injects a contract is calling a sibling adapter through the abstract layer, which makes the graph unreadable and easy to cycle. Logic that needs several interfaces is a UseCase.")
-        note("Matched by name against the side's classified domain interfaces, bare or inside a wrapper such as `Lazy<…>` — an `:api`-declared parameter type often resolves to no source declaration, so resolution-based matching would silently skip exactly the published contracts.")
+        note("A parameter type — bare, aliased, or inside a wrapper such as `Lazy<…>` — is resolved through its file's imports and matched against the side's classified domain interfaces by fully-qualified name.")
         scope { scope, exempt ->
-            val domainInterfaces = scope.domainInterfaceNamesOnSide(side)
+            val domainInterfaces = scope.domainInterfaceFqnsOnSide(side)
             scope.classes()
                 .filter { test(it) }
                 .filterNot { exempt(it) }
                 .flatMap { cls ->
                     cls.primaryConstructor?.parameters.orEmpty()
-                        .filter { param -> param.type.name.simpleTypeNames().any { it in domainInterfaces } }
+                        .filter { param -> cls.containingFile.typeExpressionResolvesTo(param.type.name, domainInterfaces) }
                         .map { Violation(cls, "Repository injects domain interface `${it.type.name}` — move multi-interface logic to a UseCase") }
                 }
         }

@@ -1,5 +1,7 @@
 package architecture.rules.feature
 
+import architecture.definitions.isFeatureModule
+import architecture.definitions.isFeatureRootPackage
 import dev.isaacudy.udytils.architecture.*
 
 @Describe("""
@@ -11,5 +13,8 @@ object DependencyModuleHelper : Construct<FeatureRules>(
         isFunction,
         isInternal,
         isFunctionWhere("has a Koin `Module` receiver") { declaration -> declaration.receiverType?.name == "Module" },
+        predicate("resides in the top-level `feature.[name]` package, beside the `Dependencies` module it splits") { decl ->
+            decl.isFeatureModule() && decl.isFeatureRootPackage()
+        },
     ),
 )
