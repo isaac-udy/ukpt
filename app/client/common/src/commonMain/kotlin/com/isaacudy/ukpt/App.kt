@@ -8,7 +8,7 @@ import dev.enro.asInstance
 import dev.enro.ui.NavigationDisplay
 import dev.enro.ui.rememberNavigationContainer
 import feature.ukpt.ukptClientDependencies
-import feature.ukpt.ui.UkptDestination
+import feature.ukpt.client.ui.UkptDestination
 import org.koin.compose.KoinApplication
 import platform.design.ProvideUkptViewport
 import platform.design.UkptTheme

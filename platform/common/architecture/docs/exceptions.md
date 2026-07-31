@@ -21,14 +21,14 @@ artifact) either at file level (above the `package` line) or on the specific dec
 
 ```kotlin
 @file:ArchitectureException(
-    ruleIds = ["ServicesLayer.internalHierarchicalVisibility"],
+    ruleIds = ["ProjectRules.subsystemVisibility"],
     reason = "Sessions' audio subsystem reaches a sibling subsystem's helper for transcription " +
         "phrase hints. The shared accessor hasn't been promoted to a common ancestor yet — until " +
         "it is, this cross-subsystem import is the cheapest way to keep a single authoritative path.",
     trackingIssue = "",
 )
 
-package feature.sessions.services.internal.audio
+package feature.sessions.server.services.audio
 
 import dev.isaacudy.udytils.architecture.ArchitectureException
 // ...

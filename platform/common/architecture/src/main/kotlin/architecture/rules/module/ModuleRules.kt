@@ -2,10 +2,16 @@ package architecture.rules.module
 
 import dev.isaacudy.udytils.architecture.*
 
+import architecture.definitions.containingFilePackage
 import architecture.definitions.containingFilePath
+import architecture.definitions.featureLayerPath
 import architecture.definitions.featureName
 import architecture.definitions.isApiModule
+import architecture.definitions.isClientModule
 import architecture.definitions.isFeatureModule
+import architecture.definitions.isServerModule
+import architecture.rules.clientdomain.DomainInterface as ClientDomainInterface
+import architecture.rules.serverdomain.DomainInterface as ServerDomainInterface
 import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
 import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
 
@@ -105,6 +111,7 @@ object ModuleRules : RuleGroup() {
         )
         note("Between modules this is already enforced by `ModuleRules.clientApiOnly` and `ModuleRules.serverApiOnly`; this Rule adds the same guarantee within a module that hosts several feature namespaces.")
         note("Imports that don't resolve to project source, such as KSP-generated bindings, are not tested.")
+        note("The one sanctioned cross-feature namespace is shared UI: `feature.common.client.ui` holds composite Compose components several features render, which can't live in Compose-free `:api`. It is UI-only — nothing outside `..common.client.ui..` is shareable this way. That carve-out answers a cross-*feature* question and is not the subsystem question: a subsystem package groups one feature's own code and is never shared at all (`ModuleRules.subsystemsNotPublished`).")
         scope { scope, exempt ->
             // Index of project declarations by fully-qualified name, so imports resolve to the
             // module that declares them (nested types resolve via longest matching prefix).
@@ -134,9 +141,154 @@ object ModuleRules : RuleGroup() {
                     file.imports
                         .filter { it.name.startsWith("feature.") }
                         .filter { it.featureName().isNotBlank() && it.featureName() != ownFeature }
+                        // Shared-UI carve-out: `feature.common.client.ui` holds composite UI
+                        // components (e.g. `EventCard`, `EntityRichTextField`) that several features
+                        // render. A Compose composite can't live in `:api` (which is Compose-free and
+                        // consumed by `:server`), so this is the one sanctioned cross-feature
+                        // namespace. It is UI-only by design — scoped to `..common.client.ui..` so it
+                        // can never leak non-UI coupling; everything else still shares through `:api`.
+                        .filterNot { it.name.startsWith("feature.common.client.ui.") }
                         .filter { resolvesOutsideApi(it.name) }
                         .map { Violation(file.path, "cross-feature import `${it.name}` resolves outside an `:api` module") }
                 }
+        }
+    }
+
+    @Describe("A file in a `:client` module must declare a `client` package, a file in a `:server` module a `server` package, and an `:api` module may declare either")
+    val sidePackageMatchesModule by rule {
+        rationale(
+            """
+            A declaration's package says what it is; the module it lives in says who may see it. When
+            the two agree, the path gives the visibility and the package gives the layer, and
+            publishing a type is moving one file rather than renaming it everywhere. When they
+            disagree neither reading holds: a package with no side segment could be client or server
+            code, so the module-graph rules and the package rules stop describing the same boundary.
+            """.trimIndent(),
+        )
+        note("The feature root — `feature.[name]`, two segments — is allowed in every module: it is the shared vocabulary in `:api` and the feature's DI module in `:client`/`:server`.")
+        note("`:api` may declare both sides, because publishing a client or server type is what the module is for.")
+        note("`platform.**` packages inside a feature module are platform code that has not been lifted into its own module yet; the platform rules govern them, so they are out of scope here.")
+        scope { scope, exempt ->
+            scope.files
+                .filter { it.isFeatureModule() }
+                .filterNot { exempt(it) }
+                .mapNotNull { file ->
+                    val pkg = file.packagee?.name.orEmpty()
+                    if (!pkg.startsWith("feature.")) return@mapNotNull null
+                    val withinFeature = pkg.removePrefix("feature.").substringAfter('.', missingDelimiterValue = "")
+                    if (withinFeature.isEmpty()) return@mapNotNull null // the feature root, allowed everywhere
+                    val declaredSide = withinFeature.substringBefore('.')
+                    val (module, allowedSides) = when {
+                        file.isClientModule() -> ":client" to setOf("client")
+                        file.isServerModule() -> ":server" to setOf("server")
+                        file.isApiModule() -> ":api" to setOf("client", "server")
+                        else -> return@mapNotNull null
+                    }
+                    if (declaredSide in allowedSides) return@mapNotNull null
+                    Violation(
+                        file.path,
+                        "`$pkg` is declared in a $module module, which may only declare " +
+                            allowedSides.joinToString(" or ") { "`feature.[name].$it.**`" } +
+                            " (or the feature root)",
+                    )
+                }
+        }
+    }
+
+    @Describe("A declaration in a layer's subsystem package must reside in a `:client` or `:server` module")
+    val subsystemsNotPublished by rule {
+        rationale(
+            """
+            Publishing is moving a file between modules without changing its package, so a published
+            subsystem declaration would put `…domain.processing.audio` in `:api` and make another
+            feature's compiler aware of one feature's internal decomposition. A subsystem exists
+            precisely because nobody outside the feature has an opinion about it.
+
+            When another feature does need what a subsystem computes, the capability is restated as a
+            layer-root contract that the subsystem satisfies. That costs one declaration and makes
+            publication the visible act `:api` placement is meant to be.
+            """.trimIndent(),
+        )
+        note("The layer root is publishable, as it always has been (`ServerDomain.publishedInterfacesInApi`): `feature.[name].[side].[layer]` in `:api` is the channel. Only the sub-packages below it are confined.")
+        scope { scope, exempt ->
+            scope.files
+                .filter { it.isFeatureModule() && it.isApiModule() }
+                .filterNot { exempt(it) }
+                .mapNotNull { file ->
+                    val pkg = file.packagee?.name.orEmpty()
+                    val path = featureLayerPath(pkg) ?: return@mapNotNull null
+                    if (path.subsystem.isEmpty()) return@mapNotNull null
+                    Violation(
+                        file.path,
+                        "`$pkg` is a subsystem package declared in an `:api` module — publish a " +
+                            "`${path.side}.${path.layer}` root contract the subsystem satisfies instead",
+                    )
+                }
+        }
+    }
+
+    @Describe("A fully-qualified name under `feature.` must be declared in exactly one Gradle module")
+    val noDuplicateFqnAcrossTrio by rule {
+        rationale(
+            """
+            The same name declared in two modules is a split package: which one a consumer sees
+            depends on classpath order, so an import can resolve to different code in different
+            builds, and a change to one copy silently does nothing at the other's call sites. Moving
+            a type between `:api`, `:client`, and `:server` has to be a move, never a copy.
+            """.trimIndent(),
+        )
+        note("Compared across modules only: a multiplatform `expect`/`actual` pair declares one name across several source sets of a single module, which is one declaration, not two.")
+        note("Tested over classes, interfaces, and objects — the shapes a consumer imports by name.")
+        scope { scope, exempt ->
+            val modulesByFqn = mutableMapOf<String, MutableMap<String, String>>()
+            scope.classesAndInterfacesAndObjects(includeNested = false)
+                .filter { it.isFeatureModule() }
+                .filterNot { exempt(it) }
+                .forEach { declaration ->
+                    val fqn = declaration.fullyQualifiedName ?: return@forEach
+                    if (!fqn.startsWith("feature.")) return@forEach
+                    val module = declaration.containingFile.path.substringBeforeLast("/src/")
+                    modulesByFqn.getOrPut(fqn) { mutableMapOf() }
+                        .putIfAbsent(module, declaration.containingFile.path)
+                }
+            modulesByFqn
+                .filterValues { it.size > 1 }
+                .flatMap { (fqn, sites) ->
+                    sites.values.map { path ->
+                        Violation(path, "`$fqn` is declared in ${sites.size} modules — one name, one module, or the classpath decides which one a consumer gets")
+                    }
+                }
+        }
+    }
+
+    @Describe("A class in an `:api` module's `client.domain`/`server.domain` package must not implement a domain interface")
+    val noDomainImplementationsInApi by rule {
+        rationale(
+            """
+            Publishing a file to `:api` shares a capability contract, never how it is satisfied.
+            A class in `:api` that implements a domain interface would ship the implementation
+            across the same channel as the interface, which is exactly what the `client.domain` /
+            `server.domain` purity rules and the `:api` publication channel (D27) are there to
+            prevent — the channel carries interfaces and models only.
+            """.trimIndent(),
+        )
+        note("Tested against the client- and server-side Domain Interface Constructs, so a supertype counts only when it is both shaped like one — a `fun interface` with an `operator fun invoke` — and declared in a `client.domain`/`server.domain` package.")
+        note("A sealed interface is never a `fun interface`, so a sealed variant implementing its own nested sealed parent (e.g. `UpdateCampaign.Update`'s data classes) is not affected by this rule.")
+        scope { scope, exempt ->
+            scope.classes()
+                .filter { it.isFeatureModule() && it.isApiModule() }
+                .filter { cls ->
+                    val pkg = cls.containingFilePackage()
+                    pkg.contains(".client.domain") || pkg.contains(".server.domain")
+                }
+                .filterNot { exempt(it) }
+                .filter { cls ->
+                    cls.parents().any { parent ->
+                        val source = parent.sourceDeclaration as? KoBaseDeclaration
+                        ClientDomainInterface.test(source) || ServerDomainInterface.test(source)
+                    }
+                }
+                .map { Violation(it, "class in an `:api` module implements a domain interface — only the interface may be published, never its implementation") }
         }
     }
 

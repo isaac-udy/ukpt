@@ -7,21 +7,42 @@
 
 UKPT is a Kotlin Multiplatform template. Its architecture is built from vertical feature
 slices (`:feature:[name]:{api,client,server}`) over shared infrastructure (`:platform`),
-assembled by thin application shells (`:app`). Each feature is organised along four axes:
-`domain`, `ui`, `data`, and `services`. Module-graph rules keep the slices independent.
+assembled by thin application shells (`:app`). Module-graph rules keep the slices independent.
+
+A declaration's **package** says what it is; the Gradle **module** it lives in says who may see
+it. A feature is rooted at `feature.[name]`, which holds its shared language — the domain models
+both sides speak. One level down is a side, `client` or `server`; two levels down is a layer
+within that side. The deeper the package, the more private the code.
+
+```
+client.ui → client.domain ← client.data → [ contract ] ← server.services → server.domain ← server.data
+```
+
+Two hexagons around pure cores, joined at the RPC contract. Each side's `domain` sits between
+its consumers and its adapters and knows neither, so `client.data` and `server.services` are the
+mirror pair at the network edge, and a `Repository` provides the domain interfaces on both sides
+— reading through a Service on the client and a `StorageClass` over a table on the server. The
+network is the only connection between sides, and `client.data` is the only client package that
+may import its contracts.
 
 The rules govern the feature modules. The composite builds (`embedded-enro`,
 `embedded-udytils`, and `build-logic`), test sources, and this rule module itself are not
-tested. `:feature:core` is the worked example the rules describe.
+tested. `:feature:core` is the worked example the rules describe: it keeps its feature code in
+`feature.[name]` package namespaces so each slice stays liftable into its own module.
+
+Rules land enforced from their first commit, never as audits, and no declaration carries an
+`@ArchitectureException`. A rule that cannot be met is a design question, not a setting.
 
 ## Rules
 
 - [Module Rules](docs/module.md)
-- [Domain Layer](docs/domain.md)
-- [Ui Layer](docs/ui.md)
-- [Data Layer](docs/data.md)
-- [Services Layer](docs/services.md)
 - [Feature Rules](docs/feature.md)
+- [Client Domain](docs/clientdomain.md)
+- [Client Data](docs/clientdata.md)
+- [Client Ui](docs/clientui.md)
+- [Server Services](docs/serverservices.md)
+- [Server Domain](docs/serverdomain.md)
+- [Server Data](docs/serverdata.md)
 - [Design System Rules](docs/designsystem.md)
 - [Project Rules](docs/project.md)
 
@@ -53,8 +74,8 @@ Every Rule/Guidance/Construct has a stable ID based on the object/property that 
 | ID | Reads as |
 | --- | --- |
 | `ModuleRules.featureNotApp` | a RuleGroup-level rule (not tied to a Construct) |
-| `DomainLayer.DomainInterface.interfaceDefaults` | the `interfaceDefaults` Rule of the `DomainInterface` Construct |
-| `DomainLayer.DomainInterface` | the `DomainInterface` Construct (a classification) in the `DomainLayer` RuleGroup |
+| `FeatureRules.SharedDomainModel.immutable` | the `immutable` Rule of the `SharedDomainModel` Construct |
+| `FeatureRules.SharedDomainModel` | the `SharedDomainModel` Construct (a classification) in the `FeatureRules` RuleGroup |
 
 Test failures, the [rule index](docs/rule-index.md), and [architecture exceptions](docs/exceptions.md) reference rules by ID. Construct requirements don't have their own IDs, they belong to their Construct.
 

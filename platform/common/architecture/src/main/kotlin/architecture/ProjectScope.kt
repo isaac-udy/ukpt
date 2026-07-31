@@ -1,6 +1,24 @@
 package architecture
 
 import com.lemonappdev.konsist.api.Konsist
+import java.io.File
+
+/**
+ * The root of the build being scanned: the nearest ancestor of the test JVM's working directory
+ * that holds a `settings.gradle.kts`, which is how Konsist resolves its own project root.
+ */
+private val buildRoot: String = generateSequence(File(System.getProperty("user.dir")).absoluteFile) { it.parentFile }
+    .firstOrNull { File(it, "settings.gradle.kts").isFile }
+    ?.path
+    ?: File(System.getProperty("user.dir")).absolutePath
+
+/**
+ * Agent worktrees live under `<buildRoot>/.claude/`. The exclusion is anchored to the build root
+ * the run resolved, which gives two properties at once: a run in the main checkout skips the
+ * worktrees nested inside it, and a run from inside a worktree scans that worktree — its own
+ * `.claude/` directory is the one excluded, not the path it happens to sit under.
+ */
+private val nestedWorktrees = "$buildRoot/.claude/"
 
 /**
  * Matches any test source set so none of them are architecture-scanned: plain-JVM `src/test`, KMP's
@@ -23,10 +41,10 @@ val projectScope = Konsist
                 // build-logic is an includeBuild composite of template tooling (not app code),
                 // sibling to the embedded composite builds — its sources aren't governed either.
                 !it.path.contains("/build-logic/") &&
-                // Agent worktrees under .claude/worktrees/ are throwaway checkouts of other
-                // branches; scanning them double-counts every file and fails rules against stale
-                // copies of the code. Nothing under .claude/ is governed code.
-                !it.path.contains("/.claude/") &&
+                // Agent worktrees under `.claude/` are complete second copies of the repository.
+                // Scanning them double-counts every declaration, and — worse — makes any rule
+                // about cross-file uniqueness fail against a file's own reflection.
+                !it.path.startsWith(nestedWorktrees) &&
                 // Test sources of every kind are out of scope (see testSourceSet above).
                 !testSourceSet.containsMatchIn(it.path)
     }

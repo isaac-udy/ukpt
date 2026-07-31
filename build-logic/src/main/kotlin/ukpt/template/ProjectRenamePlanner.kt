@@ -1,5 +1,6 @@
 package ukpt.template
 
+import java.io.IOException
 import java.nio.charset.StandardCharsets
 import java.nio.file.FileVisitResult
 import java.nio.file.Files
@@ -199,7 +200,8 @@ object ProjectRenamePlanner {
     ) {
         val contents = try {
             file.readText(StandardCharsets.UTF_8)
-        } catch (_: Exception) {
+        } catch (_: IOException) {
+            // Unreadable or non-UTF-8 (CharacterCodingException) files carry no occurrences.
             return
         }
         if ('\u0000' in contents) return

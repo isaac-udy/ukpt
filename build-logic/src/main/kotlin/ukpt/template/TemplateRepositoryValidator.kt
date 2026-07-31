@@ -1,5 +1,6 @@
 package ukpt.template
 
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.LocalDate
@@ -7,6 +8,7 @@ import java.time.format.DateTimeParseException
 import java.util.stream.Collectors
 import kotlin.io.path.name
 import kotlin.io.path.readText
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -89,11 +91,9 @@ object TemplateRepositoryValidator {
     private fun repositoryIsDownstream(repository: Path): Boolean {
         val marker = repository.resolve(".ukpt/template.json")
         if (!Files.isRegularFile(marker)) return false
-        return try {
+        return runCatching {
             Json.parseToJsonElement(marker.readText()).jsonObject["project"] != null
-        } catch (exception: Exception) {
-            false
-        }
+        }.getOrDefault(false)
     }
 
     private fun validateMarker(
@@ -109,7 +109,13 @@ object TemplateRepositoryValidator {
 
         val root = try {
             Json.parseToJsonElement(marker.readText()).jsonObject
-        } catch (exception: Exception) {
+        } catch (exception: IOException) {
+            issues += TemplateValidationIssue(relativePath, "unreadable: ${exception.message}")
+            return null
+        } catch (exception: SerializationException) {
+            issues += TemplateValidationIssue(relativePath, "invalid JSON: ${exception.message}")
+            return null
+        } catch (exception: IllegalArgumentException) {
             issues += TemplateValidationIssue(relativePath, "invalid JSON: ${exception.message}")
             return null
         }
@@ -370,7 +376,10 @@ object TemplateRepositoryValidator {
         val ruleIds = architectureRuleIds(repository)
         // Only ids whose group is a real rule group are checked, so ordinary dotted expressions
         // (`Modifier.padding`, `UkptTheme.colors`) are ignored without an allow-list to maintain.
-        val ruleGroups = ruleIds.mapTo(mutableSetOf()) { it.substringBefore('.') }
+        // Retired groups are listed explicitly: without them, deleting or renaming a whole group —
+        // the highest-blast-radius rule change there is — would silently exempt every skill that
+        // still cites it. A migration entry that renames a group adds the old name here.
+        val ruleGroups = ruleIds.mapTo(mutableSetOf()) { it.substringBefore('.') } + retiredRuleGroups
         val repositoryRoots = Files.list(repository).use { paths ->
             paths.map { it.name }.collect(Collectors.toSet())
         }
@@ -424,6 +433,19 @@ object TemplateRepositoryValidator {
                 }
         }
     }
+
+    /**
+     * Rule groups that no longer exist. A skill citation headed by one of these is always stale —
+     * the id can't resolve against any current rule index — so it is reported rather than skipped.
+     * Grows when a migration renames or deletes a group; never shrinks.
+     */
+    private val retiredRuleGroups = setOf(
+        "DomainLayer",
+        "UiLayer",
+        "DataLayer",
+        "ServicesLayer",
+        "FeatureRootRules",
+    )
 
     /**
      * Every dotted, PascalCase-headed identifier named in the generated rule index — rule ids and

@@ -174,21 +174,25 @@ include(":feature:<name>:server")
 
 ## §5 — Client source skeletons
 
-`:api` → `feature/<name>/api/src/commonMain/kotlin/feature/<name>/ui/<Name>Destination.kt`
+`:client` → `feature/<name>/client/src/commonMain/kotlin/feature/<name>/client/ui/<Name>Destination.kt`
+(the default home — move the file to `:api`, same package, only when a second feature navigates to it;
+an app-shell reference never forces the move: `ClientUi.Destination.definedInApiOrClient`)
 ```kotlin
-package feature.<name>.ui
+package feature.<name>.client.ui
 
 import dev.enro.NavigationKey
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
+@SerialName("NavigationKey.<Name>Destination")   // ProjectRules.serialNameEncodesEnclosingType: destinations pin exactly this
 object <Name>Destination : NavigationKey
 // Use a `@Serializable data class <Name>Destination(...) : NavigationKey` if the key carries arguments.
 ```
 
-`:client` → `feature/<name>/client/src/commonMain/kotlin/feature/<name>/ui/<Name>Screen.kt`
+`:client` → `feature/<name>/client/src/commonMain/kotlin/feature/<name>/client/ui/<Name>Screen.kt`
 ```kotlin
-package feature.<name>.ui
+package feature.<name>.client.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -204,13 +208,13 @@ import dev.enro.annotations.NavigationDestination
 @Composable
 @NavigationDestination(<Name>Destination::class)
 fun <Name>Screen(
-    viewModel: <Name>ViewModel = viewModel(),   // UiLayer.Screen.viewModelInjection: viewModel(), NOT koinViewModel()
+    viewModel: <Name>ViewModel = viewModel(),   // ClientUi.Screen.viewModelInjection: viewModel(), NOT koinViewModel()
 ) {
     val state by viewModel.state.collectAsState()
     <Name>ScreenContent(state)
 }
 
-// UiLayer.Screen.screenContentCompanion: internal ScreenContent takes state (+ callbacks) so it renders without a ViewModel.
+// ClientUi.Screen.screenContentCompanion: internal ScreenContent takes state (+ callbacks) so it renders without a ViewModel.
 // Every colour, dimension and text style comes from the design system — DesignSystemRules.noLiteralsInFeatureUi
 // audits for literal Color(0x…)/.dp here. Imports: platform.design.<Prefix>Theme, platform.design.<Prefix>Spacing.
 // The <Prefix>Theme.* accessor below is the scaffold's design-system API; if the project authored its own,
@@ -231,7 +235,7 @@ internal fun <Name>ScreenContent(state: <Name>State) {
     }
 }
 
-// UiLayer.Composable.screenContentPreview: every ScreenContent needs a @Preview — it becomes a
+// ClientUi.Composable.screenContentPreview: every ScreenContent needs a @Preview — it becomes a
 // Paparazzi snapshot via PreviewSnapshotTest. Add a @Preview per meaningful state.
 // Import: androidx.compose.ui.tooling.preview.Preview
 @Preview
@@ -246,9 +250,9 @@ internal fun <Name>ScreenPreview() {
 }
 ```
 
-`:client` → `feature/<name>/client/src/commonMain/kotlin/feature/<name>/ui/<Name>ViewModel.kt`
+`:client` → `feature/<name>/client/src/commonMain/kotlin/feature/<name>/client/ui/<Name>ViewModel.kt`
 ```kotlin
-package feature.<name>.ui
+package feature.<name>.client.ui
 
 import androidx.lifecycle.ViewModel
 import dev.enro.navigationHandle
@@ -258,13 +262,13 @@ import dev.isaacudy.udytils.state.viewModelState
 class <Name>ViewModel : ViewModel() {
     private val navigation by navigationHandle<<Name>Destination>()
     val state: ViewModelState<<Name>State> = viewModelState(<Name>State())
-    // UiLayer.ViewModel.usesJobManager: if this VM launches coroutines, use dev.isaacudy.udytils.coroutines.JobManager, never `var job: Job?`.
+    // ClientUi.ViewModel.usesJobManager: if this VM launches coroutines, use dev.isaacudy.udytils.coroutines.JobManager, never `var job: Job?`.
 }
 ```
 
-`:client` → `feature/<name>/client/src/commonMain/kotlin/feature/<name>/ui/<Name>State.kt`
+`:client` → `feature/<name>/client/src/commonMain/kotlin/feature/<name>/client/ui/<Name>State.kt`
 ```kotlin
-package feature.<name>.ui
+package feature.<name>.client.ui
 
 data class <Name>State(
     val message: String = "Hello, <name>!",
@@ -275,7 +279,7 @@ data class <Name>State(
 ```kotlin
 package feature.<name>
 
-import feature.<name>.ui.<Name>ViewModel
+import feature.<name>.client.ui.<Name>ViewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
@@ -314,9 +318,9 @@ val <name>ClientDependencies = module {
    ```
    `@RunWith(Parameterized::class)` is inherited from the base class; `@Parameterized.Parameters` must stay
    on the concrete class because JUnit 4 insists on reading it there. This discovers every `@Preview` in the
-   module and snapshots it (`UiLayer.Composable.previewsAreSnapshotTested`, which detects the harness by
+   module and snapshots it (`ClientUi.Composable.previewsAreSnapshotTested`, which detects the harness by
    looking for `PreviewSnapshotTestCase`); the `@Preview` on `<Name>ScreenPreview` (§5) satisfies
-   `UiLayer.Composable.screenContentPreview`. No per-screen test files are needed.
+   `ClientUi.Composable.screenContentPreview`. No per-screen test files are needed.
 3. Record and verify the new module's goldens. **`--no-configuration-cache` is required** — under the
    configuration cache the R class is dropped from the test runtime classpath and every snapshot test dies with
    `ClassNotFoundException: <module>.R`:
@@ -325,7 +329,7 @@ val <name>ClientDependencies = module {
    ./gradlew :feature:<name>:client:verifyPaparazzi --no-configuration-cache
    ```
    Goldens are grouped by the preview's declaring package and function name, e.g.
-   `src/androidHostTest/snapshots/images/feature/<name>/ui/<Name>ScreenPreview.png`. Two previews resolving to
+   `src/androidHostTest/snapshots/images/feature/<name>/client/ui/<Name>ScreenPreview.png`. Two previews resolving to
    the same golden path fail fast at test-parameter creation rather than silently overwriting each other.
 
 ## §7 — Wiring checklist (edits to EXISTING files — the easy-to-forget step)

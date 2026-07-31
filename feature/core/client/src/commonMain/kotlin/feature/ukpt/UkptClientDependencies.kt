@@ -1,6 +1,6 @@
 package feature.ukpt
 
-import feature.ukpt.ui.UkptViewModel
+import feature.ukpt.client.ui.UkptViewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 

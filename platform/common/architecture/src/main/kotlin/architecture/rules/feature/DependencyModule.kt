@@ -2,10 +2,11 @@ package architecture.rules.feature
 
 import dev.isaacudy.udytils.architecture.*
 
-import architecture.definitions.containingFilePackage
-import architecture.definitions.containsPackageSegment
 import architecture.definitions.featureName
+import architecture.definitions.isClientModule
 import architecture.definitions.isFeatureModule
+import architecture.definitions.isFeatureRootPackage
+import architecture.definitions.isServerModule
 import com.lemonappdev.konsist.api.declaration.KoPropertyDeclaration
 import com.lemonappdev.konsist.api.provider.KoContainingFileProvider
 
@@ -23,14 +24,11 @@ import com.lemonappdev.konsist.api.provider.KoContainingFileProvider
 object DependencyModule : Construct<FeatureRules>(
     requirements = listOf(
         predicate("resides in the top-level `feature.[name]` package of a `:client` or `:server` module") { decl ->
-            decl.isFeatureModule() &&
-                decl.containingFilePackage().let { pkg ->
-                    pkg.startsWith("feature.") &&
-                        !pkg.containsPackageSegment("data") &&
-                        !pkg.containsPackageSegment("domain") &&
-                        !pkg.containsPackageSegment("services") &&
-                        !pkg.containsPackageSegment("ui")
-                }
+            // Exactly the feature root — a `Dependencies` property anywhere deeper would let an
+            // undeclared layer package slip past the taxonomy by holding only DI code — and on a
+            // side module: DI wiring binds implementations, which `:api` never holds.
+            decl.isFeatureModule() && decl.isFeatureRootPackage() &&
+                (decl.isClientModule() || decl.isServerModule())
         },
         isProperty,
         hasNameEndingWith("Dependencies"),
