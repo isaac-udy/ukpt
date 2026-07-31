@@ -69,6 +69,25 @@ Pick it apart:
    `DesignSystemRules.noNavigationOrDi` still enforces. Moving such a file into `design` by mistake
    fails the architecture suite, which is the intended guard rail.
 
+Three hazards, each hit in a real mixed-case migration:
+
+- **Split packages make prefix rewrites wrong.** When only some symbols of a package move (pure
+  primitives go, nav-aware siblings stay), that package ends up split across the two modules. A
+  naive `platform.ui.` → `platform.design.` rewrite corrupts the kept files. Build a declaration
+  map first — which symbol landed in which module — and rewrite imports symbol-by-symbol against
+  it. Files that leaned on same-package visibility to reach a now-moved symbol need new explicit
+  imports, so expect the compiler to surface stragglers the map missed.
+- **Previews may live in a different module than the composables.** A `PreviewSnapshotTest`
+  scanning the design package tree from elsewhere (a feature client module, say) means the preview
+  *files* must be split along the same moved/kept line as the composables they render, and their
+  directory-grouped goldens `git mv`'d to follow the previews' new declaring packages.
+- **The docs corpus may straddle the split.** Pattern pages that document nav-aware components
+  staying in `:ui` force a choice when `design-system/` moves into `:design`: cross-module image
+  links (docs in `:design` pointing into `:ui`'s snapshot tree) keep one corpus but encode the
+  sibling module's directory layout; splitting the corpus keeps links local but scatters the
+  documentation. Either is workable — but a project running its own doc-image link checker must
+  make sure it resolves whichever form is chosen, from the page's own directory.
+
 ## Verification
 
 - `./gradlew :platform:common:architecture:verifyArchitecture` passes — `noNavigationOrDi` finds no
