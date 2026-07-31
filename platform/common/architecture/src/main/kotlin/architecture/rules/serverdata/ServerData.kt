@@ -274,10 +274,10 @@ object ServerData : RuleGroup(
                 .forEach { file ->
                     val feature = file.featureName()
                     if (feature.isBlank()) return@forEach
-                    file.imports
-                        .filter { it.name.matches(generatedTableObjectRegex) }
-                        .forEach { import ->
-                            featuresByTable.getOrPut(import.name.substringAfterLast('.')) { mutableMapOf() }
+                    file.generatedSourceReferences()
+                        .filter { it.matches(generatedTableObjectRegex) }
+                        .forEach { reference ->
+                            featuresByTable.getOrPut(reference.substringAfterLast('.')) { mutableMapOf() }
                                 .putIfAbsent(feature, file.path)
                         }
                 }
@@ -315,10 +315,10 @@ object ServerData : RuleGroup(
                 .filter { it.isFeatureModule() && it.isInServerDataStorage() }
                 .filterNot { exempt(it) }
                 .forEach { file ->
-                    file.imports
-                        .filter { it.name.matches(generatedTableObjectRegex) }
-                        .forEach { import ->
-                            filesByTable.getOrPut(import.name.substringAfterLast('.')) { mutableSetOf() }
+                    file.generatedSourceReferences()
+                        .filter { it.matches(generatedTableObjectRegex) }
+                        .forEach { reference ->
+                            filesByTable.getOrPut(reference.substringAfterLast('.')) { mutableSetOf() }
                                 .add(file.path)
                         }
                 }
@@ -372,8 +372,12 @@ object ServerData : RuleGroup(
 /** A generated Exposed `Table` object — the write path for one SQL table. */
 private val generatedTableObjectRegex = Regex("""^platform\.server\.postgres\.tables\.\w*Table$""")
 
-/** A generated-package name as it appears in a code body, fully qualified at the use site. */
-private val generatedSourceBodyReference = Regex("""platform\.server\.postgres\.tables\.\w+""")
+/**
+ * A generated-package name as it appears in a code body, fully qualified at the use site. The
+ * lookbehind anchors the package head, so `com.example.myplatform.server.postgres.tables.X` is
+ * someone else's package, not a match.
+ */
+private val generatedSourceBodyReference = Regex("""(?<![\w.])platform\.server\.postgres\.tables\.\w+""")
 
 /**
  * Every generated Postgres source this file names — by import, or fully qualified in the code body

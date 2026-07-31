@@ -367,4 +367,4 @@ register a group of bindings. Used to split a large module into readable, named 
 * A Dependency Module Helper is a function
 * A Dependency Module Helper is `internal`
 * A Dependency Module Helper has a Koin `Module` receiver
-* A Dependency Module Helper resides in the top-level `feature.[name]` package, beside the `Dependencies` module it splits
+* A Dependency Module Helper resides in the top-level `feature.[name]` package of a `:client` or `:server` module, beside the `Dependencies` module it splits

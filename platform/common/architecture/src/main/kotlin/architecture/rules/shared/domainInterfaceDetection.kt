@@ -9,14 +9,15 @@ import com.lemonappdev.konsist.api.declaration.KoParentDeclaration
 import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
 
 /**
- * True for the name of a reactive return type — the head of the type expression, package-stripped
- * and generics-stripped, is one of [reactiveWrapperTypeNames]. So `Flow<User>`,
- * `kotlinx.coroutines.flow.Flow<User>`, and `StateFlow<User>` all count, while `DataFlowState`
- * (which merely contains the substring) does not.
+ * True for the name of a reactive return type — the generics- and nullability-stripped head of the
+ * type expression is one of [reactiveWrapperTypeNames], which carries both the simple and the
+ * fully-qualified forms. So `Flow<User>`, `kotlinx.coroutines.flow.Flow<User>`, and
+ * `StateFlow<User>` all count, while `DataFlowState` and a project type that merely *ends* in
+ * `.Flow` (its FQN is not in the set) do not.
  */
 internal fun isFlowTypeName(name: String?): Boolean {
     if (name == null) return false
-    val head = name.substringBefore('<').trimEnd('?').substringAfterLast('.')
+    val head = name.substringBefore('<').trimEnd('?')
     return head in reactiveWrapperTypeNames
 }
 
