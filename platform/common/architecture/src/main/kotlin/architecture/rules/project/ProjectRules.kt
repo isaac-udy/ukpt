@@ -9,6 +9,7 @@ import architecture.definitions.isFeatureRootPackage
 import architecture.definitions.isKotlinxSerializable
 import architecture.definitions.isNavigationKey
 import architecture.definitions.participatesInPolymorphicSerialization
+import architecture.definitions.codeBodyText
 import architecture.definitions.resolveTypeToken
 import architecture.definitions.sealedParentSimpleNames
 import architecture.definitions.serialNameValue
@@ -382,11 +383,11 @@ object ProjectRules : RuleGroup() {
                 .filterNot { exempt(it) }
                 .filter { cls ->
                     // Resolved through the file's imports so an alias (`import … as TxRunner`)
-                    // or a qualified reference is still recognized as the runner.
+                    // or a qualified reference is still recognized — and matched against the one
+                    // canonical FQN, so an unrelated vendor type named TransactionRunner is not.
                     cls.primaryConstructor?.parameters.orEmpty().any { param ->
                         typeTokens(param.type.name).any { token ->
-                            cls.containingFile.resolveTypeToken(token)?.endsWith(".TransactionRunner") == true ||
-                                token == "TransactionRunner"
+                            cls.containingFile.resolveTypeToken(token) == "platform.server.postgres.TransactionRunner"
                         }
                     }
                 }
@@ -465,22 +466,9 @@ private fun packageResolver(scope: KoScope): (String) -> String? {
 /** A side-first name as it appears in a file body, where there is no import to inspect. */
 private val sideFirstReferenceRegex = Regex("""feature\.\w+\.(?:client|server)\.[\w.]+""")
 
-/**
- * The file's text with string literals and comments blanked, so a fully-qualified name cited in a
- * KDoc, a `//` note, or a log message is not mistaken for a code reference. Strings go first —
- * a `//` inside a URL literal is not a comment — then block and line comments.
- */
-private fun String.withoutStringsAndComments(): String =
-    replace(Regex('"'.toString().repeat(3) + ".*?" + '"'.toString().repeat(3), RegexOption.DOT_MATCHES_ALL), "\"\"")
-        .replace(Regex("\"(?:\\\\.|[^\"\\\\])*\""), "\"\"")
-        .replace(Regex("""/\*.*?\*/""", RegexOption.DOT_MATCHES_ALL), "")
-        .replace(Regex("""//[^\n]*"""), "")
-
 /** Every project declaration a file names — import or fully-qualified body reference — and its package. */
 private fun KoFileDeclaration.namedPackages(resolve: (String) -> String?): List<Pair<String, String>> {
-    val body = imports
-        .fold(text.withoutStringsAndComments()) { stripped, import -> stripped.replace(import.text, "") }
-        .let { stripped -> packagee?.text?.let { stripped.replace(it, "") } ?: stripped }
+    val body = codeBodyText()
     return (imports.map { it.name } + sideFirstReferenceRegex.findAll(body).map { it.value })
         .distinct()
         .mapNotNull { name -> resolve(name)?.let { name to it } }

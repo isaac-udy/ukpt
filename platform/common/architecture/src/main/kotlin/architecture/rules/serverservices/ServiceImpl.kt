@@ -2,6 +2,7 @@ package architecture.rules.serverservices
 
 import dev.isaacudy.udytils.architecture.*
 
+import architecture.definitions.containingFilePackage
 import architecture.definitions.containsPackageSegment
 import architecture.definitions.isServerModule
 import architecture.definitions.resolveTypeToken
@@ -43,7 +44,7 @@ object ServiceImpl : Construct<ServerServices>(
             service it names returns 404.
             """.trimIndent(),
         )
-        note("The parent reference is resolved through the file's imports; the contract usually needs no import at all — it shares the impl's package from `:api` — so a same-package reference resolves to it directly.")
+        note("Matched by fully-qualified name: the contract shares the impl's package by construction — it is declared in `:api` under the same `server.services` package — so the expected parent is exactly `<package>.<Name>Service`, however the impl writes the reference (bare, aliased, or qualified).")
         scope { scope, exempt ->
             val contractFqns = scope.interfaces()
                 .filter { iface -> iface.annotations.any { it.name == "Urpc" } }
@@ -53,13 +54,13 @@ object ServiceImpl : Construct<ServerServices>(
                 .filter { test(it) }
                 .filterNot { exempt(it) }
                 .filterNot { cls ->
-                    val expected = cls.name.removeSuffix("Impl")
-                    cls.parents().any { parent ->
-                        parent.name.substringAfterLast('.') == expected &&
-                            cls.containingFile.resolveTypeToken(parent.name) in contractFqns
-                    }
+                    // The impl's own feature's contract, never a same-named one elsewhere: the
+                    // expected FQN is anchored to the impl's package.
+                    val expectedFqn = "${cls.containingFilePackage()}.${cls.name.removeSuffix("Impl")}"
+                    expectedFqn in contractFqns &&
+                        cls.parents().any { cls.containingFile.resolveTypeToken(it.name) == expectedFqn }
                 }
-                .map { Violation(it, "`${it.name}` does not implement the `@Urpc` contract `${it.name.removeSuffix("Impl")}`") }
+                .map { Violation(it, "`${it.name}` does not implement its own feature's `@Urpc` contract `${it.name.removeSuffix("Impl")}`") }
         }
     }
 

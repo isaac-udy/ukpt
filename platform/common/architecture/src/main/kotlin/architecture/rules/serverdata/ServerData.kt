@@ -1,5 +1,6 @@
 package architecture.rules.serverdata
 
+import architecture.definitions.codeBodyText
 import architecture.definitions.featureName
 import architecture.definitions.isFeatureModule
 import architecture.utils.isGeneratedTableImport
@@ -219,18 +220,18 @@ object ServerData : RuleGroup(
         )
         note("`feature.[name].server.data` is the only home a table has: a file that names one from anywhere else is reaching around the Storage class that owns it, whatever package that file is in.")
         note("Within the layer, `Row` imports are legal anywhere — mapping functions at the data root take Rows as receivers — while `Table` imports are legal only in the flat `storage` package, where the owning StorageClass lives.")
+        note("Both imports and fully-qualified body references are counted, so `platform.server.postgres.tables.XxxTable.selectAll()` with no import line is the same reach-around.")
         scope { scope, exempt ->
             val outsideLayer = scope.files
                 .filter { it.isFeatureModule() }
                 .filterNot { it.isInServerData() }
                 .filterNot { exempt(it) }
                 .flatMap { file ->
-                    file.imports
-                        .filter { it.name.isGeneratedTableImport() }
+                    file.generatedSourceReferences()
                         .map {
                             Violation(
                                 file.path,
-                                "imports `${it.name}` outside `server.data` — go through the owning Storage " +
+                                "names `$it` outside `server.data` — go through the owning Storage " +
                                     "class so its write path and side effects can't be skipped",
                             )
                         }
@@ -239,12 +240,12 @@ object ServerData : RuleGroup(
                 .filter { it.isFeatureModule() && it.isInServerData() && !it.isInServerDataStorage() }
                 .filterNot { exempt(it) }
                 .flatMap { file ->
-                    file.imports
-                        .filter { it.name.matches(generatedTableObjectRegex) }
+                    file.generatedSourceReferences()
+                        .filter { it.matches(generatedTableObjectRegex) }
                         .map {
                             Violation(
                                 file.path,
-                                "imports table object `${it.name}` outside `server.data.storage` — only the " +
+                                "names table object `$it` outside `server.data.storage` — only the " +
                                     "owning StorageClass queries a table; state what you need on it instead",
                             )
                         }
@@ -370,6 +371,20 @@ object ServerData : RuleGroup(
 
 /** A generated Exposed `Table` object — the write path for one SQL table. */
 private val generatedTableObjectRegex = Regex("""^platform\.server\.postgres\.tables\.\w*Table$""")
+
+/** A generated-package name as it appears in a code body, fully qualified at the use site. */
+private val generatedSourceBodyReference = Regex("""platform\.server\.postgres\.tables\.\w+""")
+
+/**
+ * Every generated Postgres source this file names — by import, or fully qualified in the code body
+ * (strings, comments, package and import lines blanked) — so a use site with no import line reads
+ * the same as an imported one.
+ */
+private fun KoFileDeclaration.generatedSourceReferences(): List<String> {
+    val fromImports = imports.map { it.name }.filter { it.isGeneratedTableImport() }
+    val fromBody = generatedSourceBodyReference.findAll(codeBodyText()).map { it.value }
+    return (fromImports + fromBody).distinct()
+}
 
 /** True for a file in `feature.[name].server.data` — the file-level form of the group's gate. */
 internal fun KoFileDeclaration.isInServerData(): Boolean {

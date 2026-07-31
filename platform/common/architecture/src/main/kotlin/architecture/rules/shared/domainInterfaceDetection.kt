@@ -1,15 +1,24 @@
 package architecture.rules.shared
 
 import architecture.definitions.containingFilePackage
+import architecture.utils.reactiveWrapperTypeNames
 import com.lemonappdev.konsist.api.container.KoScope
 import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
 import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
 import com.lemonappdev.konsist.api.declaration.KoParentDeclaration
 import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
 
-/** True for the name of a reactive return type — `Flow` or `Flow<…>`, not any name containing the substring. */
-internal fun isFlowTypeName(name: String?): Boolean =
-    name != null && (name == "Flow" || name.startsWith("Flow<"))
+/**
+ * True for the name of a reactive return type — the head of the type expression, package-stripped
+ * and generics-stripped, is one of [reactiveWrapperTypeNames]. So `Flow<User>`,
+ * `kotlinx.coroutines.flow.Flow<User>`, and `StateFlow<User>` all count, while `DataFlowState`
+ * (which merely contains the substring) does not.
+ */
+internal fun isFlowTypeName(name: String?): Boolean {
+    if (name == null) return false
+    val head = name.substringBefore('<').trimEnd('?').substringAfterLast('.')
+    return head in reactiveWrapperTypeNames
+}
 
 /**
  * True if [declaration] (or, for a parent reference, its source declaration) is a domain interface
