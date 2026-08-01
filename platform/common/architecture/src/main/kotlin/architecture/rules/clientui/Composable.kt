@@ -29,6 +29,12 @@ import com.lemonappdev.konsist.api.Konsist
     * **Note:** Add a `@Preview` per meaningful state (loaded, empty, error) as a screen grows.
     * **Note:** A screen's `@Preview`(s) live in the same file as the `[Name]ScreenContent` they
       render, next to the Screen — not gathered into a shared "screen previews" file.
+    * **Note:** A screen's golden should read as a **screenshot of the app on a device**, not a
+      render on the harness canvas: wrap the preview's content in the design module's
+      `UkptPreviewFrame`, which sizes the render to the project's primary viewport and pins the
+      palette. The module's `PreviewSnapshotTest` renders in `RenderingMode.SHRINK`, cropping the
+      golden to that frame — the 960 dp canvas is a ceiling, not a frame. (An unframed
+      `fillMaxSize` preview still renders the full square canvas, unchanged.)
     * **Note:** For one-off snapshot tests that aren't preview-driven, `SnapshotRule`
       (`dev.isaacudy.udytils.snapshot.SnapshotRule`) provides `snapshot.screen { }` and
       `snapshot.component { }`.

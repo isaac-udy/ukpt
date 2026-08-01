@@ -14,6 +14,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.enro.annotations.NavigationDestination
 import platform.design.UkptColors
+import platform.design.UkptPreviewFrame
 import platform.design.UkptSpacing
 import platform.design.UkptTheme
 import platform.design.components.UkptButton
@@ -72,8 +73,9 @@ internal fun UkptScreenContent(
 @Preview
 @Composable
 internal fun UkptScreenPreview() {
-    // Pins the palette rather than following the system, so the golden is deterministic.
-    UkptTheme(colors = UkptColors.Light) {
+    // The frame sizes the golden to the primary viewport and pins the palette, so the snapshot
+    // reads as a deterministic device screenshot rather than a render on the harness canvas.
+    UkptPreviewFrame(colors = UkptColors.Light) {
         UkptScreenContent(
             state = UkptState(),
             onGreet = {},

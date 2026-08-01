@@ -241,10 +241,12 @@ internal fun <Name>ScreenContent(state: <Name>State) {
 @Preview
 @Composable
 internal fun <Name>ScreenPreview() {
-    // Pin the palette rather than following the system, so the golden is deterministic. The
-    // <Prefix>Theme(colors = …) wrapper is the scaffold's signature; a project with its own theme
-    // (e.g. GtTheme(density, content), no colors parameter) pins the palette however that theme does.
-    <Prefix>Theme(colors = <Prefix>Colors.Light) {
+    // The frame sizes the golden to the project's primary viewport and pins the palette, so the
+    // snapshot reads as a deterministic device screenshot rather than a render on the harness
+    // canvas. <Prefix>PreviewFrame is the scaffold's shape; a project with its own theme wrapper
+    // (e.g. GtTheme(density, content), no colors parameter) frames and pins however that theme
+    // does — the point is the fixed viewport-sized root, which SHRINK (§6) crops the golden to.
+    <Prefix>PreviewFrame(colors = <Prefix>Colors.Light) {
         <Name>ScreenContent(<Name>State())
     }
 }
@@ -300,6 +302,7 @@ val <name>ClientDependencies = module {
    ```kotlin
    package platform.snapshot
 
+   import com.android.ide.common.rendering.api.SessionParams.RenderingMode
    import dev.isaacudy.udytils.snapshot.PreviewSnapshotCase
    import dev.isaacudy.udytils.snapshot.PreviewSnapshotTestCase
    import dev.isaacudy.udytils.snapshot.PreviewSnapshots
@@ -307,7 +310,10 @@ val <name>ClientDependencies = module {
 
    class PreviewSnapshotTest(
        case: PreviewSnapshotCase,
-   ) : PreviewSnapshotTestCase(case) {
+   ) : PreviewSnapshotTestCase(
+       case = case,
+       renderingMode = RenderingMode.SHRINK,
+   ) {
 
        companion object {
            @JvmStatic
@@ -316,6 +322,11 @@ val <name>ClientDependencies = module {
        }
    }
    ```
+   `SHRINK` crops each golden to the preview's own bounds, which is what makes the
+   `<Prefix>PreviewFrame` wrapper (§5) produce a viewport-sized, screenshot-like golden instead of
+   a render padded out to the harness's 960 dp square canvas. A preview without a fixed-size root
+   (`fillMaxSize` against the canvas) still renders the full square, byte-identical to the old
+   default — SHRINK never changes goldens for unframed previews.
    `@RunWith(Parameterized::class)` is inherited from the base class; `@Parameterized.Parameters` must stay
    on the concrete class because JUnit 4 insists on reading it there. This discovers every `@Preview` in the
    module and snapshots it (`ClientUi.Composable.previewsAreSnapshotTested`, which detects the harness by
@@ -331,6 +342,8 @@ val <name>ClientDependencies = module {
    Goldens are grouped by the preview's declaring package and function name, e.g.
    `src/androidHostTest/snapshots/images/feature/<name>/client/ui/<Name>ScreenPreview.png`. Two previews resolving to
    the same golden path fail fast at test-parameter creation rather than silently overwriting each other.
+   A framed screen preview's golden is exactly the frame — the scaffold default is 390 x 844 dp, a
+   tall phone at `<Prefix>Viewport.Default`'s width.
 
 ## §7 — Wiring checklist (edits to EXISTING files — the easy-to-forget step)
 - [ ] `settings.gradle.kts` — three `include(":feature:<name>:…")` (§4).

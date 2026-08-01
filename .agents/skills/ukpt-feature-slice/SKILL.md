@@ -40,10 +40,12 @@ whatever the project was renamed to downstream — read `platform/client/design`
    `<Name>ViewModel`, `<Name>State` in `:client`; `<name>ClientDependencies` at the feature root
    `feature.<name>` in `:client` (templates.md §5).
 4. **Snapshot tests (preview-driven)** — the harness is the `dev.isaacudy.udytils:snapshot` artifact, so
-   there is nothing to copy. Write the one `PreviewSnapshotTest` extending `PreviewSnapshotTestCase` and
-   scanning `feature.<name>` (templates.md §6). The Screen template's `@Preview` (§5) is what gets
-   snapshotted — `ClientUi.Composable.screenContentPreview` requires every ScreenContent to be
-   called from a `@Preview`.
+   there is nothing to copy. Write the one `PreviewSnapshotTest` extending `PreviewSnapshotTestCase`
+   in `RenderingMode.SHRINK`, scanning `feature.<name>` (templates.md §6). The Screen template's
+   `@Preview` (§5) is what gets snapshotted — `ClientUi.Composable.screenContentPreview` requires
+   every ScreenContent to be called from a `@Preview`, and the preview wraps it in
+   `<Prefix>PreviewFrame` so the golden reads as a device screenshot rather than a render on the
+   harness canvas.
 5. **Wire it up** — the easy-to-forget edits to existing files (templates.md §7 checklist):
    - `app/client/common/build.gradle.kts` → `implementation(projects.feature.<name>.client)`.
    - `app/client/common/.../App.kt` → add `<name>ClientDependencies` to `modules(...)` + its import.
