@@ -1,5 +1,6 @@
 package platform.snapshot
 
+import com.android.ide.common.rendering.api.SessionParams.RenderingMode
 import dev.isaacudy.udytils.snapshot.PreviewSnapshotCase
 import dev.isaacudy.udytils.snapshot.PreviewSnapshotTestCase
 import dev.isaacudy.udytils.snapshot.PreviewSnapshots
@@ -13,7 +14,10 @@ import org.junit.runners.Parameterized
  */
 class PreviewSnapshotTest(
     case: PreviewSnapshotCase,
-) : PreviewSnapshotTestCase(case) {
+) : PreviewSnapshotTestCase(
+    case = case,
+    renderingMode = RenderingMode.SHRINK,
+) {
 
     companion object {
         @JvmStatic

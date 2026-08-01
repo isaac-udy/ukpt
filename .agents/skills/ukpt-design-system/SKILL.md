@@ -115,7 +115,9 @@ where there is one, and from the user where there isn't.
 - `<Prefix>Typography.kt` — keep `from(fonts)`; change sizes/weights, not the shape.
 - `<Prefix>Spacing.kt` / `<Prefix>Shapes.kt` — adjust the scales. Keep them bare objects: spacing is
   one density on purpose.
-- `<Prefix>Viewport.kt` — set `Default` to the project's primary form factor.
+- `<Prefix>Viewport.kt` — set `Default` to the project's primary form factor, and keep
+  `<Prefix>PreviewFrame.kt`'s default height describing the same device — the frame is what sizes
+  every screen preview's golden.
 
 ## Step 4 — Author the principles and prohibitions
 

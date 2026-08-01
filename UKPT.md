@@ -91,7 +91,7 @@ The common module's Android / JVM / wasm targets compile transitively via the pe
   shared agent guidance, and skills. `./gradlew -p build-logic test` runs the validator and safe
   project-rename planner's unit tests.
 - **Architecture rules**: `./gradlew :platform:common:architecture:verifyArchitecture` — a standalone task that always re-executes (no `--rerun-tasks` needed; the module's plain `test` task runs nothing — the test classes are plugin-generated from the `UkptArchitecture` definition, not checked in). The suite reports **one nested test per rule** (`<Layer> › <Construct> › <rule>`), so a failure names the exact rule. After changing a rule or an examples file, regenerate the generated docs (README + `docs/`): `./gradlew :platform:common:architecture:updateArchitectureDocumentation`.
-- **UI snapshots** are preview-driven: every `@Preview` composable is discovered by `PreviewSnapshotTest` and snapshotted with Paparazzi (`ClientUi.Composable.screenContentPreview` requires a `@Preview` per ScreenContent). Record then verify goldens, per client module:
+- **UI snapshots** are preview-driven: every `@Preview` composable is discovered by `PreviewSnapshotTest` and snapshotted with Paparazzi (`ClientUi.Composable.screenContentPreview` requires a `@Preview` per ScreenContent). Screen previews wrap their content in the design module's `UkptPreviewFrame`, and each module's `PreviewSnapshotTest` renders in `RenderingMode.SHRINK`, cropping the golden to that frame — so a screen golden reads as a device screenshot, not a render padded to the harness canvas. Record then verify goldens, per client module:
 ```
 ./gradlew :feature:core:client:recordPaparazzi --no-configuration-cache
 ./gradlew :feature:core:client:verifyPaparazzi --no-configuration-cache
