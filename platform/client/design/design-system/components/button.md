@@ -1,9 +1,10 @@
 # Button
 
 Source: [`UkptButton.kt`](../../src/commonMain/kotlin/platform/design/components/UkptButton.kt) ·
-Doc surface: `UkptButtonDocTest.variants`
+Doc surface: `UkptButtonDocSurface.kt`
 
-![UkptButton variants in both palettes](../../src/androidHostTest/snapshots/images/platform.design_UkptButtonDocTest_variants.png)
+![UkptButton variants, Light palette](../../src/androidHostTest/snapshots/images/platform/design/UkptButtonVariantsLightPreview.png)
+![UkptButton variants, Dark palette](../../src/androidHostTest/snapshots/images/platform/design/UkptButtonVariantsDarkPreview.png)
 
 There is **one** button. Everything a project might reach for a second button composable to express
 is a variant of this one, and if a case genuinely doesn't fit, that is a discussion about the
@@ -55,5 +56,6 @@ alone.
 - Keep it stateless; the caller owns pressed/loading/selected.
 - Any new interactive primitive sets an explicit `role`, and a non-interactive state keeps its
   meaning in semantics rather than in colour.
-- Changing appearance means re-recording `UkptButtonDocTest` in the same change. Renaming the test
-  method renames its golden and breaks the embed above — `DesignSystemDocImagesTest` will fail.
+- Changing appearance means re-recording this module's goldens in the same change. Renaming a
+  preview function in `UkptButtonDocSurface.kt` renames its golden and breaks the embed above —
+  `DesignSystemDocImagesTest` will fail.
