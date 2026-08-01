@@ -108,9 +108,10 @@ worse than none. Add the dependency, read its current documentation, and hold to
 # <Name>
 
 Source: [`<Prefix><Name>.kt`](../../src/commonMain/kotlin/platform/design/components/<Prefix><Name>.kt) ·
-Doc surface: `<Prefix><Name>DocTest.variants`
+Doc surface: `<Prefix><Name>DocSurface.kt`
 
-![<Prefix><Name> variants in both palettes](../../src/androidHostTest/snapshots/images/platform.design_<Prefix><Name>DocTest_variants.png)
+![<Prefix><Name> variants, Light palette](../../src/androidHostTest/snapshots/images/platform/design/<Prefix><Name>VariantsLightPreview.png)
+![<Prefix><Name> variants, Dark palette](../../src/androidHostTest/snapshots/images/platform/design/<Prefix><Name>VariantsDarkPreview.png)
 
 <One paragraph: what this primitive is for, and what it deliberately is not.>
 
@@ -144,17 +145,22 @@ set by hand.>
 - <What callers must not do with it.>
 - Never pass a literal colour or dimension — the variant decides the tokens.
 - Keep it stateless; the caller owns pressed/loading/selected.
-- Changing appearance means re-recording `<Prefix><Name>DocTest` in the same change. Renaming the
-  test method renames its golden and breaks the embed above — `DesignSystemDocImagesTest` will fail.
+- Changing appearance means re-recording this module's goldens in the same change. Renaming a
+  preview function renames its golden and breaks the embed above — `DesignSystemDocImagesTest`
+  will fail.
 ```
 
 Add a row for the page to the table in `design-system/README.md`.
 
 ---
 
-## §5 — Doc surface → `src/androidHostTest/kotlin/platform/design/<Prefix><Name>DocTest.kt`
+## §5 — Doc surface → `src/androidHostTest/kotlin/platform/design/<Prefix><Name>DocSurface.kt`
 
-A curated composition: every variant, in both palettes, labelled. Not a `@Preview`.
+`@Preview` functions discovered by the module's SHRINK-mode `PreviewSnapshotTest`, each wrapping a
+curated sheet — every variant, labelled — in `DocSurface`'s fixed-size container. One preview per
+palette, passing the palette explicitly; bare `@Preview` with no qualifiers, so the golden's name
+is exactly the function name. The golden lands at
+`snapshots/images/platform/design/<FunctionName>.png`.
 
 ```kotlin
 package platform.design
@@ -162,66 +168,62 @@ package platform.design
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import dev.isaacudy.udytils.snapshot.SnapshotRule
-import org.junit.Rule
-import org.junit.Test
 import platform.design.components.<Prefix><Name>
 import platform.design.components.<Prefix><Name>Variant
 
-class <Prefix><Name>DocTest {
-
-    @get:Rule
-    val snapshot = SnapshotRule()
-
-    @Test
-    fun variants() {
-        snapshot.component {
-            Row(horizontalArrangement = Arrangement.spacedBy(<Prefix>Spacing.md)) {
-                VariantColumn(colors = <Prefix>Colors.Light, paletteName = "Light")
-                VariantColumn(colors = <Prefix>Colors.Dark, paletteName = "Dark")
-            }
-        }
+@Preview
+@Composable
+private fun <Prefix><Name>VariantsLightPreview() {
+    DocSurface(<Prefix>Colors.Light, width = 220.dp, height = 220.dp) {
+        VariantsSheet(paletteName = "Light")
     }
 }
 
-// `internal`, not `private`, so layoutlib and the Compose compiler can reach it.
+@Preview
 @Composable
-internal fun VariantColumn(
-    colors: <Prefix>Colors,
-    paletteName: String,
-) {
-    <Prefix>Theme(colors = colors) {
-        Column(
-            modifier = Modifier
-                .width(220.dp)
-                .background(colors.background)
-                .padding(<Prefix>Spacing.md),
-            verticalArrangement = Arrangement.spacedBy(<Prefix>Spacing.sm),
-        ) {
-            Text(
-                text = paletteName,
-                style = <Prefix>Theme.typography.caption,
-                color = colors.onSurfaceVariant,
-            )
-            <Prefix><Name>Variant.entries.forEach { variant ->
-                <Prefix><Name>(label = variant.name, onClick = {}, variant = variant)
-            }
+private fun <Prefix><Name>VariantsDarkPreview() {
+    DocSurface(<Prefix>Colors.Dark, width = 220.dp, height = 220.dp) {
+        VariantsSheet(paletteName = "Dark")
+    }
+}
+
+@Composable
+private fun VariantsSheet(paletteName: String) {
+    val colors = <Prefix>Theme.colors
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colors.background)
+            .padding(<Prefix>Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(<Prefix>Spacing.sm),
+    ) {
+        Text(
+            text = paletteName,
+            style = <Prefix>Theme.typography.caption,
+            color = colors.onSurfaceVariant,
+        )
+        <Prefix><Name>Variant.entries.forEach { variant ->
+            <Prefix><Name>(label = variant.name, onClick = {}, variant = variant)
         }
     }
 }
 ```
 
-If a module gains several doc tests, give each its own `VariantColumn`-equivalent or move the helper
-to a shared file — two top-level `internal` helpers with the same name in the same package will
-collide.
+**Sizing:** the author picks `width`/`height` — `DocSurface` fixes the golden's exact canvas
+(SHRINK crops to the container), so the doc page embeds stable geometry. Size so nothing clips; the
+sheet's `fillMaxSize().background(...)` paints any spare canvas, and content that outgrows the
+container is clipped rather than shrunk. Record and *look at the PNG* before settling the numbers.
 
-**Canvas budget:** the default device is ~960dp per axis and Paparazzi scales the PNG to ~1000px on
-its long side. Content beyond that is clipped rather than shrunk — split into a second test method
-instead of growing one image.
+**Canvas budget:** the device canvas (~960dp per axis) is still the ceiling — a `DocSurface` larger
+than it clips. Split an oversized sheet into another preview instead of growing one image.
+
+`private` is fine throughout — the scanner includes private previews, and a `private` sheet is
+called directly from previews in the same file, which also keeps same-named sheets in sibling files
+from colliding.

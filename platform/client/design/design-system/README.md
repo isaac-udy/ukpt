@@ -55,19 +55,26 @@ surface.
 
 ## How the docs stay true
 
-Every image on these pages is a committed Paparazzi golden produced by a hand-written **doc-surface
-test** in `src/androidHostTest/`. Docs and code therefore cannot drift: change a component's
-appearance and the golden changes with it.
+Every image on these pages is a committed Paparazzi golden produced by a **doc surface** — a
+`@Preview` composable in `src/androidHostTest/`, discovered by the module's `PreviewSnapshotTest`.
+Docs and code therefore cannot drift: change a component's appearance and the golden changes with
+it.
 
-`DesignSystemDocImagesTest` fails the build if a page links to an image that does not exist, so a
-renamed test method cannot silently leave a hole in a page.
+Doc surfaces use the same preview-driven pipeline as the feature modules, with one module-specific
+twist: this module renders in `RenderingMode.SHRINK`, and every surface bounds itself with
+`DocSurface`'s fixed-size root container, so each golden is cropped to the exact canvas its page
+wants rather than padded out to the shared 960 dp device canvas. The sheets themselves remain
+curated compositions no real screen would draw — labelled grids of every variant, one per palette —
+and they live in the test source set so they never ship in the artifact.
+
+Goldens are directory-grouped by the preview's declaring package and function name: a preview in
+`platform.design` lands at `src/androidHostTest/snapshots/images/platform/design/<PreviewName>.png`,
+and that is the path its page embeds. **Preview function names are load-bearing** — renaming one
+renames its golden and breaks every doc that embeds it. `DesignSystemDocImagesTest` fails the build
+if a page links to an image that does not exist, so a renamed preview cannot silently leave a hole
+in a page.
 
 When a page and the code disagree, **trust the code and fix the page**.
-
-Doc surfaces are deliberately *not* `@Preview`-driven, unlike feature-module snapshots. A preview is
-one state of a real screen; a doc surface is a curated composition that exists only to be read — a
-labelled grid of every variant in both palettes. Their names are load-bearing because pages
-reference them, and they stay in the test source set so they never ship in the artifact.
 
 ## Working on the system
 

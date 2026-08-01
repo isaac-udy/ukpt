@@ -169,17 +169,20 @@ doc surface and doc page) exist only where that pipeline does — offer to set i
    `enum class` in the same file, every value a token, explicit `role`/semantics on anything
    interactive, and a non-interactive state that keeps its meaning in `stateDescription` rather than
    in colour alone. Match whatever basis Step 1 of Mode 1 chose (templates.md §1–3).
-2. **Doc surface** — a hand-written test in `src/androidHostTest/kotlin/platform/design/`, using
-   `SnapshotRule` (templates.md §5). A curated composition: every variant, in both palettes, labelled.
-   Not a `@Preview` — doc surfaces are compositions *about* the system, their names are load-bearing,
-   and they must not ship in the artifact.
+2. **Doc surface** — `@Preview` functions in `src/androidHostTest/kotlin/platform/design/`, each
+   wrapping a curated sheet in `DocSurface(colors, width, height)` (templates.md §5): every variant,
+   labelled, one preview per palette with the palette passed explicitly (not `uiMode` qualifiers —
+   the harness doesn't apply `uiMode`, and explicit functions keep golden names clean). The sheets
+   are compositions *about* the system, not copies of app screens, and they stay in the test source
+   set so they never ship in the artifact. The module's `PreviewSnapshotTest` discovers them and
+   renders in `RenderingMode.SHRINK`, cropping each golden to its `DocSurface` container.
 3. **Doc page** — `design-system/components/<name>.md` (templates.md §4), embedding the golden and
    ending in a **Rules** section. A page with nothing to forbid is describing an implementation
    detail, not a design decision. Add it to the table in `design-system/README.md`.
 
-Goldens from `SnapshotRule` use Paparazzi's **stock flat naming**, `<package>_<Class>_<method>.png`,
-so the page embeds `../../src/androidHostTest/snapshots/images/platform.design_<Class>_<method>.png`.
-Renaming the test method renames the golden and breaks the embed.
+Goldens are **directory-grouped** by the preview's declaring package and function name, so the page
+embeds `../../src/androidHostTest/snapshots/images/platform/design/<PreviewName>.png`. **Preview
+function names are load-bearing**: renaming one renames its golden and breaks the embed.
 
 ## Step 2 — Record and verify
 

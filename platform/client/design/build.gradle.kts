@@ -1,6 +1,6 @@
 plugins {
     // Compose library + Paparazzi host-test wiring: the design-system docs are backed by
-    // hand-written doc-surface snapshots (see design-system/README.md).
+    // preview-driven doc-surface snapshots (see design-system/README.md).
     id("ukpt.snapshot-testing")
 }
 
@@ -30,6 +30,9 @@ kotlin {
         }
         getByName("androidHostTest").dependencies {
             implementation(libs.udytils.snapshot)
+            // Unified @Preview for the doc surfaces — discovered by PreviewSnapshotTest and
+            // rendered inside DocSurface's fixed-size container.
+            implementation(compose.preview)
         }
     }
 }
