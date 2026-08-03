@@ -3,7 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <title>ukpt</title>
-    <script type="application/javascript" src="App.js"></script>
 </head>
-<body></body>
+<body>
+<script>
+    // WebGL pre-flight. skiko (Compose's web renderer) acquires a WebGL context
+    // at startup; when the browser can't provide one — hardware acceleration off,
+    // GPU blocklisted, or contexts exhausted — it dies with an uncaught
+    // "getParameter of undefined" and the page stays blank. The renderer is the
+    // broken part, so the message can't come from Compose: probe here in plain
+    // DOM before the bundle loads and, on failure, show guidance instead of
+    // loading (and trapping) the app. Projects with a boot screen should style
+    // the fallback with their own tokens.
+    (function () {
+        "use strict";
+        function webGlAvailable() {
+            try {
+                var c = document.createElement("canvas");
+                var gl = c.getContext("webgl2") || c.getContext("webgl") ||
+                    c.getContext("experimental-webgl");
+                if (!gl) return false;
+                // Release the probe context so it doesn't occupy one of the
+                // browser's limited WebGL slots.
+                var lose = gl.getExtension("WEBGL_lose_context");
+                if (lose) lose.loseContext();
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        if (webGlAvailable()) {
+            var s = document.createElement("script");
+            s.type = "application/javascript";
+            s.src = "App.js";
+            document.body.appendChild(s);
+            return;
+        }
+
+        document.body.innerHTML =
+            '<div role="alert" style="font-family: system-ui, sans-serif; max-width: 34rem;' +
+            ' margin: 15vh auto 0; padding: 0 1.25rem; text-align: center; line-height: 1.5;">' +
+            '<h1 style="font-size: 1.25rem; font-weight: 600;">Graphics acceleration is off</h1>' +
+            '<p>This app renders with WebGL, which your browser isn’t providing — usually because' +
+            ' hardware acceleration is turned off. Turn it on in your browser settings (Chrome or' +
+            ' Edge: <b>Settings → System</b>) and relaunch, or open the app in a different browser.' +
+            '</p></div>';
+    })();
+</script>
+</body>
 </html>
