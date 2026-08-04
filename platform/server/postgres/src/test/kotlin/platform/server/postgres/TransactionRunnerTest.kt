@@ -12,12 +12,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 /**
- * The two properties of [TransactionRunner] that no signature states, checked against a real
- * (Zonky-embedded) Postgres: writes made inside one block are atomic, and a nested block joins
- * the outer transaction rather than committing on its own.
- *
- * The table is created here rather than by a migration: this module ships no schema, and the
- * behaviour under test is the transaction boundary, not any particular table.
+ * Checked against a real (Zonky-embedded) Postgres. The table is created here rather than by a
+ * migration: this module ships no schema.
  */
 class TransactionRunnerTest {
 
@@ -51,8 +47,7 @@ class TransactionRunnerTest {
         assertFailsWith<IllegalStateException> {
             runner.inTransaction {
                 insertWidget("nested-outer")
-                // Completing this inner block commits nothing on its own: the outermost frame
-                // owns the commit, so the outer failure below discards this write too.
+                // Completing this inner block commits nothing: the outermost frame owns the commit.
                 runner.inTransaction {
                     insertWidget("nested-inner")
                 }

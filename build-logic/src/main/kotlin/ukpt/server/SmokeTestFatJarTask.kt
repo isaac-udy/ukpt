@@ -26,15 +26,13 @@ import java.util.zip.ZipFile
  * Boots the fat jar the way a container would and waits for it to serve a request.
  *
  * Every other check runs against the Gradle runtime classpath, where the jar's packaging decisions
- * do not exist: a manifest the jar truncated is whole, a dependency the jar dropped is present.
- * The only thing that exercises the deployable is running the deployable, so this task is the last
- * gate before one is shipped — it asserts the jar left the development subgraph out, then proves a
- * jar in that state still migrates a database and answers.
+ * do not exist: a manifest the jar truncated is whole, a dependency the jar dropped is present. So
+ * this task asserts the jar left the development subgraph out, then proves a jar in that state
+ * still migrates a database and answers.
  *
  * The database comes from [developmentClasspath], which carries exactly what the jar excluded.
- * Adding anything more would defeat the point: a second copy of a dependency on the classpath
- * re-supplies whatever the jar is missing, and ServiceLoader in particular reads every copy it can
- * see, so a jar with a truncated manifest would boot cleanly here and fail in production.
+ * Adding anything more would defeat the point: a second copy of a dependency re-supplies whatever
+ * the jar is missing, and ServiceLoader in particular reads every copy it can see.
  */
 abstract class SmokeTestFatJarTask : DefaultTask() {
 
@@ -69,8 +67,8 @@ abstract class SmokeTestFatJarTask : DefaultTask() {
     abstract val bootTimeoutSeconds: Property<Long>
 
     /**
-     * The JVM to boot with. Not an input: which JVM ran the build says nothing about whether the
-     * jar is correctly packaged, and making it one would rerun the task on every toolchain change.
+     * Not an input: which JVM ran the build says nothing about whether the jar is correctly
+     * packaged, and making it one would rerun the task on every toolchain change.
      */
     @get:Internal
     abstract val javaHome: Property<String>
@@ -212,10 +210,7 @@ abstract class SmokeTestFatJarTask : DefaultTask() {
 
     private fun StringBuilder.snapshot(): String = synchronized(this) { toString() }
 
-    /**
-     * A port the OS just handed out is far likelier to be free than a fixed one, which on a
-     * developer machine is usually already serving the dev server this task exists to not disturb.
-     */
+    /** A fixed port on a developer machine is usually already serving their dev server. */
     private fun reserveFreePort(): Int = ServerSocket(0).use { it.localPort }
 
     private companion object {

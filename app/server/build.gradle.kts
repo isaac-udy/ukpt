@@ -21,8 +21,7 @@ dependencies {
     implementation(projects.feature.core.server)
 
     implementation(projects.platform.server.postgres)
-    // The dev database, and the only module allowed to depend on it: it carries Zonky's embedded
-    // Postgres binaries, which have no business on any other runtime classpath.
+    // The only module allowed to depend on this: it carries Zonky's embedded Postgres binaries.
     implementation(projects.platform.server.development)
 
     implementation(libs.logback)

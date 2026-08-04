@@ -19,23 +19,19 @@ import java.nio.file.Path
 /** `embedded` or `ephemeral` selects a dev database; anything else connects to a real Postgres. */
 private const val DEV_DATABASE_MODE = "UKPT_DEV_DB"
 
-/** Where a persistent dev cluster lives. `./gradlew :app:server:run` sets it; see build-logic. */
+/** Where a persistent dev cluster lives; `./gradlew :app:server:run` sets it. */
 private const val DEV_DATABASE_DIRECTORY = "UKPT_DEV_DB_DIR"
 
 /** Names a `DevScenarios` entry to seed a brand-new dev cluster with. */
 private const val DEV_DATABASE_SCENARIO = "UKPT_DEV_SCENARIO"
 
-/**
- * The port to listen on. Container runtimes assign one and pass it here; locally nothing sets it
- * and the server lands on [DEFAULT_PORT].
- */
 private const val PORT = "PORT"
 
 private const val DEFAULT_PORT = 8080
 
 fun main() {
-    // Resolved before the server is built: nothing the application does with the database is
-    // valid until the schema is in place, and a dev database has to be booted and seeded first.
+    // Resolved before the server is built: the schema has to be migrated — and a dev database
+    // booted and seeded — before anything can serve.
     val postgresConfig = resolvePostgresConfig()
 
     embeddedServer(Netty, port = serverPort(), host = "0.0.0.0") {

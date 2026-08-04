@@ -4,23 +4,10 @@ import dev.isaacudy.udytils.postgres.embedded.DevScenario
 import org.jetbrains.exposed.v1.jdbc.Database
 
 /**
- * What a brand-new dev database starts out holding.
+ * What a brand-new dev database starts out holding. Empty deliberately: the template has no schema
+ * yet, and this object is the seam a project fills in as it grows its first tables.
  *
- * The template has no schema yet, so there is nothing to insert — this object exists to be the
- * seam a project fills in as it grows its first tables. Seeds are written against the generated
- * Exposed tables in `platform.server.postgres.tables`, in one `suspendTransaction`, with fixed
- * ids so a URL that worked yesterday still works today:
- *
- * ```kotlin
- * override suspend fun apply(database: Database) {
- *     suspendTransaction(db = database) {
- *         WidgetsTable.insert { it.setFromRow(WidgetRow(id = fixedWidgetId, name = "Example")) }
- *     }
- * }
- * ```
- *
- * A scenario runs exactly once, against a freshly-created cluster, so it may assume an empty
- * schema — see `DevServer`'s seed-once semantics.
+ * A scenario runs exactly once, against a freshly-created cluster, so it may assume an empty schema.
  */
 object DefaultScenario : DevScenario {
     override val name: String = "default"

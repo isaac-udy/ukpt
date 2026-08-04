@@ -3,12 +3,9 @@ package com.isaacudy.ukpt
 import dev.isaacudy.udytils.postgres.PostgresConfig
 
 /**
- * Builds the [PostgresConfig] for a real (non-dev) Postgres from the environment.
- *
- * The udytils toolkit ships no app-specific defaults on purpose, so the connection vocabulary —
- * which variables, what they default to, the pool name that shows up in `pg_stat_activity` —
- * belongs to the application. The defaults below target a local Postgres; staging and production
- * set the variables.
+ * Builds the [PostgresConfig] for a real (non-dev) Postgres. The udytils toolkit ships no
+ * app-specific defaults, so the variable names and the defaults below — which target a local
+ * Postgres — belong to the application.
  */
 fun ukptPostgresConfigFromEnv(): PostgresConfig = PostgresConfig(
     jdbcUrl = System.getenv("POSTGRES_URL") ?: "jdbc:postgresql://localhost:5432/ukpt",

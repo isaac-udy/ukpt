@@ -7,10 +7,8 @@ buildscript {
         // subprojects can apply it with a plain `plugins { id(...) }` block, no version needed.
         classpath(libs.udytils.architectureGradlePlugin)
 
-        // The Postgres codegen plugin, on the classpath for the same reason: a top-level
-        // `includeBuild` can't contribute a plugin to `plugins {}` through pluginManagement
-        // without losing the substitutions above (see embedded-udytils/postgres/README.md,
-        // "Composite (includeBuild) consumers").
+        // The Postgres codegen plugin, on the classpath for the same reason: resolving it through
+        // pluginManagement instead would lose the substitutions above.
         classpath(libs.udytils.postgres.gradlePlugin)
     }
 }

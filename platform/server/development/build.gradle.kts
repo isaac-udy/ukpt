@@ -5,7 +5,7 @@ plugins {
 kotlin {
     compilerOptions {
         // Scenarios write through the generated Exposed tables, whose UUID id columns are
-        // kotlin.uuid.Uuid (still experimental under this Kotlin toolchain).
+        // kotlin.uuid.Uuid.
         freeCompilerArgs.add("-opt-in=kotlin.uuid.ExperimentalUuidApi")
     }
 }
@@ -13,9 +13,8 @@ kotlin {
 dependencies {
     api(projects.platform.server.postgres)
 
-    // Zonky's embedded Postgres and its ~150 MB of native binaries. They reach the runtime
-    // classpath of anything that depends on this module, so ONLY `:app:server` may depend on
-    // it, and only to serve its dev-database path — never a feature or a production module.
-    // `api`, because the app names DevServer/DevServerConfig/DevServerHandle directly.
+    // Zonky's ~150 MB of native Postgres binaries reach the runtime classpath of anything that
+    // depends on this module, so ONLY `:app:server` may, and only for its dev-database path.
+    // `api`, because the app names DevServer/DevServerConfig directly.
     api(libs.udytils.postgres.embedded)
 }

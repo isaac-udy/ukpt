@@ -9,22 +9,17 @@ import org.gradle.api.specs.Spec
  * The dependencies that exist only so a developer can run the server against a throwaway database.
  *
  * One list, two consumers that have to agree: the fat jar leaves this subgraph out, and
- * `smokeTestFatJar` puts exactly it back on the classpath to boot that jar. If the two ever named
- * different things, the smoke test would either fail to start Postgres or quietly re-supply
- * something the deployable is missing — so neither names anything itself.
+ * `smokeTestFatJar` puts exactly it back on the classpath to boot that jar.
  *
- * It is a subgraph by coordinate, not by transitive reach: Shadow judges each dependency on its
- * own, so a library shared with production code (commons-compress, slf4j) stays in the jar even
- * though the embedded server is what dragged it in.
+ * A subgraph by coordinate, not by transitive reach: Shadow judges each dependency on its own, so a
+ * library shared with production code (commons-compress, slf4j) stays in the jar.
  */
 object DevDatabaseSubgraph {
 
     /**
      * Module coordinates in Shadow's `dependency(...)` notation, where each segment is a regex.
-     *
-     * `io.zonky.test.postgres` is one artifact per platform, each carrying a ~50 MB Postgres
-     * distribution; the group is matched whole because a project adds and drops those per target
-     * platform and none of them may ever reach a deployable.
+     * `io.zonky.test.postgres` is matched whole: it is one ~50 MB artifact per platform, and a
+     * project adds and drops those per target platform.
      */
     val moduleNotations: List<String> = listOf(
         "io.zonky.test:embedded-postgres",
@@ -32,7 +27,6 @@ object DevDatabaseSubgraph {
         "dev.isaacudy.udytils:postgres-embedded",
     )
 
-    /** Project paths whose classes are development-only. */
     val projectPaths: List<String> = listOf(
         ":platform:server:development",
     )
@@ -40,9 +34,8 @@ object DevDatabaseSubgraph {
     /**
      * Jar entries that must not appear in a deployable, checked by `smokeTestFatJar`.
      *
-     * Whole-name patterns rather than package prefixes, because the artifact with the most to
-     * answer for has no packages: a binaries jar holds one root-level `postgres-<platform>.txz` and
-     * nothing else, so a class-name check would let 150 MB through without noticing.
+     * Whole-name patterns rather than package prefixes: the binaries jar has no packages at all —
+     * one root-level `postgres-<platform>.txz` — so a class-name check would let 150 MB through.
      */
     val forbiddenJarEntryPatterns: List<String> = listOf(
         "io/zonky/.*",
@@ -61,10 +54,9 @@ object DevDatabaseSubgraph {
     /**
      * The module names above that a composite build can substitute for a project of its own.
      *
-     * A dependency substituted by an `includeBuild` resolves to a project component, not a module
-     * one, so its coordinates are gone by the time a classpath is resolved — only the project name
-     * survives, which the substituted builds keep equal to the artifact name they publish. Wildcard
-     * names are left out: they exist to sweep up a family of published artifacts and would match
+     * A substituted dependency resolves to a project component, so its coordinates are gone by the
+     * time a classpath is resolved — only the project name survives, which the substituted builds
+     * keep equal to the artifact name they publish. Wildcard names are left out: they would match
      * every project in the build tree.
      */
     private val substitutedProjectNames: List<String> =

@@ -82,9 +82,8 @@ includeBuild("embedded-udytils") {
         substitute(module("dev.isaacudy.udytils:postgres-koin")).using(project(":postgres-koin"))
         substitute(module("dev.isaacudy.udytils:postgres-embedded")).using(project(":postgres-embedded"))
         substitute(module("dev.isaacudy.udytils:postgres-gradle-plugin")).using(project(":postgres-gradle-plugin"))
-        // The codegen engine is never declared by a build file: the postgres Gradle plugin adds it
-        // to its own detached `postgresCodegenEngine` configuration, so it needs substituting too
-        // or that resolution goes looking for an unpublished version on Maven Central.
+        // Never declared by a build file — the postgres Gradle plugin resolves it in its own
+        // detached `postgresCodegenEngine` configuration — so without this it goes to Maven Central.
         substitute(module("dev.isaacudy.udytils:postgres-codegen")).using(project(":postgres-codegen"))
         substitute(module("dev.isaacudy.udytils:architecture-core")).using(project(":architecture-core"))
         substitute(module("dev.isaacudy.udytils:architecture-annotations")).using(project(":architecture-annotations"))

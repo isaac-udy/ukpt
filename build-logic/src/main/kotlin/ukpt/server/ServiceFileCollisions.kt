@@ -11,12 +11,9 @@ data class ServiceFileDeclaration(
 )
 
 /**
- * A `META-INF/services/…` path declared by more than one classpath entry.
- *
- * A fat jar holds one file per path, so on a collision every declaration but one is dropped —
- * silently, because ServiceLoader has no way to know the file it read is a fragment. On a normal
- * classpath the same declarations coexist in their own jars and ServiceLoader reads all of them,
- * which is why a collision is invisible until something is packaged.
+ * A `META-INF/services/…` path declared by more than one classpath entry. A fat jar holds one file
+ * per path, so on a collision every declaration but one is dropped — silently, because
+ * ServiceLoader has no way to know the file it read is a fragment.
  */
 data class ServiceFileCollision(
     val servicePath: String,
@@ -25,7 +22,6 @@ data class ServiceFileCollision(
     val overriddenByModuleResource: Boolean,
 )
 
-/** The outcome of [ServiceFileCollisions.analyse]: every collision, and whether any is unhandled. */
 data class ServiceFileVerdict(val collisions: List<ServiceFileCollision>) {
 
     /** Collisions no module resource covers — the ones that will lose entries in the fat jar. */
@@ -35,10 +31,8 @@ data class ServiceFileVerdict(val collisions: List<ServiceFileCollision>) {
     val handled: List<ServiceFileCollision> = collisions.filter(ServiceFileCollision::overriddenByModuleResource)
 
     /**
-     * The report text, written whether or not the check passes.
-     *
-     * [moduleResourceLocation] is the directory a hand-merged override belongs in, quoted so the
-     * message can be acted on without first finding out where that is.
+     * The report text, written whether or not the check passes. [moduleResourceLocation] is the
+     * directory a hand-merged override belongs in.
      */
     fun render(moduleResourceLocation: String): String = buildString {
         appendLine("ServiceLoader manifests on the runtime classpath")
@@ -61,7 +55,6 @@ data class ServiceFileVerdict(val collisions: List<ServiceFileCollision>) {
         if (unhandled.isNotEmpty()) appendLine(failureMessage(moduleResourceLocation))
     }
 
-    /** The build failure text: what broke, why it is invisible without this check, and the fix. */
     fun failureMessage(moduleResourceLocation: String): String = buildString {
         appendLine(
             "${unhandled.size} ServiceLoader manifest path(s) are declared by more than one runtime " +
@@ -88,9 +81,8 @@ data class ServiceFileVerdict(val collisions: List<ServiceFileCollision>) {
 /**
  * Finds `META-INF/services` paths that more than one runtime-classpath entry declares.
  *
- * Shadow's `mergeServiceFiles()` is meant to make this a non-issue and has been observed not to,
- * so the check is on the classpath rather than on the transformer: a collision is a hazard whether
- * or not the transformer of the day handles it.
+ * Checked on the classpath rather than on Shadow's `mergeServiceFiles()`, which has been observed
+ * not to merge: a collision is a hazard whether or not the transformer of the day handles it.
  */
 object ServiceFileCollisions {
 

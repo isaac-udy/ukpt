@@ -20,28 +20,25 @@ import java.util.zip.ZipFile
 /**
  * Fails when two runtime dependencies declare the same `META-INF/services` path.
  *
- * The failure this prevents only exists in the packaged artifact, and only ever shows up in
- * production: on a normal classpath ServiceLoader reads every declaration, so `run`, the tests and
- * the migration suite all pass while the fat jar carries a truncated manifest. Checking the
- * classpath rather than the jar catches the whole class of it — including a pair of dependencies
- * nobody has collided yet — at the point where the offending dependency was added.
+ * On a normal classpath ServiceLoader reads every declaration, so `run` and the tests keep passing
+ * while the fat jar carries a truncated manifest. Checking the classpath rather than the jar
+ * catches the collision when the offending dependency is added.
  */
 abstract class VerifyRuntimeServiceFilesTask : DefaultTask() {
 
-    /** The dependencies that will be folded into the deployable. */
     @get:Classpath
     abstract val runtimeClasspath: ConfigurableFileCollection
 
     /**
-     * The packaged module's own resource roots. A path declared here is a deliberate hand-merged
-     * override, which wins in the fat jar, so a collision it covers is reported rather than failed.
+     * A service path declared here is a deliberate hand-merged override, which wins in the fat jar,
+     * so a collision it covers is reported rather than failed.
      */
     @get:InputFiles
     @get:IgnoreEmptyDirectories
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val moduleResources: ConfigurableFileCollection
 
-    /** Where an override belongs, quoted in the report so the fix needs no further lookup. */
+    /** Where an override belongs; quoted in the report so the fix needs no further lookup. */
     @get:Input
     abstract val moduleResourceLocation: Property<String>
 
@@ -83,8 +80,8 @@ abstract class VerifyRuntimeServiceFilesTask : DefaultTask() {
         ZipFile(archive).use { zip ->
             zip.entries().asSequence()
                 .filter { !it.isDirectory && it.name.startsWith(ServiceFileCollisions.SERVICES_PREFIX) }
-                // Only the flat provider files are ServiceLoader's; anything nested below them is
-                // some other tool's use of the directory and never collides with a provider list.
+                // Only the flat provider files are ServiceLoader's; anything nested deeper is some
+                // other tool's use of the directory.
                 .filter { it.name.count { character -> character == '/' } == 2 }
                 .map { it.name }
                 .toSet()

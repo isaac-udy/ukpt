@@ -4,22 +4,11 @@
 and `flyway-database-postgresql` both ship one at that path with disjoint contents — 37 core
 entries and 3 Postgres ones — and Flyway assembles itself from the union.
 
-A fat jar can only hold one file per path. Shadow (which is what Ktor's `buildFatJar` uses) is
-supposed to concatenate `META-INF/services/*` across the merged jars when `mergeServiceFiles()` is
-called; `ukpt.server-packaging` calls it, and under Shadow 9.1.0 it does not merge. Verified in
-this repository on 2026-08-05, and independently in two others before that:
-
-```
-$ unzip -p app/server/build/libs/server-all.jar META-INF/services/org.flywaydb.core.extensibility.Plugin
-org.flywaydb.database.cockroachdb.CockroachDBDatabaseType
-org.flywaydb.database.postgresql.PostgreSQLDatabaseType
-org.flywaydb.database.postgresql.PostgreSQLConfigurationExtension
-```
-
-The Postgres module's 3 entries had silently overwritten core's 37. Without the core plugins
-(`CoreMigrationResolver`, `CoreResourceTypeProvider`, …) Flyway either throws an NPE while its
-configuration is being built, or runs, finds zero migrations and reports success — leaving the
-production schema empty while every local run works.
+A fat jar can only hold one file per path, and `mergeServiceFiles()` (which `ukpt.server-packaging`
+calls) does not merge under Shadow 9.1.0 — the Postgres module's 3 entries silently overwrite
+core's 37. Without the core plugins (`CoreMigrationResolver`, `CoreResourceTypeProvider`, …) Flyway
+either throws an NPE while its configuration is being built, or runs, finds zero migrations and
+reports success — leaving the production schema empty while every local run works.
 
 This file is the union of the two. The packaged module's own resources are added to the fat jar
 last and win the conflict, so this copy is the one runtime sees.

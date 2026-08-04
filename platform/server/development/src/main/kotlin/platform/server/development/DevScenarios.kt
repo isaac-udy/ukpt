@@ -4,10 +4,7 @@ import dev.isaacudy.udytils.postgres.embedded.DevScenario
 import dev.isaacudy.udytils.postgres.embedded.EmptyScenario
 import platform.server.development.scenarios.DefaultScenario
 
-/**
- * Every dev scenario this project ships. Add new ones here — this list is what an operator can
- * name, and what a misspelled name is reported against.
- */
+/** Every dev scenario this project ships — register new ones here; a name resolves against it. */
 object DevScenarios {
 
     val all: List<DevScenario> = listOf(
@@ -15,10 +12,7 @@ object DevScenarios {
         DefaultScenario,
     )
 
-    /**
-     * @throws IllegalArgumentException when no scenario is named [name] — an operator asking for
-     * a starting state that doesn't exist wants to be told, not handed a silently different one.
-     */
+    /** @throws IllegalArgumentException when no scenario is named [name]. */
     fun byName(name: String): DevScenario =
         all.firstOrNull { it.name == name }
             ?: throw IllegalArgumentException(

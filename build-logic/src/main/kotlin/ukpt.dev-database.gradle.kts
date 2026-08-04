@@ -7,19 +7,13 @@ import ukpt.server.DevDatabaseEnvironment
  * Configures: the `application` plugin's `run` task (dev-database environment defaults) and adds
  * a `wipeDevDatabase` task.
  *
- * `./gradlew :app:server:run` should just work, with a database that still holds what you put in
- * it last time — so `run` defaults `UKPT_DEV_DB=embedded` and points `UKPT_DEV_DB_DIR` at this
- * module's build directory. Both defaults yield to the invoking environment, so
- * `UKPT_DEV_DB=ephemeral ./gradlew …` gets a throwaway database and `UKPT_DEV_DB= ./gradlew …`
- * gets no dev database at all (the app then reads `POSTGRES_URL` and friends).
- *
- * What the dev database must never do is ship: `ukpt.server-packaging` is what keeps it out of the
- * deployable.
+ * `run` defaults `UKPT_DEV_DB=embedded` and points `UKPT_DEV_DB_DIR` at this module's build
+ * directory. Both defaults yield to the invoking environment, so `UKPT_DEV_DB=ephemeral ./gradlew …`
+ * gets a throwaway database and `UKPT_DEV_DB= ./gradlew …` no dev database at all.
  */
 
-// Reading the environment through `providers` rather than System.getenv() makes each variable a
-// declared configuration-cache input: changing one invalidates the cached graph instead of being
-// silently baked into it.
+// Read through `providers`, not System.getenv(): that makes each variable a declared
+// configuration-cache input rather than a value baked silently into the cached graph.
 val requestedMode = providers.environmentVariable(DevDatabaseEnvironment.MODE)
 val requestedDirectory = providers.environmentVariable(DevDatabaseEnvironment.DIRECTORY)
 val devDatabaseDirectory = layout.buildDirectory.dir("dev-postgres")

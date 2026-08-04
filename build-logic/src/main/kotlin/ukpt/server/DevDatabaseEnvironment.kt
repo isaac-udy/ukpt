@@ -3,10 +3,8 @@ package ukpt.server
 /**
  * The switches the server application reads its database configuration from.
  *
- * The names are a contract between three places that must agree: the application's `main()`, the
- * `run` task that defaults them for local development, and the fat-jar smoke test that boots the
- * deployable against a throwaway database. Declared once here so a project renaming its prefix
- * cannot leave one of the three behind.
+ * These names are a contract between the application's `main()`, the `run` task that defaults them,
+ * and the fat-jar smoke test — declared once so a project renaming its prefix can't miss one.
  */
 object DevDatabaseEnvironment {
 
@@ -22,6 +20,5 @@ object DevDatabaseEnvironment {
     /** A cluster discarded on shutdown — what a test or a one-shot boot wants. */
     const val MODE_EPHEMERAL: String = "ephemeral"
 
-    /** The variable the application takes its listening port from. */
     const val PORT: String = "PORT"
 }
