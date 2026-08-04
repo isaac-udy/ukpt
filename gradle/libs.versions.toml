@@ -18,6 +18,10 @@ koin = "4.2.2"
 ksp = "2.3.9"
 ktor = "3.5.1"
 logback = "1.5.37"
+# Not applied anywhere — the Ktor plugin applies Shadow — but build-logic compiles against the
+# ShadowJar type, and Ktor keeps Shadow out of its consumable compile metadata. Keep this equal to
+# the version Ktor brings: `./gradlew :app:server:buildEnvironment | grep shadow`.
+shadow = "9.1.0"
 konsist = "0.17.3"
 paparazzi = "2.0.0-alpha05"
 composablePreviewScanner = "0.9.0"
@@ -103,7 +107,10 @@ kotlinx-serialization-gradlePlugin = { module = "org.jetbrains.kotlin.plugin.ser
 android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
 compose-gradlePlugin = { module = "org.jetbrains.compose:compose-gradle-plugin", version.ref = "composeMultiplatform" }
 compose-compiler-gradlePlugin = { module = "org.jetbrains.kotlin:compose-compiler-gradle-plugin", version.ref = "kotlin" }
-ktor-gradlePlugin = { module = "io.ktor:plugin", version.ref = "ktor" }
+# The Ktor Gradle plugin is published under its own plugin-id group; it applies Shadow, whose
+# `shadowJar` task ukpt.server-packaging configures.
+ktor-gradlePlugin = { module = "io.ktor.plugin:plugin", version.ref = "ktor" }
+shadow-gradlePlugin = { module = "com.gradleup.shadow:shadow-gradle-plugin", version.ref = "shadow" }
 paparazzi-gradlePlugin = { module = "app.cash.paparazzi:paparazzi-gradle-plugin", version.ref = "paparazzi" }
 
 [plugins]

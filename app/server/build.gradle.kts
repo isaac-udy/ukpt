@@ -1,6 +1,7 @@
 plugins {
     id("ukpt.jvm-server")
     id("ukpt.dev-database")
+    id("ukpt.server-packaging")
     alias(libs.plugins.ktor)
 }
 
