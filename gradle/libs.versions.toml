@@ -83,6 +83,15 @@ urpc-server = { module = "dev.isaacudy.udytils:urpc-server" }
 urpc-koin = { module = "dev.isaacudy.udytils:urpc-koin" }
 urpc-processor = { module = "dev.isaacudy.udytils:urpc-processor" }
 
+# Postgres toolkit. `postgres-core` (runtime) and `postgres-koin` are production artifacts;
+# `postgres-embedded` is dev/test only (it drags in Zonky + the Postgres binaries) and belongs
+# to `:platform:server:development` alone. `postgres-gradlePlugin` is a buildscript-classpath
+# artifact — see the root build file.
+udytils-postgres-core = { module = "dev.isaacudy.udytils:postgres-core" }
+udytils-postgres-koin = { module = "dev.isaacudy.udytils:postgres-koin" }
+udytils-postgres-embedded = { module = "dev.isaacudy.udytils:postgres-embedded" }
+udytils-postgres-gradlePlugin = { module = "dev.isaacudy.udytils:postgres-gradle-plugin" }
+
 udytils-architectureCore = { module = "dev.isaacudy.udytils:architecture-core" }
 udytils-architectureAnnotations = { module = "dev.isaacudy.udytils:architecture-annotations" }
 udytils-architectureGradlePlugin = { module = "dev.isaacudy.udytils:architecture-gradle-plugin" }
@@ -110,3 +119,4 @@ paparazzi = { id = "app.cash.paparazzi", version.ref = "paparazzi" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 # Version-less: resolved from the root buildscript classpath (composite-substituted), not a repository.
 udytilsArchitecture = { id = "dev.isaacudy.udytils.architecture" }
+udytilsPostgres = { id = "dev.isaacudy.udytils.postgres" }

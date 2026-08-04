@@ -6,6 +6,12 @@ buildscript {
         // substitutions in settings.gradle.kts. With the classes on the root build classpath,
         // subprojects can apply it with a plain `plugins { id(...) }` block, no version needed.
         classpath(libs.udytils.architectureGradlePlugin)
+
+        // The Postgres codegen plugin, on the classpath for the same reason: a top-level
+        // `includeBuild` can't contribute a plugin to `plugins {}` through pluginManagement
+        // without losing the substitutions above (see embedded-udytils/postgres/README.md,
+        // "Composite (includeBuild) consumers").
+        classpath(libs.udytils.postgres.gradlePlugin)
     }
 }
 

@@ -47,6 +47,8 @@ include(":feature:core:server")
 include(":platform:client:design")
 include(":platform:client:ui")
 include(":platform:common:architecture")
+include(":platform:server:postgres")
+include(":platform:server:development")
 
 includeBuild("embedded-enro") {
     name = "embedded-enro"
@@ -76,6 +78,14 @@ includeBuild("embedded-udytils") {
         substitute(module("dev.isaacudy.udytils:urpc-server")).using(project(":urpc:server"))
         substitute(module("dev.isaacudy.udytils:urpc-koin")).using(project(":urpc:koin"))
         substitute(module("dev.isaacudy.udytils:urpc-processor")).using(project(":urpc:processor"))
+        substitute(module("dev.isaacudy.udytils:postgres-core")).using(project(":postgres-core"))
+        substitute(module("dev.isaacudy.udytils:postgres-koin")).using(project(":postgres-koin"))
+        substitute(module("dev.isaacudy.udytils:postgres-embedded")).using(project(":postgres-embedded"))
+        substitute(module("dev.isaacudy.udytils:postgres-gradle-plugin")).using(project(":postgres-gradle-plugin"))
+        // The codegen engine is never declared by a build file: the postgres Gradle plugin adds it
+        // to its own detached `postgresCodegenEngine` configuration, so it needs substituting too
+        // or that resolution goes looking for an unpublished version on Maven Central.
+        substitute(module("dev.isaacudy.udytils:postgres-codegen")).using(project(":postgres-codegen"))
         substitute(module("dev.isaacudy.udytils:architecture-core")).using(project(":architecture-core"))
         substitute(module("dev.isaacudy.udytils:architecture-annotations")).using(project(":architecture-annotations"))
         substitute(module("dev.isaacudy.udytils:architecture-gradle-plugin")).using(project(":architecture-gradle-plugin"))
