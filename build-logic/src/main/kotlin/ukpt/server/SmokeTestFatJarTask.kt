@@ -49,9 +49,9 @@ abstract class SmokeTestFatJarTask : DefaultTask() {
     @get:Input
     abstract val mainClass: Property<String>
 
-    /** Jar-entry prefixes whose presence means the packaging exclusions stopped working. */
+    /** Jar-entry name patterns whose presence means the packaging exclusions stopped working. */
     @get:Input
-    abstract val forbiddenJarEntryMarkers: ListProperty<String>
+    abstract val forbiddenJarEntryPatterns: ListProperty<String>
 
     /** Log fragments that must appear, in any order, before the boot counts as successful. */
     @get:Input
@@ -105,7 +105,7 @@ abstract class SmokeTestFatJarTask : DefaultTask() {
             writeText(
                 buildString {
                     appendLine("${jar.name} booted on port $port with ${environment.get()}")
-                    appendLine("no jar entry under ${forbiddenJarEntryMarkers.get()}")
+                    appendLine("no jar entry matching ${forbiddenJarEntryPatterns.get()}")
                     appendLine("saw ${expectedLogFragments.get()}")
                     appendLine()
                     append(output.snapshot())
@@ -115,11 +115,11 @@ abstract class SmokeTestFatJarTask : DefaultTask() {
     }
 
     private fun verifyNoForbiddenEntries(jar: File) {
-        val markers = forbiddenJarEntryMarkers.get()
+        val forbidden = forbiddenJarEntryPatterns.get().map(::Regex)
         val offenders = ZipFile(jar).use { zip ->
             zip.entries().asSequence()
                 .map { it.name }
-                .filter { name -> markers.any(name::startsWith) }
+                .filter { name -> forbidden.any { it.matches(name) } }
                 .take(FORBIDDEN_ENTRY_SAMPLE)
                 .toList()
         }

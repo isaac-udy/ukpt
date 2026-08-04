@@ -37,10 +37,18 @@ object DevDatabaseSubgraph {
         ":platform:server:development",
     )
 
-    /** Jar-entry markers that must not appear in a deployable, checked by `smokeTestFatJar`. */
-    val forbiddenJarEntryMarkers: List<String> = listOf(
-        "io/zonky/",
-        "platform/server/development/",
+    /**
+     * Jar entries that must not appear in a deployable, checked by `smokeTestFatJar`.
+     *
+     * Whole-name patterns rather than package prefixes, because the artifact with the most to
+     * answer for has no packages: a binaries jar holds one root-level `postgres-<platform>.txz` and
+     * nothing else, so a class-name check would let 150 MB through without noticing.
+     */
+    val forbiddenJarEntryPatterns: List<String> = listOf(
+        "io/zonky/.*",
+        "postgres-[^/]*\\.txz",
+        "dev/isaacudy/udytils/postgres/embedded/.*",
+        "platform/server/development/.*",
     )
 
     /** A module name that is spelled out rather than matched — see [substitutedProjectNames]. */

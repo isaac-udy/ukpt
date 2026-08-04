@@ -79,7 +79,7 @@ pluginManager.withPlugin("com.gradleup.shadow") {
         fatJar.set(fatJarFile)
         this.developmentClasspath.from(developmentClasspath)
         mainClass.set(applicationMainClass)
-        forbiddenJarEntryMarkers.set(DevDatabaseSubgraph.forbiddenJarEntryMarkers)
+        forbiddenJarEntryPatterns.set(DevDatabaseSubgraph.forbiddenJarEntryPatterns)
         environment.put(DevDatabaseEnvironment.MODE, DevDatabaseEnvironment.MODE_EPHEMERAL)
         portVariable.set(DevDatabaseEnvironment.PORT)
         expectedLogFragments.set(
