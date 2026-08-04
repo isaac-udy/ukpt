@@ -107,7 +107,9 @@ object ProjectRenamePlanner {
     private val packagePattern = Regex("^[a-z][a-z0-9_]*(?:\\.[a-z][a-z0-9_]*)+$")
     private val typePrefixPattern = Regex("^[A-Z][A-Za-z0-9]*$")
     private val identityPattern = Regex(
-        "com\\.isaacudy\\.ukpt|feature\\.ukpt|Ukpt(?=[A-Z]|\\b)|ukpt(?=[A-Z]|\\b)",
+        // The all-caps form is only ever the environment-variable prefix, so it is matched only
+        // where one appears — inside a SCREAMING_SNAKE token. A bare `UKPT` is prose or a file name.
+        "com\\.isaacudy\\.ukpt|feature\\.ukpt|UKPT(?=_[A-Z0-9])|Ukpt(?=[A-Z]|\\b)|ukpt(?=[A-Z]|\\b)",
     )
     private val skippedDirectories = setOf(
         ".git",
@@ -230,6 +232,7 @@ object ProjectRenamePlanner {
         column: Int,
         source: String,
     ): Pair<RenameDisposition, String> {
+        if (source == "UKPT") return classifyEnvironmentPrefix(path)
         if (path == "UKPT.md" || protectedPrefixes.any(path::startsWith)) {
             return RenameDisposition.KEEP to "template identity is protected"
         }
@@ -257,6 +260,24 @@ object ProjectRenamePlanner {
         return RenameDisposition.REVIEW to "outside the deterministic app allowlist"
     }
 
+    /**
+     * The environment-variable prefix is a runtime contract: the application reads the variables
+     * and the convention plugins default them, so both sides have to be renamed together even
+     * though `build-logic/` is otherwise protected. Its tests are not part of that contract —
+     * they cover this planner, and renaming their fixtures would break them. The rest of the
+     * protected tree is documentation a template update overwrites, where a rename would not
+     * survive anyway.
+     */
+    private fun classifyEnvironmentPrefix(path: String): Pair<RenameDisposition, String> = when {
+        path.startsWith("build-logic/src/main/") ->
+            RenameDisposition.REPLACE to "environment-variable prefix, shared with the application"
+
+        path == "UKPT.md" || protectedPrefixes.any(path::startsWith) ->
+            RenameDisposition.KEEP to "template identity is protected"
+
+        else -> RenameDisposition.REPLACE to "environment-variable prefix"
+    }
+
     private fun replacementFor(
         source: String,
         line: String,
@@ -265,6 +286,8 @@ object ProjectRenamePlanner {
     ): String = when (source) {
         "com.isaacudy.ukpt" -> request.packageName
         "feature.ukpt" -> "<feature package or keep feature.ukpt>"
+        // An environment-variable name has no place for the slug's hyphens.
+        "UKPT" -> request.projectName.uppercase().replace('-', '_')
         "Ukpt" -> request.typePrefix
         "ukpt" -> if (identifierAt(line, column).length > source.length) {
             request.typePrefix.replaceFirstChar(Char::lowercaseChar)
