@@ -67,9 +67,10 @@ misspells a scenario wants to be told, not handed a different starting state.
 ### 2. The environment contract
 
 If the project already reads its own `<PREFIX>_DEV_DB`-style variables, keep them; only make sure
-the names are declared in **one** place that both build-logic and application code use, and that
-`main()` reads `PORT` (default 8080) rather than hard-coding a port — the fat-jar smoke test needs
-to boot without colliding with a running dev server, and container runtimes assign a port anyway.
+the names are declared in **one** place that both build-logic and application code use — on the
+application side, `ServerConfiguration` in `:app:server` — and that `main()` reads `PORT` (default
+8080) rather than hard-coding a port — the fat-jar smoke test needs to boot without colliding with
+a running dev server, and container runtimes assign a port anyway.
 
 Otherwise take `ukpt.dev-database.gradle.kts` and `ukpt/server/DevDatabaseEnvironment.kt` from
 build-logic, apply the plugin to `:app:server`, and substitute the project's own prefix.
