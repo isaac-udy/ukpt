@@ -135,6 +135,15 @@ Postgres:
   `postgresConfigFromEnv()`-style factory), wires `postgresDependencies(config)` (from
   `dev.isaacudy.udytils.postgres.koin`), and runs `PostgresMigrator.migrate()` before it
   starts serving.
+* **Dev database:** locally there is no Postgres to point that config at, so `UKPT_DEV_DB`
+  selects one — `embedded` for a cluster that keeps its data between runs, `ephemeral` for a
+  throwaway one, anything else for a real server read from `POSTGRES_*`. `:app:server:run`
+  defaults it to `embedded`. The seeding lives in `:platform:server:development`, as
+  `DevScenario` objects listed in `DevScenarios`, each writing the generated `Table` objects
+  directly in one `suspendTransaction`: a scenario is fixture data for a schema that has no
+  features in it yet, not persistence code, and this module is not part of a feature's
+  `server.data`. It is also the only module that may depend on the Zonky binaries, and the fat
+  jar leaves both it and them out.
 
 ### Reactive storage flows (`PgNotificationBus`)
 

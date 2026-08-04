@@ -52,13 +52,14 @@ also stands up the host (Step 5). Copy-paste skeletons are in `templates.md`.
    `getAll<UrpcService>()` returns only one → **every other service 404s**. `bindService`/`urpcService` register
    each binding under its own concrete type and add `UrpcService` as a *secondary* type, so all coexist.
    (`FeatureRules.constructorReferenceBindings`: use constructor-reference binding style, not `single<T> { … }` lambdas.)
-5. **First service only — stand up the host** (idempotent; skip if already wired):
-   - `Server.kt` → `install(Koin) { modules(<name>ServerDependencies) }`, `install(WebSockets)` (**required even
-     for unary calls**), `routing { urpcWithKoin() }` (templates.md §4).
-   - `:app:server` is missing two deps that are **not** transitive: add a `koin-ktor` entry to
-     `gradle/libs.versions.toml`, then `implementation(libs.urpc.koin)` + `implementation(libs.koin.ktor)` to
-     `app/server/build.gradle.kts` (templates.md §5).
-   - Register each later feature's `<name>ServerDependencies` in the host's `modules(...)` list.
+5. **First service only — teach the host to serve urpc** (idempotent; skip if already wired):
+   - `Server.kt` already has a Koin host (it wires the postgres modules), so add
+     `<name>ServerDependencies` to the existing `modules(...)` list — that part is what every later
+     feature repeats. What a *first* service adds is `install(WebSockets)` (**required even for unary
+     calls**) and `routing { urpcWithKoin() }` in place of the placeholder route (templates.md §4).
+   - `:app:server` is missing `implementation(libs.urpc.koin)`, which is **not** transitive from
+     `:feature:*:server`; koin-core, koin-ktor and Ktor's WebSockets artifact are already there
+     (templates.md §5).
 6. **Errors** — service exceptions must be `@Serializable` (`ProjectRules.serviceExceptionsSerializable`) so urpc carries type + message to the
    client; prefer subclassing `PresentableException` with a deliberate `retryable` flag (templates.md §6). Never
    `catch (Exception)` — deserialized urpc errors may not extend `Exception`; use `catch (t: Throwable)` or a

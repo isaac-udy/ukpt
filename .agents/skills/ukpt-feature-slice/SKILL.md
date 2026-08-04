@@ -50,8 +50,10 @@ whatever the project was renamed to downstream — read `platform/client/design`
    - `app/client/common/build.gradle.kts` → `implementation(projects.feature.<name>.client)`.
    - `app/client/common/.../App.kt` → add `<name>ClientDependencies` to `modules(...)` + its import.
    - `app/server/build.gradle.kts` → `implementation(projects.feature.<name>.server)` (if using the server).
-   - Server DI: the template's `Server.kt` is a placeholder with **no** Koin host — standing that up is the
-     `ukpt-urpc-service` skill's job (do it when the feature gets its first service, not at scaffold time).
+   - Server DI: `Server.kt` has a Koin host already (it wires the postgres modules), so add
+     `<name>ServerDependencies` to its `modules(...)` list once the feature has something to bind.
+     Teaching that host to *serve* urpc is the `ukpt-urpc-service` skill's job — do it when the
+     feature gets its first service, not at scaffold time.
 6. **Verify** — the six-target compile sweep (see UKPT.md §Compiling), record + verify Paparazzi for the new client
    module, and `./gradlew :platform:common:architecture:verifyArchitecture`. If the feature has web UI, run
    the `ukpt-verify-web` skill — a forgotten `viewModelOf` only crashes at runtime on wasm, invisible to compile.

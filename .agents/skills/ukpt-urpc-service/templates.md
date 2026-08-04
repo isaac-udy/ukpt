@@ -89,39 +89,32 @@ val <name>ServerDependencies = module {
 ## §4 — Host (`:app:server`, FIRST service only)
 Path: `app/server/src/main/kotlin/com/isaacudy/ukpt/Server.kt`
 
-```kotlin
-package com.isaacudy.ukpt
+`main()` already resolves the database config and installs Koin with the postgres modules — this
+is what a first service adds to it, not a replacement:
 
+```kotlin
 import dev.isaacudy.udytils.urpc.koin.urpcWithKoin
 import feature.<name>.<name>ServerDependencies
-import io.ktor.server.application.install
-import io.ktor.server.engine.embeddedServer
-import io.ktor.server.netty.Netty
-import io.ktor.server.routing.routing
 import io.ktor.server.websocket.WebSockets
-import org.koin.ktor.plugin.Koin
 
-fun main() {
-    embeddedServer(Netty, port = 8080, host = "0.0.0.0") {
-        install(Koin) { modules(<name>ServerDependencies /*, other feature dependencies… */) }
-        install(WebSockets)            // required even if every call is unary
-        routing { urpcWithKoin() }
-    }.start(wait = true)
-}
+    install(Koin) {
+        modules(
+            postgresDependencies(postgresConfig),
+            postgresPlatformDependencies,
+            <name>ServerDependencies,          // ← each feature adds its module here
+        )
+    }
+    install(WebSockets)                        // required even if every call is unary
+    routing { urpcWithKoin() }                 // replaces the placeholder `get("/")` route
 ```
 
 ## §5 — `:app:server` build additions (FIRST service only)
-These deps are not transitive from `:feature:*:server`.
-
-`gradle/libs.versions.toml` (add under `[libraries]`, reuses the existing `koin` version):
-```toml
-koin-ktor = { module = "io.insert-koin:koin-ktor", version.ref = "koin" }
-```
+`koin-core`, `koin-ktor` and the Ktor WebSockets artifact are already there for the Koin host; urpc
+is not, and is not transitive from `:feature:*:server`.
 
 `app/server/build.gradle.kts` (add to `dependencies { }`):
 ```kotlin
 implementation(libs.urpc.koin)   // urpcWithKoin() + the UrpcCall qualifier
-implementation(libs.koin.ktor)   // org.koin.ktor.plugin.Koin
 ```
 
 ## §6 — Serializable service exception (`ProjectRules.serviceExceptionsSerializable`)
