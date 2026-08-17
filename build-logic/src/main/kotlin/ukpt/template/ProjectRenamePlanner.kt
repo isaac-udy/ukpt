@@ -107,7 +107,9 @@ object ProjectRenamePlanner {
     private val packagePattern = Regex("^[a-z][a-z0-9_]*(?:\\.[a-z][a-z0-9_]*)+$")
     private val typePrefixPattern = Regex("^[A-Z][A-Za-z0-9]*$")
     private val identityPattern = Regex(
-        "com\\.isaacudy\\.ukpt|feature\\.ukpt|Ukpt(?=[A-Z]|\\b)|ukpt(?=[A-Z]|\\b)",
+        // The all-caps form is an identity token only as an environment-variable prefix; a bare
+        // `UKPT` is prose or a file name.
+        "com\\.isaacudy\\.ukpt|feature\\.ukpt|UKPT(?=_[A-Z0-9])|Ukpt(?=[A-Z]|\\b)|ukpt(?=[A-Z]|\\b)",
     )
     private val skippedDirectories = setOf(
         ".git",
@@ -230,6 +232,7 @@ object ProjectRenamePlanner {
         column: Int,
         source: String,
     ): Pair<RenameDisposition, String> {
+        if (source == "UKPT") return classifyEnvironmentPrefix(path)
         if (path == "UKPT.md" || protectedPrefixes.any(path::startsWith)) {
             return RenameDisposition.KEEP to "template identity is protected"
         }
@@ -257,6 +260,22 @@ object ProjectRenamePlanner {
         return RenameDisposition.REVIEW to "outside the deterministic app allowlist"
     }
 
+    /**
+     * The environment-variable prefix is a runtime contract between the application and the
+     * convention plugins that default it, so `build-logic/src/main/` is renamed even though
+     * `build-logic/` is otherwise protected. The planner's own tests are not: renaming their
+     * fixtures would break them.
+     */
+    private fun classifyEnvironmentPrefix(path: String): Pair<RenameDisposition, String> = when {
+        path.startsWith("build-logic/src/main/") ->
+            RenameDisposition.REPLACE to "environment-variable prefix, shared with the application"
+
+        path == "UKPT.md" || protectedPrefixes.any(path::startsWith) ->
+            RenameDisposition.KEEP to "template identity is protected"
+
+        else -> RenameDisposition.REPLACE to "environment-variable prefix"
+    }
+
     private fun replacementFor(
         source: String,
         line: String,
@@ -265,6 +284,7 @@ object ProjectRenamePlanner {
     ): String = when (source) {
         "com.isaacudy.ukpt" -> request.packageName
         "feature.ukpt" -> "<feature package or keep feature.ukpt>"
+        "UKPT" -> request.projectName.uppercase().replace('-', '_')
         "Ukpt" -> request.typePrefix
         "ukpt" -> if (identifierAt(line, column).length > source.length) {
             request.typePrefix.replaceFirstChar(Char::lowercaseChar)

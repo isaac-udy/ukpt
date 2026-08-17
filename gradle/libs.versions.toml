@@ -18,6 +18,10 @@ koin = "4.2.2"
 ksp = "2.3.9"
 ktor = "3.5.1"
 logback = "1.5.37"
+# Not applied anywhere — the Ktor plugin applies Shadow — but build-logic compiles against the
+# ShadowJar type, and Ktor keeps Shadow out of its consumable compile metadata. Keep this equal to
+# the version Ktor brings: `./gradlew :app:server:buildEnvironment | grep shadow`.
+shadow = "9.1.0"
 konsist = "0.17.3"
 paparazzi = "2.0.0-alpha05"
 composablePreviewScanner = "0.9.0"
@@ -66,6 +70,7 @@ koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin" }
 koin-composeViewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
 koin-test = { module = "io.insert-koin:koin-test", version.ref = "koin" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
+koin-ktor = { module = "io.insert-koin:koin-ktor", version.ref = "koin" }
 
 konsist = { module = "com.lemonappdev:konsist", version.ref = "konsist" }
 
@@ -83,6 +88,15 @@ urpc-server = { module = "dev.isaacudy.udytils:urpc-server" }
 urpc-koin = { module = "dev.isaacudy.udytils:urpc-koin" }
 urpc-processor = { module = "dev.isaacudy.udytils:urpc-processor" }
 
+# Postgres toolkit. `postgres-core` (runtime) and `postgres-koin` are production artifacts;
+# `postgres-embedded` is dev/test only (it drags in Zonky + the Postgres binaries) and belongs
+# to `:platform:server:development` alone. `postgres-gradlePlugin` is a buildscript-classpath
+# artifact — see the root build file.
+udytils-postgres-core = { module = "dev.isaacudy.udytils:postgres-core" }
+udytils-postgres-koin = { module = "dev.isaacudy.udytils:postgres-koin" }
+udytils-postgres-embedded = { module = "dev.isaacudy.udytils:postgres-embedded" }
+udytils-postgres-gradlePlugin = { module = "dev.isaacudy.udytils:postgres-gradle-plugin" }
+
 udytils-architectureCore = { module = "dev.isaacudy.udytils:architecture-core" }
 udytils-architectureAnnotations = { module = "dev.isaacudy.udytils:architecture-annotations" }
 udytils-architectureGradlePlugin = { module = "dev.isaacudy.udytils:architecture-gradle-plugin" }
@@ -93,7 +107,10 @@ kotlinx-serialization-gradlePlugin = { module = "org.jetbrains.kotlin.plugin.ser
 android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
 compose-gradlePlugin = { module = "org.jetbrains.compose:compose-gradle-plugin", version.ref = "composeMultiplatform" }
 compose-compiler-gradlePlugin = { module = "org.jetbrains.kotlin:compose-compiler-gradle-plugin", version.ref = "kotlin" }
-ktor-gradlePlugin = { module = "io.ktor:plugin", version.ref = "ktor" }
+# The Ktor Gradle plugin is published under its own plugin-id group; it applies Shadow, whose
+# `shadowJar` task ukpt.server-packaging configures.
+ktor-gradlePlugin = { module = "io.ktor.plugin:plugin", version.ref = "ktor" }
+shadow-gradlePlugin = { module = "com.gradleup.shadow:shadow-gradle-plugin", version.ref = "shadow" }
 paparazzi-gradlePlugin = { module = "app.cash.paparazzi:paparazzi-gradle-plugin", version.ref = "paparazzi" }
 
 [plugins]
@@ -110,3 +127,4 @@ paparazzi = { id = "app.cash.paparazzi", version.ref = "paparazzi" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 # Version-less: resolved from the root buildscript classpath (composite-substituted), not a repository.
 udytilsArchitecture = { id = "dev.isaacudy.udytils.architecture" }
+udytilsPostgres = { id = "dev.isaacudy.udytils.postgres" }

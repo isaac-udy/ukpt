@@ -46,7 +46,7 @@ New code may rely on APIs that only exist in a newer submodule commit.
 ## Running
 
 - **Desktop**: `./gradlew :app:client:desktop:run`
-- **Server** (Ktor): `./gradlew :app:server:run`
+- **Server** (Ktor): `./gradlew :app:server:run` — boots against an embedded Postgres that keeps its data between runs; see Server persistence
 - **Web** (dev server): `./gradlew :app:client:web:wasmJsBrowserDevelopmentRun --no-configuration-cache` — then open the served URL (the flag is required; see the config-cache note in Compiling)
 - **Android**: run from Android Studio, or `./gradlew :app:client:android:installDebug` to a connected device/emulator
 - **iOS**: open `app/client/ios/iosApp.xcodeproj` in Xcode and run (⌘R). There is no Gradle command: the Xcode project's "Compile Kotlin framework" build phase invokes `:app:client:common:embedAndSignAppleFrameworkForXcode`, which builds `App.framework` and puts it where the linker expects. Simulator builds are **Apple Silicon only** — `:app:client:common` declares `iosArm64` + `iosSimulatorArm64`, so the Xcode project excludes the `x86_64` simulator slice. Add an `iosX64()` target if you need Intel Macs.
@@ -103,4 +103,17 @@ The common module's Android / JVM / wasm targets compile transitively via the pe
 
 ## Server persistence (Postgres)
 
-Server persistence uses the `dev.isaacudy.udytils.postgres` toolkit (Exposed + Flyway); conventions are in [docs/serverdata.md](./platform/common/architecture/docs/serverdata.md) (the `server.data.storage` section). The `:platform:server:postgres` module (Flyway migrations + codegen) is created when the first server feature needs persistence — until then the `server.data` storage and transaction rules pass vacuously.
+Server persistence uses the `dev.isaacudy.udytils.postgres` toolkit (Exposed + Flyway); conventions are in [docs/serverdata.md](./platform/common/architecture/docs/serverdata.md) (the `server.data.storage` section). `:platform:server:postgres` owns the Flyway migrations (`src/main/resources/db/migration/`, empty until the first schema) and the codegen that turns them into Exposed `Table`/`Row` sources; `:platform:server:development` owns the dev-database scenarios.
+
+`./gradlew :app:server:run` needs no database of your own — it starts an embedded Postgres, migrates it, seeds a brand-new one from `DefaultScenario`, and prints a banner saying where it is. The data lives in `app/server/build/dev-postgres/pg<major>/` and survives restarts (and `clean` therefore wipes it, as does `./gradlew :app:server:wipeDevDatabase`). The switches:
+
+- `UKPT_DEV_DB` — `embedded` (persistent, the `run` default), `ephemeral` (a throwaway cluster on a random port), or anything else to connect to a real Postgres from `POSTGRES_URL` / `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_MAX_POOL_SIZE`. Set it in the invoking environment and `run` yields to you.
+- `UKPT_DEV_DB_DIR` — where a persistent cluster lives; `run` points it at the build directory.
+- `UKPT_DEV_SCENARIO` — names a `DevScenarios` entry to seed a **new** cluster with. Seeding is once-per-cluster; asking for a scenario over existing data fails rather than inserting on top.
+- `PORT` — what the server listens on, default 8080.
+
+## Server packaging
+
+`./gradlew :app:server:buildFatJar` builds the deployable, minus the dev database: Zonky's embedded Postgres, its per-platform binaries and `:platform:server:development` are filtered out of the Shadow jar (`ukpt.server-packaging`). `run` and the tests are unaffected — they use the normal runtime classpath.
+
+Two checks exist because a fat jar can silently drop things. `verifyRuntimeServiceFiles` (part of `check`, and gates `shadowJar`) fails when two runtime dependencies declare the same `META-INF/services` path, since only one copy survives packaging — `flyway-core` and `flyway-database-postgresql` do, which is why `app/server/src/main/resources/META-INF/services/` holds a hand-merged copy (its README says when to regenerate it). **Do not trust Shadow's `mergeServiceFiles()`**: it is called and, on 9.1.0, does not merge — verify by extracting the file from a built jar. `./gradlew :app:server:smokeTestFatJar` then boots the built jar the way a container would, on an OS-assigned port against a throwaway database, and asserts it migrates and answers; nothing else exercises the jar itself.

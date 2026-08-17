@@ -1,5 +1,7 @@
 plugins {
     id("ukpt.jvm-server")
+    id("ukpt.dev-database")
+    id("ukpt.server-packaging")
     alias(libs.plugins.ktor)
 }
 
@@ -18,8 +20,13 @@ application {
 dependencies {
     implementation(projects.feature.core.server)
 
+    implementation(projects.platform.server.postgres)
+    // The only module allowed to depend on this: it carries Zonky's embedded Postgres binaries.
+    implementation(projects.platform.server.development)
+
     implementation(libs.logback)
     implementation(libs.koin.core)
+    implementation(libs.koin.ktor)
     implementation(libs.ktor.serverCore)
     implementation(libs.ktor.serverNetty)
     implementation(libs.ktor.serverWebsockets)

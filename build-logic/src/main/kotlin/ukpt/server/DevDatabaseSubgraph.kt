@@ -1,0 +1,78 @@
+package ukpt.server
+
+import org.gradle.api.artifacts.component.ComponentIdentifier
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+import org.gradle.api.artifacts.component.ProjectComponentIdentifier
+import org.gradle.api.specs.Spec
+
+/**
+ * The dependencies that exist only so a developer can run the server against a throwaway database.
+ *
+ * One list, two consumers that have to agree: the fat jar leaves this subgraph out, and
+ * `smokeTestFatJar` puts exactly it back on the classpath to boot that jar.
+ *
+ * A subgraph by coordinate, not by transitive reach: Shadow judges each dependency on its own, so a
+ * library shared with production code (commons-compress, slf4j) stays in the jar.
+ */
+object DevDatabaseSubgraph {
+
+    /**
+     * Module coordinates in Shadow's `dependency(...)` notation, where each segment is a regex.
+     * `io.zonky.test.postgres` is matched whole: it is one ~50 MB artifact per platform, and a
+     * project adds and drops those per target platform.
+     */
+    val moduleNotations: List<String> = listOf(
+        "io.zonky.test:embedded-postgres",
+        "io.zonky.test.postgres:.*",
+        "dev.isaacudy.udytils:postgres-embedded",
+    )
+
+    val projectPaths: List<String> = listOf(
+        ":platform:server:development",
+    )
+
+    /**
+     * Jar entries that must not appear in a deployable, checked by `smokeTestFatJar`.
+     *
+     * Whole-name patterns rather than package prefixes: the binaries jar has no packages at all —
+     * one root-level `postgres-<platform>.txz` — so a class-name check would let 150 MB through.
+     */
+    val forbiddenJarEntryPatterns: List<String> = listOf(
+        "io/zonky/.*",
+        "postgres-[^/]*\\.txz",
+        "dev/isaacudy/udytils/postgres/embedded/.*",
+        "platform/server/development/.*",
+    )
+
+    /** A module name that is spelled out rather than matched — see [substitutedProjectNames]. */
+    private val literalName = Regex("[A-Za-z0-9._-]+")
+
+    private val modulePatterns: List<Pair<Regex, Regex>> = moduleNotations.map { notation ->
+        Regex(notation.substringBefore(':')) to Regex(notation.substringAfter(':'))
+    }
+
+    /**
+     * The module names above that a composite build can substitute for a project of its own.
+     *
+     * A substituted dependency resolves to a project component, so its coordinates are gone by the
+     * time a classpath is resolved — only the project name survives, which the substituted builds
+     * keep equal to the artifact name they publish. Wildcard names are left out: they would match
+     * every project in the build tree.
+     */
+    private val substitutedProjectNames: List<String> =
+        moduleNotations.map { it.substringAfter(':') }.filter(literalName::matches)
+
+    /** Selects exactly this subgraph out of a resolved classpath, for the smoke test's `-cp`. */
+    fun componentFilter(): Spec<ComponentIdentifier> = Spec { identifier ->
+        when (identifier) {
+            is ModuleComponentIdentifier -> modulePatterns.any { (group, name) ->
+                group.matches(identifier.group) && name.matches(identifier.module)
+            }
+
+            is ProjectComponentIdentifier ->
+                identifier.projectPath in projectPaths || identifier.projectName in substitutedProjectNames
+
+            else -> false
+        }
+    }
+}

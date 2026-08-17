@@ -60,11 +60,15 @@ choice in `REVIEW` with the user:
 | `ukpt` (identifier prefix) | lower-camel `<ProjectName>` | code identifiers such as `ukptClientDependencies`; rename only with their declaring feature |
 | `Ukpt` type prefix | `<ProjectName>` | `:feature:core` example types, app entry points |
 | `feature.ukpt` | `feature.<first-feature>` or leave | `:feature:core` example (see note) |
+| `UKPT_` (env-var prefix) | `<PROJECT_NAME>_`, uppercased with `-` as `_` | `UKPT_DEV_DB*` in `:app:server` **and** in `build-logic/src/main/` |
 
 - Move source directories to match renamed packages.
 - Treat the table's `Where` column as an allowlist. Do not rename the UKPT identity in `.agents/`,
   `.claude/`, `.ukpt/`, `UKPT.md`, `docs/template-migrations/`, build convention plugin IDs, or
   version-catalog aliases.
+- The all-caps environment-variable prefix is the one exception to `build-logic/` being off-limits:
+  the application reads those variables and a convention plugin defaults them, so the two sides
+  have to be renamed together. The plan marks them `REPLACE` and says so in the reason.
 - `:feature:core` is a worked example. Either keep it as-is (recommended until the first real
   feature exists — the architecture examples reference it) or delete it after the first real
   feature is scaffolded with `ukpt-feature-slice`.
