@@ -46,7 +46,7 @@ whatever the project was renamed to downstream — read `platform/client/design`
    every ScreenContent to be called from a `@Preview`, and the preview wraps it in
    `<Prefix>PreviewFrame` so the golden reads as a device screenshot rather than a render on the
    harness canvas.
-5. **Wire it up** — the easy-to-forget edits to existing files (templates.md §7 checklist):
+5. **Wire it up** — the easy-to-forget edits to existing files (templates.md §8 checklist):
    - `app/client/common/build.gradle.kts` → `implementation(projects.feature.<name>.client)`.
    - `app/client/common/.../App.kt` → add `<name>ClientDependencies` to `modules(...)` + its import.
    - `app/server/build.gradle.kts` → `implementation(projects.feature.<name>.server)` (if using the server).
@@ -57,6 +57,21 @@ whatever the project was renamed to downstream — read `platform/client/design`
 6. **Verify** — the six-target compile sweep (see UKPT.md §Compiling), record + verify Paparazzi for the new client
    module, and `./gradlew :platform:common:architecture:verifyArchitecture`. If the feature has web UI, run
    the `ukpt-verify-web` skill — a forgotten `viewModelOf` only crashes at runtime on wasm, invisible to compile.
+
+## Dialogs are destinations, not screen state (templates.md §7)
+A screen that needs a dialog (confirm, editor, picker) does **not** get a boolean visibility flag
+in its `State` — it gets a new destination. `<Name>ConfirmDestination` (or similar) is a
+`NavigationKey.WithResult<R>` with a meaningful result type, `@Serializable` +
+`@SerialName("NavigationKey.<Name>...")`; its `navigationDestination` carries the
+`directOverlayWithFade()` metadata marker. The opener's ViewModel consumes it through
+`registerForNavigationResult<R>` + `channel.open(key)`; dismissal without a result is a no-op.
+Copy the shape from `:feature:core`'s worked example: `ConfirmResetDestination.kt` +
+`ConfirmResetDialogScreen.kt` (client `ui` package), opened from `UkptViewModel.onResetRequested()`.
+Governing rules: `ClientUi.Composable.dialogPrimitivesOnlyInDialogDestinations` (enforced — dialog
+primitives are import-restricted to dialog-destination files), `ClientUi.ViewModelState.noDialogVisibilityFlags`
+(enforced — no `show.*Dialog` flags), `ClientUi.dialogsCommunicateViaResults` (guidance — the
+result-channel pattern above; a simple confirm dialog needs no ViewModel of its own, only
+editor-style dialogs with submission logic do).
 
 ## Load-bearing gotchas (from `:feature:core`)
 - **KSP differs by module**: `:client` (enro) adds `kspCommonMainMetadata` **plus** every per-target `kspXxx`;

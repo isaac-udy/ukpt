@@ -345,7 +345,17 @@ val <name>ClientDependencies = module {
    A framed screen preview's golden is exactly the frame — the scaffold default is 390 x 844 dp, a
    tall phone at `<Prefix>Viewport.Default`'s width.
 
-## §7 — Wiring checklist (edits to EXISTING files — the easy-to-forget step)
+## §7 — Dialogs (copy from `:feature:core`, don't template)
+No skeleton here — the worked example is the copy-me:
+`feature/core/client/src/commonMain/kotlin/feature/ukpt/client/ui/ConfirmResetDestination.kt` +
+`ConfirmResetDialogScreen.kt`, opened from `UkptViewModel.onResetRequested()`
+(`feature/core/client/src/commonMain/kotlin/feature/ukpt/client/ui/UkptViewModel.kt`). A dialog is
+its own `NavigationKey.WithResult<R>` destination with `directOverlayWithFade()` metadata, opened
+via `registerForNavigationResult<R>` / `channel.open(key)` — never a `show*Dialog` flag on `State`
+(`ClientUi.ViewModelState.noDialogVisibilityFlags`, `ClientUi.Composable.dialogPrimitivesOnlyInDialogDestinations`,
+`ClientUi.dialogsCommunicateViaResults`).
+
+## §8 — Wiring checklist (edits to EXISTING files — the easy-to-forget step)
 - [ ] `settings.gradle.kts` — three `include(":feature:<name>:…")` (§4).
 - [ ] `app/client/common/build.gradle.kts` — `commonMain` → `implementation(projects.feature.<name>.client)`.
 - [ ] `app/client/common/src/commonMain/kotlin/com/isaacudy/ukpt/App.kt` — `import feature.<name>.<name>ClientDependencies`
