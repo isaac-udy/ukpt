@@ -42,6 +42,27 @@ object ViewModelState : Construct<ClientUi>(
                 .map { Violation(it, "State declares a custom sealed loading/error hierarchy `${it.name}` — use `AsyncState<T>`") }
         }
     }
+    @Describe("A ViewModel State object must not contain dialog or sheet visibility flags (`show.*Dialog`, `.*DialogVisible`, `show.*Sheet`, `.*SheetVisible`) — dialog visibility is navigation state, not screen state")
+    val noDialogVisibilityFlags by rule {
+        rationale(
+            """
+            A boolean flag that toggles an inline dialog couples the dialog's lifecycle to the
+            screen's state object instead of to the navigation backstack. Making the dialog its own
+            destination eliminates the flag, and the destination follows the same screen conventions
+            as any other — its own ViewModel performs the navigation actions, the opener consumes
+            the outcome through a navigation result channel (`complete` = confirmed,
+            `requestClose` = cancelled; add `WithResult<R>` only when complete/close cannot carry
+            the data).
+            """.trimIndent(),
+        )
+        val pattern = Regex("show.*Dialog|.*DialogVisible|show.*Sheet|.*SheetVisible", RegexOption.IGNORE_CASE)
+        constrain { decl, _ ->
+            val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
+            cls.properties().filter { pattern.containsMatchIn(it.name) }
+                .map { Violation(it, "dialog visibility is navigation state, not screen state — make the dialog a destination") }
+        }
+    }
+
     @Describe("A ViewModel State object should be a transparent container for domain objects, not a lossy UI-level mapping")
     val transparentContainer by guidance
     @Describe("A ViewModel State object should include `init` blocks that enforce invariants")

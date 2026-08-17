@@ -136,6 +136,14 @@ object ClientUi : RuleGroup(
         }
     }
 
+    @Describe("Dialog destinations communicate with their opener through navigation results, not shared state or callbacks")
+    val dialogsCommunicateViaResults by guidance {
+        note("A dialog destination follows the same screen conventions as any other destination — it has its own ViewModel, and the ViewModel performs the navigation actions (`complete`/`requestClose` via its `navigationHandle`). Composables never reference the navigation handle directly.")
+        note("A dialog destination is a `NavigationKey`; add `WithResult<R>` only when complete/close cannot carry the data. `complete()` means the user performed the associated action; `requestClose()` means the user cancelled. A confirmation dialog uses plain `NavigationKey` with `complete()`/`requestClose()` — the opener's `registerForNavigationResult(onCompleted = { … })` channel still fires on completion, and dismissal is a no-op. Use `NavigationKey.WithResult<R>` when the dialog returns data that complete/close alone cannot represent (e.g. an editor returning the edited value).")
+        note("Navigation results are held in-memory (`NavigationResultChannel.pendingResults`), so custom result types need no serializers-module registration — unlike managed-flow step results, which persist via `polymorphic(Any)`.")
+        note("Editor-style dialogs may own their submission (inline error/retry, `complete(result)` only on success) and complete with the fresh data so the opener updates without a refetch. Under `ProjectRules.noDirectAsyncStateConstruction` the opener cannot wrap a returned payload in `AsyncState.Success` directly, so in practice the result handler triggers a reload.")
+    }
+
     @Describe("A `client.ui` package imports this layer only through its own package, its direct child subsystems, and its ancestors up to the layer root")
     val subsystemVisibility by rule {
         note("A `client.ui` subsystem is a screen family the rest of the UI reaches through one entry point — an onboarding flow's steps, a sign-in provider's screens. It needs no `client.domain` twin: the mirror restricts what a subsystem may import, not what must exist.")

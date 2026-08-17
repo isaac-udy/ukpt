@@ -345,7 +345,24 @@ val <name>ClientDependencies = module {
    A framed screen preview's golden is exactly the frame — the scaffold default is 390 x 844 dp, a
    tall phone at `<Prefix>Viewport.Default`'s width.
 
-## §7 — Wiring checklist (edits to EXISTING files — the easy-to-forget step)
+## §7 — Dialogs (copy from `:feature:core`, don't template)
+No skeleton here — the worked example is the copy-me:
+`feature/core/client/src/commonMain/kotlin/feature/ukpt/client/ui/ConfirmResetDestination.kt` +
+`ConfirmResetDialogScreen.kt` + `ConfirmResetViewModel.kt`, opened from
+`UkptViewModel.onResetRequested()`
+(`feature/core/client/src/commonMain/kotlin/feature/ukpt/client/ui/UkptViewModel.kt`). A dialog
+destination follows the same screen conventions as any other: it has its own ViewModel (registered
+with `viewModelOf` in the feature's Koin module — the wasm crash from a missing registration applies
+here too), and the ViewModel performs the navigation actions (`complete`/`requestClose` via its
+`navigationHandle`). A confirmation dialog is a plain `NavigationKey` — `complete()` means the user
+confirmed, `requestClose()` means they cancelled; add `NavigationKey.WithResult<R>` only when the
+dialog returns data that complete/close cannot represent. The destination carries
+`directOverlayWithFade()` metadata, the opener uses `registerForNavigationResult(onCompleted = { ... })` /
+`channel.open(key)` — never a `show*Dialog` flag on `State`
+(`ClientUi.ViewModelState.noDialogVisibilityFlags`, `ClientUi.Composable.dialogPrimitivesOnlyInDialogDestinations`,
+`ClientUi.dialogsCommunicateViaResults`).
+
+## §8 — Wiring checklist (edits to EXISTING files — the easy-to-forget step)
 - [ ] `settings.gradle.kts` — three `include(":feature:<name>:…")` (§4).
 - [ ] `app/client/common/build.gradle.kts` — `commonMain` → `implementation(projects.feature.<name>.client)`.
 - [ ] `app/client/common/src/commonMain/kotlin/com/isaacudy/ukpt/App.kt` — `import feature.<name>.<name>ClientDependencies`

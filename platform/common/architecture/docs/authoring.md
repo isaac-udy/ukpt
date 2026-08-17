@@ -11,6 +11,7 @@ A guide for adding rules to this project. Rules are declared in Kotlin code (see
 All rule documentation uses the same voice:
 
 - Be short and direct. Use simple words.
+- Use plain terms. No metaphor, analogy, or rhetorical framing.
 - Only include information that is critical to understanding the rule. Leave out anything the
   reader would discover by running the tests.
 - Make each section self-contained: provide the minimum context needed to understand it without
@@ -131,27 +132,42 @@ A Rule is a mandatory statement about a Construct or RuleGroup. Declare it as a 
 - If the statement cannot be tested, end it with `unverifiable()`. It is still a Rule: it is
   enforced by review, and its documentation carries a "not automatically verifiable" note. Add
   a `note("…")` explaining why it can't be tested if that isn't obvious.
-- `rationale("…")` records why the Rule exists. Rendered as a single line under **Why**, so
-  write it as one flowing sentence.
+- `rationale("…")` records why the Rule matters, in one or two short sentences. Rendered as a
+  single line under **Why**. It does not explain what things are, walk through failure
+  scenarios, or restate the Rule's consequences from several angles; a term that needs defining
+  belongs in a `note`.
 - `note("…")` records a caveat or pointer. Rendered as a single line. Multiple notes are fine;
   keep each self-contained.
 
-### Rule text describes the current state
+### Rule text is timeless
 
 Everything a rule renders — the `@Describe` statement, `rationale`, and `note`s, and equally a
-RuleGroup or Construct's `@Describe` — captures and describes the **current state** of the
-architecture and the reasoning behind it. It never describes historical context, previous states
-of the codebase, or a migration in progress: a reader six months from now must not need the
-project's history to understand what a rule requires today.
+RuleGroup or Construct's `@Describe` — must read as true at any point in the project's life. It
+never describes the current state of the codebase, the history of a decision, or something that is
+going to happen: a reader six months from now must not need the project's history, or a memory of
+what was planned, to understand what a rule requires.
 
+- Write in the present tense, about all instances — not the first one, the next one, or a future
+  one. "Server features must use audit logging", not "The first real server feature must arrive
+  with audit logging".
 - Never write "the old X", "this used to be", "renamed from", "before the migration", or cite a
   past pull request or decision as explanation. Put that context in commit messages, PR
   descriptions, or a planning document — not in the catalog.
 - A rule that intentionally matches more than one package or naming form states that as a present
   fact: "matches both `feature.x.services.**` and `feature.x.server.services.**`" — not as a
   story about where the code is moving from or to.
+- Anything time-bound or situational is a `note`, never part of the statement or the rationale:
+  current-state caveats ("this rule is not yet fully satisfied"), known gaps, and "written with
+  future development in mind". The note can be deleted when it stops being true, leaving the Rule
+  untouched.
+- Notes are also where definitions, scope clarifications, and deliberate exclusions go — one
+  sentence each where possible.
+- A RuleGroup or Construct's `@Describe` states what the group contains, nothing more.
 - Reasoning is welcome; it should justify the rule from the system as it stands, not from how the
   system got here.
+
+The test for every sentence: would it need rewriting after the codebase changes? If yes, it is a
+note — or it is deleted.
 
 ---
 
