@@ -348,10 +348,15 @@ val <name>ClientDependencies = module {
 ## §7 — Dialogs (copy from `:feature:core`, don't template)
 No skeleton here — the worked example is the copy-me:
 `feature/core/client/src/commonMain/kotlin/feature/ukpt/client/ui/ConfirmResetDestination.kt` +
-`ConfirmResetDialogScreen.kt`, opened from `UkptViewModel.onResetRequested()`
-(`feature/core/client/src/commonMain/kotlin/feature/ukpt/client/ui/UkptViewModel.kt`). A dialog is
-its own `NavigationKey.WithResult<R>` destination with `directOverlayWithFade()` metadata, opened
-via `registerForNavigationResult<R>` / `channel.open(key)` — never a `show*Dialog` flag on `State`
+`ConfirmResetDialogScreen.kt` + `ConfirmResetViewModel.kt`, opened from
+`UkptViewModel.onResetRequested()`
+(`feature/core/client/src/commonMain/kotlin/feature/ukpt/client/ui/UkptViewModel.kt`). A dialog
+destination follows the same screen conventions as any other: it has its own ViewModel (registered
+with `viewModelOf` in the feature's Koin module — the wasm crash from a missing registration applies
+here too), and the ViewModel performs the navigation actions (`complete`/`requestClose` via its
+`navigationHandle`). The destination is a `NavigationKey.WithResult<R>` with
+`directOverlayWithFade()` metadata, opened via `registerForNavigationResult<R>` /
+`channel.open(key)` — never a `show*Dialog` flag on `State`
 (`ClientUi.ViewModelState.noDialogVisibilityFlags`, `ClientUi.Composable.dialogPrimitivesOnlyInDialogDestinations`,
 `ClientUi.dialogsCommunicateViaResults`).
 

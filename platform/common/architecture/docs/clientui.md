@@ -52,6 +52,7 @@ The layer rules below apply across the whole `feature.[name].client.ui` package.
 
 * The `client.ui` layer may depend on `client.domain`
 * Dialog destinations communicate with their opener through navigation results, not shared state or callbacks
+    * **Note:** A dialog destination follows the same screen conventions as any other destination — it has its own ViewModel, and the ViewModel performs the navigation actions (`complete`/`requestClose` via its `navigationHandle`). Composables never reference the navigation handle directly.
     * **Note:** A dialog destination is a `NavigationKey.WithResult<R>` with a meaningful result type. The opener registers a `NavigationResultChannel` via `ViewModel.registerForNavigationResult<R>` and opens the dialog with `channel.open(key)`. Dismissal without a result is a no-op — the opener's state does not change.
     * **Note:** Navigation results are held in-memory (`NavigationResultChannel.pendingResults`), so custom result types need no serializers-module registration — unlike managed-flow step results, which persist via `polymorphic(Any)`.
     * **Note:** Editor-style dialogs may own their submission (inline error/retry, `complete(result)` only on success) and complete with the fresh data so the opener updates without a refetch. Under `ProjectRules.noDirectAsyncStateConstruction` the opener cannot wrap a returned payload in `AsyncState.Success` directly, so in practice the result handler triggers a reload.
@@ -293,7 +294,7 @@ The complete, immutable representation of a Screen's data at a single point in t
     * **Verification:** not automatically verifiable; enforced by review.
 * A ViewModel State object must not define custom sealed types for loading/success/error; use `AsyncState<T>` instead
 * A ViewModel State object must not contain dialog or sheet visibility flags (`show.*Dialog`, `.*DialogVisible`, `show.*Sheet`, `.*SheetVisible`) — dialog visibility is navigation state, not screen state
-    * **Why:** A boolean flag that toggles an inline dialog couples the dialog's lifecycle to the screen's state object instead of to the navigation backstack. Making the dialog its own destination (`NavigationKey.WithResult<R>`) eliminates the flag, lets the dialog own its own ViewModel when it needs one, and lets the opener consume the result through a navigation result channel.
+    * **Why:** A boolean flag that toggles an inline dialog couples the dialog's lifecycle to the screen's state object instead of to the navigation backstack. Making the dialog its own destination (`NavigationKey.WithResult<R>`) eliminates the flag, and the destination follows the same screen conventions as any other — its own ViewModel performs the navigation actions, the opener consumes the result through a navigation result channel.
 * A ViewModel State object's formatting and visual representation must be handled by the Screen or specialized `@Composable` properties/functions
     * **Verification:** not automatically verifiable; enforced by review.
 
@@ -349,7 +350,7 @@ if (state.showDeleteDialog && state.itemToDelete != null) {
 }
 ```
 
-**Good:** The dialog is its own destination with a result type; the opener consumes the result through a navigation result channel and reloads.
+**Good:** The dialog is its own destination — the same screen conventions apply, so it has its own ViewModel that performs navigation actions. The opener consumes the result through a navigation result channel.
 
 ```kotlin
 // feature.items.client.ui.ConfirmDeleteDestination.kt
@@ -359,17 +360,25 @@ data class ConfirmDeleteDestination(
     val itemName: String,
 ) : NavigationKey.WithResult<Boolean>
 
-// feature.items.client.ui.ConfirmDeleteDialogScreen.kt — dialog destination file (directOverlay present)
+// feature.items.client.ui.ConfirmDeleteViewModel.kt
+class ConfirmDeleteViewModel : ViewModel() {
+    private val navigation by navigationHandle<ConfirmDeleteDestination>()
+    val itemName: String get() = navigation.key.itemName
+    fun onConfirm() { navigation.complete(true) }
+    fun onDismiss() { navigation.requestClose() }
+}
+
+// feature.items.client.ui.ConfirmDeleteDialogScreen.kt — dialog destination (directOverlay present)
 @NavigationDestination(ConfirmDeleteDestination::class)
 val confirmDeleteDialogScreen = navigationDestination<ConfirmDeleteDestination>(
     metadata = { directOverlayWithFade() }
 ) {
-    val key = navigation.key
+    val viewModel: ConfirmDeleteViewModel = viewModel()
     AlertDialog(
-        onDismissRequest = { navigation.requestClose() },
-        title = { Text("Delete ${key.itemName}?") },
-        confirmButton = { TextButton(onClick = { navigation.complete(true) }) { Text("Delete") } },
-        dismissButton = { TextButton(onClick = { navigation.requestClose() }) { Text("Cancel") } },
+        onDismissRequest = viewModel::onDismiss,
+        title = { Text("Delete ${viewModel.itemName}?") },
+        confirmButton = { TextButton(onClick = viewModel::onConfirm) { Text("Delete") } },
+        dismissButton = { TextButton(onClick = viewModel::onDismiss) { Text("Cancel") } },
     )
 }
 

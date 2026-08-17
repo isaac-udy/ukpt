@@ -43,7 +43,7 @@ if (state.showDeleteDialog && state.itemToDelete != null) {
 }
 ```
 
-**Good:** The dialog is its own destination with a result type; the opener consumes the result through a navigation result channel and reloads.
+**Good:** The dialog is its own destination — the same screen conventions apply, so it has its own ViewModel that performs navigation actions. The opener consumes the result through a navigation result channel.
 
 ```kotlin
 // feature.items.client.ui.ConfirmDeleteDestination.kt
@@ -53,17 +53,25 @@ data class ConfirmDeleteDestination(
     val itemName: String,
 ) : NavigationKey.WithResult<Boolean>
 
-// feature.items.client.ui.ConfirmDeleteDialogScreen.kt — dialog destination file (directOverlay present)
+// feature.items.client.ui.ConfirmDeleteViewModel.kt
+class ConfirmDeleteViewModel : ViewModel() {
+    private val navigation by navigationHandle<ConfirmDeleteDestination>()
+    val itemName: String get() = navigation.key.itemName
+    fun onConfirm() { navigation.complete(true) }
+    fun onDismiss() { navigation.requestClose() }
+}
+
+// feature.items.client.ui.ConfirmDeleteDialogScreen.kt — dialog destination (directOverlay present)
 @NavigationDestination(ConfirmDeleteDestination::class)
 val confirmDeleteDialogScreen = navigationDestination<ConfirmDeleteDestination>(
     metadata = { directOverlayWithFade() }
 ) {
-    val key = navigation.key
+    val viewModel: ConfirmDeleteViewModel = viewModel()
     AlertDialog(
-        onDismissRequest = { navigation.requestClose() },
-        title = { Text("Delete ${key.itemName}?") },
-        confirmButton = { TextButton(onClick = { navigation.complete(true) }) { Text("Delete") } },
-        dismissButton = { TextButton(onClick = { navigation.requestClose() }) { Text("Cancel") } },
+        onDismissRequest = viewModel::onDismiss,
+        title = { Text("Delete ${viewModel.itemName}?") },
+        confirmButton = { TextButton(onClick = viewModel::onConfirm) { Text("Delete") } },
+        dismissButton = { TextButton(onClick = viewModel::onDismiss) { Text("Cancel") } },
     )
 }
 

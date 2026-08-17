@@ -60,18 +60,21 @@ whatever the project was renamed to downstream — read `platform/client/design`
 
 ## Dialogs are destinations, not screen state (templates.md §7)
 A screen that needs a dialog (confirm, editor, picker) does **not** get a boolean visibility flag
-in its `State` — it gets a new destination. `<Name>ConfirmDestination` (or similar) is a
+in its `State` — it gets a new destination. A dialog destination follows the same screen conventions
+as any other: it has its own ViewModel (registered in Koin — the wasm crash from a missing
+`viewModelOf` applies here too), and the ViewModel performs the navigation actions
+(`complete`/`requestClose` via its `navigationHandle`). `<Name>ConfirmDestination` (or similar) is a
 `NavigationKey.WithResult<R>` with a meaningful result type, `@Serializable` +
 `@SerialName("NavigationKey.<Name>...")`; its `navigationDestination` carries the
 `directOverlayWithFade()` metadata marker. The opener's ViewModel consumes it through
 `registerForNavigationResult<R>` + `channel.open(key)`; dismissal without a result is a no-op.
 Copy the shape from `:feature:core`'s worked example: `ConfirmResetDestination.kt` +
-`ConfirmResetDialogScreen.kt` (client `ui` package), opened from `UkptViewModel.onResetRequested()`.
+`ConfirmResetDialogScreen.kt` + `ConfirmResetViewModel.kt` (client `ui` package), opened from
+`UkptViewModel.onResetRequested()`.
 Governing rules: `ClientUi.Composable.dialogPrimitivesOnlyInDialogDestinations` (enforced — dialog
 primitives are import-restricted to dialog-destination files), `ClientUi.ViewModelState.noDialogVisibilityFlags`
 (enforced — no `show.*Dialog` flags), `ClientUi.dialogsCommunicateViaResults` (guidance — the
-result-channel pattern above; a simple confirm dialog needs no ViewModel of its own, only
-editor-style dialogs with submission logic do).
+result-channel pattern above; being a destination means the ordinary screen rules apply).
 
 ## Load-bearing gotchas (from `:feature:core`)
 - **KSP differs by module**: `:client` (enro) adds `kspCommonMainMetadata` **plus** every per-target `kspXxx`;

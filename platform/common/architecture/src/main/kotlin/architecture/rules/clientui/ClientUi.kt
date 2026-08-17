@@ -138,6 +138,7 @@ object ClientUi : RuleGroup(
 
     @Describe("Dialog destinations communicate with their opener through navigation results, not shared state or callbacks")
     val dialogsCommunicateViaResults by guidance {
+        note("A dialog destination follows the same screen conventions as any other destination — it has its own ViewModel, and the ViewModel performs the navigation actions (`complete`/`requestClose` via its `navigationHandle`). Composables never reference the navigation handle directly.")
         note("A dialog destination is a `NavigationKey.WithResult<R>` with a meaningful result type. The opener registers a `NavigationResultChannel` via `ViewModel.registerForNavigationResult<R>` and opens the dialog with `channel.open(key)`. Dismissal without a result is a no-op — the opener's state does not change.")
         note("Navigation results are held in-memory (`NavigationResultChannel.pendingResults`), so custom result types need no serializers-module registration — unlike managed-flow step results, which persist via `polymorphic(Any)`.")
         note("Editor-style dialogs may own their submission (inline error/retry, `complete(result)` only on success) and complete with the fresh data so the opener updates without a refetch. Under `ProjectRules.noDirectAsyncStateConstruction` the opener cannot wrap a returned payload in `AsyncState.Success` directly, so in practice the result handler triggers a reload.")

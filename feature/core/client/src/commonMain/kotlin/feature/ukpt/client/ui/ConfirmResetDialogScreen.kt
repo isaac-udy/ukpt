@@ -5,9 +5,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.enro.annotations.NavigationDestination
-import dev.enro.complete
-import dev.enro.requestClose
 import dev.enro.ui.NavigationDestinationProvider
 import dev.enro.ui.navigationDestination
 import dev.enro.ui.scenes.directOverlayWithFade
@@ -18,9 +17,10 @@ import platform.design.UkptTheme
 @NavigationDestination(ConfirmResetDestination::class)
 val confirmResetDialogDestination: NavigationDestinationProvider<ConfirmResetDestination> =
     navigationDestination(metadata = { directOverlayWithFade() }) {
+        val viewModel: ConfirmResetViewModel = viewModel()
         ConfirmResetDialogScreenContent(
-            onConfirm = { navigation.complete(true) },
-            onDismiss = { navigation.requestClose() },
+            onConfirm = viewModel::onConfirm,
+            onDismiss = viewModel::onDismiss,
         )
     }
 

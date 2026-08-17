@@ -48,9 +48,9 @@ object ViewModelState : Construct<ClientUi>(
             """
             A boolean flag that toggles an inline dialog couples the dialog's lifecycle to the
             screen's state object instead of to the navigation backstack. Making the dialog its own
-            destination (`NavigationKey.WithResult<R>`) eliminates the flag, lets the dialog own its
-            own ViewModel when it needs one, and lets the opener consume the result through a
-            navigation result channel.
+            destination (`NavigationKey.WithResult<R>`) eliminates the flag, and the destination
+            follows the same screen conventions as any other — its own ViewModel performs the
+            navigation actions, the opener consumes the result through a navigation result channel.
             """.trimIndent(),
         )
         val pattern = Regex("show.*Dialog|.*DialogVisible|show.*Sheet|.*SheetVisible", RegexOption.IGNORE_CASE)

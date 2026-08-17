@@ -1,5 +1,6 @@
 package feature.ukpt
 
+import feature.ukpt.client.ui.ConfirmResetViewModel
 import feature.ukpt.client.ui.UkptViewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
@@ -14,4 +15,5 @@ import org.koin.dsl.module
  */
 val ukptClientDependencies = module {
     viewModelOf(::UkptViewModel)
+    viewModelOf(::ConfirmResetViewModel)
 }
