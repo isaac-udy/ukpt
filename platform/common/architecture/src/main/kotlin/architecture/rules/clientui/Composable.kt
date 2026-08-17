@@ -2,6 +2,7 @@ package architecture.rules.clientui
 
 import dev.isaacudy.udytils.architecture.*
 
+import architecture.definitions.isFeatureModule
 import com.lemonappdev.konsist.api.Konsist
 
 @Describe("""
@@ -79,6 +80,37 @@ object Composable : Construct<ClientUi>(
                         .any { preview -> preview.text.contains("${fn.name}(") }
                 }
                 .map { Violation(it, "no @Preview composable in the same file calls `${it.name}(`") }
+        }
+    }
+
+    @Describe("Dialog primitives (`AlertDialog`, `BasicAlertDialog`, `DatePickerDialog`, `ModalBottomSheet`, `androidx.compose.ui.window.Dialog`) may only be invoked in a file that declares a dialog destination (one containing a `directOverlay` metadata marker)")
+    val dialogPrimitivesOnlyInDialogDestinations by rule {
+        rationale(
+            """
+            Dialogs are their own destinations: a `NavigationKey.WithResult<R>` rendered through
+            Enro's overlay support, not an inline composable toggled by a boolean in screen state.
+            Restricting dialog primitives to dialog-destination files makes embedded dialogs a build
+            failure, not a review finding. Platform and design-system modules are exempt — they may
+            define dialog primitives and wrappers.
+            """.trimIndent(),
+        )
+        note("Detection is import-based: an import of any dialog primitive in a non-dialog-destination file is a violation, regardless of whether the call site is reached.")
+        val dialogPrimitiveImports = listOf(
+            "androidx.compose.material3.AlertDialog",
+            "androidx.compose.material3.BasicAlertDialog",
+            "androidx.compose.material3.DatePickerDialog",
+            "androidx.compose.material3.ModalBottomSheet",
+            "androidx.compose.ui.window.Dialog",
+        )
+        scope { scope, exempt ->
+            scope.files
+                .filter { it.isFeatureModule() && it.packagee?.name?.contains(".client.ui") == true }
+                .filterNot { exempt(it) }
+                .filter { file ->
+                    file.imports.any { import -> dialogPrimitiveImports.any { import.name.startsWith(it) } }
+                }
+                .filterNot { file -> file.text.contains("directOverlay") }
+                .map { Violation(it.path, "dialog primitive outside a dialog destination — dialogs are their own destinations (see ClientUi guidance)") }
         }
     }
 
