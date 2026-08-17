@@ -354,8 +354,10 @@ No skeleton here — the worked example is the copy-me:
 destination follows the same screen conventions as any other: it has its own ViewModel (registered
 with `viewModelOf` in the feature's Koin module — the wasm crash from a missing registration applies
 here too), and the ViewModel performs the navigation actions (`complete`/`requestClose` via its
-`navigationHandle`). The destination is a `NavigationKey.WithResult<R>` with
-`directOverlayWithFade()` metadata, opened via `registerForNavigationResult<R>` /
+`navigationHandle`). A confirmation dialog is a plain `NavigationKey` — `complete()` means the user
+confirmed, `requestClose()` means they cancelled; add `NavigationKey.WithResult<R>` only when the
+dialog returns data that complete/close cannot represent. The destination carries
+`directOverlayWithFade()` metadata, the opener uses `registerForNavigationResult(onCompleted = { ... })` /
 `channel.open(key)` — never a `show*Dialog` flag on `State`
 (`ClientUi.ViewModelState.noDialogVisibilityFlags`, `ClientUi.Composable.dialogPrimitivesOnlyInDialogDestinations`,
 `ClientUi.dialogsCommunicateViaResults`).

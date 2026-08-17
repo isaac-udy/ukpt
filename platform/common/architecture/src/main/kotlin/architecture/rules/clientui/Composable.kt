@@ -87,11 +87,11 @@ object Composable : Construct<ClientUi>(
     val dialogPrimitivesOnlyInDialogDestinations by rule {
         rationale(
             """
-            Dialogs are their own destinations: a `NavigationKey.WithResult<R>` rendered through
-            Enro's overlay support, not an inline composable toggled by a boolean in screen state.
-            Restricting dialog primitives to dialog-destination files makes embedded dialogs a build
-            failure, not a review finding. Platform and design-system modules are exempt — they may
-            define dialog primitives and wrappers.
+            Dialogs are their own destinations: a `NavigationKey` rendered through Enro's overlay
+            support, not an inline composable toggled by a boolean in screen state. Restricting
+            dialog primitives to dialog-destination files makes embedded dialogs a build failure,
+            not a review finding. Platform and design-system modules are exempt — they may define
+            dialog primitives and wrappers.
             """.trimIndent(),
         )
         note("Detection is import-based: an import of any dialog primitive in a non-dialog-destination file is a violation, regardless of whether the call site is reached.")

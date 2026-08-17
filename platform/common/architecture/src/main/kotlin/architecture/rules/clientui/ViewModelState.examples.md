@@ -43,7 +43,7 @@ if (state.showDeleteDialog && state.itemToDelete != null) {
 }
 ```
 
-**Good:** The dialog is its own destination — the same screen conventions apply, so it has its own ViewModel that performs navigation actions. The opener consumes the result through a navigation result channel.
+**Good:** The dialog is its own destination — the same screen conventions apply, so it has its own ViewModel that performs navigation actions. A confirmation dialog uses plain `NavigationKey` with `complete()`/`requestClose()` — the opener's result channel fires on completion, and dismissal is a no-op. Use `NavigationKey.WithResult<R>` when the dialog returns data that complete/close alone cannot represent.
 
 ```kotlin
 // feature.items.client.ui.ConfirmDeleteDestination.kt
@@ -51,13 +51,13 @@ if (state.showDeleteDialog && state.itemToDelete != null) {
 @SerialName("NavigationKey.ConfirmDeleteDestination")
 data class ConfirmDeleteDestination(
     val itemName: String,
-) : NavigationKey.WithResult<Boolean>
+) : NavigationKey
 
 // feature.items.client.ui.ConfirmDeleteViewModel.kt
 class ConfirmDeleteViewModel : ViewModel() {
     private val navigation by navigationHandle<ConfirmDeleteDestination>()
     val itemName: String get() = navigation.key.itemName
-    fun onConfirm() { navigation.complete(true) }
+    fun onConfirm() { navigation.complete() }
     fun onDismiss() { navigation.requestClose() }
 }
 
@@ -75,10 +75,10 @@ val confirmDeleteDialogScreen = navigationDestination<ConfirmDeleteDestination>(
     )
 }
 
-// feature.items.client.ui.ItemListViewModel.kt — opener consumes the result
-private val deleteResult by registerForNavigationResult<Boolean> {
-    if (it) loadItems()
-}
+// feature.items.client.ui.ItemListViewModel.kt — opener consumes the outcome
+private val deleteResult by registerForNavigationResult(
+    onCompleted = { loadItems() },
+)
 fun onDeleteRequested(item: Item) {
     deleteResult.open(ConfirmDeleteDestination(itemName = item.name))
 }

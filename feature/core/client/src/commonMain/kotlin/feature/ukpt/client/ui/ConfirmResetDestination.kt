@@ -6,4 +6,4 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 @SerialName("NavigationKey.ConfirmResetDestination")
-data object ConfirmResetDestination : NavigationKey.WithResult<Boolean>
+data object ConfirmResetDestination : NavigationKey

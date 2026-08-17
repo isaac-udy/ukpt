@@ -63,14 +63,15 @@ A screen that needs a dialog (confirm, editor, picker) does **not** get a boolea
 in its `State` — it gets a new destination. A dialog destination follows the same screen conventions
 as any other: it has its own ViewModel (registered in Koin — the wasm crash from a missing
 `viewModelOf` applies here too), and the ViewModel performs the navigation actions
-(`complete`/`requestClose` via its `navigationHandle`). `<Name>ConfirmDestination` (or similar) is a
-`NavigationKey.WithResult<R>` with a meaningful result type, `@Serializable` +
-`@SerialName("NavigationKey.<Name>...")`; its `navigationDestination` carries the
-`directOverlayWithFade()` metadata marker. The opener's ViewModel consumes it through
-`registerForNavigationResult<R>` + `channel.open(key)`; dismissal without a result is a no-op.
-Copy the shape from `:feature:core`'s worked example: `ConfirmResetDestination.kt` +
-`ConfirmResetDialogScreen.kt` + `ConfirmResetViewModel.kt` (client `ui` package), opened from
-`UkptViewModel.onResetRequested()`.
+(`complete`/`requestClose` via its `navigationHandle`). A confirmation dialog is a plain
+`NavigationKey` — `complete()` means the user confirmed, `requestClose()` means they cancelled, and
+the opener's result channel (`registerForNavigationResult(onCompleted = { ... })`) fires on
+completion; dismissal is a no-op. Add `NavigationKey.WithResult<R>` only when the dialog returns
+data that complete/close cannot represent (e.g. an editor returning the edited value). The
+destination is `@Serializable` + `@SerialName("NavigationKey.<Name>...")`; its
+`navigationDestination` carries the `directOverlayWithFade()` metadata marker. Copy the shape from
+`:feature:core`'s worked example: `ConfirmResetDestination.kt` + `ConfirmResetDialogScreen.kt` +
+`ConfirmResetViewModel.kt` (client `ui` package), opened from `UkptViewModel.onResetRequested()`.
 Governing rules: `ClientUi.Composable.dialogPrimitivesOnlyInDialogDestinations` (enforced — dialog
 primitives are import-restricted to dialog-destination files), `ClientUi.ViewModelState.noDialogVisibilityFlags`
 (enforced — no `show.*Dialog` flags), `ClientUi.dialogsCommunicateViaResults` (guidance — the

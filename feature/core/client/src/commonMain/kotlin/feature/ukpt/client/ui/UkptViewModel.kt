@@ -13,9 +13,9 @@ class UkptViewModel : ViewModel() {
 
     val state: ViewModelState<UkptState> = viewModelState(UkptState())
 
-    private val confirmResetResult by registerForNavigationResult<Boolean> {
-        if (it) state.update { copy(greetings = 0) }
-    }
+    private val confirmResetResult by registerForNavigationResult(
+        onCompleted = { state.update { copy(greetings = 0) } },
+    )
 
     fun onGreetClicked() {
         state.update { copy(greetings = greetings + 1) }

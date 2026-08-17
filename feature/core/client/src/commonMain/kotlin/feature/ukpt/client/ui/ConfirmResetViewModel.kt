@@ -10,7 +10,7 @@ class ConfirmResetViewModel : ViewModel() {
     private val navigation by navigationHandle<ConfirmResetDestination>()
 
     fun onConfirm() {
-        navigation.complete(true)
+        navigation.complete()
     }
 
     fun onDismiss() {

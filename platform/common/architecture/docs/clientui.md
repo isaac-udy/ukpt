@@ -53,7 +53,7 @@ The layer rules below apply across the whole `feature.[name].client.ui` package.
 * The `client.ui` layer may depend on `client.domain`
 * Dialog destinations communicate with their opener through navigation results, not shared state or callbacks
     * **Note:** A dialog destination follows the same screen conventions as any other destination — it has its own ViewModel, and the ViewModel performs the navigation actions (`complete`/`requestClose` via its `navigationHandle`). Composables never reference the navigation handle directly.
-    * **Note:** A dialog destination is a `NavigationKey.WithResult<R>` with a meaningful result type. The opener registers a `NavigationResultChannel` via `ViewModel.registerForNavigationResult<R>` and opens the dialog with `channel.open(key)`. Dismissal without a result is a no-op — the opener's state does not change.
+    * **Note:** A dialog destination is a `NavigationKey`; add `WithResult<R>` only when complete/close cannot carry the data. `complete()` means the user performed the associated action; `requestClose()` means the user cancelled. A confirmation dialog uses plain `NavigationKey` with `complete()`/`requestClose()` — the opener's `registerForNavigationResult(onCompleted = { … })` channel still fires on completion, and dismissal is a no-op. Use `NavigationKey.WithResult<R>` when the dialog returns data that complete/close alone cannot represent (e.g. an editor returning the edited value).
     * **Note:** Navigation results are held in-memory (`NavigationResultChannel.pendingResults`), so custom result types need no serializers-module registration — unlike managed-flow step results, which persist via `polymorphic(Any)`.
     * **Note:** Editor-style dialogs may own their submission (inline error/retry, `complete(result)` only on success) and complete with the fresh data so the opener updates without a refetch. Under `ProjectRules.noDirectAsyncStateConstruction` the opener cannot wrap a returned payload in `AsyncState.Success` directly, so in practice the result handler triggers a reload.
 
@@ -190,7 +190,7 @@ that is needed to snapshot it.
 * A `[Name]ScreenContent` composable must be called from a `@Preview` composable in the same file
     * **Why:** Previews are the snapshot surface: `PreviewSnapshotTest` renders every `@Preview` in the module, so a ScreenContent without a preview has no snapshot coverage. The preview must live in the same file as the ScreenContent it renders — co-locating it keeps each screen's preview next to the screen, discoverable and maintained with it, instead of drifting into a single shared "screen previews" file.
 * Dialog primitives (`AlertDialog`, `BasicAlertDialog`, `DatePickerDialog`, `ModalBottomSheet`, `androidx.compose.ui.window.Dialog`) may only be invoked in a file that declares a dialog destination (one containing a `directOverlay` metadata marker)
-    * **Why:** Dialogs are their own destinations: a `NavigationKey.WithResult<R>` rendered through Enro's overlay support, not an inline composable toggled by a boolean in screen state. Restricting dialog primitives to dialog-destination files makes embedded dialogs a build failure, not a review finding. Platform and design-system modules are exempt — they may define dialog primitives and wrappers.
+    * **Why:** Dialogs are their own destinations: a `NavigationKey` rendered through Enro's overlay support, not an inline composable toggled by a boolean in screen state. Restricting dialog primitives to dialog-destination files makes embedded dialogs a build failure, not a review finding. Platform and design-system modules are exempt — they may define dialog primitives and wrappers.
     * **Note:** Detection is import-based: an import of any dialog primitive in a non-dialog-destination file is a violation, regardless of whether the call site is reached.
 * A feature module that contains `@Preview` composables must have a `PreviewSnapshotTest` in its `androidHostTest` source set
     * **Why:** The scanner test is what turns previews into snapshots; without it, previews render in the IDE but nothing guards against visual regressions.
@@ -294,7 +294,7 @@ The complete, immutable representation of a Screen's data at a single point in t
     * **Verification:** not automatically verifiable; enforced by review.
 * A ViewModel State object must not define custom sealed types for loading/success/error; use `AsyncState<T>` instead
 * A ViewModel State object must not contain dialog or sheet visibility flags (`show.*Dialog`, `.*DialogVisible`, `show.*Sheet`, `.*SheetVisible`) — dialog visibility is navigation state, not screen state
-    * **Why:** A boolean flag that toggles an inline dialog couples the dialog's lifecycle to the screen's state object instead of to the navigation backstack. Making the dialog its own destination (`NavigationKey.WithResult<R>`) eliminates the flag, and the destination follows the same screen conventions as any other — its own ViewModel performs the navigation actions, the opener consumes the result through a navigation result channel.
+    * **Why:** A boolean flag that toggles an inline dialog couples the dialog's lifecycle to the screen's state object instead of to the navigation backstack. Making the dialog its own destination eliminates the flag, and the destination follows the same screen conventions as any other — its own ViewModel performs the navigation actions, the opener consumes the outcome through a navigation result channel (`complete` = confirmed, `requestClose` = cancelled; add `WithResult<R>` only when complete/close cannot carry the data).
 * A ViewModel State object's formatting and visual representation must be handled by the Screen or specialized `@Composable` properties/functions
     * **Verification:** not automatically verifiable; enforced by review.
 
@@ -350,7 +350,7 @@ if (state.showDeleteDialog && state.itemToDelete != null) {
 }
 ```
 
-**Good:** The dialog is its own destination — the same screen conventions apply, so it has its own ViewModel that performs navigation actions. The opener consumes the result through a navigation result channel.
+**Good:** The dialog is its own destination — the same screen conventions apply, so it has its own ViewModel that performs navigation actions. A confirmation dialog uses plain `NavigationKey` with `complete()`/`requestClose()` — the opener's result channel fires on completion, and dismissal is a no-op. Use `NavigationKey.WithResult<R>` when the dialog returns data that complete/close alone cannot represent.
 
 ```kotlin
 // feature.items.client.ui.ConfirmDeleteDestination.kt
@@ -358,13 +358,13 @@ if (state.showDeleteDialog && state.itemToDelete != null) {
 @SerialName("NavigationKey.ConfirmDeleteDestination")
 data class ConfirmDeleteDestination(
     val itemName: String,
-) : NavigationKey.WithResult<Boolean>
+) : NavigationKey
 
 // feature.items.client.ui.ConfirmDeleteViewModel.kt
 class ConfirmDeleteViewModel : ViewModel() {
     private val navigation by navigationHandle<ConfirmDeleteDestination>()
     val itemName: String get() = navigation.key.itemName
-    fun onConfirm() { navigation.complete(true) }
+    fun onConfirm() { navigation.complete() }
     fun onDismiss() { navigation.requestClose() }
 }
 
@@ -382,10 +382,10 @@ val confirmDeleteDialogScreen = navigationDestination<ConfirmDeleteDestination>(
     )
 }
 
-// feature.items.client.ui.ItemListViewModel.kt — opener consumes the result
-private val deleteResult by registerForNavigationResult<Boolean> {
-    if (it) loadItems()
-}
+// feature.items.client.ui.ItemListViewModel.kt — opener consumes the outcome
+private val deleteResult by registerForNavigationResult(
+    onCompleted = { loadItems() },
+)
 fun onDeleteRequested(item: Item) {
     deleteResult.open(ConfirmDeleteDestination(itemName = item.name))
 }
