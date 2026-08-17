@@ -28,6 +28,7 @@ fun UkptScreen(
     UkptScreenContent(
         state = state,
         onGreet = viewModel::onGreetClicked,
+        onReset = viewModel::onResetRequested,
     )
 }
 
@@ -41,6 +42,7 @@ fun UkptScreen(
 internal fun UkptScreenContent(
     state: UkptState,
     onGreet: () -> Unit,
+    onReset: () -> Unit,
 ) {
     Box(
         modifier = Modifier
@@ -66,6 +68,10 @@ internal fun UkptScreenContent(
                 label = "Greet",
                 onClick = onGreet,
             )
+            UkptButton(
+                label = "Reset",
+                onClick = onReset,
+            )
         }
     }
 }
@@ -79,6 +85,7 @@ internal fun UkptScreenPreview() {
         UkptScreenContent(
             state = UkptState(),
             onGreet = {},
+            onReset = {},
         )
     }
 }
