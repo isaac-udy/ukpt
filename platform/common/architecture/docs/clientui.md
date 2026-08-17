@@ -293,7 +293,7 @@ The complete, immutable representation of a Screen's data at a single point in t
     * **Verification:** not automatically verifiable; enforced by review.
 * A ViewModel State object must not define custom sealed types for loading/success/error; use `AsyncState<T>` instead
 * A ViewModel State object must not contain dialog or sheet visibility flags (`show.*Dialog`, `.*DialogVisible`, `show.*Sheet`, `.*SheetVisible`) — dialog visibility is navigation state, not screen state
-    * **Why:** A boolean flag that toggles an inline dialog couples the dialog's lifecycle to the screen's state object instead of to the navigation backstack. Making the dialog its own destination (`NavigationKey.WithResult<R>`) eliminates the flag, gives the dialog its own ViewModel, and lets the opener consume the result through a navigation result channel.
+    * **Why:** A boolean flag that toggles an inline dialog couples the dialog's lifecycle to the screen's state object instead of to the navigation backstack. Making the dialog its own destination (`NavigationKey.WithResult<R>`) eliminates the flag, lets the dialog own its own ViewModel when it needs one, and lets the opener consume the result through a navigation result channel.
 * A ViewModel State object's formatting and visual representation must be handled by the Screen or specialized `@Composable` properties/functions
     * **Verification:** not automatically verifiable; enforced by review.
 
