@@ -1,0 +1,4 @@
+interface:
+  display_name: "Generate UKPT UI Atlas"
+  short_description: "Generate and consult the UI atlas for screen orientation"
+  default_prompt: "Use $ukpt-ui-atlas to generate the UI atlas and orient in the project's screens."

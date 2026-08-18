@@ -101,6 +101,10 @@ The common module's Android / JVM / wasm targets compile transitively via the pe
   Goldens are **directory-grouped** by the preview's declaring package and function name, so a preview in `feature.ukpt.client.ui` lands at `src/androidHostTest/snapshots/images/feature/ukpt/client/ui/UkptScreenPreview.png`. `DirectorySnapshotHandler` (a custom Paparazzi `SnapshotHandler`) implements that layout; stock Paparazzi can only emit one long flat filename per golden. Two previews resolving to the same golden path fail fast at test-parameter creation rather than silently overwriting one another.
 - **Unit tests**: per KMP module via the umbrella task, e.g. `./gradlew :feature:core:api:allTests :feature:core:client:allTests` — a client module's `allTests` includes the snapshot host test, so it needs `--no-configuration-cache` too (same R-class failure as above). Server coverage lives in **two** modules: `./gradlew :feature:core:server:test :app:server:test` — the feature module holds nearly all of it; `:app:server:test` alone runs only the shell's own tests.
 
+## UI atlas
+
+`./gradlew generateUiAtlas` scans the repo for Enro `@NavigationDestination` nodes, `.open()` navigation edges, and Paparazzi goldens, then writes `build/ui-atlas/`: an interactive `index.html` and a machine-readable `manifest.json` (plus copied golden images). Goldens must already exist — run `recordPaparazzi` first if screens are missing images. The `ukpt-ui-atlas` skill documents the manifest schema and how agents should use it for orientation.
+
 ## Server persistence (Postgres)
 
 Server persistence uses the `dev.isaacudy.udytils.postgres` toolkit (Exposed + Flyway); conventions are in [docs/serverdata.md](./platform/common/architecture/docs/serverdata.md) (the `server.data.storage` section). `:platform:server:postgres` owns the Flyway migrations (`src/main/resources/db/migration/`, empty until the first schema) and the codegen that turns them into Exposed `Table`/`Row` sources; `:platform:server:development` owns the dev-database scenarios.

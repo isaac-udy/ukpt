@@ -100,6 +100,7 @@ udytils-postgres-gradlePlugin = { module = "dev.isaacudy.udytils:postgres-gradle
 udytils-architectureCore = { module = "dev.isaacudy.udytils:architecture-core" }
 udytils-architectureAnnotations = { module = "dev.isaacudy.udytils:architecture-annotations" }
 udytils-architectureGradlePlugin = { module = "dev.isaacudy.udytils:architecture-gradle-plugin" }
+udytils-atlasGradlePlugin = { module = "dev.isaacudy.udytils:atlas-gradle-plugin" }
 
 # Build-logic dependencies (gradle plugin classpath artifacts)
 kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
@@ -127,4 +128,5 @@ paparazzi = { id = "app.cash.paparazzi", version.ref = "paparazzi" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 # Version-less: resolved from the root buildscript classpath (composite-substituted), not a repository.
 udytilsArchitecture = { id = "dev.isaacudy.udytils.architecture" }
+udytilsAtlas = { id = "dev.isaacudy.udytils.atlas" }
 udytilsPostgres = { id = "dev.isaacudy.udytils.postgres" }
