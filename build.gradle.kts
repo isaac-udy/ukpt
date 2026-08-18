@@ -10,6 +10,9 @@ buildscript {
         // The Postgres codegen plugin, on the classpath for the same reason: resolving it through
         // pluginManagement instead would lose the substitutions above.
         classpath(libs.udytils.postgres.gradlePlugin)
+
+        // The atlas plugin, same story.
+        classpath(libs.udytils.atlasGradlePlugin)
     }
 }
 
@@ -29,3 +32,9 @@ plugins {
     alias(libs.plugins.kotlinKsp) apply false
     alias(libs.plugins.kotlinSerialization) apply false
 }
+
+// Applied here, not in the plugins block: the root project's plugins block cannot
+// resolve version-free plugin ids from the buildscript classpath — that only works
+// in subprojects. Subproject plugins (architecture, postgres) use alias() because
+// their plugins block inherits the root classpath; the root must apply() directly.
+apply(plugin = "dev.isaacudy.udytils.atlas")
