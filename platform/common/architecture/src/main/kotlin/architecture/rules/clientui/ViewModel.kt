@@ -119,10 +119,9 @@ object ViewModel : Construct<ClientUi>(
     val usesJobManager by rule {
         rationale(
             """
-            Manual `var job: Job?` tracking is error-prone: the previous job leaks if a new one
-            starts before the old one completes, and lifecycle cancellation is easy to forget.
-            `dev.isaacudy.udytils.coroutines.JobManager` handles cancel-then-replace and ties
-            everything to `viewModelScope`.
+            `dev.isaacudy.udytils.coroutines.JobManager` provides cancel-then-replace semantics
+            and ties every job to `viewModelScope`; manual `var job: Job?` tracking leaks the
+            previous job and skips lifecycle cancellation.
             """.trimIndent(),
         )
         constrain { decl, _ ->

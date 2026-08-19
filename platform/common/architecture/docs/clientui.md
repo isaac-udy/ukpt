@@ -84,7 +84,7 @@ the destination declaration site.
 ##### Rules
 
 * A Screen function must be annotated with `@Composable`
-* A Screen function must have a 1:1 relationship with a ViewModel and ViewModel State
+* A Screen function must be associated with exactly one ViewModel (and that ViewModel's associated ViewModel State). Rendering decisions must be derived from the ViewModel State, except purely visual, transient state — scroll position, animation, focus — which may stay in the composable
     * **Verification:** not automatically verifiable; enforced by review.
 * A Screen function must observe the ViewModel's `state` property and use it to drive the UI
     * **Verification:** not automatically verifiable; enforced by review.
@@ -98,7 +98,7 @@ the destination declaration site.
 
 ##### Guidance
 
-* A Screen function should delegate all user interaction handling to the ViewModel
+* A Screen function should delegate user interactions that affect ViewModel State or navigation to the ViewModel; purely visual, transient interaction handling — scroll position, animation, focus — may stay in the composable
 * A dialog/overlay Screen that needs a ViewModel should call `viewModel()` inside the `navigationDestination` block
 
 ##### Examples
@@ -257,7 +257,7 @@ to load data and perform side effects based on user actions.
 * A ViewModel must not declare `private var` properties
     * **Why:** A mutable private field is a side channel around `state` (the source of truth) and is lost on process death — for example a `pendingX` captured across a navigation round-trip. Carry per-open context on the navigation itself (key fields, or `instance.metadata` via a `NavigationKey.MetadataKey`) so the result handler recovers it process-death-safe; put genuine UI state in `state`.
 * A ViewModel must use `JobManager` to manage coroutines, never a `var job: Job?` reference
-    * **Why:** Manual `var job: Job?` tracking is error-prone: the previous job leaks if a new one starts before the old one completes, and lifecycle cancellation is easy to forget. `dev.isaacudy.udytils.coroutines.JobManager` handles cancel-then-replace and ties everything to `viewModelScope`.
+    * **Why:** `dev.isaacudy.udytils.coroutines.JobManager` provides cancel-then-replace semantics and ties every job to `viewModelScope`; manual `var job: Job?` tracking leaks the previous job and skips lifecycle cancellation.
 
 ##### Guidance
 

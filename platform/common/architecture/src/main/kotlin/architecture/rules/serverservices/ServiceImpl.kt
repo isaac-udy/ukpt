@@ -37,11 +37,9 @@ object ServiceImpl : Construct<ServerServices>(
     val implementsItsContract by rule {
         rationale(
             """
-            The name is a claim — `[Name]ServiceImpl` says this class answers the `[Name]Service`
-            contract — and a class that makes the claim without implementing the interface is either
-            unfinished or misnamed. Nothing else would catch it: the shape classifies on name and
-            package alone, so without this rule a contract-less impl passes every test while the
-            service it names returns 404.
+            The construct classifies on name and package alone, so without this rule a
+            `[Name]ServiceImpl` that never implements `[Name]Service` — unfinished or misnamed —
+            would pass unnoticed.
             """.trimIndent(),
         )
         note("Matched by fully-qualified name: the contract shares the impl's package by construction — it is declared in `:api` under the same `server.services` package — so the expected parent is exactly `<package>.<Name>Service`, however the impl writes the reference (bare, aliased, or qualified).")
