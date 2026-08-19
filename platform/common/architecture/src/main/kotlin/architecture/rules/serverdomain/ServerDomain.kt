@@ -50,10 +50,10 @@ object ServerDomain : DomainGroupRules(
     val pure by rule {
         rationale(
             """
-            Domain is the middle of the hexagon and knows neither edge. Importing `server.data` would
-            couple logic to persistence; importing `server.services` would drag the wire contract and
-            request scope into it, and would let a domain interface reach the very thing that is
-            supposed to consume it.
+            The domain layer imports neither of its neighbouring layers. Importing `server.data`
+            would couple logic to persistence; importing `server.services` would drag the wire
+            contract and request scope into it, and would let a domain interface reach the layer
+            that is supposed to consume it.
             """.trimIndent(),
         )
         note("This is what makes `noTables` and `noAuth` unnecessary as separate rules — neither is reachable from here.")

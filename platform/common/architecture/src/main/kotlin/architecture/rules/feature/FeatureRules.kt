@@ -85,14 +85,14 @@ object FeatureRules : RuleGroup(
     val noSideImports by rule {
         rationale(
             """
-            The root is shared vocabulary: both sides depend on it, so it can depend on neither.
+            The root is shared vocabulary: both the client and server depend on it, so it can depend on neither.
             An import of `client.**` would make the type unusable on the server, and an import of
             `server.**` would drag persistence or wire machinery into a type the client compiles.
             """.trimIndent(),
         )
         note("Other features' roots are importable — real vocabularies reference each other. Keep that graph acyclic.")
-        note("Tested as an allow-list: a `feature.` import is a root import when everything between the feature name and the imported declaration is a type name, so anything sitting in a deeper package is side-private whatever that package is called.")
-        note("Scoped to `:api`, where the vocabulary lives; the same package name on `:client`/`:server` holds the feature's DI module, whose whole job is to name both sides' implementations.")
+        note("Tested as an allow-list: a `feature.` import is a root import when everything between the feature name and the imported declaration is a type name, so anything sitting in a deeper package is client- or server-private whatever that package is called.")
+        note("Scoped to `:api`, where the vocabulary lives; the same package name on `:client`/`:server` holds the feature's DI module, whose job is to name both client and server implementations.")
         scope { scope, exempt ->
             scope.files
                 .filter { it.isFeatureModule() && it.isFeatureRootPackage() && it.isApiModule() }
@@ -101,7 +101,7 @@ object FeatureRules : RuleGroup(
                     file.imports
                         .filter { it.name.startsWith("feature.") }
                         .filterNot { import -> import.name.namesFeatureRootDeclaration() }
-                        .map { Violation(file.path, "feature root imports side-private code `${it.name}`") }
+                        .map { Violation(file.path, "feature root imports client- or server-private code `${it.name}`") }
                 }
         }
     }
@@ -115,7 +115,7 @@ object FeatureRules : RuleGroup(
             into the vocabulary itself.
             """.trimIndent(),
         )
-        note("Scoped to `:api`, where the vocabulary lives; the same package name on `:client`/`:server` holds the feature's [dependency module](#dependency-module), which is out of scope because wiring a side necessarily names that side's platform types.")
+        note("Scoped to `:api`, where the vocabulary lives; the same package name on `:client`/`:server` holds the feature's [dependency module](#dependency-module), which is out of scope because wiring a client or server necessarily names its platform types.")
         scope { scope, exempt ->
             scope.files
                 .filter { it.isFeatureModule() && it.isFeatureRootPackage() && it.isApiModule() }
@@ -129,10 +129,10 @@ object FeatureRules : RuleGroup(
     val modelsOnly by rule {
         rationale(
             """
-            Behaviour in the root would be shared between client and server, which is exactly what
-            the taxonomy forbids — only vocabulary is shared. A single-function interface belongs in
-            a side's `domain` ([client](clientdomain.md#domain-interface),
-            [server](serverdomain.md#domain-interface)), where that side's adapter provides it.
+            Behaviour in the root would be shared between client and server, and only vocabulary is
+            shared. A single-function interface belongs in `client.domain` or `server.domain`
+            ([client](clientdomain.md#domain-interface),
+            [server](serverdomain.md#domain-interface)), where the data layer provides it.
             """.trimIndent(),
         )
         note("Enforced by the Constructs: a declaration in the root matching none of them fails the membership rule.")

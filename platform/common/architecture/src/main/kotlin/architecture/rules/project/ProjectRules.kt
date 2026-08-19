@@ -205,7 +205,7 @@ object ProjectRules : RuleGroup() {
             contracts it satisfies rather than being chosen.
             """.trimIndent(),
         )
-        note("A layer-root file is unconstrained by the mirror: a root Repository provides root-declared contracts, as it always has. The rule binds only a file that is itself in a subsystem package.")
+        note("A layer-root file is unconstrained by the matching-subsystem rule: a root Repository provides root-declared contracts. The rule binds only a file that is itself in a subsystem package.")
         note("An outer subsystem with no domain twin is legal and needs no special case — the rule restricts domain imports, and a package with none has nothing to restrict.")
         scope { scope, exempt ->
             val resolve = packageResolver(scope)
@@ -223,8 +223,8 @@ object ProjectRules : RuleGroup() {
                             if (own.mirrors(target.subsystem)) return@mapNotNull null
                             Violation(
                                 file.path,
-                                "`$ownPackage` names `$name` — it mirrors " +
-                                    "`${own.side}.domain.${own.subsystem}`, that subsystem's direct children, and its ancestors",
+                                "`$ownPackage` names `$name` — it may name only " +
+                                    "`${own.side}.domain.${own.subsystem}`, that package's direct children, and its ancestors",
                             )
                         }
                 }
@@ -410,7 +410,7 @@ object ProjectRules : RuleGroup() {
             with a same-named exception are indistinguishable to a client.
             """.trimIndent(),
         )
-        note("Scoped to exceptions that reach the wire: those declared in the services contract package (`feature.x.server.services`, excluding its server-only sub-packages) or in a feature root, which is the vocabulary both sides name. Two server-private exceptions with one name never meet, so they do not collide.")
+        note("Scoped to exceptions that reach the wire: those declared in the services contract package (`feature.x.server.services`, excluding its server-only sub-packages) or in a feature root, which is the vocabulary both the client and server name. Two server-private exceptions with one name never meet, so they do not collide.")
         scope { scope, exempt ->
             scope.classes(includeNested = true)
                 .filter { it.isFeatureModule() }

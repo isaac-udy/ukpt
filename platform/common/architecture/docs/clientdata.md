@@ -6,14 +6,13 @@
 # [Client Data](../src/main/kotlin/architecture/rules/clientdata/ClientData.kt)
 
 `feature.[name].client.data` — Repository implementations and client-side local persistence
-(Keychain, SharedPreferences, etc.). The client's outer edge, and the mirror of
-[`server.data`](serverdata.md): a [Repository](#repository) provides
-[domain interfaces](clientdomain.md#domain-interface) for the rest of the client to consume, the
-way a [server Repository](serverdata.md#repository) provides
-[server domain interfaces](serverdomain.md#domain-interface). The two carry the same name because
-they are the same construct on opposite sides; what differs is what they read through — a
-[Service](serverservices.md#service-interface) and local storage here, a
-[StorageClass](serverdata.md#storage-class) over a table there.
+(Keychain, SharedPreferences, etc.). A [Repository](#repository) provides
+[domain interfaces](clientdomain.md#domain-interface) for the rest of the client to consume, as
+a [server Repository](serverdata.md#repository) provides
+[server domain interfaces](serverdomain.md#domain-interface). The two carry the same name
+because they are the same construct; what differs is what they read through — a
+[Service](serverservices.md#service-interface) and local storage on the client, a
+[StorageClass](serverdata.md#storage-class) over a table on the server.
 
 This is also the only layer that may talk to the server: Repositories call
 [Services](serverservices.md#service-interface) — the `:api` contract — to reach it
@@ -39,15 +38,15 @@ This is also the only layer that may talk to the server: Repositories call
 * The `client.data` layer must not depend on the `ui` package
     * **Why:** UI is the outermost layer; `client.data` sits beneath it and supplies the domain interfaces the UI consumes. If it imports a UI type the layering becomes circular and the Repository can no longer be tested without a Compose runtime.
 * `client.data` is the only client package that may import a `server.services` contract, and client code must not import any other server code
-    * **Why:** The network is the single connection between the two sides, and `client.data` is the layer that uses it. A ViewModel that imports a service contract has bypassed the abstraction that makes it testable and swappable; a `client.domain` file that does has stopped being pure.  The contract only — never a ServiceImpl, never `server.data`, never `server.domain`. What the client may see is exactly what the server publishes to `:api` as its wire surface.
+    * **Why:** The network is the single connection between client and server, and `client.data` is the layer that uses it. A ViewModel that imports a service contract has bypassed the abstraction that makes it testable and swappable; a `client.domain` file that does has stopped being pure.  The contract only — never a ServiceImpl, never `server.data`, never `server.domain`. What the client may see is exactly what the server publishes to `:api` as its wire surface.
     * **Note:** The population is every feature file the client compiles — everything that is not server-private, meaning not in a `server.**` package and not on a `:server` module.
     * **Note:** A feature root file on a `:client` module is the feature's DI module, whose job is to bind a urpc client and therefore to name the contract; roots are governed by `FeatureRules` and are out of scope here.
-    * **Note:** Tested over `feature.[name].server.**` imports: the contract is `feature.[name].server.services.**`, declared in `:api` so both sides see it, and everything else under `server.` is the server's own business.
+    * **Note:** Tested over `feature.[name].server.**` imports: the contract is `feature.[name].server.services.**`, declared in `:api` so both the client and server see it, and everything else under `server.` is the server's own business.
 * A `client.data` package imports this layer only through its own package, its direct child subsystems, and its ancestors up to the layer root
     * **Note:** `client.data.storage` is the exception and is visible from anywhere in this layer: it is the local-persistence half of the layer rather than a subsystem.
     * **Enforced by:** `ProjectRules.subsystemVisibility`
-* A `client.data` subsystem package imports `client.domain` only through its mirror subsystem, that subsystem's direct children, and their ancestors
-    * **Note:** A [Repository](#repository) at the layer root provides root-declared contracts, unconstrained by the mirror; a mirrored `client.data.[sub]` package provides that subsystem's.
+* A `client.data` subsystem package imports `client.domain` only through the matching `client.domain` subsystem package, that package's direct children, and their ancestors
+    * **Note:** A [Repository](#repository) at the layer root provides root-declared contracts, unconstrained by the matching-subsystem rule; a `client.data.[sub]` package provides the contracts of the matching `client.domain.[sub]`.
     * **Enforced by:** `ProjectRules.subsystemMirrorsDomain`
 
 ---

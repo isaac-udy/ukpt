@@ -68,15 +68,15 @@ dependency injection: Koin modules that define the feature's DI bindings, wiring
 ##### Rules
 
 * A feature root may import feature roots only, never a declaration from inside a side
-    * **Why:** The root is shared vocabulary: both sides depend on it, so it can depend on neither. An import of `client.**` would make the type unusable on the server, and an import of `server.**` would drag persistence or wire machinery into a type the client compiles.
+    * **Why:** The root is shared vocabulary: both the client and server depend on it, so it can depend on neither. An import of `client.**` would make the type unusable on the server, and an import of `server.**` would drag persistence or wire machinery into a type the client compiles.
     * **Note:** Other features' roots are importable — real vocabularies reference each other. Keep that graph acyclic.
-    * **Note:** Tested as an allow-list: a `feature.` import is a root import when everything between the feature name and the imported declaration is a type name, so anything sitting in a deeper package is side-private whatever that package is called.
-    * **Note:** Scoped to `:api`, where the vocabulary lives; the same package name on `:client`/`:server` holds the feature's DI module, whose whole job is to name both sides' implementations.
+    * **Note:** Tested as an allow-list: a `feature.` import is a root import when everything between the feature name and the imported declaration is a type name, so anything sitting in a deeper package is client- or server-private whatever that package is called.
+    * **Note:** Scoped to `:api`, where the vocabulary lives; the same package name on `:client`/`:server` holds the feature's DI module, whose job is to name both client and server implementations.
 * A feature root must not contain platform-specific dependencies, such as Android, Compose, Ktor, or SQL
     * **Why:** The root is common Kotlin consumed by every target and by the server. A platform import here would break compilation for some target or drag transport/persistence machinery into the vocabulary itself.
-    * **Note:** Scoped to `:api`, where the vocabulary lives; the same package name on `:client`/`:server` holds the feature's [dependency module](#dependency-module), which is out of scope because wiring a side necessarily names that side's platform types.
+    * **Note:** Scoped to `:api`, where the vocabulary lives; the same package name on `:client`/`:server` holds the feature's [dependency module](#dependency-module), which is out of scope because wiring a client or server necessarily names its platform types.
 * A feature root must declare only domain objects, constants, validation, and pure extensions over them
-    * **Why:** Behaviour in the root would be shared between client and server, which is exactly what the taxonomy forbids — only vocabulary is shared. A single-function interface belongs in a side's `domain` ([client](clientdomain.md#domain-interface), [server](serverdomain.md#domain-interface)), where that side's adapter provides it.
+    * **Why:** Behaviour in the root would be shared between client and server, and only vocabulary is shared. A single-function interface belongs in `client.domain` or `server.domain` ([client](clientdomain.md#domain-interface), [server](serverdomain.md#domain-interface)), where the data layer provides it.
     * **Note:** Enforced by the Constructs: a declaration in the root matching none of them fails the membership rule.
     * **Enforced by:** `architecture.everyDeclarationBelongsToALayer`
 * A feature root type that participates in polymorphic serialization must pin an explicit `@SerialName`
@@ -89,17 +89,16 @@ dependency injection: Koin modules that define the feature's DI bindings, wiring
 
 ## [Shared Domain Model](../src/main/kotlin/architecture/rules/feature/SharedDomainModel.kt)
 
-An immutable `@Serializable` type in the feature root: a business object or concept both sides
-speak. It is the feature's vocabulary in its purest form — the highest level of abstraction it
-has for saying what it does. Because both sides name it and it is serialized across the network,
-every field is part of a compatibility surface.
+An immutable `@Serializable` type in the feature root: a business object or concept both the
+client and server use. Because both name it and it is serialized across the network, every
+field is part of a compatibility surface.
 
-The side-private counterpart is the [domain model](clientdomain.md#domain-model)
-([server](serverdomain.md#domain-model)), which refactors freely because nothing outside its side
-can observe the change. Same word, one qualifier: `Shared` is what says both sides name it, and
-the package is where that is written down. A side-private model may serialize too — for a column
-or for restored state — so `@Serializable` is what a shared model needs, not what distinguishes
-it.
+The private counterpart is the [domain model](clientdomain.md#domain-model)
+([server](serverdomain.md#domain-model)), which refactors freely because nothing outside its
+client or server can observe the change. `Shared` is what says both the client and server name
+it, and the package is where that is written down. A private model may serialize too — for a
+column or for restored state — so `@Serializable` is what a shared model needs, not what
+distinguishes it.
 
 * **Note:** Nested types (enums, value classes, sealed interfaces/classes) belong nested only
   when conceptually inseparable from the parent, such as `User.Id` or `Transport.Car.FuelType`
@@ -201,18 +200,18 @@ sealed interface Transport {
 
 ## [Shared Exception](../src/main/kotlin/architecture/rules/feature/SharedException.kt)
 
-A class representing a known failure mode that both sides name: thrown by a server
-implementation, carried across the service boundary, and matched by client code. Because it
-crosses the wire, it is part of the feature's shared language and lives in the root.
+A class representing a known failure mode that both the client and server name: thrown by a
+server implementation, carried across the service boundary, and matched by client code. Because
+it crosses the wire, it is part of the feature's shared vocabulary and lives in the root.
 
 * **Note:** A shared exception must be listed in `@Throws` on the primary function of every
   [domain interface](clientdomain.md#domain-interface)
   ([server](serverdomain.md#domain-interface)) that raises it.
 * **Note:** `@Serializable` is part of what a shared exception *is* — a failure mode that
-  cannot be serialized cannot arrive on the other side, and
+  cannot be serialized cannot cross the network, and
   `ProjectRules.serviceExceptionsSerializable` holds the same line inside a service contract's
-  reach. An exception that is not wire-visible is side-private: it belongs in that side's
-  `domain`, not in the root.
+  reach. An exception that is not wire-visible belongs in `client.domain` or `server.domain`,
+  not in the root.
 
 ##### Requirements
 
@@ -226,7 +225,7 @@ crosses the wire, it is part of the feature's shared language and lives in the r
 ## [Shared Constants](../src/main/kotlin/architecture/rules/feature/SharedConstants.kt)
 
 An `object` declaration whose only members are `val` constants. It holds the feature's magic
-numbers, lookup tables, and named tags — values both sides need to agree on.
+numbers, lookup tables, and named tags — values both the client and server need to agree on.
 
 * **Note:** A constants object is the right home for values such as `val MAX_PARTY_SIZE = 6`
   or a lookup table. Anything with behaviour belongs on a

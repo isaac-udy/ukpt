@@ -5,8 +5,8 @@
 
 # [Server Data](../src/main/kotlin/architecture/rules/serverdata/ServerData.kt)
 
-`feature.[name].server.data` — Postgres persistence and external integrations. The server's
-outer edge, and the mirror of [`client.data`](clientdata.md).
+`feature.[name].server.data` — Postgres persistence and external integrations. The counterpart
+of [`client.data`](clientdata.md).
 
 The layer has two levels, and which one you are writing decides what you may name — the package
 says which one you are in:
@@ -17,13 +17,12 @@ says which one you are in:
   properties rather than inheriting them, injects the StorageClasses it needs, and maps the Rows
   they return into domain objects. A domain object may span several tables; that composition
   happens here. This is the same construct as the client's
-  [Repository](clientdata.md#repository), with the same rules — one pattern, learned once,
-  appearing on both sides.
+  [Repository](clientdata.md#repository), with the same rules.
 * In the `server.data.storage` subpackage, a [StorageClass](#storage-class) speaks
   [Rows](#storage-record) only. It holds the queries and the single write path for the tables it
   owns, and it names no domain type at all: the mapping is the Repository's job, not the
-  query's. `.storage` is the Row-only world, and it mirrors
-  [`client.data.storage`](clientdata.md#client-storage) on the other side.
+  query's. `.storage` is the Row-only subpackage, the counterpart of
+  [`client.data.storage`](clientdata.md#client-storage).
 
 [IntegrationClients](#integration-client) are the Repository idea pointed outward — an adapter
 onto GenAI, email, transcription, or object storage, providing a domain interface the server
@@ -40,8 +39,9 @@ in `server.data.storage` beside the StorageClass that returns them; codecs and m
 name domain types by definition, so they belong at the `server.data` root.
 
 **This layer must never import `server.services`.** Wire contracts stay out of persistence, and
-storage can never reach the thing that is meant to consume it. That is one half of the hexagon;
-[`ServerServices.noDataImports`](serverservices.md#rules) is the other.
+storage can never reach the thing that is meant to consume it.
+[`ServerServices.noDataImports`](serverservices.md#rules) enforces the same separation from the
+other direction.
 
 ## Table ownership
 
@@ -159,12 +159,12 @@ a tested rule.
 ##### Rules
 
 * The `server.data` layer must never import `server.services`
-    * **Why:** Persistence exists to satisfy the domain, not to serve requests. An import of a service contract would put the wire format inside the storage layer, and an import of a ServiceImpl or a published operation would let a write reach back through the layer that called it — the cycle the hexagon exists to prevent.
+    * **Why:** Persistence exists to satisfy the domain, not to serve requests. An import of a service contract would put the wire format inside the storage layer, and an import of a ServiceImpl or a published operation would let a write reach back through the layer that called it — a cycle between the layers.
     * **Note:** Covers the whole of `server.services`, sub-packages included: everything under it is the caller.
 * The `server.data` layer must not import `client` code
-    * **Why:** The two sides meet at the RPC contract and nowhere else; persistence is the furthest point from that door.
+    * **Why:** The client and server meet at the RPC contract and nowhere else.
 * A `server.data` class must provide domain interfaces by exposing them as properties, not by inheriting them
-    * **Note:** Mirrors `ClientData.providesDomainImplementations`; a Repository that inherits an interface fails the enforcing rule directly.
+    * **Note:** The counterpart of `ClientData.providesDomainImplementations`; a Repository that inherits an interface fails the enforcing rule directly.
     * **Enforced by:** `ServerData.Repository.doesNotImplementDomainInterfaces`, `ServerData.Repository.exposesDomainInterfacesAsProperties`
 * A generated Postgres source may only be imported by `server.data`, and a generated `Table` object only by the `server.data.storage` package
     * **Why:** The generated `Table` objects and `Row` classes live in the shared `platform.server.postgres.tables` package, so any file at all can import one and read or write any table. That is the hole beneath every other storage rule: the Storage class stops being the single write path for its rows, and the invariants and side effects it owns get skipped by whoever went around it. The two generated shapes confine differently: an `XxxRow` is data, which the layer's mapping functions legitimately speak, but a `Table` object is the query and write path itself — a Repository holding one has bypassed the StorageClass this rule exists to make the door.
@@ -191,8 +191,8 @@ a tested rule.
 * A `server.data` package imports this layer only through its own package, its direct child subsystems, and its ancestors up to the layer root
     * **Note:** `server.data.storage` is the exception and is visible from anywhere in this layer: it is the Row-speaking half of the layer rather than a subsystem, and keeping it one flat surface is what lets a table have a single owning StorageClass.
     * **Enforced by:** `ProjectRules.subsystemVisibility`
-* A `server.data` subsystem package imports `server.domain` only through its mirror subsystem, that subsystem's direct children, and their ancestors
-    * **Note:** A [Repository](#repository) at the layer root provides root-declared contracts, unconstrained by the mirror. A mirrored `server.data.[sub]` package provides that subsystem's contracts, through its own Repository-shaped class and/or [IntegrationClients](#integration-client) — a subsystem's edge is a different edge from the layer's.
+* A `server.data` subsystem package imports `server.domain` only through the matching `server.domain` subsystem package, that package's direct children, and their ancestors
+    * **Note:** A [Repository](#repository) at the layer root provides root-declared contracts, unconstrained by the matching-subsystem rule. A `server.data.[sub]` package provides the contracts of the matching `server.domain.[sub]`, through its own Repository-shaped class and/or [IntegrationClients](#integration-client).
     * **Enforced by:** `ProjectRules.subsystemMirrorsDomain`
 
 ##### Examples
@@ -298,7 +298,7 @@ val getUserWithRoles = GetUserWithRoles { id ->
 The single write path for the tables it owns, and the only place their queries are written. A
 StorageClass speaks [Rows](#storage-record): it takes and returns persistence shapes, and names
 no domain type at all. It lives in `feature.[name].server.data.storage`, the layer's Row-only
-subpackage, which mirrors [`client.data.storage`](clientdata.md#client-storage). The
+subpackage, the counterpart of [`client.data.storage`](clientdata.md#client-storage). The
 [Repository](#repository) above it, at the `server.data` root, injects it, maps what it returns,
 and provides the [domain interfaces](serverdomain.md#domain-interface) callers actually hold. See
 the [`server.data` overview](serverdata.md).

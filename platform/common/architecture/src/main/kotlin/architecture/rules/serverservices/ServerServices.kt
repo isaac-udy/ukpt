@@ -14,7 +14,7 @@ import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
 
 @Describe("""
     `feature.[name].server.services` defines the contract between client and server, and the
-    server's entry points. The contract lives in `:api`, so both sides see it; the implementation
+    server's entry points. The contract lives in `:api`, so both the client and server see it; the implementation
     lives in `:server` under the same package name.
 
     Everything else in the layer is an **entry point** — a class something outside the process
@@ -84,9 +84,9 @@ object ServerServices : RuleGroup(
     val noDataImports by rule {
         rationale(
             """
-            This is the hexagon. `server.domain` sits between services and persistence and knows
-            neither: services consume domain interfaces, and Repositories provide them. A
-            ServiceImpl that reaches a table directly has skipped the layer where the contract
+            `server.domain` sits between services and persistence and imports neither: services
+            consume domain interfaces, and Repositories provide them. A ServiceImpl that reaches a
+            table directly has skipped the layer where the contract
             should have been stated, so nothing else can reuse that access, and nothing names what
             the service actually needed.
 
@@ -110,7 +110,7 @@ object ServerServices : RuleGroup(
 
     @Describe("The `server.services` layer must not import client code")
     val noClientImports by rule {
-        rationale("The two sides meet at the RPC contract and nowhere else.")
+        rationale("The client and server meet at the RPC contract and nowhere else.")
         scope { scope, exempt ->
             scope.files
                 .filter { it.isFeatureModule() && it.isInServerServices() }
@@ -183,9 +183,9 @@ object ServerServices : RuleGroup(
         enforcedBy("ProjectRules.subsystemVisibility")
     }
 
-    @Describe("A `server.services` subsystem package imports `server.domain` only through its mirror subsystem, that subsystem's direct children, and their ancestors")
+    @Describe("A `server.services` subsystem package imports `server.domain` only through the matching `server.domain` subsystem package, that package's direct children, and their ancestors")
     val subsystemMirrorsDomain by rule {
-        note("A file at the layer root — a ServiceImpl — is unconstrained by the mirror and sees the whole of `server.domain`.")
+        note("A file at the layer root — a ServiceImpl — is unconstrained by the matching-subsystem rule and sees the whole of `server.domain`.")
         enforcedBy("ProjectRules.subsystemMirrorsDomain")
     }
 }

@@ -8,8 +8,8 @@ import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
 import dev.isaacudy.udytils.architecture.*
 
 @Describe("""
-    `feature.[name].server.data` — Postgres persistence and external integrations. The server's
-    outer edge, and the mirror of [`client.data`](clientdata.md).
+    `feature.[name].server.data` — Postgres persistence and external integrations. The counterpart
+    of [`client.data`](clientdata.md).
 
     The layer has two levels, and which one you are writing decides what you may name — the package
     says which one you are in:
@@ -20,13 +20,12 @@ import dev.isaacudy.udytils.architecture.*
       properties rather than inheriting them, injects the StorageClasses it needs, and maps the Rows
       they return into domain objects. A domain object may span several tables; that composition
       happens here. This is the same construct as the client's
-      [Repository](clientdata.md#repository), with the same rules — one pattern, learned once,
-      appearing on both sides.
+      [Repository](clientdata.md#repository), with the same rules.
     * In the `server.data.storage` subpackage, a [StorageClass](#storage-class) speaks
       [Rows](#storage-record) only. It holds the queries and the single write path for the tables it
       owns, and it names no domain type at all: the mapping is the Repository's job, not the
-      query's. `.storage` is the Row-only world, and it mirrors
-      [`client.data.storage`](clientdata.md#client-storage) on the other side.
+      query's. `.storage` is the Row-only subpackage, the counterpart of
+      [`client.data.storage`](clientdata.md#client-storage).
 
     [IntegrationClients](#integration-client) are the Repository idea pointed outward — an adapter
     onto GenAI, email, transcription, or object storage, providing a domain interface the server
@@ -43,8 +42,9 @@ import dev.isaacudy.udytils.architecture.*
     name domain types by definition, so they belong at the `server.data` root.
 
     **This layer must never import `server.services`.** Wire contracts stay out of persistence, and
-    storage can never reach the thing that is meant to consume it. That is one half of the hexagon;
-    [`ServerServices.noDataImports`](serverservices.md#rules) is the other.
+    storage can never reach the thing that is meant to consume it.
+    [`ServerServices.noDataImports`](serverservices.md#rules) enforces the same separation from the
+    other direction.
 
     ## Table ownership
 
@@ -169,7 +169,7 @@ object ServerData : RuleGroup(
             Persistence exists to satisfy the domain, not to serve requests. An import of a service
             contract would put the wire format inside the storage layer, and an import of a
             ServiceImpl or a published operation would let a write reach back through the layer
-            that called it — the cycle the hexagon exists to prevent.
+            that called it — a cycle between the layers.
             """.trimIndent(),
         )
         note("Covers the whole of `server.services`, sub-packages included: everything under it is the caller.")
@@ -187,7 +187,7 @@ object ServerData : RuleGroup(
 
     @Describe("The `server.data` layer must not import `client` code")
     val noClientImports by rule {
-        rationale("The two sides meet at the RPC contract and nowhere else; persistence is the furthest point from that door.")
+        rationale("The client and server meet at the RPC contract and nowhere else.")
         scope { scope, exempt ->
             scope.files
                 .filter { it.isFeatureModule() && it.isInServerData() }
@@ -202,7 +202,7 @@ object ServerData : RuleGroup(
 
     @Describe("A `server.data` class must provide domain interfaces by exposing them as properties, not by inheriting them")
     val providesDomainImplementations by rule {
-        note("Mirrors `ClientData.providesDomainImplementations`; a Repository that inherits an interface fails the enforcing rule directly.")
+        note("The counterpart of `ClientData.providesDomainImplementations`; a Repository that inherits an interface fails the enforcing rule directly.")
         enforcedBy("ServerData.Repository.doesNotImplementDomainInterfaces", "ServerData.Repository.exposesDomainInterfacesAsProperties")
     }
 
@@ -364,9 +364,9 @@ object ServerData : RuleGroup(
         enforcedBy("ProjectRules.subsystemVisibility")
     }
 
-    @Describe("A `server.data` subsystem package imports `server.domain` only through its mirror subsystem, that subsystem's direct children, and their ancestors")
+    @Describe("A `server.data` subsystem package imports `server.domain` only through the matching `server.domain` subsystem package, that package's direct children, and their ancestors")
     val subsystemMirrorsDomain by rule {
-        note("A [Repository](#repository) at the layer root provides root-declared contracts, unconstrained by the mirror. A mirrored `server.data.[sub]` package provides that subsystem's contracts, through its own Repository-shaped class and/or [IntegrationClients](#integration-client) — a subsystem's edge is a different edge from the layer's.")
+        note("A [Repository](#repository) at the layer root provides root-declared contracts, unconstrained by the matching-subsystem rule. A `server.data.[sub]` package provides the contracts of the matching `server.domain.[sub]`, through its own Repository-shaped class and/or [IntegrationClients](#integration-client).")
         enforcedBy("ProjectRules.subsystemMirrorsDomain")
     }
 }

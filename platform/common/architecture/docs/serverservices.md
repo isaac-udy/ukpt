@@ -6,7 +6,7 @@
 # [Server Services](../src/main/kotlin/architecture/rules/serverservices/ServerServices.kt)
 
 `feature.[name].server.services` defines the contract between client and server, and the
-server's entry points. The contract lives in `:api`, so both sides see it; the implementation
+server's entry points. The contract lives in `:api`, so both the client and server see it; the implementation
 lives in `:server` under the same package name.
 
 Everything else in the layer is an **entry point** — a class something outside the process
@@ -71,10 +71,10 @@ documented on [`server.data`](serverdata.md).
 ##### Rules
 
 * The `server.services` layer must never import `server.data`
-    * **Why:** This is the hexagon. `server.domain` sits between services and persistence and knows neither: services consume domain interfaces, and Repositories provide them. A ServiceImpl that reaches a table directly has skipped the layer where the contract should have been stated, so nothing else can reuse that access, and nothing names what the service actually needed.  `ServerData.noServiceImports` is the other half. Together they make storage a thing that *satisfies* a stated need rather than a thing services reach through.
+    * **Why:** `server.domain` sits between services and persistence and imports neither: services consume domain interfaces, and Repositories provide them. A ServiceImpl that reaches a table directly has skipped the layer where the contract should have been stated, so nothing else can reuse that access, and nothing names what the service actually needed.  `ServerData.noServiceImports` is the other half. Together they make storage a thing that *satisfies* a stated need rather than a thing services reach through.
     * **Note:** Tested over imports of persistence, wherever the imported file sits: reaching a table is the same act whatever the package holding it is called.
 * The `server.services` layer must not import client code
-    * **Why:** The two sides meet at the RPC contract and nowhere else.
+    * **Why:** The client and server meet at the RPC contract and nowhere else.
 * The `services` layer may depend on another feature's `services` only via that feature's `:api` module
     * **Enforced by:** `ModuleRules.clientApiOnly`, `ModuleRules.serverApiOnly`, `ModuleRules.crossFeatureCodeViaApi`
 * A class in `server.services` must not inject another feature's Service contract
@@ -83,8 +83,8 @@ documented on [`server.data`](serverdata.md).
     * **Note:** A feature's own contract is unaffected: a class in this layer may wrap or delegate to its own feature's Service.
 * A `server.services` package imports this layer only through its own package, its direct child subsystems, and its ancestors up to the layer root
     * **Enforced by:** `ProjectRules.subsystemVisibility`
-* A `server.services` subsystem package imports `server.domain` only through its mirror subsystem, that subsystem's direct children, and their ancestors
-    * **Note:** A file at the layer root — a ServiceImpl — is unconstrained by the mirror and sees the whole of `server.domain`.
+* A `server.services` subsystem package imports `server.domain` only through the matching `server.domain` subsystem package, that package's direct children, and their ancestors
+    * **Note:** A file at the layer root — a ServiceImpl — is unconstrained by the matching-subsystem rule and sees the whole of `server.domain`.
     * **Enforced by:** `ProjectRules.subsystemMirrorsDomain`
 
 ---

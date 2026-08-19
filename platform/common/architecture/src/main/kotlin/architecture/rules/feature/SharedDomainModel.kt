@@ -11,17 +11,16 @@ import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
 
 @Describe("""
-    An immutable `@Serializable` type in the feature root: a business object or concept both sides
-    speak. It is the feature's vocabulary in its purest form — the highest level of abstraction it
-    has for saying what it does. Because both sides name it and it is serialized across the network,
-    every field is part of a compatibility surface.
+    An immutable `@Serializable` type in the feature root: a business object or concept both the
+    client and server use. Because both name it and it is serialized across the network, every
+    field is part of a compatibility surface.
 
-    The side-private counterpart is the [domain model](clientdomain.md#domain-model)
-    ([server](serverdomain.md#domain-model)), which refactors freely because nothing outside its side
-    can observe the change. Same word, one qualifier: `Shared` is what says both sides name it, and
-    the package is where that is written down. A side-private model may serialize too — for a column
-    or for restored state — so `@Serializable` is what a shared model needs, not what distinguishes
-    it.
+    The private counterpart is the [domain model](clientdomain.md#domain-model)
+    ([server](serverdomain.md#domain-model)), which refactors freely because nothing outside its
+    client or server can observe the change. `Shared` is what says both the client and server name
+    it, and the package is where that is written down. A private model may serialize too — for a
+    column or for restored state — so `@Serializable` is what a shared model needs, not what
+    distinguishes it.
 
     * **Note:** Nested types (enums, value classes, sealed interfaces/classes) belong nested only
       when conceptually inseparable from the parent, such as `User.Id` or `Transport.Car.FuelType`

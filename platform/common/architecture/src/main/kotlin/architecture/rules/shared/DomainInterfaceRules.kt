@@ -33,7 +33,7 @@ abstract class DomainInterfaceRules<G : RuleGroup> : Construct<G>(
     @Describe("When several mutations act on one domain model and share a return type, prefer a single `Update[Noun]` interface over one interface per mutation: a nested `sealed interface Update` carries the variants, the abstract `invoke(id, update)` is the single entry point, and default functions (`title(...)`, `addMember(...)`) keep call sites flat. Reads stay separate interfaces — their return types differ. When publishing through `:api`, publish exactly the capability another feature needs, never the whole mutation family.")
     val collapsedUpdateFamilies by guidance
 
-    @Describe("A Domain Interface's primary-function parameters must be shared domain models, side-private domain models, nested types, primitives, standard date/time value types, collections of those, or a `Flow` of those")
+    @Describe("A Domain Interface's primary-function parameters must be shared domain models, the layer's own domain models, nested types, primitives, standard date/time value types, collections of those, or a `Flow` of those")
     val primaryParameterTypes by rule {
         constrain { decl, _ ->
             val iface = decl as? KoInterfaceDeclaration ?: return@constrain emptyList()
@@ -47,7 +47,7 @@ abstract class DomainInterfaceRules<G : RuleGroup> : Construct<G>(
         }
     }
 
-    @Describe("A Domain Interface's primary-function return type must be shared domain models, side-private domain models, nested types, primitives, standard date/time value types, collections of those, a `Flow` of those, or no value")
+    @Describe("A Domain Interface's primary-function return type must be shared domain models, the layer's own domain models, nested types, primitives, standard date/time value types, collections of those, a `Flow` of those, or no value")
     val primaryReturnType by rule {
         constrain { decl, _ ->
             val iface = decl as? KoInterfaceDeclaration ?: return@constrain emptyList()

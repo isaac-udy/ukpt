@@ -42,10 +42,10 @@ The layer rules below apply across the whole `feature.[name].client.ui` package.
 * The `client.ui` layer must not use `koinInject`: all dependencies are injected through ViewModels
     * **Why:** Resolving from Koin inside a Composable bypasses the ViewModel as the single dependency surface, makes the screen untestable in snapshot tests (there is no Koin runtime), and re-resolves on every recomposition.
 * A `client.ui` package imports this layer only through its own package, its direct child subsystems, and its ancestors up to the layer root
-    * **Note:** A `client.ui` subsystem is a screen family the rest of the UI reaches through one entry point — an onboarding flow's steps, a sign-in provider's screens. It needs no `client.domain` twin: the mirror restricts what a subsystem may import, not what must exist.
+    * **Note:** A `client.ui` subsystem is a screen family the rest of the UI reaches through one entry point — an onboarding flow's steps, a sign-in provider's screens. It needs no matching `client.domain` subsystem: the rule restricts what a subsystem may import, not what must exist.
     * **Enforced by:** `ProjectRules.subsystemVisibility`
-* A `client.ui` subsystem package imports `client.domain` only through its mirror subsystem, that subsystem's direct children, and their ancestors
-    * **Note:** A file at the layer root is unconstrained — it sees the whole of its side's domain, as it always has. Only a file inside a subsystem package is bound to the mirror.
+* A `client.ui` subsystem package imports `client.domain` only through the matching `client.domain` subsystem package, that package's direct children, and their ancestors
+    * **Note:** A file at the layer root is unconstrained — it sees the whole of `client.domain`. Only a file inside a subsystem package is bound to the matching-subsystem rule.
     * **Enforced by:** `ProjectRules.subsystemMirrorsDomain`
 
 ##### Guidance

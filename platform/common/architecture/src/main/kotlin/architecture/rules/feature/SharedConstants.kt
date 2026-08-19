@@ -9,7 +9,7 @@ import architecture.definitions.isMutable
 
 @Describe("""
     An `object` declaration whose only members are `val` constants. It holds the feature's magic
-    numbers, lookup tables, and named tags — values both sides need to agree on.
+    numbers, lookup tables, and named tags — values both the client and server need to agree on.
 
     * **Note:** A constants object is the right home for values such as `val MAX_PARTY_SIZE = 6`
       or a lookup table. Anything with behaviour belongs on a

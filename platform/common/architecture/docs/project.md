@@ -36,7 +36,7 @@ is the async-result wrapper that [ViewModels](clientui.md#view-model) consume.
     * **Note:** Keyed on the package alone. A declaration's visibility modifier says nothing about which package may name it, so `internal` and `public` neighbours are governed identically.
 * A subsystem package outside the domain layer must name the domain layer only through the matching domain subsystem package (same feature, same client or server implementation, same subsystem path), that package's direct children, and their ancestors
     * **Why:** A subsystem in an outer layer — `feature.shop.client.ui.checkout`, `feature.shop.client.data.checkout` — may name `feature.shop.client.domain.checkout`, its direct children, and its ancestors, and nothing else in the domain layer. This keeps a subsystem's implementations next to the domain contracts they satisfy: the package that implements `feature.shop.client.domain.checkout` cannot also implement `feature.shop.client.domain.payments`. The matching package's depth follows from the contracts it satisfies rather than being chosen.
-    * **Note:** A layer-root file is unconstrained by the mirror: a root Repository provides root-declared contracts, as it always has. The rule binds only a file that is itself in a subsystem package.
+    * **Note:** A layer-root file is unconstrained by the matching-subsystem rule: a root Repository provides root-declared contracts. The rule binds only a file that is itself in a subsystem package.
     * **Note:** An outer subsystem with no domain twin is legal and needs no special case — the rule restricts domain imports, and a package with none has nothing to restrict.
 * An action/request type must model its variants as a `sealed interface`/`sealed class` (each variant a `data class`), not as a single type with an `enum` discriminator and nullable fields
     * **Why:** A sealed hierarchy makes illegal field combinations unrepresentable and lets `when` exhaustiveness drive handling, so adding a variant surfaces every site that must handle it.
@@ -63,7 +63,7 @@ is the async-result wrapper that [ViewModels](clientui.md#view-model) consume.
     * **Note:** A block that spans two features' writes is a UseCase by construction: a Repository may not inject a domain interface, so it cannot reach another feature's contract to put inside one.
 * Two features must not declare service exceptions with the same simple name
     * **Why:** urpc identifies an error by `throwable::class.simpleName` — `ServiceError.from` sends it and the client matches on it — so the simple name *is* the wire contract. That makes package moves free, which is why the migration is safe, but it also means two features with a same-named exception are indistinguishable to a client.
-    * **Note:** Scoped to exceptions that reach the wire: those declared in the services contract package (`feature.x.server.services`, excluding its server-only sub-packages) or in a feature root, which is the vocabulary both sides name. Two server-private exceptions with one name never meet, so they do not collide.
+    * **Note:** Scoped to exceptions that reach the wire: those declared in the services contract package (`feature.x.server.services`, excluding its server-only sub-packages) or in a feature root, which is the vocabulary both the client and server name. Two server-private exceptions with one name never meet, so they do not collide.
 
 ##### Guidance
 

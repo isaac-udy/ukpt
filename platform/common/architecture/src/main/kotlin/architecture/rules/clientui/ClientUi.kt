@@ -146,13 +146,13 @@ object ClientUi : RuleGroup(
 
     @Describe("A `client.ui` package imports this layer only through its own package, its direct child subsystems, and its ancestors up to the layer root")
     val subsystemVisibility by rule {
-        note("A `client.ui` subsystem is a screen family the rest of the UI reaches through one entry point — an onboarding flow's steps, a sign-in provider's screens. It needs no `client.domain` twin: the mirror restricts what a subsystem may import, not what must exist.")
+        note("A `client.ui` subsystem is a screen family the rest of the UI reaches through one entry point — an onboarding flow's steps, a sign-in provider's screens. It needs no matching `client.domain` subsystem: the rule restricts what a subsystem may import, not what must exist.")
         enforcedBy("ProjectRules.subsystemVisibility")
     }
 
-    @Describe("A `client.ui` subsystem package imports `client.domain` only through its mirror subsystem, that subsystem's direct children, and their ancestors")
+    @Describe("A `client.ui` subsystem package imports `client.domain` only through the matching `client.domain` subsystem package, that package's direct children, and their ancestors")
     val subsystemMirrorsDomain by rule {
-        note("A file at the layer root is unconstrained — it sees the whole of its side's domain, as it always has. Only a file inside a subsystem package is bound to the mirror.")
+        note("A file at the layer root is unconstrained — it sees the whole of `client.domain`. Only a file inside a subsystem package is bound to the matching-subsystem rule.")
         enforcedBy("ProjectRules.subsystemMirrorsDomain")
     }
 }

@@ -47,7 +47,7 @@ This layer has the same construct names and rules as [`client.domain`](clientdom
 ##### Rules
 
 * The `server.domain` layer must import feature roots and `:api`-published `server.domain` declarations only
-    * **Why:** Domain is the middle of the hexagon and knows neither edge. Importing `server.data` would couple logic to persistence; importing `server.services` would drag the wire contract and request scope into it, and would let a domain interface reach the very thing that is supposed to consume it.
+    * **Why:** The domain layer imports neither of its neighbouring layers. Importing `server.data` would couple logic to persistence; importing `server.services` would drag the wire contract and request scope into it, and would let a domain interface reach the layer that is supposed to consume it.
     * **Note:** This is what makes `noTables` and `noAuth` unnecessary as separate rules — neither is reachable from here.
     * **Note:** Other features' roots are importable — real vocabularies reference each other. Another feature's server.domain interfaces and models are importable when their declaration resides in `:api`; implementations are never published, so they are never importable across features.
     * **Note:** A file's own feature's `server.domain` is the layer itself, so it is not an import out of the layer; the exemption is scoped to the importing file's feature and to no other.
@@ -96,8 +96,8 @@ process, and belongs outside the block entirely.
 
 ##### Rules
 
-* A Domain Interface's primary-function parameters must be shared domain models, side-private domain models, nested types, primitives, standard date/time value types, collections of those, or a `Flow` of those
-* A Domain Interface's primary-function return type must be shared domain models, side-private domain models, nested types, primitives, standard date/time value types, collections of those, a `Flow` of those, or no value
+* A Domain Interface's primary-function parameters must be shared domain models, the layer's own domain models, nested types, primitives, standard date/time value types, collections of those, or a `Flow` of those
+* A Domain Interface's primary-function return type must be shared domain models, the layer's own domain models, nested types, primitives, standard date/time value types, collections of those, a `Flow` of those, or no value
 * A Domain Interface's functions must propagate errors via thrown exceptions, never via the return type
     * **Why:** A result type that carries the failure makes every caller unwrap it, and the layer's vocabulary grows a wrapper around each contract. Thrown exceptions keep the primary function's return type the thing it produces.
     * **Note:** Known exceptions should be their own type extending RuntimeException, marked with `@Throws`.
@@ -217,17 +217,17 @@ machine, a computed projection, a payload written to a column.
 
 The contrast with a [shared domain model](feature.md#shared-domain-model) is what the package
 split encodes, and it is **residence and reach** rather than shape. A shared domain model is part
-of the feature's shared language, named by both sides and readable by other features, so renaming
-a field is a compatibility event with cross-feature blast radius. A domain model is private to
-its side: nothing outside can observe a change, so it refactors freely.
+of the feature's shared vocabulary, named by both the client and server and readable by other
+features, so renaming a field is a cross-feature compatibility event. A domain model is private
+to the server: nothing outside the server can observe a change, so it refactors freely.
 
 Serialization does not decide which of the two a type is. A domain model may carry
 `@Serializable` — a payload persisted in a column, state restored across a process death — and
 what that costs is a migration for its own stored data, never a cross-feature compatibility
 event.
 
-The **network** is what decides: a model the other side receives has stopped being side-private,
-and belongs in the feature root with the blast radius that comes with it.
+The **network** is what decides: a model the client receives is no longer server-private, and
+belongs in the feature root with the compatibility obligations that come with it.
 
 ##### Requirements
 
@@ -238,13 +238,13 @@ and belongs in the feature root with the blast radius that comes with it.
 ##### Rules
 
 * A domain model must be immutable — no `var` properties
-    * **Why:** Shared mutable state in the middle of the hexagon makes call order load-bearing and defeats the layer's testability.
+    * **Why:** Mutable state in the domain layer makes results depend on the order of earlier calls, and the layer untestable in isolation.
 * A domain model that needs to cross the network belongs in the feature root instead
-    * **Note:** Crossing the network is the test, not carrying `@Serializable`: a payload a StorageClass writes into a column, or a state a client restores after a process death, is serialized and still side-private.
+    * **Note:** Crossing the network is the test, not carrying `@Serializable`: a payload a StorageClass writes into a column, or a state a client restores after a process death, is serialized and still private to the client or server that owns it.
     * **Note:** Persistence is `server.data`'s concern: a model that is stored but not shared is mapped to a [storage record](serverdata.md#storage-record) there, not promoted to the root.
     * **Verification:** not automatically verifiable; enforced by review.
 * A domain model must not re-implement a concept a shared domain model already defines; use or compose the shared model instead
-    * **Note:** The feature's language has one source of truth in the root; a side-private copy of a concept drifts from it as both change.
+    * **Note:** The feature's vocabulary has one source of truth in the root; a private copy of a concept drifts from it as both change.
     * **Verification:** not automatically verifiable; enforced by review.
 
 ---
@@ -253,9 +253,10 @@ and belongs in the feature root with the blast radius that comes with it.
 
 A top-level extension function in `server.domain` that adds derived behaviour to a
 [domain model](#domain-model) or a [shared domain model](feature.md#shared-domain-model). Pure
-over its inputs — it computes from the receiver's values and touches nothing else. The mirror of
-a [shared extension function](feature.md#shared-extension-function) one level down: same shape,
-side-private receiver.
+over its inputs — it computes from the receiver's values and touches nothing else. The
+counterpart, one level deeper, of a
+[shared extension function](feature.md#shared-extension-function): same shape, server-private
+receiver.
 
 * **Note:** The explicit receiver is what makes it an extension of the layer's vocabulary rather
   than free-standing behaviour. A top-level function with no receiver is logic, and logic here is
@@ -295,9 +296,9 @@ A top-level extension property in `server.domain` that exposes derived state on 
 ## [Constants](../src/main/kotlin/architecture/rules/serverdomain/Constants.kt)
 
 An `object` in `server.domain` whose only members are `val` constants: the caps, thresholds and
-named tags this side's logic agrees on — a retry budget, a batch-size ceiling. The side-private
-counterpart of [shared constants](feature.md#shared-constants) — a value both sides have to agree
-on belongs in the feature root instead, because agreement is what makes it shared.
+named tags the server's logic agrees on — a retry budget, a batch-size ceiling. The
+server-private counterpart of [shared constants](feature.md#shared-constants) — a value both
+the client and server have to agree on belongs in the feature root instead.
 
 * **Note:** Anything with behaviour is not a constants object. A pure computation over a model
   belongs on it as an [extension function](#extension-function), and anything that composes
@@ -403,18 +404,17 @@ governs them. The workflow holds the definition; the steps are the behaviour.
 
 ## [Domain Exception](../src/main/kotlin/architecture/rules/serverdomain/DomainException.kt)
 
-A class named `[Name]Exception` representing a failure mode this side names and handles on its
-own — an upstream provider refusing a request, a decode that cannot be recovered.
+A class named `[Name]Exception` representing a failure mode the server names and handles on
+its own — an upstream provider refusing a request, a decode that cannot be recovered.
 
 The counterpart of a [shared exception](feature.md#shared-exception), which is the same idea one
-level up: a failure both sides name, thrown by a server implementation and matched by client
-code, living in the feature root because it crosses the wire. A domain exception does not cross
-anything. Nothing outside this side can observe it, so it refactors as freely as any other
-side-private declaration.
+level up: a failure both the client and server name, thrown by a server implementation and
+matched by client code, living in the feature root because it crosses the wire. A domain
+exception does not cross anything. Nothing outside the server can observe it, so it refactors
+freely.
 
-`SharedException` already draws the line this construct sits on the other side of — *"an
-exception that is not wire-visible is side-private: it belongs in that side's `domain`, not in
-the root."* This is that home.
+`SharedException` already draws the line: an exception that is not wire-visible belongs in
+`client.domain` or `server.domain`, not in the root. This is that home.
 
 * **Note:** A failure a [domain interface](#domain-interface) documents belongs in its `@Throws`,
   whichever of the two kinds it is.

@@ -163,7 +163,7 @@ object ModuleRules : RuleGroup() {
             """.trimIndent(),
         )
         note("The feature root — `feature.[name]`, two segments — is allowed in every module: it is the shared vocabulary in `:api` and the feature's DI module in `:client`/`:server`.")
-        note("`:api` may declare both sides, because publishing a client or server type is what the module is for.")
+        note("`:api` may declare both client and server packages, because publishing a client or server type is what the module is for.")
         note("`platform.**` packages inside a feature module are platform code that has not been lifted into its own module yet; the platform rules govern them, so they are out of scope here.")
         scope { scope, exempt ->
             scope.files
