@@ -81,7 +81,7 @@ construct as a [server Repository](serverdata.md#repository).
     * **Why:** A Repository that injects a contract is calling a sibling adapter through the abstract layer, which makes the graph unreadable and easy to cycle. Logic that needs several interfaces is a UseCase.
     * **Note:** A parameter type — bare, aliased, or inside a wrapper such as `Lazy<…>` — is resolved through its file's imports and matched against the side's classified domain interfaces by fully-qualified name.
 * A Repository must not inject other Repositories
-    * **Why:** Two Repositories over one domain object have no single edge, and the second reaches its data through the first's mapping rather than through the source that owns it.
+    * **Why:** A Repository that injects another Repository reads data through the other's mapping rather than from the source that owns it, and Repository-to-Repository references can form cycles. To combine capabilities, compose domain interfaces in a UseCase.
 * A Repository's domain-interface properties must be initialized immediately: no `by lazy`, no custom getter
     * **Why:** Eager initialisation lets Koin's graph validation catch a missing or cyclic dependency at startup rather than at first use, and it makes the wiring obvious from a quick read of the constructor.
 

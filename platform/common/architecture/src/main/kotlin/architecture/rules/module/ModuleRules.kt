@@ -197,16 +197,16 @@ object ModuleRules : RuleGroup() {
         rationale(
             """
             Publishing is moving a file between modules without changing its package, so a published
-            subsystem declaration would put `…domain.processing.audio` in `:api` and make another
-            feature's compiler aware of one feature's internal decomposition. A subsystem exists
-            precisely because nobody outside the feature has an opinion about it.
+            subsystem declaration would put `feature.shop.client.domain.checkout` in `:api` and make
+            another feature's compiler aware of one feature's internal decomposition. A subsystem
+            exists because nothing outside the feature depends on it.
 
             When another feature does need what a subsystem computes, the capability is restated as a
             layer-root contract that the subsystem satisfies. That costs one declaration and makes
             publication the visible act `:api` placement is meant to be.
             """.trimIndent(),
         )
-        note("The layer root is publishable, as it always has been (`ServerDomain.publishedInterfacesInApi`): `feature.[name].[side].[layer]` in `:api` is the channel. Only the sub-packages below it are confined.")
+        note("The layer root is publishable (`ServerDomain.publishedInterfacesInApi`): `feature.[name].[client|server].[layer]` in `:api` is the channel. Only the sub-packages below it are confined.")
         scope { scope, exempt ->
             scope.files
                 .filter { it.isFeatureModule() && it.isApiModule() }

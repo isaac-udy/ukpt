@@ -187,15 +187,22 @@ object ProjectRules : RuleGroup() {
         }
     }
 
-    @Describe("A subsystem package outside the domain layer must name its own side's domain only through its mirror subsystem, that subsystem's direct children, and their ancestors")
+    @Describe(
+        "A subsystem package outside the domain layer must name the domain layer only through " +
+            "the matching domain subsystem package (same feature, same client or server " +
+            "implementation, same subsystem path), that package's direct children, and their " +
+            "ancestors"
+    )
     val subsystemMirrorsDomain by rule {
         rationale(
             """
-            An outer layer's subsystem gets exactly its domain twin's visibility, plus the twin
-            itself. That is what keeps a subsystem's adapters contained: the package that answers
-            `domain.processing.audio`'s ports cannot also answer `domain.processing.events`', so a
-            subsystem's edge sits beside the subsystem rather than at the layer root. The mirror's
-            depth is therefore set by the ports it satisfies rather than chosen.
+            A subsystem in an outer layer — `feature.shop.client.ui.checkout`,
+            `feature.shop.client.data.checkout` — may name `feature.shop.client.domain.checkout`,
+            its direct children, and its ancestors, and nothing else in the domain layer. This
+            keeps a subsystem's implementations next to the domain contracts they satisfy: the
+            package that implements `feature.shop.client.domain.checkout` cannot also implement
+            `feature.shop.client.domain.payments`. The matching package's depth follows from the
+            contracts it satisfies rather than being chosen.
             """.trimIndent(),
         )
         note("A layer-root file is unconstrained by the mirror: a root Repository provides root-declared contracts, as it always has. The rule binds only a file that is itself in a subsystem package.")
@@ -276,16 +283,13 @@ object ProjectRules : RuleGroup() {
             package move invalidates every stored row and every persisted client state that carries
             one. Pinning makes the wire value an explicit, reviewable decision.
 
-            Sealed variants are the obvious case. The one that bites is the non-obvious one: a
-            top-level `@Serializable` class registered for polymorphic dispatch — an Enro
-            `NavigationKey` is exactly this — is *not* a sealed variant and slips past a rule that
-            only checks those. All 44 navigation destinations relied on a package-derived
-            discriminator, and several of their files contain a `@SerialName` on a nested result
-            type, so a file-level check reads as safe and is not.
+            Sealed variants are the obvious case; a top-level `@Serializable` class registered for
+            polymorphic dispatch — an Enro `NavigationKey` is exactly this — is *not* a sealed
+            variant and slips past a rule that only checks those.
             """.trimIndent(),
         )
         note("Checked per declaration, not per file: an annotation on a nested type does not pin its parent.")
-        note("A derived discriminator fails *silently* wherever the decoder is tolerant — see `EntityMetadata`, whose decoder returns an empty list and whose next write persists it.")
+        note("A derived discriminator fails *silently* wherever the decoder is tolerant: a decoder that falls back on unknown types persists the fallback on its next write.")
         scope { scope, exempt ->
             val violations = mutableListOf<Violation>()
             scope.classesAndInterfacesAndObjects(includeNested = true)
