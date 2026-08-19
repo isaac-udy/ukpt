@@ -2,8 +2,8 @@
 name: ukpt-server-packaging
 description: >-
   Build, verify, and deploy the server fat jar — buildFatJar, runtime
-  service-file collision checks, the Shadow mergeServiceFiles distrust warning,
-  and smokeTestFatJar. Use when packaging or deploying the server.
+  service-file collision checks, Shadow 9.1.0's mergeServiceFiles() silently not
+  merging, and smokeTestFatJar. Use when packaging or deploying the server.
 ---
 
 # ukpt-server-packaging
@@ -15,11 +15,9 @@ runtime classpath.
 
 ## Service-file collision check
 
-Two checks exist because a fat jar can silently drop things.
-
 `verifyRuntimeServiceFiles` (part of `check`, and gates `shadowJar`) fails when two runtime
-dependencies declare the same `META-INF/services` path, since only one copy survives packaging —
-`flyway-core` and `flyway-database-postgresql` do, which is why
+dependencies declare the same `META-INF/services` path, since only one copy survives packaging.
+`flyway-core` and `flyway-database-postgresql` collide;
 `app/server/src/main/resources/META-INF/services/` holds a hand-merged copy (its README says when to
 regenerate it).
 

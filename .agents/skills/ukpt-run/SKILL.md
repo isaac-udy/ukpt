@@ -9,9 +9,7 @@ description: >-
 
 # ukpt-run
 
-Per-platform run commands and the server's dev-database setup.
-
-Identifiers below use the template's UKPT identity (env vars like `UKPT_DEV_DB`, packages like `feature.ukpt`). In projects created from the template these are renamed to the project's own identity — check `.ukpt/template.json` for the rename map.
+Identifiers here use the template's UKPT identity (`UKPT_DEV_DB`, `feature.ukpt`); projects rename these — the map is in `.ukpt/template.json`.
 
 ## Desktop
 
@@ -36,11 +34,8 @@ limitation).
 
 ## Android
 
-Run from Android Studio, or:
-```
-./gradlew :app:client:android:installDebug
-```
-to a connected device/emulator.
+Run from Android Studio, or `./gradlew :app:client:android:installDebug` to a connected
+device/emulator.
 
 ## iOS
 
@@ -69,9 +64,8 @@ lives in `app/server/build/dev-postgres/pg<major>/` and survives restarts (`clea
 ### Environment switches
 
 - `UKPT_DEV_DB` — `embedded` (persistent, the `run` default), `ephemeral` (a throwaway cluster on a
-  random port), or anything else to connect to a real Postgres from `POSTGRES_URL` /
-  `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_MAX_POOL_SIZE`. Set it in the invoking
-  environment and `run` yields to you.
+  random port), or any other value to connect to an external Postgres via `POSTGRES_URL` /
+  `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_MAX_POOL_SIZE`.
 - `UKPT_DEV_DB_DIR` — where a persistent cluster lives; `run` points it at the build directory.
 - `UKPT_DEV_SCENARIO` — names a `DevScenarios` entry to seed a **new** cluster with. Seeding is
   once-per-cluster; asking for a scenario over existing data fails rather than inserting on top.

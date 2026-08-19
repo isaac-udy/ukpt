@@ -11,10 +11,9 @@ description: >-
 
 # ukpt-verify
 
-Identifiers below use the template's UKPT identity (symbols like `UkptPreviewFrame`, packages like `feature.ukpt`). In projects created from the template these are renamed to the project's own identity — check `.ukpt/template.json` for the rename map.
+Identifiers here use the template's UKPT identity (`UkptPreviewFrame`, `feature.ukpt`); projects rename these — the map is in `.ukpt/template.json`.
 
-After making changes, compile every platform and run the relevant tests. For web/wasm
-bundle and runtime verification, use the `ukpt-verify-web` skill — it covers the four
+For web/wasm bundle and runtime verification, use the `ukpt-verify-web` skill — it covers the four
 wasm-only failure modes that compilation misses.
 
 ## Compiling
@@ -59,9 +58,9 @@ skill to bundle and serve the app in a browser.
 
 `./gradlew validateTemplate` checks the marker and migration ordering/sections, shared agent
 guidance, Codex skill metadata, Claude compatibility links, and that every file path, markdown link
-and architecture rule id a skill cites still resolves — skills describe code they don't contain, so
-moving code is what makes them rot. `./gradlew -p build-logic test` runs the validator and safe
-project-rename planner's unit tests.
+and architecture rule ID a skill cites still resolves. Skills cite code they don't contain, so
+moving code silently invalidates them — `validateTemplate` catches that.
+`./gradlew -p build-logic test` runs the validator and safe project-rename planner's unit tests.
 
 ### Architecture rules
 
@@ -95,9 +94,8 @@ Record then verify goldens, per client module:
 Goldens are **directory-grouped** by the preview's declaring package and function name, so a preview
 in `feature.ukpt.client.ui` lands at
 `src/androidHostTest/snapshots/images/feature/ukpt/client/ui/UkptScreenPreview.png`.
-`DirectorySnapshotHandler` (a custom Paparazzi `SnapshotHandler`) implements that layout; stock
-Paparazzi can only emit one long flat filename per golden. Two previews resolving to the same golden
-path fail fast at test-parameter creation rather than silently overwriting one another.
+`DirectorySnapshotHandler` implements this layout (stock Paparazzi only emits flat filenames). Two
+previews resolving to the same golden path fail fast at test-parameter creation.
 
 ### Unit tests
 
