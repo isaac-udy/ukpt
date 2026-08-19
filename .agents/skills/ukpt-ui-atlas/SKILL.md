@@ -24,7 +24,7 @@ Output lands in `build/ui-atlas/`:
 - `images/` — copied golden PNGs.
 
 Goldens must exist before generating. If screens are missing images, run `recordPaparazzi` for the
-relevant client modules first (see [UKPT.md](../../../UKPT.md) §Testing).
+relevant client modules first (see the `ukpt-verify` skill).
 
 ## Agent orientation via `manifest.json`
 

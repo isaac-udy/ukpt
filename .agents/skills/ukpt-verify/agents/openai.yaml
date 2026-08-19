@@ -1,0 +1,4 @@
+interface:
+  display_name: "Verify UKPT Build"
+  short_description: "Compile all platforms and run tests"
+  default_prompt: "Use $ukpt-verify to compile every platform and run the relevant tests."
