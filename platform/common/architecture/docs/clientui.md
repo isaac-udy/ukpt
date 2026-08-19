@@ -147,12 +147,10 @@ overlay, or a `@Preview` function.
 
 ### Snapshot tests
 
-Snapshots are preview-driven: `PreviewSnapshotTest` (in `src/androidHostTest/`) discovers
-every `@Preview` composable in the module from the compiled classes
-(ComposablePreviewScanner) and renders each one with
-[Paparazzi](https://github.com/cashapp/paparazzi), recording a golden image that catches
-visual regressions without a device or emulator. Adding a `@Preview` to a composable is all
-that is needed to snapshot it.
+Snapshots are preview-driven: `PreviewSnapshotTest` (in `src/androidHostTest/`) discovers the
+`@Preview` composables in the module and renders each one with
+[Paparazzi](https://github.com/cashapp/paparazzi), recording a golden image. Adding a
+`@Preview` to a composable causes a snapshot to be generated for that composable.
 
 * **Note:** Use the unified `@Preview` (`androidx.compose.ui.tooling.preview.Preview`)
   directly in common code; `compose.preview` must be a `commonMain` dependency. The same
@@ -164,15 +162,14 @@ that is needed to snapshot it.
   render on the harness canvas: wrap the preview's content in the design module's
   `UkptPreviewFrame`, which sizes the render to the project's primary viewport and pins the
   palette. The module's `PreviewSnapshotTest` renders in `RenderingMode.SHRINK`, cropping the
-  golden to that frame — the 960 dp canvas is a ceiling, not a frame. (An unframed
-  `fillMaxSize` preview still renders the full square canvas, unchanged.)
+  golden to that frame; an unframed `fillMaxSize` preview still renders the full 960 dp
+  canvas.
 * **Note:** For one-off snapshot tests that aren't preview-driven, `SnapshotRule`
   (`dev.isaacudy.udytils.snapshot.SnapshotRule`) provides `snapshot.screen { }` and
   `snapshot.component { }`.
 * **Note:** Record golden images after adding or changing a preview, then verify they match
   (goldens are committed under `src/androidHostTest/snapshots/images/`). Both tasks need
-  `--no-configuration-cache` (under the cache the R class is dropped from the test classpath —
-  see the configuration-cache migration):
+  `--no-configuration-cache` (the cache drops the R class from the test classpath):
 
   ```
   ./gradlew :feature:core:client:recordPaparazzi --no-configuration-cache
