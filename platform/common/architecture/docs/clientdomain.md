@@ -5,13 +5,14 @@
 
 # [Client Domain](../src/main/kotlin/architecture/rules/clientdomain/ClientDomain.kt)
 
-`feature.[name].client.domain` — the client's private logic. Single-function
-[domain interfaces](clientdomain.md#domain-interface) that [ViewModels](clientui.md#view-model) consume and
-[Repositories](clientdata.md#repository) provide, [UseCases](#use-case) composing several of them, and
-[domain models](#domain-model) that never leave the client. Around those,
-[extension functions](#extension-function) and [extension properties](#extension-property) add
-derived behaviour to a model, and a [constants](#constants) object holds the values this side's
-logic agrees on.
+`feature.[name].client.domain` — the client's internal domain layer. This package contains
+single-function [domain interfaces](clientdomain.md#domain-interface) that the client's
+[ViewModels](clientui.md#view-model) consume and [Repositories](clientdata.md#repository)
+provide, and [domain models](#domain-model) that never leave the client. The layer may include
+[UseCases](#use-case) when multiple domain interfaces need to be composed,
+[extension functions](#extension-function) and [extension properties](#extension-property) that
+add derived behaviour to a domain model, and [constants](#constants) objects that hold shared
+constant values.
 
 It is **pure**: it may import feature roots and nothing else. No Compose, no Ktor, no
 persistence, no service contracts. That purity is what makes it testable without a harness, and
@@ -20,8 +21,8 @@ what stops client abstractions leaking into the wire vocabulary.
 A domain interface may be **published to `:api`** when another feature's UI needs it; use cases
 and domain models stay in `:client`. Publishing is moving the file, not changing the package.
 
-This layer is the exact mirror of [`server.domain`](serverdomain.md) — same construct names,
-same rules, opposite side. The layer supplies the context, so the names never repeat it.
+This layer has the same construct names and rules as [`server.domain`](serverdomain.md). The
+layer supplies the context, so the names never repeat it.
 
 ##### Constructs
 

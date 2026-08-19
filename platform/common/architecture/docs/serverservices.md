@@ -27,7 +27,7 @@ See [Service Interface](#service-interface).
 
 Within a feature, the layer dependency rules are:
 
-* Each side's `domain` imports feature roots only. It is the middle of its hexagon.
+* The `client.domain` and `server.domain` layers import feature roots only.
 * `server.services` may depend on [`server.domain`](serverdomain.md) — and never on
   [`server.data`](serverdata.md) (`ServerServices.noDataImports`).
 * `server.data` may depend on `server.domain` — and never on `server.services`
@@ -39,17 +39,12 @@ Within a feature, the layer dependency rules are:
   [domain interfaces](clientdomain.md#domain-interface) for the UI to consume.
 * Nothing depends on `client.ui`.
 
-Reading these as a directed graph:
-
-* On the client: `client.ui → client.domain ← client.data`.
-* On the server: `server.services → server.domain ← server.data`.
-
-The two sides meet only at the contract this layer declares in `:api`. Cross-feature use of
-another feature's services goes through `:api` as well: `ServerServices.crossFeatureViaApi`,
+The client and server meet only at the contract this layer declares in `:api`. Cross-feature
+use of another feature's services goes through `:api` as well: `ServerServices.crossFeatureViaApi`,
 in the [rules](#rules) below.
 
-On the server, that contract is a door, not a composition mechanism: a class in this layer
-never injects another feature's Service contract
+A Service contract exists for clients to call, not for server features to compose: a class in
+this layer never injects another feature's Service contract
 (`ServerServices.noForeignServiceContractInjection`). One server feature reaches another
 through the capability the owner publishes — a
 [`server.domain` interface](serverdomain.md#domain-interface) whose file resides in `:api` —
@@ -63,10 +58,10 @@ ancestors up to the layer root — never a sibling.
 
 ## Persistence
 
-The server's persistence layer is [`server.data`](serverdata.md). Entry points reach it only
-through [`server.domain` interfaces](serverdomain.md#domain-interface), which a
-[Repository](serverdata.md#repository) provides (`ServerServices.noDataImports`); the Postgres
-conventions, codegen pipeline, and reactive flows are documented on that layer's page.
+Entry points reach persistence only through
+[`server.domain` interfaces](serverdomain.md#domain-interface) provided by
+[Repositories](serverdata.md#repository); the Postgres conventions and codegen pipeline are
+documented on [`server.data`](serverdata.md).
 
 ##### Constructs
 
