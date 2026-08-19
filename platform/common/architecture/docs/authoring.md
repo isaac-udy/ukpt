@@ -12,6 +12,22 @@ All rule documentation uses the same voice:
 
 - Be short and direct. Use simple words.
 - Use plain terms. No metaphor, analogy, or rhetorical framing.
+- State mechanisms, not benefits. Write what the system does, never what the reader gains or
+  avoids — "renders each `@Preview` with Paparazzi", not "no device or emulator needed".
+- The modal is the rule: "must", never "must always". No intensifiers ("genuinely", "precisely",
+  "the very thing") — the sentence means the same without them.
+- One name for one thing. Repeat the noun rather than switching to a pronoun or a synonym; two
+  names for one thing read as two things.
+- Name the concrete package, layer, or component — never a collective term for the axis you
+  think along ("side", "edge", "world", "tier").
+- Compression must not cost precision. A statement is wrong when its shorthand doesn't say what
+  is meant: "a 1:1 relationship" doesn't say what is paired; "exactly one ViewModel" does. Never
+  use a term the statement hasn't defined or shown by example.
+- Example identifiers are generic and consistent — one example vocabulary across the catalog
+  (`feature.shop`, `checkout`, `payments`), never a type from a real project. Show enough
+  package path for the example to carry its scope: `feature.shop.client.ui.checkout`, not
+  `ui.checkout`.
+- Say "layer" in dependency and role statements; say "package" for file placement.
 - Only include information that is critical to understanding the rule. Leave out anything the
   reader would discover by running the tests.
 - Make each section self-contained: provide the minimum context needed to understand it without
@@ -35,7 +51,8 @@ A RuleGroup names and defines a set of Constructs, Rules, and Guidance for one l
 architecture.
 
 - Declare it as `object <Name> : RuleGroup(inPackage = "…", constructs = listOf(…))`, annotated
-  with an object-level `@Describe` that explains what the layer is and why it exists.
+  with an object-level `@Describe` that states what the layer contains and where its boundary
+  sits.
 - `inPackage` scopes the group to a package pattern. A scoped group gains an exhaustiveness
   test: every top-level declaration in the package must match exactly one of the group's
   Constructs.
@@ -162,7 +179,9 @@ what was planned, to understand what a rule requires.
   untouched.
 - Notes are also where definitions, scope clarifications, and deliberate exclusions go — one
   sentence each where possible.
-- A RuleGroup or Construct's `@Describe` states what the group contains, nothing more.
+- A RuleGroup or Construct's `@Describe` states what the group contains and where its boundary
+  sits, with only the reasoning needed to understand the boundary; rule-specific reasoning
+  belongs on the rule that carries it.
 - Reasoning is welcome; it should justify the rule from the system as it stands, not from how the
   system got here.
 
