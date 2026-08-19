@@ -1,0 +1,4 @@
+interface:
+  display_name: "Run UKPT App"
+  short_description: "Run the app on any platform or start the dev server"
+  default_prompt: "Use $ukpt-run to launch the app on the target platform."

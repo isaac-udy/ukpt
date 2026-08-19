@@ -124,7 +124,7 @@ Projects tweak and extend their rule catalogs. Never treat the catalog as templa
 
 ## 7. Verify
 
-Run the six-target compile sweep (see UKPT.md §Compiling), then:
+Run the six-target compile sweep (see the `ukpt-verify` skill), then:
 
 ```
 ./gradlew :platform:common:architecture:verifyArchitecture

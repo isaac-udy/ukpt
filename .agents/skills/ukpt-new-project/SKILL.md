@@ -110,7 +110,7 @@ project's names. Keep it accurate if the project is ever re-branded.
 
 ## 5. Verify
 
-Run the full verification before the first commit — the six-target compile sweep (see UKPT.md §Compiling)
+Run the full verification before the first commit — the six-target compile sweep (see the `ukpt-verify` skill)
 first, then the project-specific checks:
 
 ```

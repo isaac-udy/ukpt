@@ -54,7 +54,7 @@ whatever the project was renamed to downstream — read `platform/client/design`
      `<name>ServerDependencies` to its `modules(...)` list once the feature has something to bind.
      Teaching that host to *serve* urpc is the `ukpt-urpc-service` skill's job — do it when the
      feature gets its first service, not at scaffold time.
-6. **Verify** — the six-target compile sweep (see UKPT.md §Compiling), record + verify Paparazzi for the new client
+6. **Verify** — the six-target compile sweep (see the `ukpt-verify` skill), record + verify Paparazzi for the new client
    module, and `./gradlew :platform:common:architecture:verifyArchitecture`. If the feature has web UI, run
    the `ukpt-verify-web` skill — a forgotten `viewModelOf` only crashes at runtime on wasm, invisible to compile.
 

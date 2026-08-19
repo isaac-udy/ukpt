@@ -42,7 +42,7 @@ The project is affected if it still has an `:app:client:shared` module — check
 
 5. Search the project for any remaining `:app:client:shared` / `app/client/shared` /
    `projects.app.client.shared` references — comments, docs, CI, scripts — and update them. The
-   template's own compile command (in `UKPT.md`) now targets `:app:client:common:compileKotlinIosArm64`
+   compile command (in the `ukpt-verify` skill) now targets `:app:client:common:compileKotlinIosArm64`
    and `:app:client:common:compileKotlinIosSimulatorArm64`.
 
 ## Verification

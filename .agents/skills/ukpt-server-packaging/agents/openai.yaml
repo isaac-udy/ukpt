@@ -1,0 +1,4 @@
+interface:
+  display_name: "UKPT Server Packaging"
+  short_description: "Build and verify the server fat jar"
+  default_prompt: "Use $ukpt-server-packaging to build and verify the server fat jar."
