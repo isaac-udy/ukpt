@@ -108,17 +108,18 @@ server binding, and the wire descriptors from the annotated interface.
 
 ##### Rules
 
-* A Service must always be implemented as urpc service functions in the appropriate server module, never as a client-only local service
+* Every `@Urpc` Service contract must be implemented in the feature's `:server` module; a Service interface must not be used as a client-only abstraction — client-only contracts are domain interfaces in `client.domain`
     * **Verification:** not automatically verifiable; enforced by review.
 * A Service function must be a plain `suspend fun f(req): Res`, `fun f(req): Flow<Res>`, or `fun f(reqs: Flow<Req>): Flow<Res>`, taking 0 or 1 parameter
     * **Note:** The test enforces the parameter count; the suspend/Flow shape is validated by the urpc KSP processor at compile time.
 * A Service function's `Request`/`Response` types must be nested `@Serializable` types grouped under a per-function `object` namespace
+    * **Why:** Nesting keeps each function's wire types beside the function and avoids package-level `Request`/`Response` name collisions.
     * **Verification:** not automatically verifiable; enforced by review.
 * A Service interface must live in `feature.[name].server.services` of the `:api` module
 * A Service function must propagate errors via thrown exceptions; the return type only represents a successful result
-    * **Why:** `@Throws` on a `suspend` function must include `CancellationException` (or a superclass such as `Exception`); without it, kotlinc rejects the function on iOS targets.
+    * **Why:** urpc uses thrown exceptions as the single failure channel: response types model success only, and typed failures cross the wire as `@Serializable` exceptions.
     * **Note:** Known service exceptions should be their own `@Serializable` type (ideally a `PresentableException`).
-    * **Note:** `@Throws` on `suspend` functions must include `kotlin.coroutines.cancellation.CancellationException`.
+    * **Note:** `@Throws` on a `suspend` function must include `kotlin.coroutines.cancellation.CancellationException` (or a superclass such as `Exception`); without it, kotlinc rejects the function on iOS targets.
 
 ##### Examples
 

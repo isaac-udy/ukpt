@@ -20,7 +20,11 @@ object ServiceInterface : Construct<ServerServices>(
         predicate("resides in `feature.[name].server.services` itself, not in a sub-package") { it.isInServicesRoot() },
     ),
 ) {
-    @Describe("A Service must always be implemented as urpc service functions in the appropriate server module, never as a client-only local service")
+    @Describe(
+        "Every `@Urpc` Service contract must be implemented in the feature's `:server` module; a " +
+            "Service interface must not be used as a client-only abstraction — client-only " +
+            "contracts are domain interfaces in `client.domain`"
+    )
     val noClientOnlyServices by rule { unverifiable() }
     @Describe("A Service function must be a plain `suspend fun f(req): Res`, `fun f(req): Flow<Res>`, or `fun f(reqs: Flow<Req>): Flow<Res>`, taking 0 or 1 parameter")
     val plainFunctionShapes by rule {
@@ -34,7 +38,15 @@ object ServiceInterface : Construct<ServerServices>(
     }
 
     @Describe("A Service function's `Request`/`Response` types must be nested `@Serializable` types grouped under a per-function `object` namespace")
-    val nestedRequestResponseTypes by rule { unverifiable() }
+    val nestedRequestResponseTypes by rule {
+        rationale(
+            """
+            Nesting keeps each function's wire types beside the function and avoids package-level
+            `Request`/`Response` name collisions.
+            """.trimIndent(),
+        )
+        unverifiable()
+    }
 
     @Describe("A Service interface must live in `feature.[name].server.services` of the `:api` module")
     val contractLivesInApi by rule {
@@ -52,12 +64,12 @@ object ServiceInterface : Construct<ServerServices>(
     val errorsViaExceptions by rule {
         rationale(
             """
-            `@Throws` on a `suspend` function must include `CancellationException` (or a superclass
-            such as `Exception`); without it, kotlinc rejects the function on iOS targets.
+            urpc uses thrown exceptions as the single failure channel: response types model
+            success only, and typed failures cross the wire as `@Serializable` exceptions.
             """.trimIndent(),
         )
         note("Known service exceptions should be their own `@Serializable` type (ideally a `PresentableException`).")
-        note("`@Throws` on `suspend` functions must include `kotlin.coroutines.cancellation.CancellationException`.")
+        note("`@Throws` on a `suspend` function must include `kotlin.coroutines.cancellation.CancellationException` (or a superclass such as `Exception`); without it, kotlinc rejects the function on iOS targets.")
         constrain { decl, _ ->
             val iface = decl as? KoInterfaceDeclaration ?: return@constrain emptyList()
             iface.functions()

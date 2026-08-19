@@ -21,6 +21,12 @@ abstract class UseCaseRules<G : RuleGroup> : Construct<G>(
 ) {
     @Describe("A UseCase must not contain mutable state: all properties must be `val`")
     val noMutableState by rule {
+        rationale(
+            """
+            A UseCase instance is shared by its consumers and may be invoked concurrently; a `var`
+            property lets one invocation change another's behaviour or internal state.
+            """.trimIndent(),
+        )
         constrain { decl, _ ->
             val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
             cls.properties().filter { it.isMutable() }.map { Violation(it, "UseCase has a mutable (`var`) property — all UseCase properties must be `val`") }
@@ -32,8 +38,9 @@ abstract class UseCaseRules<G : RuleGroup> : Construct<G>(
         rationale(
             """
             The only abstract member of a domain interface is the primary `operator fun invoke`;
-            every other function is a default. Overriding a default in an implementation defeats
-            the purpose of the interface helpers.
+            every other function is a default. Default functions are contract behaviour built on
+            `invoke`; overriding one makes the same helper behave differently depending on which
+            implementation is injected.
             """.trimIndent(),
         )
         constrain { decl, _ ->
