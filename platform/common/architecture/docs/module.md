@@ -16,7 +16,7 @@ Kotlin source. Build-file exemptions use the `// architecture-exception:` commen
 * **Purpose**: Final executable entry points and dependency injection (DI) wiring.
 * **Structure**: May contain sub-groups (e.g., `:app:admin`, `:app:customer`) if multiple applications are built from the same codebase.
 * **Child Modules**: Each app contains a `:client` (Mobile/Desktop/Web) and/or a `:server` (Ktor executable).
-    * **Client structure (AGP 9.0)**: Under AGP 9.0 a single Kotlin Multiplatform module can no longer also be a `com.android.application`, so the client is itself a group: a common KMP library `:app:client:common` (the `com.android.kotlin.multiplatform.library` plugin) holding the shared UI, navigation, DI wiring, and the iOS framework entry point (`iosMain`), plus thin per-platform application modules `:app:client:android` (`com.android.application`), `:app:client:desktop` (Compose Desktop), and `:app:client:web` (wasmJs). The per-platform modules contain only their entry point + platform packaging and depend on `:app:client:common`.
+    * **Client structure (AGP 9.0)**: AGP 9.0 does not allow one module to be both a KMP library and a `com.android.application`, so `:app:client` is a group: `:app:client:common` is a KMP library holding the shared UI, navigation, DI wiring, and the iOS framework entry point; `:app:client:android`, `:app:client:desktop`, and `:app:client:web` are thin application modules holding only an entry point and platform packaging, each depending on `:app:client:common`.
 * **Constraints**: Must not contain business logic. Limited to infrastructure configuration and DI module aggregation.
 
 ## `:feature` (Vertical slices of functionality)
@@ -27,10 +27,7 @@ Kotlin source. Build-file exemptions use the `// architecture-exception:` commen
     * **`:client`**: Optional. Contains UI and client-side logic.
     * **`:server`**: Optional. Contains server-side implementation.
 * **Notes**:
-    * Small projects may start with a single `:feature:core` containing all feature/domain code. As complexity increases, logic is migrated into specific `:feature:name` modules.
-    * When starting with a single `:feature:core` feature module, it is a good idea to "preempt" the migration of `:feature:core` into individual `:feature:[name]` modules by using `feature.[name]` for package names within `:feature:core` (instead of `feature.core`)
-      * The named feature packages within `:feature:core` must only depend on other named packages via the api module (enforced by `ModuleRules.crossFeatureCodeViaApi`), which keeps every feature liftable into its own module.
-      * Example: If `:feature:core` contains `feature.auth` and `feature.invoices`, code in `feature.auth` may only depend on `feature.invoices` code which is in the `:feature:core:api` module
+    * Small projects may start with all feature code in `:feature:core`. Code inside `:feature:core` still uses per-feature packages (`feature.auth`, `feature.invoices`) rather than `feature.core`, and one feature's packages may depend on another's only through declarations in the `:api` module (enforced by `ModuleRules.crossFeatureCodeViaApi`). This keeps each feature liftable into its own `:feature:[name]` module later.
     * `:client` and `:server` modules are optional, but at least one of the two should exist for every feature.
 
 ## `:platform` (Infrastructure)
@@ -39,7 +36,7 @@ Kotlin source. Build-file exemptions use the `// architecture-exception:` commen
 * **Sub-Groups**:
     * **`:common`**: Code shared by both client and server (e.g., utilities).
     * **`:client`**: Client-only infrastructure (e.g., Design System, local DB drivers).
-    * **`:server`**: Server-only infrastructure (e.g., Ktor plugins, and `:platform:server:postgres` — which owns the Flyway SQL migrations + `schema.sql` and applies the `dev.isaacudy.udytils.postgres` codegen plugin; the DB runtime itself lives in that udytils library).
+    * **`:server`**: Server-only infrastructure (e.g., Ktor plugins, and `:platform:server:postgres`, which owns the Flyway migrations and applies the Postgres codegen — see [server data](serverdata.md)).
 
 ##### Rules
 

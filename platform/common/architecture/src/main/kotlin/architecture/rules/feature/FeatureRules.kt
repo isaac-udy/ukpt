@@ -19,43 +19,41 @@ import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
  * double-classify every ServiceImpl and break the global layer-membership check.
  */
 @Describe("""
-    A feature is two hexagons around pure cores, joined at the RPC contract and speaking one shared
-    vocabulary:
+    A feature has a client implementation and a server implementation that communicate only through
+    the RPC contract, and share one vocabulary:
 
     ```
     client.ui → client.domain ← client.data → [ contract ] ← server.services → server.domain ← server.data
     ```
 
-    Each side's `domain` sits between its consumers and its adapters and knows neither, so the two
-    sides mirror each other construct for construct: a [UseCase](clientdomain.md#use-case) over
+    The client and server have the same layer structure: a [UseCase](clientdomain.md#use-case) over
     [domain interfaces](clientdomain.md#domain-interface) answered by a
-    [Repository](clientdata.md#repository) on the client is the same shape as a
-    [UseCase](serverdomain.md#use-case) over [interfaces](serverdomain.md#domain-interface) answered
-    by a [Repository](serverdata.md#repository) on the server. Neither side imports the other — the
-    network is the only connection between them, and `:api` is the only channel between features.
+    [Repository](clientdata.md#repository) on the client has the same shape as a
+    [UseCase](serverdomain.md#use-case) over [domain interfaces](serverdomain.md#domain-interface)
+    answered by a [Repository](serverdata.md#repository) on the server. Neither imports the other:
+    the network is the only connection between client and server, and `:api` is the only channel
+    between features.
 
-    The feature **root** — `feature.[name]`, with no side segment — sits at the centre of that
-    picture: the vocabulary both sides speak and neither side owns. Which of its two faces applies is
-    decided by the Gradle module it is compiled into. In `:api` it is the feature's language; in
-    `:client` and `:server` the same package name holds that side's wiring.
+    The feature **root** is `feature.[name]`, with no `client` or `server` segment. The Gradle
+    module it is compiled into decides what it holds: in `:api` it is the feature's shared
+    vocabulary; in `:client` and `:server` the same package name holds DI wiring.
 
-    **In `:api`, the root is the language of the application.** It holds the feature's domain in its
-    purest form: the business objects and concepts both client and server speak, and the highest
-    level of abstraction available for saying what the product does. When you describe the product,
-    these are the nouns. It is common Kotlin that compiles for every target.
+    **In `:api`, the root holds the shared vocabulary**: the domain models, exceptions, and
+    constants that both the client and the server use. It is common Kotlin that compiles for every
+    target.
 
-    The root is also the blast-radius boundary, readable straight off the package path. A
-    [shared domain model](#shared-domain-model) like `Campaign` is named by both sides, so renaming
-    a field is a compatibility event with cross-feature reach. A
-    [domain model](clientdomain.md#domain-model) — the side-private counterpart, on
-    [client](clientdomain.md#domain-model) and [server](serverdomain.md#domain-model) alike — is
-    observable only within its side and refactors freely. Which of the two a type is, its package
-    says. The side `domain` layers build on the root rather than beside it: the shared models are the
-    purest vocabulary the feature has, and a side's own models compose them.
+    The root also shows, straight off the package path, how far a change reaches. A
+    [shared domain model](#shared-domain-model) is used by the client, the server, and potentially
+    other features, so renaming a field is a compatibility event. A
+    [domain model](clientdomain.md#domain-model) in
+    [`client.domain`](clientdomain.md#domain-model) or
+    [`server.domain`](serverdomain.md#domain-model) is used only within the client or server that
+    defines it, and refactors freely. The `domain` layers build on the root: their models compose
+    the shared ones.
 
     > **A change here is a compatibility event.** These types are serialized across the network, so
-    > renaming a field, changing a type, or moving a sealed variant breaks compatibility with
-    > cross-feature blast radius. A PR touching a feature root should be reviewed as one.
+    > renaming a field, changing a type, or moving a sealed variant breaks compatibility across
+    > features. A PR touching a feature root should be reviewed as one.
 
     The root holds domain objects and validation only: no interfaces with behaviour, no use cases, no
     logic beyond validating the values it carries. Anything with behaviour belongs on a side —
