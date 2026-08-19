@@ -347,7 +347,7 @@ if (state.showDeleteDialog && state.itemToDelete != null) {
 }
 ```
 
-**Good:** The dialog is its own destination — the same screen conventions apply, so it has its own ViewModel that performs navigation actions. A confirmation dialog uses plain `NavigationKey` with `complete()`/`requestClose()` — the opener's result channel fires on completion, and dismissal is a no-op. Use `NavigationKey.WithResult<R>` when the dialog returns data that complete/close alone cannot represent.
+**Good:** The dialog is its own destination with its own ViewModel, following the same screen conventions. A confirmation dialog uses plain `NavigationKey`: `complete()` fires the opener's result channel and closes, while `requestClose()` routes through any registered `onCloseRequested` callbacks — the same path as the system back button — and by default just closes. Use `NavigationKey.WithResult<R>` when the dialog returns data.
 
 ```kotlin
 // feature.items.client.ui.ConfirmDeleteDestination.kt

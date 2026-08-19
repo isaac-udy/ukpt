@@ -109,7 +109,7 @@ process, and belongs outside the block entirely.
 ##### Guidance
 
 * A Domain Interface may define additional default functions that call the primary function
-* When several mutations act on one aggregate and share a return shape, prefer a single `Update[Noun]` interface over one interface per mutation: a nested `sealed interface Update` carries the variants, the abstract `invoke(id, update)` is the single entry point, and default functions (`title(...)`, `addMember(...)`) keep call sites flat. Reads stay separate — their return types differ by nature. An interface published through `:api` stays single-purpose: publish exactly the capability being shared, never a whole mutation family.
+* When several mutations act on one domain model and share a return type, prefer a single `Update[Noun]` interface over one interface per mutation: a nested `sealed interface Update` carries the variants, the abstract `invoke(id, update)` is the single entry point, and default functions (`title(...)`, `addMember(...)`) keep call sites flat. Reads stay separate interfaces — their return types differ. When publishing through `:api`, publish exactly the capability another feature needs, never the whole mutation family.
 
 ##### Examples
 
