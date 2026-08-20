@@ -27,20 +27,19 @@ import architecture.rules.serverservices.ServerServices
     assembled by thin application shells (`:app`). Module-graph rules keep the slices independent.
 
     A declaration's **package** says what it is; the Gradle **module** it lives in says who may see
-    it. A feature is rooted at `feature.[name]`, which holds its shared language — the domain models
-    both sides speak. One level down is a side, `client` or `server`; two levels down is a layer
-    within that side. The deeper the package, the more private the code.
+    it. A feature is rooted at `feature.[name]`, which holds its shared vocabulary — the domain
+    models that both the client and server use. One level down is `client` or `server`; two levels
+    down is a layer within that. The deeper the package, the more private the code.
 
     ```
     client.ui → client.domain ← client.data → [ contract ] ← server.services → server.domain ← server.data
     ```
 
-    Two hexagons around pure cores, joined at the RPC contract. Each side's `domain` sits between
-    its consumers and its adapters and knows neither, so `client.data` and `server.services` are the
-    mirror pair at the network edge, and a `Repository` provides the domain interfaces on both sides
-    — reading through a Service on the client and a `StorageClass` over a table on the server. The
-    network is the only connection between sides, and `client.data` is the only client package that
-    may import its contracts.
+    The domain layer is the core of the application: it defines the interfaces and models that the
+    other layers consume or implement. `client.ui` and `server.services` consume them; `client.data`
+    and `server.data` define `Repository` classes that implement the interfaces and produce the
+    models. The client and server communicate only through the RPC contract, and `client.data` is
+    the only client package that may import the RPC contract.
 
     The rules govern the feature modules. The composite builds (`embedded-enro`,
     `embedded-udytils`, and `build-logic`), test sources, and this rule module itself are not

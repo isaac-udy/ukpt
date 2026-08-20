@@ -42,10 +42,10 @@ The layer rules below apply across the whole `feature.[name].client.ui` package.
 * The `client.ui` layer must not use `koinInject`: all dependencies are injected through ViewModels
     * **Why:** Resolving from Koin inside a Composable bypasses the ViewModel as the single dependency surface, makes the screen untestable in snapshot tests (there is no Koin runtime), and re-resolves on every recomposition.
 * A `client.ui` package imports this layer only through its own package, its direct child subsystems, and its ancestors up to the layer root
-    * **Note:** A `client.ui` subsystem is a screen family the rest of the UI reaches through one entry point — an onboarding flow's steps, a sign-in provider's screens. It needs no `client.domain` twin: the mirror restricts what a subsystem may import, not what must exist.
+    * **Note:** A `client.ui` subsystem is a screen family the rest of the UI reaches through one entry point — an onboarding flow's steps, a sign-in provider's screens. It needs no matching `client.domain` subsystem: the rule restricts what a subsystem may import, not what must exist.
     * **Enforced by:** `ProjectRules.subsystemVisibility`
-* A `client.ui` subsystem package imports `client.domain` only through its mirror subsystem, that subsystem's direct children, and their ancestors
-    * **Note:** A file at the layer root is unconstrained — it sees the whole of its side's domain, as it always has. Only a file inside a subsystem package is bound to the mirror.
+* A `client.ui` subsystem package imports `client.domain` only through the matching `client.domain` subsystem package, that package's direct children, and their ancestors
+    * **Note:** A file at the layer root is unconstrained — it sees the whole of `client.domain`. Only a file inside a subsystem package is bound to the matching-subsystem rule.
     * **Enforced by:** `ProjectRules.subsystemMirrorsDomain`
 
 ##### Guidance
@@ -84,7 +84,7 @@ the destination declaration site.
 ##### Rules
 
 * A Screen function must be annotated with `@Composable`
-* A Screen function must have a 1:1 relationship with a ViewModel and ViewModel State
+* A Screen function must be associated with exactly one ViewModel (and that ViewModel's associated ViewModel State). Rendering decisions must be derived from the ViewModel State, except purely visual, transient state — scroll position, animation, focus — which may stay in the composable
     * **Verification:** not automatically verifiable; enforced by review.
 * A Screen function must observe the ViewModel's `state` property and use it to drive the UI
     * **Verification:** not automatically verifiable; enforced by review.
@@ -98,7 +98,7 @@ the destination declaration site.
 
 ##### Guidance
 
-* A Screen function should delegate all user interaction handling to the ViewModel
+* A Screen function should delegate user interactions that affect ViewModel State or navigation to the ViewModel; purely visual, transient interaction handling — scroll position, animation, focus — may stay in the composable
 * A dialog/overlay Screen that needs a ViewModel should call `viewModel()` inside the `navigationDestination` block
 
 ##### Examples
@@ -147,12 +147,10 @@ overlay, or a `@Preview` function.
 
 ### Snapshot tests
 
-Snapshots are preview-driven: `PreviewSnapshotTest` (in `src/androidHostTest/`) discovers
-every `@Preview` composable in the module from the compiled classes
-(ComposablePreviewScanner) and renders each one with
-[Paparazzi](https://github.com/cashapp/paparazzi), recording a golden image that catches
-visual regressions without a device or emulator. Adding a `@Preview` to a composable is all
-that is needed to snapshot it.
+Snapshots are preview-driven: `PreviewSnapshotTest` (in `src/androidHostTest/`) discovers the
+`@Preview` composables in the module and renders each one with
+[Paparazzi](https://github.com/cashapp/paparazzi), recording a golden image. Adding a
+`@Preview` to a composable causes a snapshot to be generated for that composable.
 
 * **Note:** Use the unified `@Preview` (`androidx.compose.ui.tooling.preview.Preview`)
   directly in common code; `compose.preview` must be a `commonMain` dependency. The same
@@ -164,15 +162,14 @@ that is needed to snapshot it.
   render on the harness canvas: wrap the preview's content in the design module's
   `UkptPreviewFrame`, which sizes the render to the project's primary viewport and pins the
   palette. The module's `PreviewSnapshotTest` renders in `RenderingMode.SHRINK`, cropping the
-  golden to that frame — the 960 dp canvas is a ceiling, not a frame. (An unframed
-  `fillMaxSize` preview still renders the full square canvas, unchanged.)
+  golden to that frame; an unframed `fillMaxSize` preview still renders the full 960 dp
+  canvas.
 * **Note:** For one-off snapshot tests that aren't preview-driven, `SnapshotRule`
   (`dev.isaacudy.udytils.snapshot.SnapshotRule`) provides `snapshot.screen { }` and
   `snapshot.component { }`.
 * **Note:** Record golden images after adding or changing a preview, then verify they match
   (goldens are committed under `src/androidHostTest/snapshots/images/`). Both tasks need
-  `--no-configuration-cache` (under the cache the R class is dropped from the test classpath —
-  see the configuration-cache migration):
+  `--no-configuration-cache` (the cache drops the R class from the test classpath):
 
   ```
   ./gradlew :feature:core:client:recordPaparazzi --no-configuration-cache
@@ -260,7 +257,7 @@ to load data and perform side effects based on user actions.
 * A ViewModel must not declare `private var` properties
     * **Why:** A mutable private field is a side channel around `state` (the source of truth) and is lost on process death — for example a `pendingX` captured across a navigation round-trip. Carry per-open context on the navigation itself (key fields, or `instance.metadata` via a `NavigationKey.MetadataKey`) so the result handler recovers it process-death-safe; put genuine UI state in `state`.
 * A ViewModel must use `JobManager` to manage coroutines, never a `var job: Job?` reference
-    * **Why:** Manual `var job: Job?` tracking is error-prone: the previous job leaks if a new one starts before the old one completes, and lifecycle cancellation is easy to forget. `dev.isaacudy.udytils.coroutines.JobManager` handles cancel-then-replace and ties everything to `viewModelScope`.
+    * **Why:** `dev.isaacudy.udytils.coroutines.JobManager` provides cancel-then-replace semantics and ties every job to `viewModelScope`; manual `var job: Job?` tracking leaks the previous job and skips lifecycle cancellation.
 
 ##### Guidance
 
@@ -350,7 +347,7 @@ if (state.showDeleteDialog && state.itemToDelete != null) {
 }
 ```
 
-**Good:** The dialog is its own destination — the same screen conventions apply, so it has its own ViewModel that performs navigation actions. A confirmation dialog uses plain `NavigationKey` with `complete()`/`requestClose()` — the opener's result channel fires on completion, and dismissal is a no-op. Use `NavigationKey.WithResult<R>` when the dialog returns data that complete/close alone cannot represent.
+**Good:** The dialog is its own destination with its own ViewModel, following the same screen conventions. A confirmation dialog uses plain `NavigationKey`: `complete()` fires the opener's result channel and closes, while `requestClose()` routes through any registered `onCloseRequested` callbacks — the same path as the system back button — and by default just closes. Use `NavigationKey.WithResult<R>` when the dialog returns data.
 
 ```kotlin
 // feature.items.client.ui.ConfirmDeleteDestination.kt

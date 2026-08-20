@@ -4,35 +4,32 @@ import architecture.rules.shared.DomainGroupRules
 import dev.isaacudy.udytils.architecture.*
 
 @Describe("""
-    `feature.[name].server.domain` — the server's private logic, and the layer that makes the
-    mirrored hexagon work.
+    `feature.[name].server.domain` — the server's internal domain layer. This package contains
+    single-function [domain interfaces](#domain-interface) that the server's
+    [Services](serverservices.md#service-interface) consume and
+    [Repositories](serverdata.md#repository) provide, and [domain models](#domain-model) that never
+    leave the server. The layer may include [UseCases](#use-case) when multiple domain interfaces
+    need to be composed, [extension functions](#extension-function) and
+    [extension properties](#extension-property) that add derived behaviour to a domain model, and
+    [constants](#constants) objects that hold shared constant values.
 
-    ```
-    client.ui → client.domain ← client.data → [ contract ] ← server.services → server.domain ← server.data
-    ```
+    `server.services` and `server.data` never import each other: services consume the domain's
+    interfaces, Repositories implement them by reading through the
+    [StorageClasses](serverdata.md#storage-class) that own the tables, and an
+    [IntegrationClient](serverdata.md#integration-client) implements one when the data comes from
+    outside the process rather than a table.
 
-    `server.services` and `server.data` **never see each other**. Domain sits between them and knows
-    neither: services consume [domain interfaces](#domain-interface), and
-    [Repositories](serverdata.md#repository) provide them, exposing each one as a `public val` and
-    reading through the [StorageClasses](serverdata.md#storage-class) that own the tables. A
-    [Repository](clientdata.md#repository) does the same job on the client — one pattern, learned
-    once, appearing on both sides. An [IntegrationClient](serverdata.md#integration-client) provides
-    a domain interface the same way when what satisfies it is outside the process rather than in a
-    table.
+    A domain interface may be **published to `:api`** when another feature needs it; use cases and
+    domain models stay in `:server`. Publishing is moving the file, not changing the package. There
+    is no separate "operation" or "query" concept — whether a contract crosses a feature boundary
+    is decided by which module its file sits in.
 
-    A domain interface published to `:api` is what one feature offers another. There is no separate
-    "operation" or "query" concept: whether a contract is called across a feature boundary is a
-    *publication* question, answered by which module the file sits in, as everywhere else.
+    Because this layer imports feature roots only, a domain interface cannot touch a table and
+    cannot inject request-scoped authentication. A storage function reached from `services` is
+    expressed here as a domain interface, or folded with its siblings into a [UseCase](#use-case)
+    when the logic spans several.
 
-    Around the contracts sit the layer's supporting shapes: [domain models](#domain-model),
-    [extension functions](#extension-function) and [extension properties](#extension-property) that
-    add derived behaviour to one, and a [constants](#constants) object for the values this side's
-    logic agrees on.
-
-    Two properties are structural rather than rule-enforced: a domain interface **cannot** touch a
-    table and **cannot** inject request-scoped authentication, because this layer imports feature
-    roots only. A storage function reached from `services` is expressed here as a domain interface,
-    or folded with its siblings into a [UseCase](#use-case) when the logic spans several.
+    This layer has the same construct names and rules as [`client.domain`](clientdomain.md).
 """)
 object ServerDomain : DomainGroupRules(
     side = "server",
@@ -53,10 +50,10 @@ object ServerDomain : DomainGroupRules(
     val pure by rule {
         rationale(
             """
-            Domain is the middle of the hexagon and knows neither edge. Importing `server.data` would
-            couple logic to persistence; importing `server.services` would drag the wire contract and
-            request scope into it, and would let a domain interface reach the very thing that is
-            supposed to consume it.
+            The domain layer imports neither of its neighbouring layers. Importing `server.data`
+            would couple logic to persistence; importing `server.services` would drag the wire
+            contract and request scope into it, and would let a domain interface reach the layer
+            that is supposed to consume it.
             """.trimIndent(),
         )
         note("This is what makes `noTables` and `noAuth` unnecessary as separate rules — neither is reachable from here.")

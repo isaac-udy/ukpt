@@ -86,7 +86,12 @@ object Screen : Construct<ClientUi>(
         }
     }
 
-    @Describe("A Screen function must have a 1:1 relationship with a ViewModel and ViewModel State")
+    @Describe(
+        "A Screen function must be associated with exactly one ViewModel (and that ViewModel's " +
+            "associated ViewModel State). Rendering decisions must be derived from the ViewModel " +
+            "State, except purely visual, transient state — scroll position, animation, focus — " +
+            "which may stay in the composable"
+    )
     val viewModelStateRelationship by rule { unverifiable() }
     @Describe("A Screen function must observe the ViewModel's `state` property and use it to drive the UI")
     val observesState by rule {
@@ -99,7 +104,11 @@ object Screen : Construct<ClientUi>(
             }
         }
     }
-    @Describe("A Screen function should delegate all user interaction handling to the ViewModel")
+    @Describe(
+        "A Screen function should delegate user interactions that affect ViewModel State or " +
+            "navigation to the ViewModel; purely visual, transient interaction handling — scroll " +
+            "position, animation, focus — may stay in the composable"
+    )
     val delegatesInteraction by guidance
     @Describe("A dialog/overlay Screen must use the `navigationDestination` DSL with `metadata = { directOverlay() }`")
     val overlayViaDsl by rule { unverifiable() }

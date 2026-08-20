@@ -6,7 +6,7 @@
 # [Server Services](../src/main/kotlin/architecture/rules/serverservices/ServerServices.kt)
 
 `feature.[name].server.services` defines the contract between client and server, and the
-server's entry points. The contract lives in `:api`, so both sides see it; the implementation
+server's entry points. The contract lives in `:api`, so both the client and server see it; the implementation
 lives in `:server` under the same package name.
 
 Everything else in the layer is an **entry point** — a class something outside the process
@@ -27,7 +27,7 @@ See [Service Interface](#service-interface).
 
 Within a feature, the layer dependency rules are:
 
-* Each side's `domain` imports feature roots only. It is the middle of its hexagon.
+* The `client.domain` and `server.domain` layers import feature roots only.
 * `server.services` may depend on [`server.domain`](serverdomain.md) — and never on
   [`server.data`](serverdata.md) (`ServerServices.noDataImports`).
 * `server.data` may depend on `server.domain` — and never on `server.services`
@@ -39,17 +39,12 @@ Within a feature, the layer dependency rules are:
   [domain interfaces](clientdomain.md#domain-interface) for the UI to consume.
 * Nothing depends on `client.ui`.
 
-Reading these as a directed graph:
-
-* On the client: `client.ui → client.domain ← client.data`.
-* On the server: `server.services → server.domain ← server.data`.
-
-The two sides meet only at the contract this layer declares in `:api`. Cross-feature use of
-another feature's services goes through `:api` as well: `ServerServices.crossFeatureViaApi`,
+The client and server meet only at the contract this layer declares in `:api`. Cross-feature
+use of another feature's services goes through `:api` as well: `ServerServices.crossFeatureViaApi`,
 in the [rules](#rules) below.
 
-On the server, that contract is a door, not a composition mechanism: a class in this layer
-never injects another feature's Service contract
+A Service contract exists for clients to call, not for server features to compose: a class in
+this layer never injects another feature's Service contract
 (`ServerServices.noForeignServiceContractInjection`). One server feature reaches another
 through the capability the owner publishes — a
 [`server.domain` interface](serverdomain.md#domain-interface) whose file resides in `:api` —
@@ -63,10 +58,10 @@ ancestors up to the layer root — never a sibling.
 
 ## Persistence
 
-The server's persistence layer is [`server.data`](serverdata.md). Entry points reach it only
-through [`server.domain` interfaces](serverdomain.md#domain-interface), which a
-[Repository](serverdata.md#repository) provides (`ServerServices.noDataImports`); the Postgres
-conventions, codegen pipeline, and reactive flows are documented on that layer's page.
+Entry points reach persistence only through
+[`server.domain` interfaces](serverdomain.md#domain-interface) provided by
+[Repositories](serverdata.md#repository); the Postgres conventions and codegen pipeline are
+documented on [`server.data`](serverdata.md).
 
 ##### Constructs
 
@@ -76,10 +71,10 @@ conventions, codegen pipeline, and reactive flows are documented on that layer's
 ##### Rules
 
 * The `server.services` layer must never import `server.data`
-    * **Why:** This is the hexagon. `server.domain` sits between services and persistence and knows neither: services consume domain interfaces, and Repositories provide them. A ServiceImpl that reaches a table directly has skipped the layer where the contract should have been stated, so nothing else can reuse that access, and nothing names what the service actually needed.  `ServerData.noServiceImports` is the other half. Together they make storage a thing that *satisfies* a stated need rather than a thing services reach through.
+    * **Why:** `server.domain` sits between services and persistence and imports neither: services consume domain interfaces, and Repositories provide them. A ServiceImpl that reaches a table directly has skipped the layer where the contract should have been stated, so nothing else can reuse that access, and nothing names what the service actually needed.  `ServerData.noServiceImports` is the other half. Together they make storage a thing that *satisfies* a stated need rather than a thing services reach through.
     * **Note:** Tested over imports of persistence, wherever the imported file sits: reaching a table is the same act whatever the package holding it is called.
 * The `server.services` layer must not import client code
-    * **Why:** The two sides meet at the RPC contract and nowhere else.
+    * **Why:** The client and server meet at the RPC contract and nowhere else.
 * The `services` layer may depend on another feature's `services` only via that feature's `:api` module
     * **Enforced by:** `ModuleRules.clientApiOnly`, `ModuleRules.serverApiOnly`, `ModuleRules.crossFeatureCodeViaApi`
 * A class in `server.services` must not inject another feature's Service contract
@@ -88,8 +83,8 @@ conventions, codegen pipeline, and reactive flows are documented on that layer's
     * **Note:** A feature's own contract is unaffected: a class in this layer may wrap or delegate to its own feature's Service.
 * A `server.services` package imports this layer only through its own package, its direct child subsystems, and its ancestors up to the layer root
     * **Enforced by:** `ProjectRules.subsystemVisibility`
-* A `server.services` subsystem package imports `server.domain` only through its mirror subsystem, that subsystem's direct children, and their ancestors
-    * **Note:** A file at the layer root — a ServiceImpl — is unconstrained by the mirror and sees the whole of `server.domain`.
+* A `server.services` subsystem package imports `server.domain` only through the matching `server.domain` subsystem package, that package's direct children, and their ancestors
+    * **Note:** A file at the layer root — a ServiceImpl — is unconstrained by the matching-subsystem rule and sees the whole of `server.domain`.
     * **Enforced by:** `ProjectRules.subsystemMirrorsDomain`
 
 ---
@@ -113,17 +108,18 @@ server binding, and the wire descriptors from the annotated interface.
 
 ##### Rules
 
-* A Service must always be implemented as urpc service functions in the appropriate server module, never as a client-only local service
+* Every `@Urpc` Service contract must be implemented in the feature's `:server` module; a Service interface must not be used as a client-only abstraction — client-only contracts are domain interfaces in `client.domain`
     * **Verification:** not automatically verifiable; enforced by review.
 * A Service function must be a plain `suspend fun f(req): Res`, `fun f(req): Flow<Res>`, or `fun f(reqs: Flow<Req>): Flow<Res>`, taking 0 or 1 parameter
     * **Note:** The test enforces the parameter count; the suspend/Flow shape is validated by the urpc KSP processor at compile time.
 * A Service function's `Request`/`Response` types must be nested `@Serializable` types grouped under a per-function `object` namespace
+    * **Why:** Nesting keeps each function's wire types beside the function and avoids package-level `Request`/`Response` name collisions.
     * **Verification:** not automatically verifiable; enforced by review.
 * A Service interface must live in `feature.[name].server.services` of the `:api` module
 * A Service function must propagate errors via thrown exceptions; the return type only represents a successful result
-    * **Why:** `@Throws` on a `suspend` function must include `CancellationException` (or a superclass such as `Exception`); without it, kotlinc rejects the function on iOS targets.
+    * **Why:** urpc uses thrown exceptions as the single failure channel: response types model success only, and typed failures cross the wire as `@Serializable` exceptions.
     * **Note:** Known service exceptions should be their own `@Serializable` type (ideally a `PresentableException`).
-    * **Note:** `@Throws` on `suspend` functions must include `kotlin.coroutines.cancellation.CancellationException`.
+    * **Note:** `@Throws` on a `suspend` function must include `kotlin.coroutines.cancellation.CancellationException` (or a superclass such as `Exception`); without it, kotlinc rejects the function on iOS targets.
 
 ##### Examples
 
@@ -164,7 +160,7 @@ contract, so it belongs to this layer, not the top-level feature group.
 
 * A Service implementation must be `internal`
 * A Service implementation must implement the `@Urpc` contract its name pairs with: `[Name]ServiceImpl` implements `[Name]Service`
-    * **Why:** The name is a claim — `[Name]ServiceImpl` says this class answers the `[Name]Service` contract — and a class that makes the claim without implementing the interface is either unfinished or misnamed. Nothing else would catch it: the shape classifies on name and package alone, so without this rule a contract-less impl passes every test while the service it names returns 404.
+    * **Why:** The construct classifies on name and package alone, so without this rule a `[Name]ServiceImpl` that never implements `[Name]Service` — unfinished or misnamed — would pass unnoticed.
     * **Note:** Matched by fully-qualified name: the contract shares the impl's package by construction — it is declared in `:api` under the same `server.services` package — so the expected parent is exactly `<package>.<Name>Service`, however the impl writes the reference (bare, aliased, or qualified).
 * A Service implementation must not inject persistence: neither a Repository nor a StorageClass
     * **Why:** A ServiceImpl answers a request by composing the feature's `server.domain` interfaces; persistence sits on the far side of those interfaces, where `ServerServices.noDataImports` keeps it. A Repository is the wiring that provides those interfaces, not a thing to hold — injecting it, or the StorageClass under it, states the table the handler wants instead of the contract it needs, so nothing else can reuse that access and nothing names what the request actually required. It is the same rule that keeps ViewModels off client Repositories.

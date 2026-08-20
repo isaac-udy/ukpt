@@ -28,7 +28,7 @@ import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
     * **Purpose**: Final executable entry points and dependency injection (DI) wiring.
     * **Structure**: May contain sub-groups (e.g., `:app:admin`, `:app:customer`) if multiple applications are built from the same codebase.
     * **Child Modules**: Each app contains a `:client` (Mobile/Desktop/Web) and/or a `:server` (Ktor executable).
-        * **Client structure (AGP 9.0)**: Under AGP 9.0 a single Kotlin Multiplatform module can no longer also be a `com.android.application`, so the client is itself a group: a common KMP library `:app:client:common` (the `com.android.kotlin.multiplatform.library` plugin) holding the shared UI, navigation, DI wiring, and the iOS framework entry point (`iosMain`), plus thin per-platform application modules `:app:client:android` (`com.android.application`), `:app:client:desktop` (Compose Desktop), and `:app:client:web` (wasmJs). The per-platform modules contain only their entry point + platform packaging and depend on `:app:client:common`.
+        * **Client structure (AGP 9.0)**: AGP 9.0 does not allow one module to be both a KMP library and a `com.android.application`, so `:app:client` is a group: `:app:client:common` is a KMP library holding the shared UI, navigation, DI wiring, and the iOS framework entry point; `:app:client:android`, `:app:client:desktop`, and `:app:client:web` are thin application modules holding only an entry point and platform packaging, each depending on `:app:client:common`.
     * **Constraints**: Must not contain business logic. Limited to infrastructure configuration and DI module aggregation.
 
     ## `:feature` (Vertical slices of functionality)
@@ -39,10 +39,7 @@ import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
         * **`:client`**: Optional. Contains UI and client-side logic.
         * **`:server`**: Optional. Contains server-side implementation.
     * **Notes**:
-        * Small projects may start with a single `:feature:core` containing all feature/domain code. As complexity increases, logic is migrated into specific `:feature:name` modules.
-        * When starting with a single `:feature:core` feature module, it is a good idea to "preempt" the migration of `:feature:core` into individual `:feature:[name]` modules by using `feature.[name]` for package names within `:feature:core` (instead of `feature.core`)
-          * The named feature packages within `:feature:core` must only depend on other named packages via the api module (enforced by `ModuleRules.crossFeatureCodeViaApi`), which keeps every feature liftable into its own module.
-          * Example: If `:feature:core` contains `feature.auth` and `feature.invoices`, code in `feature.auth` may only depend on `feature.invoices` code which is in the `:feature:core:api` module
+        * Small projects may start with all feature code in `:feature:core`. Code inside `:feature:core` still uses per-feature packages (`feature.auth`, `feature.invoices`) rather than `feature.core`, and one feature's packages may depend on another's only through declarations in the `:api` module (enforced by `ModuleRules.crossFeatureCodeViaApi`). This keeps each feature liftable into its own `:feature:[name]` module later.
         * `:client` and `:server` modules are optional, but at least one of the two should exist for every feature.
 
     ## `:platform` (Infrastructure)
@@ -51,7 +48,7 @@ import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
     * **Sub-Groups**:
         * **`:common`**: Code shared by both client and server (e.g., utilities).
         * **`:client`**: Client-only infrastructure (e.g., Design System, local DB drivers).
-        * **`:server`**: Server-only infrastructure (e.g., Ktor plugins, and `:platform:server:postgres` — which owns the Flyway SQL migrations + `schema.sql` and applies the `dev.isaacudy.udytils.postgres` codegen plugin; the DB runtime itself lives in that udytils library).
+        * **`:server`**: Server-only infrastructure (e.g., Ktor plugins, and `:platform:server:postgres`, which owns the Flyway migrations and applies the Postgres codegen — see [server data](serverdata.md)).
 """)
 object ModuleRules : RuleGroup() {
 
@@ -166,7 +163,7 @@ object ModuleRules : RuleGroup() {
             """.trimIndent(),
         )
         note("The feature root — `feature.[name]`, two segments — is allowed in every module: it is the shared vocabulary in `:api` and the feature's DI module in `:client`/`:server`.")
-        note("`:api` may declare both sides, because publishing a client or server type is what the module is for.")
+        note("`:api` may declare both client and server packages, because publishing a client or server type is what the module is for.")
         note("`platform.**` packages inside a feature module are platform code that has not been lifted into its own module yet; the platform rules govern them, so they are out of scope here.")
         scope { scope, exempt ->
             scope.files
@@ -200,16 +197,16 @@ object ModuleRules : RuleGroup() {
         rationale(
             """
             Publishing is moving a file between modules without changing its package, so a published
-            subsystem declaration would put `…domain.processing.audio` in `:api` and make another
-            feature's compiler aware of one feature's internal decomposition. A subsystem exists
-            precisely because nobody outside the feature has an opinion about it.
+            subsystem declaration would put `feature.shop.client.domain.checkout` in `:api` and make
+            another feature's compiler aware of one feature's internal decomposition. A subsystem
+            exists because nothing outside the feature depends on it.
 
             When another feature does need what a subsystem computes, the capability is restated as a
             layer-root contract that the subsystem satisfies. That costs one declaration and makes
             publication the visible act `:api` placement is meant to be.
             """.trimIndent(),
         )
-        note("The layer root is publishable, as it always has been (`ServerDomain.publishedInterfacesInApi`): `feature.[name].[side].[layer]` in `:api` is the channel. Only the sub-packages below it are confined.")
+        note("The layer root is publishable (`ServerDomain.publishedInterfacesInApi`): `feature.[name].[client|server].[layer]` in `:api` is the channel. Only the sub-packages below it are confined.")
         scope { scope, exempt ->
             scope.files
                 .filter { it.isFeatureModule() && it.isApiModule() }

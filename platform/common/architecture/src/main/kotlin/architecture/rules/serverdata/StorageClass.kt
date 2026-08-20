@@ -11,7 +11,7 @@ import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
     The single write path for the tables it owns, and the only place their queries are written. A
     StorageClass speaks [Rows](#storage-record): it takes and returns persistence shapes, and names
     no domain type at all. It lives in `feature.[name].server.data.storage`, the layer's Row-only
-    subpackage, which mirrors [`client.data.storage`](clientdata.md#client-storage). The
+    subpackage, the counterpart of [`client.data.storage`](clientdata.md#client-storage). The
     [Repository](#repository) above it, at the `server.data` root, injects it, maps what it returns,
     and provides the [domain interfaces](serverdomain.md#domain-interface) callers actually hold. See
     the [`server.data` overview](serverdata.md).

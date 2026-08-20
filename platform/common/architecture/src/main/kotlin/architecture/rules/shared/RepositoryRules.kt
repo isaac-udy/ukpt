@@ -82,7 +82,13 @@ abstract class RepositoryRules<G : RuleGroup>(
 
     @Describe("A Repository must not inject other Repositories")
     val doesNotInjectRepositories by rule {
-        rationale("Two Repositories over one domain object have no single edge, and the second reaches its data through the first's mapping rather than through the source that owns it.")
+        rationale(
+            """
+            A Repository that injects another Repository reads data through the other's mapping
+            rather than from the source that owns it, and Repository-to-Repository references can
+            form cycles. To combine capabilities, compose domain interfaces in a UseCase.
+            """.trimIndent(),
+        )
         constrain { decl, _ ->
             val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
             cls.primaryConstructor?.parameters.orEmpty()

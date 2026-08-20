@@ -14,7 +14,7 @@ import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
 
 @Describe("""
     `feature.[name].server.services` defines the contract between client and server, and the
-    server's entry points. The contract lives in `:api`, so both sides see it; the implementation
+    server's entry points. The contract lives in `:api`, so both the client and server see it; the implementation
     lives in `:server` under the same package name.
 
     Everything else in the layer is an **entry point** — a class something outside the process
@@ -35,7 +35,7 @@ import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
 
     Within a feature, the layer dependency rules are:
 
-    * Each side's `domain` imports feature roots only. It is the middle of its hexagon.
+    * The `client.domain` and `server.domain` layers import feature roots only.
     * `server.services` may depend on [`server.domain`](serverdomain.md) — and never on
       [`server.data`](serverdata.md) (`ServerServices.noDataImports`).
     * `server.data` may depend on `server.domain` — and never on `server.services`
@@ -47,17 +47,12 @@ import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
       [domain interfaces](clientdomain.md#domain-interface) for the UI to consume.
     * Nothing depends on `client.ui`.
 
-    Reading these as a directed graph:
-
-    * On the client: `client.ui → client.domain ← client.data`.
-    * On the server: `server.services → server.domain ← server.data`.
-
-    The two sides meet only at the contract this layer declares in `:api`. Cross-feature use of
-    another feature's services goes through `:api` as well: `ServerServices.crossFeatureViaApi`,
+    The client and server meet only at the contract this layer declares in `:api`. Cross-feature
+    use of another feature's services goes through `:api` as well: `ServerServices.crossFeatureViaApi`,
     in the [rules](#rules) below.
 
-    On the server, that contract is a door, not a composition mechanism: a class in this layer
-    never injects another feature's Service contract
+    A Service contract exists for clients to call, not for server features to compose: a class in
+    this layer never injects another feature's Service contract
     (`ServerServices.noForeignServiceContractInjection`). One server feature reaches another
     through the capability the owner publishes — a
     [`server.domain` interface](serverdomain.md#domain-interface) whose file resides in `:api` —
@@ -71,10 +66,10 @@ import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
 
     ## Persistence
 
-    The server's persistence layer is [`server.data`](serverdata.md). Entry points reach it only
-    through [`server.domain` interfaces](serverdomain.md#domain-interface), which a
-    [Repository](serverdata.md#repository) provides (`ServerServices.noDataImports`); the Postgres
-    conventions, codegen pipeline, and reactive flows are documented on that layer's page.
+    Entry points reach persistence only through
+    [`server.domain` interfaces](serverdomain.md#domain-interface) provided by
+    [Repositories](serverdata.md#repository); the Postgres conventions and codegen pipeline are
+    documented on [`server.data`](serverdata.md).
 """)
 object ServerServices : RuleGroup(
     inPackage = "feature..server.services..",
@@ -89,9 +84,9 @@ object ServerServices : RuleGroup(
     val noDataImports by rule {
         rationale(
             """
-            This is the hexagon. `server.domain` sits between services and persistence and knows
-            neither: services consume domain interfaces, and Repositories provide them. A
-            ServiceImpl that reaches a table directly has skipped the layer where the contract
+            `server.domain` sits between services and persistence and imports neither: services
+            consume domain interfaces, and Repositories provide them. A ServiceImpl that reaches a
+            table directly has skipped the layer where the contract
             should have been stated, so nothing else can reuse that access, and nothing names what
             the service actually needed.
 
@@ -115,7 +110,7 @@ object ServerServices : RuleGroup(
 
     @Describe("The `server.services` layer must not import client code")
     val noClientImports by rule {
-        rationale("The two sides meet at the RPC contract and nowhere else.")
+        rationale("The client and server meet at the RPC contract and nowhere else.")
         scope { scope, exempt ->
             scope.files
                 .filter { it.isFeatureModule() && it.isInServerServices() }
@@ -188,9 +183,9 @@ object ServerServices : RuleGroup(
         enforcedBy("ProjectRules.subsystemVisibility")
     }
 
-    @Describe("A `server.services` subsystem package imports `server.domain` only through its mirror subsystem, that subsystem's direct children, and their ancestors")
+    @Describe("A `server.services` subsystem package imports `server.domain` only through the matching `server.domain` subsystem package, that package's direct children, and their ancestors")
     val subsystemMirrorsDomain by rule {
-        note("A file at the layer root — a ServiceImpl — is unconstrained by the mirror and sees the whole of `server.domain`.")
+        note("A file at the layer root — a ServiceImpl — is unconstrained by the matching-subsystem rule and sees the whole of `server.domain`.")
         enforcedBy("ProjectRules.subsystemMirrorsDomain")
     }
 }
