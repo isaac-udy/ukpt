@@ -6,8 +6,14 @@ import architecture.definitions.containsPackageSegment
 import architecture.definitions.isApiModule
 import architecture.definitions.isFeatureModule
 import architecture.definitions.isFeatureRootPackage
+import architecture.definitions.resolveTypeToken
 import architecture.utils.isPlatformSpecificImport
 import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
+import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
+
+// Koin's constructor-reference DSL (singleOf, factoryOf, viewModelOf) has overloads
+// up to this many parameters; beyond it the lambda style is the only option.
+private const val KOIN_MAX_CONSTRUCTOR_REF_PARAMS = 22
 
 /*
  * Declared WITHOUT `inPackage`: this group governs the top-level `feature.[name]` package *minus*
@@ -154,16 +160,32 @@ object FeatureRules : RuleGroup(
             at runtime.
             """.trimIndent(),
         )
+        note(
+            """
+            Koin's constructor-reference DSL (`singleOf`, `factoryOf`, `viewModelOf`) stops at $KOIN_MAX_CONSTRUCTOR_REF_PARAMS constructor parameters. A binding whose constructor has more than $KOIN_MAX_CONSTRUCTOR_REF_PARAMS parameters may use the lambda style, since no reference form exists; every other binding must use the reference style.
+            """.trimIndent(),
+        )
         scope { scope, exempt ->
+            val bindingPattern = Regex("""\b([A-Z][A-Za-z0-9_]*)\s*\(\s*get\s*[<(]""")
+            val classesByFqn = scope.classes()
+                .mapNotNull { cls -> (cls as? KoFullyQualifiedNameProvider)?.fullyQualifiedName?.let { it to cls } }
+                .toMap()
             scope.files
                 .filter { it.isFeatureTopLevelFile() }
                 .filterNot { exempt(it) }
-                .filter { file ->
-                    file.text.lines().any { line ->
-                        Regex("""[,(]\s*get\s*[<(]""").containsMatchIn(line)
-                    }
+                .flatMap { file ->
+                    bindingPattern.findAll(file.text).mapNotNull { match ->
+                        val name = match.groupValues[1]
+                        val fqn = file.resolveTypeToken(name)
+                        val cls = fqn?.let { classesByFqn[it] }
+                        val paramCount = cls?.primaryConstructor?.parameters?.size ?: 0
+                        if (cls != null && paramCount > KOIN_MAX_CONSTRUCTOR_REF_PARAMS) {
+                            null
+                        } else {
+                            Violation(file.path, "DI binding for `$name` uses the `get()` lambda style instead of `singleOf(::$name).bind(...)`")
+                        }
+                    }.toList()
                 }
-                .map { Violation(it.path, "DI binding uses the `get()` lambda style instead of `singleOf(::Constructor).bind(...)`") }
         }
     }
 }

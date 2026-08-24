@@ -84,6 +84,7 @@ dependency injection: Koin modules that define the feature's DI bindings, wiring
     * **Enforced by:** `ProjectRules.serialNamePinnedOnPolymorphicTypes`
 * A DI binding must use the constructor reference style `singleOf(::Constructor).bind(BindingType::class)`, not the lambda style `single<BindingType> { Constructor(get()) }`
     * **Why:** The reference style lets Koin validate the constructor parameters against the graph at startup; the lambda style hides missing or cyclic dependencies until the first injection at runtime.
+    * **Note:** Koin's constructor-reference DSL (`singleOf`, `factoryOf`, `viewModelOf`) stops at 22 constructor parameters. A binding whose constructor has more than 22 parameters may use the lambda style, since no reference form exists; every other binding must use the reference style.
 
 ---
 

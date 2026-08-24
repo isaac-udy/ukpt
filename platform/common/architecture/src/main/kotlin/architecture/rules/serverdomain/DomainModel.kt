@@ -21,4 +21,4 @@ import dev.isaacudy.udytils.architecture.Describe
     The **network** is what decides: a model the client receives is no longer server-private, and
     belongs in the feature root with the compatibility obligations that come with it.
 """)
-object DomainModel : DomainModelRules<ServerDomain>()
+object DomainModel : DomainModelRules<ServerDomain>("server")

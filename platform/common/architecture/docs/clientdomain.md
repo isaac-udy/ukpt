@@ -215,6 +215,9 @@ belongs in the feature root with the compatibility obligations that come with it
 
 * A domain model must be immutable — no `var` properties
     * **Why:** Mutable state in the domain layer makes results depend on the order of earlier calls, and the layer untestable in isolation.
+* A domain model must not hold a domain interface: no property or constructor parameter whose type is a domain interface of the same client or server `domain` layer, bare, nullable, or inside a wrapper such as `Lazy<…>` or `List<…>`
+    * **Why:** A domain model is data; a property typed as a domain interface is a dependency that is supplied at the model's construction site rather than injected, so Koin's startup validation does not see it and the class that consumes the model has a dependency its constructor does not declare.
+    * **Note:** A property type is resolved through its file's imports and matched against the client's classified domain interfaces by fully-qualified name.
 * A domain model that needs to cross the network belongs in the feature root instead
     * **Note:** Crossing the network is the test, not carrying `@Serializable`: a payload a StorageClass writes into a column, or a state a client restores after a process death, is serialized and still private to the client or server that owns it.
     * **Note:** Persistence is `server.data`'s concern: a model that is stored but not shared is mapped to a [storage record](serverdata.md#storage-record) there, not promoted to the root.
@@ -222,6 +225,32 @@ belongs in the feature root with the compatibility obligations that come with it
 * A domain model must not re-implement a concept a shared domain model already defines; use or compose the shared model instead
     * **Note:** The feature's vocabulary has one source of truth in the root; a private copy of a concept drifts from it as both change.
     * **Verification:** not automatically verifiable; enforced by review.
+
+##### Examples
+
+A domain model that holds domain interfaces — a violation:
+
+```kotlin
+// feature/shop/client/domain/CheckoutInputs.kt
+package feature.shop.client.domain
+
+data class CheckoutInputs(
+    val getShippingOptions: GetShippingOptions,
+    val calculateTotal: Lazy<CalculateTotal>,
+)
+```
+
+The corrected form: the consumer injects each interface directly.
+
+```kotlin
+// feature/shop/client/ui/CheckoutViewModel.kt
+package feature.shop.client.ui
+
+class CheckoutViewModel(
+    private val getShippingOptions: GetShippingOptions,
+    private val calculateTotal: CalculateTotal,
+) : ViewModel() { ... }
+```
 
 ---
 
