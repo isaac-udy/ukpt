@@ -51,6 +51,16 @@ In order of leverage:
 4. **Throttle a background build** with `--max-workers=2`. Use a small *fixed* cap rather than a fraction of the core count: you can't know how many agents are running, and a per-agent fraction still multiplies by the number of agents, whereas a fixed cap bounds what each one contributes. A **foreground** build — one the user is waiting on — should not be throttled; it should finish fast.
 5. **Never override daemon memory on an invocation.** Passing `org.gradle.jvmargs` or `kotlin.daemon.jvmargs` on the command line means the running daemon no longer matches, so a new one is forked — asking for less memory gets you more of it. Those belong in `gradle.properties`, one value shared by everyone. For the same reason keep flags identical across agents doing the same kind of work: daemons are matched on their JVM args, so inconsistent flags fragment the daemon pool.
 
+## Checking architecture rules as an agent
+
+For most changes, don't start in the rule catalog. `./gradlew verifyArchitecture` runs in seconds, is incremental, and its failure output is scoped to the violation: the rule ID, its statement, its rationale, and one line per violating declaration. Membership and exhaustiveness failures also list the closest Constructs with a per-requirement checklist of what the declaration missed.
+
+1. **Write the code by copying the nearest existing example.** `:feature:core` is the worked example; the neighbours in the module being edited are the next best thing.
+2. **Run `./gradlew verifyArchitecture`.** Cheap enough to run speculatively.
+3. **Look up only the rule ID that failed.** [`docs/rule-index.md`](./platform/common/architecture/docs/rule-index.md) maps the ID to its declaring source, and the layer page explains it with examples.
+
+Read more widely when the change is shaped by the rules — a new feature slice or subsystem, a Construct the catalog does not have yet, a refactor that moves declarations between layers — and stop once the shape is clear. For small and medium edits it does not pay: the index states rules, while only the engine states how they are tested, so a front-to-back read can still miss the answer (`ClientUi.exhaustive` reads "every top-level declaration must match exactly one Construct"; that `private` declarations are exempt appears only in the engine's classification code).
+
 ## Verification
 
 After changes, compile every platform (client + server), not just the touched module — the `ukpt-verify` skill has the full sweep and test commands. Paparazzi and `wasmJsBrowser*` tasks require `--no-configuration-cache`.
