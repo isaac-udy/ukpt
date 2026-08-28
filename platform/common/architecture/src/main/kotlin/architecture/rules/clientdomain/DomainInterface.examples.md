@@ -58,3 +58,13 @@ fun interface FlowOfUsers {
 
 class UserNotFoundException : RuntimeException()
 ```
+
+---
+
+A domain interface that returns a computed read projection, combining several sources into one consistent snapshot. Compose in a UseCase when the combination is read-model logic; compose in a Repository when it is one data source's atomic projection. Do not build one projection holding unrelated optional facilities — live polling and optional resources may stay separate when their failure should not make the screen unusable.
+
+```kotlin
+fun interface FlowOfUserProfile {
+    operator fun invoke(userId: User.Id): Flow<UserProfile>
+}
+```

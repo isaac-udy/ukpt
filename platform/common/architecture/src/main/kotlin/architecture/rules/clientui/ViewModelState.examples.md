@@ -1,3 +1,24 @@
+**Bad:** A State with hand-rolled async lifecycle fields — a `Boolean` progress flag paired with an error property. This reimplements the state machine `AsyncState` already provides.
+
+```kotlin
+// feature.shop.client.ui.CheckoutState.kt — violates noManualAsyncLifecycleFields
+data class CheckoutState(
+    val isSaving: Boolean = false,
+    val saveError: String? = null,
+)
+```
+
+**Good:** The same State using `AsyncState<Unit>` for the save action.
+
+```kotlin
+// feature.shop.client.ui.CheckoutState.kt
+data class CheckoutState(
+    val saveAction: AsyncState<Unit> = AsyncState.Idle(),
+)
+```
+
+---
+
 A State that is a transparent container for domain objects plus calculated properties; display formatting lives with the Screen as a `@Composable` extension property, not in the State.
 
 ```kotlin

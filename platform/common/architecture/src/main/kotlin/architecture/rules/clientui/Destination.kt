@@ -29,6 +29,12 @@ object Destination : Construct<ClientUi>(
 ) {
     @Describe("A Destination should accept the minimal data required to initialise the associated Screen")
     val minimalData by guidance
+
+    @Describe("A NavigationKey may carry a small optional presentation hint (for example a title hint) so minimal chrome stays informative while required data loads")
+    val presentationHints by guidance {
+        note("Identifiers remain the authoritative destination inputs. A presentation hint is non-authoritative, may be stale after restoration, and must not drive domain behavior. Loaded domain data always replaces hints.")
+        note("Whole domain payloads are not hints. A hint is a single display-ready value (a name, a title) that the opener already holds.")
+    }
     @Describe("A Destination lives in the feature's `:client` module, and in `:api` only when another feature navigates to it")
     val definedInApiOrClient by rule {
         rationale(

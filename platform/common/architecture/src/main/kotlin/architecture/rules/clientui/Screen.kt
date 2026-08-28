@@ -115,6 +115,9 @@ object Screen : Construct<ClientUi>(
     @Describe("A dialog/overlay Screen that needs a ViewModel should call `viewModel()` inside the `navigationDestination` block")
     val overlayViewModel by guidance
 
+    @Describe("A Screen whose required data is an `AsyncState` must render `Idle`/`Loading`, `Success`, and `Error` explicitly — required data must not be read through `getOrNull()` with fallback labels that make unavailable data look successfully empty")
+    val asyncStateExhaustiveRendering by rule { unverifiable() }
+
     @Describe("A Screen function must be paired with an `internal [Name]ScreenContent` composable in the same file")
     val screenContentCompanion by rule {
         rationale(
