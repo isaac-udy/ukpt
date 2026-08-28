@@ -5,9 +5,10 @@ Architecture rules for ViewModel State async lifecycle, a new advisory audit tas
 
 ## What changed
 
-**udytils submodule bump.** `ViewModelState.update` now applies the lambda atomically under a lock.
-Previous behavior dropped concurrent updates (a `state.update` from a second collector could read
-stale state). Downstreams receive the fix through the submodule pin.
+**udytils submodule bump.** `ViewModelState.update` now applies the transform through a
+compare-and-set retry loop. The previous read-then-assign implementation could lose concurrent
+updates (two jobs updating different properties of one State could overwrite each other's write).
+Downstreams receive the fix through the submodule pin.
 
 **New Gradle task: `auditArchitecture`.** Runs advisory audit checks and writes the full report to
 `build/reports/architecture/audit.md`. `verifyArchitecture` now prints a one-line advisory audit
