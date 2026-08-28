@@ -99,6 +99,16 @@ result-channel pattern above; being a destination means the ordinary screen rule
   once in `app/client/common/.../UkptNavigation.kt` — don't recreate it per feature), or web crashes at
   runtime with `Factory.create … not implemented`.
 
+## Async UI state
+ViewModels load data with `fromFlow` (read projections) and fire actions with `fromSuspending`
+(returns a flow of `AsyncState<Unit>`). State holds `AsyncState<T>` properties with idle defaults.
+The Screen renders each required `AsyncState` exhaustively: Idle/Loading, Error (with retry),
+Success. Four `@Preview` per screen: Loading, Error, populated Success, legitimately-empty Success.
+Copy the shape from `:feature:core`'s `UkptState`/`UkptViewModel`/`UkptScreen`.
+Rules: `ClientUi.ViewModelState.usesAsyncState`, `ClientUi.ViewModelState.noManualAsyncLifecycleFields`,
+`ClientUi.Screen.asyncStateExhaustiveRendering`, `ClientUi.ViewModel.aggregateReadProjection`,
+`ProjectRules.noDirectAsyncStateConstruction`.
+
 ## Rule cheat-sheet (canonical text in `platform/common/architecture/docs/` — search the ID)
 - **`ClientUi.Screen.screenContentCompanion`** — `<Name>Screen` pairs with an `internal <Name>ScreenContent(state, …)`;
   **`ClientUi.Screen.viewModelInjection`** — inject the VM with `viewModel()` (not `koinViewModel()`);

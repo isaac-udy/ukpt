@@ -48,6 +48,7 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutinesTest)
         }
         getByName("androidHostTest").dependencies {
             // The snapshot harness: preview discovery, directory-grouped goldens, the

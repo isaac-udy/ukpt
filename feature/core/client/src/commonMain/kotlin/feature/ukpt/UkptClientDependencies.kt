@@ -1,19 +1,29 @@
 package feature.ukpt
 
+import feature.ukpt.client.domain.FlowOfGreetingHistory
+import feature.ukpt.client.domain.FlowOfGreetingHistoryImpl
+import feature.ukpt.client.domain.FlowOfGreetingSummary
+import feature.ukpt.client.domain.FlowOfGreetingSummaryImpl
+import feature.ukpt.client.domain.FlowOfGreetings
+import feature.ukpt.client.domain.FlowOfGreetingsImpl
+import feature.ukpt.client.domain.FlowOfLatestGreeting
+import feature.ukpt.client.domain.FlowOfLatestGreetingImpl
+import feature.ukpt.client.domain.GetGreeting
+import feature.ukpt.client.domain.GetGreetingImpl
 import feature.ukpt.client.ui.ConfirmResetViewModel
 import feature.ukpt.client.ui.UkptViewModel
+import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModelOf
+import org.koin.dsl.bind
 import org.koin.dsl.module
 
-/**
- * Koin module for the (placeholder) core client feature.
- *
- * Registering the ViewModel here lets the Enro ViewModel factory (installed in
- * [com.isaacudy.ukpt.UkptNavigation]) create it via `scope.get(modelClass)`.
- * This is required on wasmJs/JS, where there is no reflection and the default
- * androidx.lifecycle factory cannot instantiate a ViewModel.
- */
 val ukptClientDependencies = module {
+    singleOf(::FlowOfGreetingsImpl) bind FlowOfGreetings::class
+    singleOf(::FlowOfLatestGreetingImpl) bind FlowOfLatestGreeting::class
+    singleOf(::FlowOfGreetingHistoryImpl) bind FlowOfGreetingHistory::class
+    singleOf(::FlowOfGreetingSummaryImpl) bind FlowOfGreetingSummary::class
+    singleOf(::GetGreetingImpl) bind GetGreeting::class
+
     viewModelOf(::UkptViewModel)
     viewModelOf(::ConfirmResetViewModel)
 }
