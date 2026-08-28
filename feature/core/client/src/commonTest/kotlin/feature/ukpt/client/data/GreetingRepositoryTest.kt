@@ -1,7 +1,6 @@
-package feature.ukpt.client.ui
+package feature.ukpt.client.data
 
 import feature.ukpt.Greeting
-import feature.ukpt.client.data.GreetingRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test

@@ -1,9 +1,6 @@
-package feature.ukpt.client.ui
+package feature.ukpt.client.domain
 
 import feature.ukpt.Greeting
-import feature.ukpt.client.domain.FlowOfGreetingHistory
-import feature.ukpt.client.domain.FlowOfGreetingSummaryImpl
-import feature.ukpt.client.domain.FlowOfLatestGreeting
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
