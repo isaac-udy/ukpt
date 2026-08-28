@@ -1,6 +1,9 @@
 package feature.ukpt.client.ui
 
+import dev.isaacudy.udytils.state.AsyncState
+import feature.ukpt.client.domain.GreetingSummary
+
 data class UkptState(
-    val message: String = "Hello, ukpt!",
-    val greetings: Int = 0,
+    val greetingSummary: AsyncState<GreetingSummary> = AsyncState.Idle(),
+    val greetAction: AsyncState<Unit> = AsyncState.Idle(),
 )

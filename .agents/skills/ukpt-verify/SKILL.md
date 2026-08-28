@@ -70,6 +70,14 @@ classes are plugin-generated from the `UkptArchitecture` definition, not checked
 reports **one nested test per rule** (`<Layer> > <Construct> > <rule>`), so a failure names the
 exact rule.
 
+`verifyArchitecture` proves enforced rules and prints a one-line advisory audit summary.
+`./gradlew auditArchitecture` prints the full advisory report (written to
+the build directory as `audit.md` under `reports/architecture/`). Advisory findings are review
+prompts, not build failures.
+Semantic review of unverifiable rules — async state discipline, domain read projections,
+loading/error rendering — is the `ukpt-architecture-review` skill. Ordinary build verification
+stays separate from semantic review.
+
 After changing a rule or an examples file, regenerate the generated documentation (README +
 `docs/`):
 ```

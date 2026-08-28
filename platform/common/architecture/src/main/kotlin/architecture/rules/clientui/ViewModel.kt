@@ -115,6 +115,19 @@ object ViewModel : Construct<ClientUi>(
     @Describe("A ViewModel should inject domain interfaces to load and manipulate domain objects")
     val injectsDomainInterfaces by guidance
 
+    @Describe("When several asynchronously loaded inputs must be mutually coherent before the Screen is meaningful, the ViewModel should inject one client-domain interface exposing an immutable read projection, rather than independently collecting storage-shaped flows and merging them into UI state")
+    val aggregateReadProjection by guidance {
+        rationale(
+            """
+            Independent collectors each update state on their own emission schedule, creating
+            intermediate states where some fields are current and others are stale. A domain
+            interface that combines the sources returns a single consistent snapshot per emission.
+            """.trimIndent(),
+        )
+        note("A domain interface that composes several sources into one read model (`FlowOf...`) groups by consistency and failure boundary, not by screen. Compose in a UseCase when the combination is read-model logic; compose in a Repository when it is one data source's atomic projection.")
+        note("Live polling and optional resources may stay separate from the primary projection when their failure should not make the screen unusable.")
+    }
+
     @Describe("A ViewModel must use `JobManager` to manage coroutines, never a `var job: Job?` reference")
     val usesJobManager by rule {
         rationale(

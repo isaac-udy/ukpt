@@ -155,6 +155,16 @@ class UserNotFoundException : RuntimeException()
 
 ---
 
+A domain interface that returns a computed read projection, combining several sources into one consistent snapshot. Compose in a UseCase when the combination is read-model logic; compose in a Repository when it is one data source's atomic projection. Do not build one projection holding unrelated optional facilities — live polling and optional resources may stay separate when their failure should not make the screen unusable.
+
+```kotlin
+fun interface FlowOfUserProfile {
+    operator fun invoke(userId: User.Id): Flow<UserProfile>
+}
+```
+
+---
+
 ## [Use Case](../src/main/kotlin/architecture/rules/clientdomain/UseCase.kt)
 
 A class that implements a single [domain interface](#domain-interface).
@@ -227,6 +237,21 @@ belongs in the feature root with the compatibility obligations that come with it
     * **Verification:** not automatically verifiable; enforced by review.
 
 ##### Examples
+
+A computed read projection that groups related domain objects into a single consistent snapshot. The projection preserves domain objects rather than flattening to display strings; the domain interface that produces it groups by consistency and failure boundary, not by screen.
+
+```kotlin
+// feature/shop/client/domain/UserProfile.kt
+package feature.shop.client.domain
+
+data class UserProfile(
+    val user: User,
+    val memberships: List<Membership>,
+    val permissions: Set<Permission>,
+)
+```
+
+---
 
 A domain model that holds domain interfaces — a violation:
 

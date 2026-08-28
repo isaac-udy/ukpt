@@ -102,6 +102,7 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutinesTest)
         }
         getByName("androidHostTest").dependencies {
             // The snapshot harness: preview discovery, directory-grouped goldens, the
@@ -195,15 +196,20 @@ object <Name>Destination : NavigationKey
 package feature.<name>.client.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.enro.annotations.NavigationDestination
+import dev.isaacudy.udytils.state.AsyncState
 
 @Composable
 @NavigationDestination(<Name>Destination::class)
@@ -211,43 +217,98 @@ fun <Name>Screen(
     viewModel: <Name>ViewModel = viewModel(),   // ClientUi.Screen.viewModelInjection: viewModel(), NOT koinViewModel()
 ) {
     val state by viewModel.state.collectAsState()
-    <Name>ScreenContent(state)
+    <Name>ScreenContent(
+        state = state,
+        onRetry = viewModel::onRetryClicked,
+        // add action + navigation callbacks here
+    )
 }
 
 // ClientUi.Screen.screenContentCompanion: internal ScreenContent takes state (+ callbacks) so it renders without a ViewModel.
+// ClientUi.Screen.asyncStateExhaustiveRendering: the `when` covers Idle/Loading, Error (with retry), and Success.
 // Every colour, dimension and text style comes from the design system — DesignSystemRules.noLiteralsInFeatureUi
 // audits for literal Color(0x…)/.dp here. Imports: platform.design.<Prefix>Theme, platform.design.<Prefix>Spacing.
-// The <Prefix>Theme.* accessor below is the scaffold's design-system API; if the project authored its own,
-// use its accessor instead (read the design module — see the ukpt-design-system skill).
 @Composable
-internal fun <Name>ScreenContent(state: <Name>State) {
+internal fun <Name>ScreenContent(
+    state: <Name>State,
+    onRetry: () -> Unit,
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(<Prefix>Theme.colors.background),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = state.message,
-            style = <Prefix>Theme.typography.body,
-            color = <Prefix>Theme.colors.onSurface,
-        )
+        when (val data = state.data) {
+            is AsyncState.Idle,
+            is AsyncState.Loading -> {
+                CircularProgressIndicator(color = <Prefix>Theme.colors.accent)
+            }
+            is AsyncState.Error -> {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(<Prefix>Spacing.md),
+                ) {
+                    Text(
+                        text = "Something went wrong",
+                        style = <Prefix>Theme.typography.title,
+                        color = <Prefix>Theme.colors.onSurface,
+                    )
+                    <Prefix>Button(label = "Retry", onClick = onRetry)
+                }
+            }
+            is AsyncState.Success -> {
+                Text(
+                    text = data.data.toString(),
+                    style = <Prefix>Theme.typography.body,
+                    color = <Prefix>Theme.colors.onSurface,
+                )
+            }
+        }
     }
 }
 
 // ClientUi.Composable.screenContentPreview: every ScreenContent needs a @Preview — it becomes a
-// Paparazzi snapshot via PreviewSnapshotTest. Add a @Preview per meaningful state.
-// Import: androidx.compose.ui.tooling.preview.Preview
+// Paparazzi snapshot via PreviewSnapshotTest. Add a @Preview per meaningful state: Loading, Error,
+// populated Success, and legitimately-empty Success.
 @Preview
 @Composable
-internal fun <Name>ScreenPreview() {
-    // The frame sizes the golden to the project's primary viewport and pins the palette, so the
-    // snapshot reads as a deterministic device screenshot rather than a render on the harness
-    // canvas. <Prefix>PreviewFrame is the scaffold's shape; a project with its own theme wrapper
-    // (e.g. GtTheme(density, content), no colors parameter) frames and pins however that theme
-    // does — the point is the fixed viewport-sized root, which SHRINK (§6) crops the golden to.
+internal fun <Name>ScreenLoadingPreview() {
     <Prefix>PreviewFrame(colors = <Prefix>Colors.Light) {
-        <Name>ScreenContent(<Name>State())
+        <Name>ScreenContent(state = <Name>State(), onRetry = {})
+    }
+}
+
+@Preview
+@Composable
+internal fun <Name>ScreenErrorPreview() {
+    <Prefix>PreviewFrame(colors = <Prefix>Colors.Light) {
+        <Name>ScreenContent(
+            state = <Name>State(data = AsyncState.Error(RuntimeException("Connection failed"))),
+            onRetry = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+internal fun <Name>ScreenSuccessPreview() {
+    <Prefix>PreviewFrame(colors = <Prefix>Colors.Light) {
+        <Name>ScreenContent(
+            state = <Name>State(data = AsyncState.Success(/* populated domain object */)),
+            onRetry = {},
+        )
+    }
+}
+
+@Preview
+@Composable
+internal fun <Name>ScreenEmptySuccessPreview() {
+    <Prefix>PreviewFrame(colors = <Prefix>Colors.Light) {
+        <Name>ScreenContent(
+            state = <Name>State(data = AsyncState.Success(/* legitimately-empty domain object */)),
+            onRetry = {},
+        )
     }
 }
 ```
@@ -257,14 +318,43 @@ internal fun <Name>ScreenPreview() {
 package feature.<name>.client.ui
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import dev.enro.navigationHandle
+import dev.isaacudy.udytils.coroutines.JobManager
+import dev.isaacudy.udytils.state.AsyncState
 import dev.isaacudy.udytils.state.ViewModelState
+import dev.isaacudy.udytils.state.fromFlow
 import dev.isaacudy.udytils.state.viewModelState
 
-class <Name>ViewModel : ViewModel() {
+// Inject domain interfaces; use AsyncState.fromFlow for read projections, AsyncState.fromSuspending for actions.
+// ClientUi.ViewModel.usesJobManager: use dev.isaacudy.udytils.coroutines.JobManager, never `var job: Job?`.
+class <Name>ViewModel(
+    private val flowOf<Name>: FlowOf<Name>,
+) : ViewModel() {
+
     private val navigation by navigationHandle<<Name>Destination>()
+    private val jobManager = JobManager(viewModelScope)
+
     val state: ViewModelState<<Name>State> = viewModelState(<Name>State())
-    // ClientUi.ViewModel.usesJobManager: if this VM launches coroutines, use dev.isaacudy.udytils.coroutines.JobManager, never `var job: Job?`.
+
+    init {
+        loadData()
+    }
+
+    private fun loadData() {
+        jobManager.launchReplacing(LOAD_DATA) {
+            AsyncState.fromFlow(flowOf<Name>())
+                .collect { state.update { copy(data = it) } }
+        }
+    }
+
+    fun onRetryClicked() {
+        loadData()
+    }
+
+    private companion object {
+        const val LOAD_DATA = "loadData"
+    }
 }
 ```
 
@@ -272,8 +362,13 @@ class <Name>ViewModel : ViewModel() {
 ```kotlin
 package feature.<name>.client.ui
 
+import dev.isaacudy.udytils.state.AsyncState
+
+// ClientUi.ViewModelState.usesAsyncState: use AsyncState<T> for async data and action progress.
+// No sentinel defaults, no progress Booleans, no error fields.
 data class <Name>State(
-    val message: String = "Hello, <name>!",
+    val data: AsyncState</* domain projection type */> = AsyncState.Idle(),
+    // val someAction: AsyncState<Unit> = AsyncState.Idle(),
 )
 ```
 
@@ -282,13 +377,17 @@ data class <Name>State(
 package feature.<name>
 
 import feature.<name>.client.ui.<Name>ViewModel
+import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModelOf
+import org.koin.dsl.bind
 import org.koin.dsl.module
 
 // viewModelOf is mandatory: the Enro VM factory (in app/client/common/.../UkptNavigation.kt) resolves
 // VMs via Koin. On wasmJs/JS there is no reflection, so a missing registration crashes at runtime
 // (Factory.create … not implemented) — invisible to compileKotlinWasmJs.
+// singleOf + bind registers domain interface implementations (UseCases).
 val <name>ClientDependencies = module {
+    // singleOf(::<Name>Impl) bind <Name>::class
     viewModelOf(::<Name>ViewModel)
 }
 ```

@@ -91,6 +91,8 @@ the destination declaration site.
     * **Audited:** a test reports non-conforming code without ever failing.
 * A dialog/overlay Screen must use the `navigationDestination` DSL with `metadata = { directOverlay() }`
     * **Verification:** not automatically verifiable; enforced by review.
+* A Screen whose required data is an `AsyncState` must render `Idle`/`Loading`, `Success`, and `Error` explicitly — required data must not be read through `getOrNull()` with fallback labels that make unavailable data look successfully empty
+    * **Verification:** not automatically verifiable; enforced by review.
 * A Screen function must be paired with an `internal [Name]ScreenContent` composable in the same file
     * **Why:** The Screen function connects the ViewModel; the `ScreenContent` function takes only state and callbacks, so previews and snapshot tests can render every state without a ViewModel. Marking it `internal` lets the test source set call it; `private` makes the screen untestable.
 * A ViewModel must be injected into its Screen using `viewModel()`, not `koinViewModel()`
@@ -102,6 +104,36 @@ the destination declaration site.
 * A dialog/overlay Screen that needs a ViewModel should call `viewModel()` inside the `navigationDestination` block
 
 ##### Examples
+
+A Screen rendering required async data exhaustively: the `when` covers every `AsyncState` variant, and minimal navigation chrome (`onBack`) stays available in non-success states.
+
+```kotlin
+// feature.shop.client.ui.OrderDetailScreen.kt
+@Composable
+internal fun OrderDetailScreenContent(
+    state: OrderDetailState,
+    onRetry: () -> Unit,
+    onBack: () -> Unit,
+) {
+    when (val order = state.order) {
+        is AsyncState.Idle,
+        is AsyncState.Loading -> LoadingContent(onBack = onBack)
+        is AsyncState.Error -> ErrorContent(order.error, onRetry = onRetry, onBack = onBack)
+        is AsyncState.Success -> OrderContent(order.data, onBack = onBack)
+    }
+}
+```
+
+When an optional or genuinely-secondary value is consumed inline (not through the exhaustive `when`), `getOrNull()` at the call site keeps the async origin visible — the `AsyncState` is read where it is rendered, not flattened through a proxy property in the State.
+
+```kotlin
+// feature.shop.client.ui.OrderDetailScreen.kt — inline optional async read
+state.buyerProfile.getOrNull()?.let { profile ->
+    BuyerBadge(name = profile.displayName)
+}
+```
+
+---
 
 A dialog/overlay screen: the Destination lives in `:client` (published to `:api` only when a second feature navigates to it), and the property-based `navigationDestination` declares `directOverlay()` metadata and resolves its ViewModel via `viewModel()` inside the block.
 
@@ -155,7 +187,7 @@ Snapshots are preview-driven: `PreviewSnapshotTest` (in `src/androidHostTest/`) 
 * **Note:** Use the unified `@Preview` (`androidx.compose.ui.tooling.preview.Preview`)
   directly in common code; `compose.preview` must be a `commonMain` dependency. The same
   previews render in the IDE.
-* **Note:** Add a `@Preview` per meaningful state (loaded, empty, error) as a screen grows.
+* **Note:** Add a `@Preview` per meaningful state as a screen grows. For async screens the meaningful states are: Loading, Error, populated Success, and legitimately-empty Success.
 * **Note:** A screen's `@Preview`(s) live in the same file as the `[Name]ScreenContent` they
   render, next to the Screen — not gathered into a shared "screen previews" file.
 * **Note:** A screen's golden should read as a **screenshot of the app on a device**, not a
@@ -225,6 +257,9 @@ provided by that screen (if any).
 ##### Guidance
 
 * A Destination should accept the minimal data required to initialise the associated Screen
+* A NavigationKey may carry a small optional presentation hint (for example a title hint) so minimal chrome stays informative while required data loads
+    * **Note:** Identifiers remain the authoritative destination inputs. A presentation hint is non-authoritative, may be stale after restoration, and must not drive domain behavior. Loaded domain data always replaces hints.
+    * **Note:** Whole domain payloads are not hints. A hint is a single display-ready value (a name, a title) that the opener already holds.
 
 ---
 
@@ -262,6 +297,10 @@ to load data and perform side effects based on user actions.
 ##### Guidance
 
 * A ViewModel should inject domain interfaces to load and manipulate domain objects
+* When several asynchronously loaded inputs must be mutually coherent before the Screen is meaningful, the ViewModel should inject one client-domain interface exposing an immutable read projection, rather than independently collecting storage-shaped flows and merging them into UI state
+    * **Why:** Independent collectors each update state on their own emission schedule, creating intermediate states where some fields are current and others are stale. A domain interface that combines the sources returns a single consistent snapshot per emission.
+    * **Note:** A domain interface that composes several sources into one read model (`FlowOf...`) groups by consistency and failure boundary, not by screen. Compose in a UseCase when the combination is read-model logic; compose in a Repository when it is one data source's atomic projection.
+    * **Note:** Live polling and optional resources may stay separate from the primary projection when their failure should not make the screen unusable.
 
 ---
 
@@ -287,11 +326,21 @@ The complete, immutable representation of a Screen's data at a single point in t
 * A ViewModel State object must be immutable (val properties only)
 * A ViewModel State object must have a 1:1 relationship with a ViewModel type
     * **Verification:** not automatically verifiable; enforced by review.
+* A ViewModel State object must not pair a progress-verb Boolean property with an error-synonym sibling — this is a hand-rolled async lifecycle; use `AsyncState<T>` / `AsyncState<Unit>` (via `fromFlow`/`fromSuspending`) or `UpdatableState<T>`
+    * **Why:** A Boolean progress flag paired with an error property reimplements the state machine `AsyncState` already provides. The hand-rolled pair lacks idle/loading distinction, drops progress reporting, and forces every consumer to combine two fields that `AsyncState` keeps atomic.
 * A ViewModel State object must use `AsyncState<T>` / `UpdatableState<T>` for asynchronously loaded data and action progress
+    * **Why:** Sentinel defaults (`""`, `emptyList()`, `false`) conflate a legitimate successful value with not-started, loading, and error. A required async value needs an explicit lifecycle state: `AsyncState<T>` for load-once data and action progress (`AsyncState<Unit>` for fire-and-observe actions like save/send/submit), or `UpdatableState<T>` when already-loaded data should stay visible through a refresh or error. An ordinary nullable or synchronous property remains valid when `null` has exactly one meaning.
     * **Verification:** not automatically verifiable; enforced by review.
+    * **Audited:** a test reports non-conforming code without ever failing.
 * A ViewModel State object must not define custom sealed types for loading/success/error; use `AsyncState<T>` instead
 * A ViewModel State object must not contain dialog or sheet visibility flags (`show.*Dialog`, `.*DialogVisible`, `show.*Sheet`, `.*SheetVisible`) — dialog visibility is navigation state, not screen state
-    * **Why:** A boolean flag that toggles an inline dialog couples the dialog's lifecycle to the screen's state object instead of to the navigation backstack. Making the dialog its own destination eliminates the flag, and the destination follows the same screen conventions as any other — its own ViewModel performs the navigation actions, the opener consumes the outcome through a navigation result channel (`complete` = confirmed, `requestClose` = cancelled; add `WithResult<R>` only when complete/close cannot carry the data).
+    * **Why:** A boolean flag that toggles a modal — whether rendered through an inline `AlertDialog`, a design-system dialog wrapper, or a bottom sheet — couples the modal's lifecycle to the screen's state object instead of to the navigation backstack. The modal is still a destination with its own ViewModel and state, regardless of how it is rendered. Making it a destination eliminates the flag; the destination's ViewModel performs `complete`/`requestClose`, and the opener consumes the outcome through a navigation result channel (add `WithResult<R>` only when complete/close cannot carry the data).
+* A ViewModel State object must not expose calculated properties that flatten an `AsyncState` property back into a nullable or default value — the `AsyncState` remains the visible source of truth at the rendering boundary
+    * **Why:** A proxy getter that returns `asyncProp.getOrNull()` or `asyncProp.getOrNull()?.field` reads as an independently authoritative field although it is conditional on the `AsyncState` succeeding. `.orEmpty()` and default values make Loading, Error, and legitimately-empty data indistinguishable. Call sites stop revealing which async operation owns the value, and the Screen can render a plausible invented partial frame before required data exists.
+    * **Note:** Calculated State properties remain correct when they combine two or more top-level state properties, apply a real `if`/`when` decision, validate a draft against independently loaded options, or derive an affordance such as `canSubmit` — rather than renaming stored data.
+    * **Note:** A domain projection may expose genuine domain derivations (for example a conversation's suggested responder derived from participants and message order); the State must not mirror such a value through another nullable alias.
+    * **Verification:** not automatically verifiable; enforced by review.
+    * **Audited:** a test reports non-conforming code without ever failing.
 * A ViewModel State object's formatting and visual representation must be handled by the Screen or specialized `@Composable` properties/functions
     * **Verification:** not automatically verifiable; enforced by review.
 
@@ -301,6 +350,58 @@ The complete, immutable representation of a Screen's data at a single point in t
 * A ViewModel State object should include `init` blocks that enforce invariants
 
 ##### Examples
+
+**Bad:** A State with hand-rolled async lifecycle fields — a `Boolean` progress flag paired with an error property. This reimplements the state machine `AsyncState` already provides.
+
+```kotlin
+// feature.shop.client.ui.CheckoutState.kt — violates noManualAsyncLifecycleFields
+data class CheckoutState(
+    val isSaving: Boolean = false,
+    val saveError: String? = null,
+)
+```
+
+**Good:** The same State using `AsyncState<Unit>` for the save action.
+
+```kotlin
+// feature.shop.client.ui.CheckoutState.kt
+data class CheckoutState(
+    val saveAction: AsyncState<Unit> = AsyncState.Idle(),
+)
+```
+
+---
+
+**Avoid:** Calculated properties that flatten an `AsyncState` back into nullable/default values. The proxy hides the async lifecycle and lets the Screen render a plausible frame before the data exists.
+
+```kotlin
+// feature.shop.client.ui.AccountState.kt — flattened async proxies
+data class AccountState(
+    val account: AsyncState<Account> = AsyncState.Idle(),
+) {
+    val loadedAccount: Account? get() = account.getOrNull()
+    val title: String get() = loadedAccount?.title.orEmpty()
+    val messages: List<Message> get() = loadedAccount?.messages.orEmpty()
+}
+```
+
+**Prefer:** The loaded branch of the Screen receives the non-null domain object directly from the `AsyncState.Success` branch. Calculated properties remain correct when they combine multiple properties, apply a real decision, or derive an affordance.
+
+```kotlin
+// feature.shop.client.ui.AccountState.kt
+data class AccountState(
+    val account: AsyncState<Account> = AsyncState.Idle(),
+    val permissions: AsyncState<Permissions> = AsyncState.Idle(),
+    val actions: ActionState = ActionState(),
+) {
+    val canSubmit: Boolean
+        get() = account.getOrNull() != null &&
+            permissions.getOrNull()?.canWrite == true &&
+            !actions.submit.isLoading()
+}
+```
+
+---
 
 A State that is a transparent container for domain objects plus calculated properties; display formatting lives with the Screen as a `@Composable` extension property, not in the State.
 

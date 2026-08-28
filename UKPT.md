@@ -59,6 +59,8 @@ For most changes, don't start in the rule catalog. `./gradlew verifyArchitecture
 2. **Run `./gradlew verifyArchitecture`.** Cheap enough to run speculatively.
 3. **Look up only the rule ID that failed.** [`docs/rule-index.md`](./platform/common/architecture/docs/rule-index.md) maps the ID to its declaring source, and the layer page explains it with examples.
 
+`verifyArchitecture` also prints a one-line advisory audit summary; `./gradlew auditArchitecture` prints the full advisory report. Advisory findings are review prompts, not build failures. Substantial ViewModel/State work — new screens, async-state refactors, domain projection changes — should consult the Client UI State rules and use the `ukpt-architecture-review` skill.
+
 Read more widely when the change is shaped by the rules — a new feature slice or subsystem, a Construct the catalog does not have yet, a refactor that moves declarations between layers — and stop once the shape is clear. For small and medium edits it does not pay: the index states rules, while only the engine states how they are tested, so a front-to-back read can still miss the answer (`ClientUi.exhaustive` reads "every top-level declaration must match exactly one Construct"; that `private` declarations are exempt appears only in the engine's classification code).
 
 ## Verification

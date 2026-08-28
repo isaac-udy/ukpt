@@ -25,7 +25,7 @@ import com.lemonappdev.konsist.api.Konsist
     * **Note:** Use the unified `@Preview` (`androidx.compose.ui.tooling.preview.Preview`)
       directly in common code; `compose.preview` must be a `commonMain` dependency. The same
       previews render in the IDE.
-    * **Note:** Add a `@Preview` per meaningful state (loaded, empty, error) as a screen grows.
+    * **Note:** Add a `@Preview` per meaningful state as a screen grows. For async screens the meaningful states are: Loading, Error, populated Success, and legitimately-empty Success.
     * **Note:** A screen's `@Preview`(s) live in the same file as the `[Name]ScreenContent` they
       render, next to the Screen — not gathered into a shared "screen previews" file.
     * **Note:** A screen's golden should read as a **screenshot of the app on a device**, not a
