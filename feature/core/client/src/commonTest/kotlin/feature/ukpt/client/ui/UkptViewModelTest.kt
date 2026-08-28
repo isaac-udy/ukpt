@@ -6,6 +6,7 @@ import dev.isaacudy.udytils.state.fromSuspending
 import dev.isaacudy.udytils.state.isLoading
 import dev.isaacudy.udytils.state.isSuccess
 import feature.ukpt.Greeting
+import feature.ukpt.client.data.GreetingRepository
 import feature.ukpt.client.domain.FlowOfGreetingHistory
 import feature.ukpt.client.domain.FlowOfGreetingSummaryImpl
 import feature.ukpt.client.domain.FlowOfLatestGreeting
@@ -72,6 +73,51 @@ class FlowOfGreetingSummaryImplTest {
     }
 }
 
+class GreetingRepositoryTest {
+
+    @Test
+    fun getGreetingAppendsToHistory() = runTest {
+        val repo = GreetingRepository()
+        repo.getGreeting()
+        val history = repo.flowOfGreetingHistory().first()
+        assertEquals(1, history.size)
+        assertEquals("Hello", history.first().text)
+    }
+
+    @Test
+    fun getGreetingUpdatesLatest() = runTest {
+        val repo = GreetingRepository()
+        assertNull(repo.flowOfLatestGreeting().first())
+
+        repo.getGreeting()
+        assertEquals(Greeting(text = "Hello"), repo.flowOfLatestGreeting().first())
+    }
+
+    @Test
+    fun resetGreetingsClearsList() = runTest {
+        val repo = GreetingRepository()
+        repo.getGreeting()
+        repo.getGreeting()
+        assertEquals(2, repo.flowOfGreetingHistory().first().size)
+
+        repo.resetGreetings()
+        assertTrue(repo.flowOfGreetingHistory().first().isEmpty())
+        assertNull(repo.flowOfLatestGreeting().first())
+    }
+
+    @Test
+    fun multipleGreetsAccumulate() = runTest {
+        val repo = GreetingRepository()
+        repo.getGreeting()
+        repo.getGreeting()
+        repo.getGreeting()
+
+        val history = repo.flowOfGreetingHistory().first()
+        assertEquals(3, history.size)
+        assertEquals(Greeting(text = "Hello"), repo.flowOfLatestGreeting().first())
+    }
+}
+
 class AsyncStateLoadTest {
 
     @Test
@@ -108,7 +154,7 @@ class AsyncStateLoadTest {
     }
 
     @Test
-    fun fromSuspendingRetryViRelaunch() = runTest {
+    fun fromSuspendingRetryViaRelaunch() = runTest {
         var callCount = 0
         val run = {
             AsyncState.fromSuspending<Unit> {

@@ -103,8 +103,11 @@ result-channel pattern above; being a destination means the ordinary screen rule
 ViewModels load data with `fromFlow` (read projections) and fire actions with `fromSuspending`
 (returns a flow of `AsyncState<Unit>`). State holds `AsyncState<T>` properties with idle defaults.
 The Screen renders each required `AsyncState` exhaustively: Idle/Loading, Error (with retry),
-Success. Four `@Preview` per screen: Loading, Error, populated Success, legitimately-empty Success.
-Copy the shape from `:feature:core`'s `UkptState`/`UkptViewModel`/`UkptScreen`.
+Success. Action state (e.g. a save or submit) renders in the Success branch — disable the trigger
+button during Loading, show an inline error caption on Error. Four `@Preview` per screen: Loading,
+Error, populated Success, legitimately-empty Success. The scaffold templates produce simple stubs;
+`:feature:core`'s `UkptState`/`UkptViewModel`/`UkptScreen` and `GreetingRepository` are the worked
+example to copy for repository-backed hot flows, action rendering, and reset-via-dialog patterns.
 Rules: `ClientUi.ViewModelState.usesAsyncState`, `ClientUi.ViewModelState.noManualAsyncLifecycleFields`,
 `ClientUi.Screen.asyncStateExhaustiveRendering`, `ClientUi.ViewModel.aggregateReadProjection`,
 `ProjectRules.noDirectAsyncStateConstruction`.

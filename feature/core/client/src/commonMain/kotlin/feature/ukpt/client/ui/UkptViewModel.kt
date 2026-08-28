@@ -13,10 +13,12 @@ import dev.isaacudy.udytils.state.fromSuspending
 import dev.isaacudy.udytils.state.viewModelState
 import feature.ukpt.client.domain.FlowOfGreetingSummary
 import feature.ukpt.client.domain.GetGreeting
+import feature.ukpt.client.domain.ResetGreetings
 
 class UkptViewModel(
     private val flowOfGreetingSummary: FlowOfGreetingSummary,
     private val getGreeting: GetGreeting,
+    private val resetGreetings: ResetGreetings,
 ) : ViewModel() {
 
     private val navigation by navigationHandle<UkptDestination>()
@@ -25,7 +27,11 @@ class UkptViewModel(
     val state: ViewModelState<UkptState> = viewModelState(UkptState())
 
     private val confirmResetResult by registerForNavigationResult(
-        onCompleted = { loadGreetingSummary() },
+        onCompleted = {
+            jobManager.launchReplacing(RESET_ACTION) {
+                resetGreetings()
+            }
+        },
     )
 
     init {
@@ -57,5 +63,6 @@ class UkptViewModel(
     private companion object {
         const val LOAD_DATA = "loadData"
         const val GREET_ACTION = "greetAction"
+        const val RESET_ACTION = "resetAction"
     }
 }

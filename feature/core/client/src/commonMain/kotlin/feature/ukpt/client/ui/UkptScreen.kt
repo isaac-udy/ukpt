@@ -15,6 +15,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.enro.annotations.NavigationDestination
 import dev.isaacudy.udytils.state.AsyncState
+import dev.isaacudy.udytils.state.isLoading
 import feature.ukpt.Greeting
 import feature.ukpt.client.domain.GreetingSummary
 import platform.design.UkptColors
@@ -87,9 +88,17 @@ internal fun UkptScreenContent(
                         color = UkptTheme.colors.onSurfaceVariant,
                     )
                     UkptButton(
-                        label = "Greet",
+                        label = if (state.greetAction.isLoading()) "Greeting…" else "Greet",
                         onClick = onGreet,
+                        enabled = !state.greetAction.isLoading(),
                     )
+                    if (state.greetAction is AsyncState.Error) {
+                        Text(
+                            text = "Greet failed",
+                            style = UkptTheme.typography.caption,
+                            color = UkptTheme.colors.accent,
+                        )
+                    }
                     UkptButton(
                         label = "Reset",
                         onClick = onReset,
