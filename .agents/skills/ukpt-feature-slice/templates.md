@@ -103,6 +103,7 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutinesTest)
+            implementation(libs.enro.test)
         }
         getByName("androidHostTest").dependencies {
             // The snapshot harness: preview discovery, directory-grouped goldens, the
@@ -444,7 +445,80 @@ val <name>ClientDependencies = module {
    A framed screen preview's golden is exactly the frame — the scaffold default is 390 x 844 dp, a
    tall phone at `<Prefix>Viewport.Default`'s width.
 
-## §7 — Dialogs (copy from `:feature:core`, don't template)
+## §7 — ViewModel unit tests
+
+`:client` → `feature/<name>/client/src/commonTest/kotlin/feature/<name>/client/ui/<Name>ViewModelTest.kt`
+```kotlin
+@file:OptIn(ExperimentalCoroutinesApi::class)
+
+package feature.<name>.client.ui
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import dev.enro.result.NavigationResultChannel
+import dev.enro.test.putNavigationHandleForViewModel
+import dev.enro.test.runEnroTest
+import dev.isaacudy.udytils.state.AsyncState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertIs
+
+class <Name>ViewModelTest {
+
+    private val testDispatcher = UnconfinedTestDispatcher()
+    private val createdViewModels = mutableListOf<ViewModel>()
+
+    private fun <T : ViewModel> T.track(): T {
+        createdViewModels += this
+        return this
+    }
+
+    @BeforeTest
+    fun setUp() {
+        Dispatchers.setMain(testDispatcher)
+    }
+
+    @AfterTest
+    fun tearDown() {
+        // Cancel each ViewModel's scope before resetting Main: a collector left subscribed
+        // to pendingResults dispatches to a Main dispatcher that no longer exists on targets
+        // without a default one, failing an unrelated test.
+        createdViewModels.forEach { it.viewModelScope.cancel() }
+        createdViewModels.clear()
+        NavigationResultChannel.pendingResults.value = emptyMap()
+        Dispatchers.resetMain()
+    }
+
+    @Test
+    fun loadLifecycleReachesSuccess() = runEnroTest {
+        // val dataFlow = MutableStateFlow(/* domain projection */)
+        val handle = putNavigationHandleForViewModel<<Name>ViewModel, <Name>Destination>(<Name>Destination)
+
+        val vm = <Name>ViewModel(
+            // flowOf<Name> = FlowOf<Name> { dataFlow },
+        ).track()
+
+        assertIs<AsyncState.Success<*>>(vm.state.value.data)
+    }
+}
+```
+`putNavigationHandleForViewModel` must be called BEFORE the ViewModel is constructed — it pre-registers
+the `TestNavigationHandle` that `by navigationHandle()` resolves at init time. `UnconfinedTestDispatcher`
+ensures `viewModelScope` coroutines execute eagerly. The teardown ordering is load-bearing: scope
+cancellation before `resetMain` prevents a leaked collector from dispatching to a dead dispatcher.
+`:feature:core`'s `UkptViewModelTest` is the complete worked example covering load lifecycle, error +
+retry, actions, and dialog result channels.
+
+## §8 — Dialogs (copy from `:feature:core`, don't template)
+
 No skeleton here — the worked example is the copy-me:
 `feature/core/client/src/commonMain/kotlin/feature/ukpt/client/ui/ConfirmResetDestination.kt` +
 `ConfirmResetDialogScreen.kt` + `ConfirmResetViewModel.kt`, opened from
@@ -461,7 +535,7 @@ dialog returns data that complete/close cannot represent. The destination carrie
 (`ClientUi.ViewModelState.noDialogVisibilityFlags`, `ClientUi.Composable.dialogPrimitivesOnlyInDialogDestinations`,
 `ClientUi.dialogsCommunicateViaResults`).
 
-## §8 — Wiring checklist (edits to EXISTING files — the easy-to-forget step)
+## §9 — Wiring checklist (edits to EXISTING files — the easy-to-forget step)
 - [ ] `settings.gradle.kts` — three `include(":feature:<name>:…")` (§4).
 - [ ] `app/client/common/build.gradle.kts` — `commonMain` → `implementation(projects.feature.<name>.client)`.
 - [ ] `app/client/common/src/commonMain/kotlin/com/isaacudy/ukpt/App.kt` — `import feature.<name>.<name>ClientDependencies`
