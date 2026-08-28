@@ -46,7 +46,7 @@ whatever the project was renamed to downstream — read `platform/client/design`
    every ScreenContent to be called from a `@Preview`, and the preview wraps it in
    `<Prefix>PreviewFrame` so the golden reads as a device screenshot rather than a render on the
    harness canvas.
-5. **Wire it up** — the easy-to-forget edits to existing files (templates.md §8 checklist):
+5. **Wire it up** — the easy-to-forget edits to existing files (templates.md §9 checklist):
    - `app/client/common/build.gradle.kts` → `implementation(projects.feature.<name>.client)`.
    - `app/client/common/.../App.kt` → add `<name>ClientDependencies` to `modules(...)` + its import.
    - `app/server/build.gradle.kts` → `implementation(projects.feature.<name>.server)` (if using the server).
@@ -58,7 +58,7 @@ whatever the project was renamed to downstream — read `platform/client/design`
    module, and `./gradlew :platform:common:architecture:verifyArchitecture`. If the feature has web UI, run
    the `ukpt-verify-web` skill — a forgotten `viewModelOf` only crashes at runtime on wasm, invisible to compile.
 
-## Dialogs are destinations, not screen state (templates.md §7)
+## Dialogs are destinations, not screen state (templates.md §8)
 A screen that needs a dialog (confirm, editor, picker) does **not** get a boolean visibility flag
 in its `State` — it gets a new destination. A dialog destination follows the same screen conventions
 as any other: it has its own ViewModel (registered in Koin — the wasm crash from a missing

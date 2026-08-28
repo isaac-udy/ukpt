@@ -77,6 +77,7 @@ konsist = { module = "com.lemonappdev:konsist", version.ref = "konsist" }
 
 enro-core = { module = "dev.enro:enro" }
 enro-common = { module = "dev.enro:enro-common" }
+enro-test = { module = "dev.enro:enro-test" }
 enro-processor = { module = "dev.enro:enro-processor" }
 
 udytils-core = { module = "dev.isaacudy.udytils:core" }
