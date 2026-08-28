@@ -1,0 +1,4 @@
+interface:
+  display_name: "UKPT Architecture Review"
+  short_description: "Review a feature for semantic architecture rules"
+  default_prompt: "Use $ukpt-architecture-review to review the architecture of the code under change."
