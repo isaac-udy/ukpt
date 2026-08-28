@@ -124,6 +124,15 @@ internal fun OrderDetailScreenContent(
 }
 ```
 
+When an optional or genuinely-secondary value is consumed inline (not through the exhaustive `when`), `getOrNull()` at the call site keeps the async origin visible — the `AsyncState` is read where it is rendered, not flattened through a proxy property in the State.
+
+```kotlin
+// feature.shop.client.ui.OrderDetailScreen.kt — inline optional async read
+state.buyerProfile.getOrNull()?.let { profile ->
+    BuyerBadge(name = profile.displayName)
+}
+```
+
 ---
 
 A dialog/overlay screen: the Destination lives in `:client` (published to `:api` only when a second feature navigates to it), and the property-based `navigationDestination` declares `directOverlay()` metadata and resolves its ViewModel via `viewModel()` inside the block.
@@ -326,6 +335,12 @@ The complete, immutable representation of a Screen's data at a single point in t
 * A ViewModel State object must not define custom sealed types for loading/success/error; use `AsyncState<T>` instead
 * A ViewModel State object must not contain dialog or sheet visibility flags (`show.*Dialog`, `.*DialogVisible`, `show.*Sheet`, `.*SheetVisible`) — dialog visibility is navigation state, not screen state
     * **Why:** A boolean flag that toggles a modal — whether rendered through an inline `AlertDialog`, a design-system dialog wrapper, or a bottom sheet — couples the modal's lifecycle to the screen's state object instead of to the navigation backstack. The modal is still a destination with its own ViewModel and state, regardless of how it is rendered. Making it a destination eliminates the flag; the destination's ViewModel performs `complete`/`requestClose`, and the opener consumes the outcome through a navigation result channel (add `WithResult<R>` only when complete/close cannot carry the data).
+* A ViewModel State object must not expose calculated properties that flatten an `AsyncState` property back into a nullable or default value — the `AsyncState` remains the visible source of truth at the rendering boundary
+    * **Why:** A proxy getter that returns `asyncProp.getOrNull()` or `asyncProp.getOrNull()?.field` reads as an independently authoritative field although it is conditional on the `AsyncState` succeeding. `.orEmpty()` and default values make Loading, Error, and legitimately-empty data indistinguishable. Call sites stop revealing which async operation owns the value, and the Screen can render a plausible invented partial frame before required data exists.
+    * **Note:** Calculated State properties remain correct when they combine two or more top-level state properties, apply a real `if`/`when` decision, validate a draft against independently loaded options, or derive an affordance such as `canSubmit` — rather than renaming stored data.
+    * **Note:** A domain projection may expose genuine domain derivations (for example a conversation's suggested responder derived from participants and message order); the State must not mirror such a value through another nullable alias.
+    * **Verification:** not automatically verifiable; enforced by review.
+    * **Audited:** a test reports non-conforming code without ever failing.
 * A ViewModel State object's formatting and visual representation must be handled by the Screen or specialized `@Composable` properties/functions
     * **Verification:** not automatically verifiable; enforced by review.
 
@@ -353,6 +368,37 @@ data class CheckoutState(
 data class CheckoutState(
     val saveAction: AsyncState<Unit> = AsyncState.Idle(),
 )
+```
+
+---
+
+**Avoid:** Calculated properties that flatten an `AsyncState` back into nullable/default values. The proxy hides the async lifecycle and lets the Screen render a plausible frame before the data exists.
+
+```kotlin
+// feature.shop.client.ui.AccountState.kt — flattened async proxies
+data class AccountState(
+    val account: AsyncState<Account> = AsyncState.Idle(),
+) {
+    val loadedAccount: Account? get() = account.getOrNull()
+    val title: String get() = loadedAccount?.title.orEmpty()
+    val messages: List<Message> get() = loadedAccount?.messages.orEmpty()
+}
+```
+
+**Prefer:** The loaded branch of the Screen receives the non-null domain object directly from the `AsyncState.Success` branch. Calculated properties remain correct when they combine multiple properties, apply a real decision, or derive an affordance.
+
+```kotlin
+// feature.shop.client.ui.AccountState.kt
+data class AccountState(
+    val account: AsyncState<Account> = AsyncState.Idle(),
+    val permissions: AsyncState<Permissions> = AsyncState.Idle(),
+    val actions: ActionState = ActionState(),
+) {
+    val canSubmit: Boolean
+        get() = account.getOrNull() != null &&
+            permissions.getOrNull()?.canWrite == true &&
+            !actions.submit.isLoading()
+}
 ```
 
 ---

@@ -19,6 +19,37 @@ data class CheckoutState(
 
 ---
 
+**Avoid:** Calculated properties that flatten an `AsyncState` back into nullable/default values. The proxy hides the async lifecycle and lets the Screen render a plausible frame before the data exists.
+
+```kotlin
+// feature.shop.client.ui.AccountState.kt — flattened async proxies
+data class AccountState(
+    val account: AsyncState<Account> = AsyncState.Idle(),
+) {
+    val loadedAccount: Account? get() = account.getOrNull()
+    val title: String get() = loadedAccount?.title.orEmpty()
+    val messages: List<Message> get() = loadedAccount?.messages.orEmpty()
+}
+```
+
+**Prefer:** The loaded branch of the Screen receives the non-null domain object directly from the `AsyncState.Success` branch. Calculated properties remain correct when they combine multiple properties, apply a real decision, or derive an affordance.
+
+```kotlin
+// feature.shop.client.ui.AccountState.kt
+data class AccountState(
+    val account: AsyncState<Account> = AsyncState.Idle(),
+    val permissions: AsyncState<Permissions> = AsyncState.Idle(),
+    val actions: ActionState = ActionState(),
+) {
+    val canSubmit: Boolean
+        get() = account.getOrNull() != null &&
+            permissions.getOrNull()?.canWrite == true &&
+            !actions.submit.isLoading()
+}
+```
+
+---
+
 A State that is a transparent container for domain objects plus calculated properties; display formatting lives with the Screen as a `@Composable` extension property, not in the State.
 
 ```kotlin

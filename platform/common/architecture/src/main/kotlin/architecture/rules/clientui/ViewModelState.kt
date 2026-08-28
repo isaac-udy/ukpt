@@ -114,6 +114,48 @@ object ViewModelState : Construct<ClientUi>(
         }
     }
 
+    @Describe("A ViewModel State object must not expose calculated properties that flatten an `AsyncState` property back into a nullable or default value — the `AsyncState` remains the visible source of truth at the rendering boundary")
+    val noFlattenedAsyncProxies by rule {
+        rationale(
+            """
+            A proxy getter that returns `asyncProp.getOrNull()` or `asyncProp.getOrNull()?.field`
+            reads as an independently authoritative field although it is conditional on the
+            `AsyncState` succeeding. `.orEmpty()` and default values make Loading, Error, and
+            legitimately-empty data indistinguishable. Call sites stop revealing which async
+            operation owns the value, and the Screen can render a plausible invented partial
+            frame before required data exists.
+            """.trimIndent(),
+        )
+        note("Calculated State properties remain correct when they combine two or more top-level state properties, apply a real `if`/`when` decision, validate a draft against independently loaded options, or derive an affordance such as `canSubmit` — rather than renaming stored data.")
+        note("A domain projection may expose genuine domain derivations (for example a conversation's suggested responder derived from participants and message order); the State must not mirror such a value through another nullable alias.")
+        val asyncTypePattern = Regex("AsyncState|UpdatableState")
+        // Narrow audit: single-expression getters whose body is <asyncProp>.getOrNull() or
+        // <asyncProp>.getOrNull()?.<field>, optionally followed by .orEmpty() or ?: <fallback>.
+        unverifiable { decl, _ ->
+            val cls = decl as? KoClassDeclaration ?: return@unverifiable emptyList()
+            val props = cls.properties()
+            val asyncPropNames = props
+                .filter { p -> asyncTypePattern.containsMatchIn(p.type?.name.orEmpty()) }
+                .map { it.name }
+                .toSet()
+            if (asyncPropNames.isEmpty()) return@unverifiable emptyList()
+            // Build a regex matching: <asyncProp>.getOrNull() optionally ?.field, .orEmpty(), ?: fallback
+            val asyncNames = asyncPropNames.joinToString("|") { Regex.escape(it) }
+            val proxyPattern = Regex(
+                """^\s*(?:get\(\)\s*=\s*)?($asyncNames)\.getOrNull\(\)(\?\.\w+)?(\s*\.orEmpty\(\)|\s*\?\:\s*.+)?\s*$"""
+            )
+            props
+                .filter { it.text.contains("get()") }
+                .filter { p ->
+                    // Extract the getter expression — the text after "get() ="
+                    val getterMatch = Regex("""get\(\)\s*=\s*(.+)""", RegexOption.DOT_MATCHES_ALL).find(p.text)
+                    val getterBody = getterMatch?.groupValues?.get(1)?.trim() ?: return@filter false
+                    proxyPattern.matches("get() = $getterBody")
+                }
+                .map { Violation(it, "likely flattened async proxy `${it.name}` — read the `AsyncState` at the rendering boundary instead") }
+        }
+    }
+
     @Describe("A ViewModel State object should be a transparent container for domain objects, not a lossy UI-level mapping")
     val transparentContainer by guidance
     @Describe("A ViewModel State object should include `init` blocks that enforce invariants")
