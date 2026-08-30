@@ -16,7 +16,7 @@ kotlinx-io = "0.9.1"
 kotlinx-browser = "0.5.0"
 koin = "4.2.2"
 ksp = "2.3.9"
-ktor = "3.5.1"
+ktor = "3.5.2"
 logback = "1.5.37"
 # Not applied anywhere — the Ktor plugin applies Shadow — but build-logic compiles against the
 # ShadowJar type, and Ktor keeps Shadow out of its consumable compile metadata. Keep this equal to
