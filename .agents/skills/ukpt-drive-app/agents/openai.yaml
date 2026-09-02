@@ -1,0 +1,4 @@
+interface:
+  display_name: "Drive UKPT App"
+  short_description: "Control the running desktop app through the Compose Hot Reload MCP server"
+  default_prompt: "Use $ukpt-drive-app to launch the desktop app and check the change in it."

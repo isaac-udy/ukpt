@@ -16,6 +16,8 @@ Identifiers here use the template's UKPT identity (`UKPT_DEV_DB`, `feature.ukpt`
 ```
 ./gradlew :app:client:desktop:run
 ```
+To launch under hot reload and control the app from an agent (semantic tree, clicks, screenshots,
+reload), use `ukpt-drive-app`.
 
 ## Server (Ktor)
 
