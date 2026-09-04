@@ -1,0 +1,4 @@
+interface:
+  display_name: "UKPT UX Review"
+  short_description: "Review user journeys, interactions, and visual polish"
+  default_prompt: "Use $ukpt-ux-review to review the requested scope and suggest prioritised UX improvements, visual polish, and redesign alternatives where the gains justify the work."
