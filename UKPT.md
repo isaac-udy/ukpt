@@ -26,8 +26,9 @@ Follow the rules in [`platform/common/architecture/README.md`](./platform/common
 ## Toolchain & constraints
 
 - JDK target **11** (`jvmTarget = JVM_11`); Gradle **9.6.1** (wrapper). Exact dependency versions live in [`gradle/libs.versions.toml`](./gradle/libs.versions.toml).
-- **AGP is pinned to 9.0.0** — the latest AGP IntelliJ supports (see `build-logic/src/main/kotlin/ukpt.kmp-library.gradle.kts`). Don't bump it past what the IDE understands.
-- `embedded-enro` and `embedded-udytils` are **composite (`includeBuild`) builds**, so a Kotlin / Compose / AGP bump must stay compatible across all three repos — bump them together, not in isolation.
+- **AGP tracks the latest stable** (9.2.1) because Compose Multiplatform 1.12+ maps to androidx Compose 1.12, whose AAR metadata requires AGP 9.1.0 and compileSdk 37. IntelliJ IDEA 2026.1 syncs AGP only up to 9.0.0, so Android work needs Android Studio until the IDE catches up. Compose stays current; AGP follows it.
+- `embedded-enro` and `embedded-udytils` are **composite (`includeBuild`) builds**. Gradle refuses to load two AGP versions in one build, so the AGP pin must be identical in all three catalogs; a Kotlin / Compose / AGP bump is made across all three repos together, not in isolation.
+- A Compose or androidx bump must run `:app:client:android:checkDebugAarMetadata`, not only `compileDebugKotlin`: the AAR metadata check is where minimum AGP and compileSdk are enforced, and it has no opt-out. The `ukpt-verify` sweep includes it.
 
 ## Submodules
 
