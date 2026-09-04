@@ -135,10 +135,10 @@ in place, and you pin to whatever the libraries last released.
 | --- | --- | --- |
 | Kotlin | `2.4.0` | |
 | Gradle | `9.6.1` | wrapper |
-| AGP | `9.0.0` | Pinned. It is the newest AGP IntelliJ can sync; do not bump past what the IDE understands. |
-| Compose Multiplatform | `1.11.1` | |
+| AGP | `9.2.1` | Follows Compose: androidx Compose 1.12 requires AGP 9.1.0+. IntelliJ IDEA 2026.1 syncs only up to 9.0.0, so use Android Studio for Android work. Must match the pin in both submodules. |
+| Compose Multiplatform | `1.12.0` | |
 | JVM target | `11` | |
-| Android | minSdk 24, compileSdk 36 | |
+| Android | minSdk 24, compileSdk 37 | |
 
 Versions live in [`gradle/libs.versions.toml`](gradle/libs.versions.toml). Build conventions are
 precompiled script plugins in [`build-logic/`](build-logic).
@@ -149,6 +149,7 @@ Compile every target after a cross-platform change:
 
 ```bash
 ./gradlew :app:client:android:compileDebugKotlin \
+          :app:client:android:checkDebugAarMetadata \
           :app:client:desktop:compileKotlin \
           :app:client:web:compileKotlinWasmJs \
           :app:client:common:compileKotlinIosArm64 \

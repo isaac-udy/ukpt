@@ -21,12 +21,17 @@ wasm-only failure modes that compilation misses.
 Compile every platform (client + server) to verify correctness:
 ```
 ./gradlew :app:client:android:compileDebugKotlin \
+          :app:client:android:checkDebugAarMetadata \
           :app:client:desktop:compileKotlin \
           :app:client:web:compileKotlinWasmJs \
           :app:client:common:compileKotlinIosArm64 \
           :app:client:common:compileKotlinIosSimulatorArm64 \
           :app:server:compileKotlin
 ```
+`checkDebugAarMetadata` enforces each Android dependency's minimum AGP and compileSdk;
+`compileDebugKotlin` never reaches it. It is cheap, and it is the only gate on the sweep that a
+Compose or androidx bump can fail (`assembleDebug` runs it too, at the cost of a full build).
+
 The common module's Android / JVM / wasm targets compile transitively via the per-platform app
 modules; the iOS targets are built directly from `:app:client:common`. There is no
 `:app:client:ios` **Gradle** module — the iOS app is an Xcode project at `app/client/ios`, which

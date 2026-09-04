@@ -9,9 +9,9 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
  * (`com.android.kotlin.multiplatform.library`).
  * Configures: All KMP targets (Android, iOS, JVM, WasmJS), compiler options, Android defaults.
  *
- * The Android target is configured via the `kotlin { androidLibrary { } }` accessor. We use
- * `androidLibrary` (not the `android` alias) because that name is what resolves on AGP 9.0 —
- * the latest AGP supported by IntelliJ. Both names refer to the same target on AGP 9.1+.
+ * The Android target is configured via the `kotlin { androidLibrary { } }` accessor. Both
+ * submodules use the same name, and it resolves on every AGP 9.x (the `android` alias only
+ * exists from 9.1), so the three composite builds share one spelling.
  *
  * Consuming modules set their Android `namespace` via `kotlin { androidLibrary { namespace = ... } }`.
  */
