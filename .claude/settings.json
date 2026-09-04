@@ -7,7 +7,8 @@
       "Bash(git diff:*)",
       "Bash(git log:*)",
       "Bash(git show:*)",
-      "Bash(bash .agents/skills/ukpt-verify-web/run-bundle-check.sh:*)"
+      "Bash(bash .agents/skills/ukpt-verify-web/run-bundle-check.sh:*)",
+      "mcp__compose-hot-reload"
     ]
   }
 }
