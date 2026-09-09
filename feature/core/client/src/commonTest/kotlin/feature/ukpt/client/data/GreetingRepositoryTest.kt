@@ -11,44 +11,34 @@ import kotlin.test.assertTrue
 class GreetingRepositoryTest {
 
     @Test
-    fun getGreetingAppendsToHistory() = runTest {
+    fun addAppendsToGreetings() = runTest {
         val repo = GreetingRepository()
-        repo.getGreeting()
-        val history = repo.flowOfGreetingHistory().first()
-        assertEquals(1, history.size)
-        assertEquals("Hello", history.first().text)
+        repo.updateGreetings.add("Hello")
+
+        val summary = repo.flowOfGreetingSummary().first()
+        assertEquals(listOf(Greeting(text = "Hello")), summary.greetings)
     }
 
     @Test
-    fun getGreetingUpdatesLatest() = runTest {
+    fun latestIsTheMostRecentGreeting() = runTest {
         val repo = GreetingRepository()
-        assertNull(repo.flowOfLatestGreeting().first())
+        assertNull(repo.flowOfGreetingSummary().first().latest)
 
-        repo.getGreeting()
-        assertEquals(Greeting(text = "Hello"), repo.flowOfLatestGreeting().first())
+        repo.updateGreetings.add("Hello")
+        repo.updateGreetings.add("Hello again")
+        assertEquals(Greeting(text = "Hello again"), repo.flowOfGreetingSummary().first().latest)
     }
 
     @Test
-    fun resetGreetingsClearsList() = runTest {
+    fun resetClearsGreetings() = runTest {
         val repo = GreetingRepository()
-        repo.getGreeting()
-        repo.getGreeting()
-        assertEquals(2, repo.flowOfGreetingHistory().first().size)
+        repo.updateGreetings.add("Hello")
+        repo.updateGreetings.add("Hello again")
+        assertEquals(2, repo.flowOfGreetingSummary().first().greetings.size)
 
-        repo.resetGreetings()
-        assertTrue(repo.flowOfGreetingHistory().first().isEmpty())
-        assertNull(repo.flowOfLatestGreeting().first())
-    }
-
-    @Test
-    fun multipleGreetsAccumulate() = runTest {
-        val repo = GreetingRepository()
-        repo.getGreeting()
-        repo.getGreeting()
-        repo.getGreeting()
-
-        val history = repo.flowOfGreetingHistory().first()
-        assertEquals(3, history.size)
-        assertEquals(Greeting(text = "Hello"), repo.flowOfLatestGreeting().first())
+        repo.updateGreetings.reset()
+        val summary = repo.flowOfGreetingSummary().first()
+        assertTrue(summary.greetings.isEmpty())
+        assertNull(summary.latest)
     }
 }

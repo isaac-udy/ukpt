@@ -218,9 +218,11 @@ UserProfilesTable.upsert(UserProfilesTable.userId) {
 ## [Repository](../src/main/kotlin/architecture/rules/serverdata/Repository.kt)
 
 The edge of [`server.domain`](serverdomain.md): a class that provides
-[server domain interfaces](serverdomain.md#domain-interface) by exposing them as `public val`
-properties, injecting the [StorageClasses](#storage-class) it reads and writes through and
-mapping their [Rows](#storage-record) into domain objects.
+[server domain interfaces](serverdomain.md#domain-interface) as `public val` properties. It
+injects the [StorageClasses](#storage-class) it reads and writes through, assembles the
+[Rows](#storage-record) they return into the domain models those interfaces promise, and
+writes domain values back as Rows. A domain model that spans several tables is assembled
+here, behind one property, before any narrower interface over the same tables is considered.
 
 It is the [client Repository](clientdata.md#repository) on the other side, with the same name and
 the same rules. The difference is only what sits behind it: a Service and local storage on the
@@ -241,12 +243,12 @@ client, tables on the server.
 * A Repository must be `internal`
     * **Why:** Callers depend on the domain interfaces it provides, never on the Repository itself; `internal` is what makes that the only reachable surface.
 * A Repository must not implement domain interfaces directly
-    * **Why:** Inheriting the interface makes one class *be* many contracts, so its surface can only grow; exposing them as properties keeps each contract separately nameable and separately injectable.
+    * **Why:** Inheriting the interface makes the Repository type the thing a consumer depends on, and every contract it implements travels with it; a property is one contract, injected on its own, and the Repository stays out of every constructor.
     * **Note:** A parent reference is resolved through its file's imports and matched against the side's classified domain interfaces by fully-qualified name — an `:api`-declared parent often resolves to no source declaration, and a simple-name match would collide with unrelated types sharing the name.
 * A Repository must expose domain interfaces as `public val` properties
     * **Why:** The property name is the interface name in lowerCamelCase, so the wiring reads as a list of the contracts this Repository answers.
 * A Repository must not inject domain interfaces
-    * **Why:** A Repository that injects a contract is calling a sibling adapter through the abstract layer, which makes the graph unreadable and easy to cycle. Logic that needs several interfaces is a UseCase.
+    * **Why:** A Repository that injects a contract calls a sibling adapter through the abstract layer, which makes the graph unreadable and easy to cycle. A Repository assembles the storage it owns into a domain model behind one property; a UseCase composes capabilities that exist independently of one another.
     * **Note:** A parameter type — bare, aliased, or inside a wrapper such as `Lazy<…>` — is resolved through its file's imports and matched against the side's classified domain interfaces by fully-qualified name.
 * A Repository must not inject other Repositories
     * **Why:** A Repository that injects another Repository reads data through the other's mapping rather than from the source that owns it, and Repository-to-Repository references can form cycles. To combine capabilities, compose domain interfaces in a UseCase.
@@ -257,37 +259,75 @@ client, tables on the server.
 
 * A Repository may inject the StorageClasses it needs, and compose several of them behind one domain interface
     * **Note:** A domain object may span several tables. Composing them is this class's job — the StorageClass under each is free to own several tables of its own, and every table has exactly one such owner.
+    * **Note:** A property whose result must be one consistent snapshot uses one query, one transaction at a suitable isolation level, a shared lock, or a revision to make it so; a data class assembled from several reads is not consistent by itself.
 * A Repository must not call an IntegrationClient from inside a `TransactionRunner.inTransaction` block
     * **Note:** The block holds a pooled database connection, and any row locks it has taken, for as long as it runs — a network round trip inside it starves the pool for that whole time. Make the integration call first and open the transaction with its result in hand.
 
 ##### Examples
 
-A Repository providing two domain interfaces over a table its StorageClass owns, mapping Rows on the way out:
+A Repository providing domain interfaces over the tables its StorageClasses own. A domain model that spans three tables is assembled behind one property, inside one transaction:
 
 ```kotlin
-internal class UsersRepository(
-    private val userStorage: UserStorage,
-    private val userRoleStorage: UserRoleStorage,
+internal class OrdersRepository(
+    private val orderStorage: OrderStorage,
+    private val orderLineStorage: OrderLineStorage,
+    private val paymentStorage: PaymentStorage,
+    private val transactionRunner: TransactionRunner,
 ) {
-    val getUser = GetUser { id ->
-        userStorage.getById(id)?.toDomain()
+    val getOrder = GetOrder { id ->
+        transactionRunner.inTransaction {
+            val order = orderStorage.getById(id) ?: return@inTransaction null
+            val lines = orderLineStorage.listForOrder(id)
+            val payment = paymentStorage.getForOrder(id)
+            order.toDomain(lines = lines.map { it.toDomain() }, payment = payment?.toDomain())
+        }
     }
 
-    val flowOfUsersForTeam = FlowOfUsersForTeam { teamId ->
-        userStorage.observeForTeam(teamId).map { rows ->
-            rows.map { it.toDomain() }
-        }
+    val flowOfOrdersForCustomer = FlowOfOrdersForCustomer { customerId ->
+        orderStorage.observeForCustomer(customerId).map { rows -> rows.map { it.toDomain() } }
     }
 }
 ```
 
-A domain object that spans two tables is composed here, not in either StorageClass:
+The consumer before the Repository assembled the model: one interface per fact, joined at every call site.
 
 ```kotlin
-val getUserWithRoles = GetUserWithRoles { id ->
-    val user = userStorage.getById(id) ?: return@GetUserWithRoles null
-    val roles = userRoleStorage.listForUser(id)
-    user.toDomain(roles = roles.map { it.toDomain() })
+internal class SubmitOrderImpl(
+    private val getOrderHeader: GetOrderHeader,
+    private val getOrderLines: GetOrderLines,
+    private val getOrderPayment: GetOrderPayment,
+    private val markOrderSubmitted: MarkOrderSubmitted,
+) : SubmitOrder {
+    override suspend fun invoke(id: OrderId) {
+        val header = getOrderHeader(id) ?: throw OrderNotFoundException()
+        val lines = getOrderLines(id)
+        val payment = getOrderPayment(id)
+        if (lines.isEmpty() || payment == null) throw OrderIncompleteException()
+        markOrderSubmitted(id)
+    }
+}
+```
+
+The consumer after: `GetOrder` returns the `Order`, and three interfaces, three Repository properties, and three Koin bindings are gone.
+
+```kotlin
+internal class SubmitOrderImpl(
+    private val getOrder: GetOrder,
+    private val updateOrder: UpdateOrder,
+) : SubmitOrder {
+    override suspend fun invoke(id: OrderId) {
+        val order = getOrder(id) ?: throw OrderNotFoundException()
+        if (order.lines.isEmpty() || order.payment == null) throw OrderIncompleteException()
+        updateOrder.submitted(id)
+    }
+}
+```
+
+A read that stays separate: shipment tracking comes from a carrier IntegrationClient, its failure must not fail an order read, and the order screen renders it as an optional resource.
+
+```kotlin
+fun interface FlowOfOrderShipmentTracking {
+    operator fun invoke(id: OrderId): Flow<ShipmentTracking?>
 }
 ```
 

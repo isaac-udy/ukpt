@@ -14,3 +14,19 @@ internal class UserRepository(
     }
 }
 ```
+
+A domain model that draws on local storage from two sources is assembled here, behind one property, rather than exposed as one interface per source:
+
+```kotlin
+    val flowOfCheckout = FlowOfCheckout { cartId ->
+        combine(
+            cartStorage.observe(cartId),
+            shippingPreferenceStorage.observe(),
+        ) { cart, preference ->
+            Checkout(
+                items = cart.items.map { it.toDomain() },
+                shipping = preference?.toDomain(), // null: no preference chosen yet
+            )
+        }
+    }
+```

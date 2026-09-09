@@ -12,8 +12,10 @@ import dev.isaacudy.udytils.architecture.Describe
       logic should become a default function of the other domain interface instead.
     * **Note:** When breaking down a complex UseCase, use file-private extension functions,
       private functions, or nested classes instead of additional domain interfaces or UseCases.
+    * **Note:** A phase of an orchestration with one caller is a private function of that caller.
+      It becomes a UseCase of its own when a second caller needs it on its own.
 """)
-object UseCase : UseCaseRules<ServerDomain>() {
+object UseCase : UseCaseRules<ServerDomain>(side = "server") {
     @Describe("A UseCase must not call an IntegrationClient from inside a `TransactionRunner.inTransaction` block")
     val noIntegrationCallsInsideTransactions by guidance {
         note("The block holds a pooled database connection, and any row locks it has taken, for as long as it runs — a network round trip inside it starves the pool for that whole time. Make the integration call first and open the transaction with its result in hand.")

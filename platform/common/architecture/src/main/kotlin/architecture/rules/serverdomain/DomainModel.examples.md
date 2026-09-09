@@ -10,7 +10,7 @@ data class CheckoutInputs(
 )
 ```
 
-The corrected form: the consumer injects each interface directly.
+The corrected form when the consumer needs the capabilities: it injects each interface directly.
 
 ```kotlin
 // feature/shop/server/domain/CheckoutUseCase.kt
@@ -20,4 +20,20 @@ class CheckoutUseCase(
     private val getShippingOptions: GetShippingOptions,
     private val calculateTotal: CalculateTotal,
 ) { ... }
+```
+
+The corrected form when the consumer needs the values: one domain interface returns a model carrying them, and the consumer injects that one interface.
+
+```kotlin
+// feature/shop/server/domain/CheckoutInputs.kt
+package feature.shop.server.domain
+
+data class CheckoutInputs(
+    val shippingOptions: List<ShippingOption>,
+    val total: Money,
+)
+
+fun interface GetCheckoutInputs {
+    suspend operator fun invoke(cartId: CartId): CheckoutInputs
+}
 ```

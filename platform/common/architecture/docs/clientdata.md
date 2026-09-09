@@ -54,8 +54,11 @@ This is also the only layer that may talk to the server: Repositories call
 ## [Repository](../src/main/kotlin/architecture/rules/clientdata/Repository.kt)
 
 A class that provides implementations for [domain interfaces](clientdomain.md#domain-interface) by
-exposing them as `public val` properties. The client's half of a pair: the server states the same
-construct as a [server Repository](serverdata.md#repository).
+exposing them as `public val` properties. It injects the Service and local storage it reads
+through, and assembles their responses and stored values into the domain models those
+interfaces promise; a domain model that draws on both is assembled here, behind one property.
+The client's half of a pair: the server states the same construct as a
+[server Repository](serverdata.md#repository).
 
 * **Note:** The property name must match the interface name in `lowerCamelCase`, such as
   `val createUser = CreateUser { ... }`.
@@ -72,12 +75,12 @@ construct as a [server Repository](serverdata.md#repository).
 * A Repository must be `internal`
     * **Why:** Callers depend on the domain interfaces it provides, never on the Repository itself; `internal` is what makes that the only reachable surface.
 * A Repository must not implement domain interfaces directly
-    * **Why:** Inheriting the interface makes one class *be* many contracts, so its surface can only grow; exposing them as properties keeps each contract separately nameable and separately injectable.
+    * **Why:** Inheriting the interface makes the Repository type the thing a consumer depends on, and every contract it implements travels with it; a property is one contract, injected on its own, and the Repository stays out of every constructor.
     * **Note:** A parent reference is resolved through its file's imports and matched against the side's classified domain interfaces by fully-qualified name — an `:api`-declared parent often resolves to no source declaration, and a simple-name match would collide with unrelated types sharing the name.
 * A Repository must expose domain interfaces as `public val` properties
     * **Why:** The property name is the interface name in lowerCamelCase, so the wiring reads as a list of the contracts this Repository answers.
 * A Repository must not inject domain interfaces
-    * **Why:** A Repository that injects a contract is calling a sibling adapter through the abstract layer, which makes the graph unreadable and easy to cycle. Logic that needs several interfaces is a UseCase.
+    * **Why:** A Repository that injects a contract calls a sibling adapter through the abstract layer, which makes the graph unreadable and easy to cycle. A Repository assembles the storage it owns into a domain model behind one property; a UseCase composes capabilities that exist independently of one another.
     * **Note:** A parameter type — bare, aliased, or inside a wrapper such as `Lazy<…>` — is resolved through its file's imports and matched against the side's classified domain interfaces by fully-qualified name.
 * A Repository must not inject other Repositories
     * **Why:** A Repository that injects another Repository reads data through the other's mapping rather than from the source that owns it, and Repository-to-Repository references can form cycles. To combine capabilities, compose domain interfaces in a UseCase.
@@ -105,6 +108,22 @@ internal class UserRepository(
         userService.deleteUser(UserService.DeleteUser.Request(id))
     }
 }
+```
+
+A domain model that draws on local storage from two sources is assembled here, behind one property, rather than exposed as one interface per source:
+
+```kotlin
+    val flowOfCheckout = FlowOfCheckout { cartId ->
+        combine(
+            cartStorage.observe(cartId),
+            shippingPreferenceStorage.observe(),
+        ) { cart, preference ->
+            Checkout(
+                items = cart.items.map { it.toDomain() },
+                shipping = preference?.toDomain(), // null: no preference chosen yet
+            )
+        }
+    }
 ```
 
 ---

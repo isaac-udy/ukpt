@@ -14,7 +14,7 @@ import dev.isaacudy.udytils.architecture.Describe
       co-located with the interface.
     * **Note:** Generic or unknown errors don't need their own exception type or `@Throws` entry.
 """)
-object DomainInterface : DomainInterfaceRules<ClientDomain>() {
+object DomainInterface : DomainInterfaceRules<ClientDomain>(side = "client") {
     @Describe("A Domain Interface must be implemented by a Repository (as a property) or by a UseCase")
     val implementedByRepositoryOrUseCase by rule {
         note("The test accepts either a class whose parents include the interface (a UseCase) or a `[Name]Repository` with a property that references the interface.")

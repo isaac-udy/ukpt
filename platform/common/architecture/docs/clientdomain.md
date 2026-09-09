@@ -52,6 +52,13 @@ layer supplies the context, so the names never repeat it.
     * **Note:** Composition across two subsystems belongs to their shared ancestor, where a shared payload is an ordinary [domain model](#domain-model) and a shared contract an ordinary [domain interface](#domain-interface).
     * **Enforced by:** `ProjectRules.subsystemVisibility`
 
+##### Guidance
+
+* A feature's `client.domain` layer should hold domain interfaces in proportion to its domain models and consumers, not one per storage call or field
+    * **Note:** The audit reports one line per feature: domain interfaces (published ones counted separately), domain models in `client.domain` and the feature root, UseCases, and how many interfaces have no production consumer, one, or several. Many interfaces beside few models, or a high one-consumer share, marks the feature for the domain contract inventory in `ukpt-architecture-review`.
+    * **Note:** A consumer is a class whose primary constructor takes the interface; DI modules and tests are not consumers.
+    * **Audited:** a test reports non-conforming code without ever failing.
+
 ---
 
 ## [Domain Interface](../src/main/kotlin/architecture/rules/clientdomain/DomainInterface.kt)
@@ -88,7 +95,32 @@ A `fun interface` that represents a piece of domain-level business logic.
 ##### Guidance
 
 * A Domain Interface may define additional default functions that call the primary function
-* When several mutations act on one domain model and share a return type, prefer a single `Update[Noun]` interface over one interface per mutation: a nested `sealed interface Update` carries the variants, the abstract `invoke(id, update)` is the single entry point, and default functions (`title(...)`, `addMember(...)`) keep call sites flat. Reads stay separate interfaces — their return types differ. When publishing through `:api`, publish exactly the capability another feature needs, never the whole mutation family.
+* A Domain Interface should name a capability a consumer asks for, or return a domain model a consumer needs; it should not mirror one storage call, one property of a domain model, or one step of an implementation
+    * **Why:** A consumer that injects several storage-shaped interfaces and joins their results reconstructs a domain model the owning Repository could have produced; the join, and the knowledge of which storage produces each part, then repeats in every consumer.
+    * **Note:** Before adding a Domain Interface, name its consumer, the domain result it returns, its provider, and its reason to exist apart from the interfaces beside it. Several interfaces added together for one consumer are a candidate for one Repository property returning one domain model.
+    * **Note:** An implementation step with one caller is a private function, a file-private function, or a nested class of that caller, not a Domain Interface.
+    * **Note:** Assembling a domain model from storage the feature owns does not permit reading another feature's storage, injecting a sibling Repository, or holding a Domain Interface inside a domain model.
+    * **Note:** The audit reports a class injecting six or more domain interfaces, grouped by provider; a group of three or more interfaces from one provider with one consumer that mixes reads and other operations; and a `Get<Model><Part>` or `FlowOf<Model><Part>` name where `Model` is a domain model. Each is a review question with its evidence, not a defect.
+    * **Audited:** a test reports non-conforming code without ever failing.
+* When a consumer needs several facts about one domain model at once, and those facts share scope, freshness, and failure behaviour, a Domain Interface should return one immutable domain model carrying all of them
+    * **Why:** One read returns one snapshot. Several reads assembled by the consumer return facts from different moments, and every consumer decides for itself how a partially loaded model behaves.
+    * **Note:** Reads stay separate when a consumer uses one of them alone, when their authorization, freshness, failure, or lifecycle differs, or when one is optional and its failure must not fail the other. Appearing on the same Screen is not a reason to combine reads.
+    * **Note:** Returning one data class does not by itself make its facts consistent. When the consumer needs one consistent snapshot, the provider uses one query, one transaction at a suitable isolation level, a shared lock, or a revision, and preserves authorization and tenant scope across every constituent read.
+    * **Note:** Queries over one collection that differ only in their filter share one Domain Interface: a nested `sealed interface Input` carries the variants and a default function per variant keeps call sites flat.
+    * **Note:** A domain model with lifecycle states is a sealed hierarchy whose variants carry the values each state requires, in place of nullable properties and Booleans that are meaningful only in combination.
+    * **Note:** The audit reports three or more reads from one provider whose only consumer is one class. Constructor injection is the evidence, so the finding asks whether the reads are collected together; it does not prove they are.
+    * **Audited:** a test reports non-conforming code without ever failing.
+* When several mutations act on one domain model and share a return type, prefer a single `Update[Noun]` interface over one interface per mutation: a nested `sealed interface Update` carries the variants, the abstract `invoke(id, update)` is the single entry point, and default functions (`title(...)`, `addMember(...)`) keep call sites flat. When publishing through `:api`, publish exactly the capability another feature needs, never the whole mutation family.
+    * **Note:** Reads do not join an update family: a read returns the domain model it produces, and reads a consumer needs together form one read projection.
+    * **Note:** The audit reports three or more mutations on one noun from one provider, by name (`CreateTeam`, `UpdateTeam`, `DeleteTeam`). Whether they share a return type, and so form one family, is the reviewer's call.
+    * **Audited:** a test reports non-conforming code without ever failing.
+* A Domain Interface should be injected by at least one production class
+    * **Note:** A DI module binds an interface without consuming it, and a test fake is not a consumer. An interface published through `:api` may be consumed from another feature's module, which the audit sees when that module is in scope.
+    * **Note:** The audit reports interfaces no class injects through its primary constructor. A consumer outside a constructor, such as an app-module lambda or a top-level function, is not counted.
+    * **Audited:** a test reports non-conforming code without ever failing.
+* A mutation should return the value its caller needs next, and no value when an observed read projection already carries the outcome
+    * **Why:** A caller that receives an identifier and reads the model back performs a second read for a value the producer had in hand. A caller that receives a value it never uses carries a contract with no consumer.
+    * **Note:** A returned value describes the state captured within the mutation, including whether the mutation was accepted; it does not imply the state is unchanged after the mutation completes.
 
 ##### Examples
 
@@ -165,6 +197,40 @@ fun interface FlowOfUserProfile {
 
 ---
 
+Reads that one consumer always uses together, before: one interface per fact, and the consumer joins them.
+
+```kotlin
+fun interface FlowOfCheckoutItems {
+    operator fun invoke(cartId: CartId): Flow<List<CartItem>>
+}
+
+fun interface FlowOfCheckoutShipping {
+    operator fun invoke(cartId: CartId): Flow<ShippingOption?>
+}
+
+fun interface FlowOfCheckoutTotal {
+    operator fun invoke(cartId: CartId): Flow<Money>
+}
+```
+
+After: one read projection returned by the Repository that owns the cart, and the three interfaces above are gone.
+
+```kotlin
+data class Checkout(
+    val items: List<CartItem>,
+    val shipping: ShippingOption?, // null: no option chosen yet
+    val total: Money,
+)
+
+fun interface FlowOfCheckout {
+    operator fun invoke(cartId: CartId): Flow<Checkout>
+}
+```
+
+`FlowOfCheckoutPromotions` stays a separate interface: promotions are optional, polled on their own schedule, and their failure must not fail the checkout.
+
+---
+
 ## [Use Case](../src/main/kotlin/architecture/rules/clientdomain/UseCase.kt)
 
 A class that implements a single [domain interface](#domain-interface).
@@ -175,6 +241,8 @@ A class that implements a single [domain interface](#domain-interface).
   logic should become a default function of the other domain interface instead.
 * **Note:** When breaking down a complex UseCase, use file-private extension functions,
   private functions, or nested classes instead of additional domain interfaces or UseCases.
+* **Note:** A phase of an orchestration with one caller is a private function of that caller.
+  It becomes a UseCase of its own when a second caller needs it on its own.
 
 ##### Requirements
 
@@ -188,11 +256,64 @@ A class that implements a single [domain interface](#domain-interface).
     * **Why:** A UseCase instance is shared by its consumers and may be invoked concurrently; a `var` property lets one invocation change another's behaviour or internal state.
 * A UseCase must not override any default function of its domain interface
     * **Why:** The only abstract member of a domain interface is the primary `operator fun invoke`; every other function is a default. Default functions are contract behaviour built on `invoke`; overriding one makes the same helper behave differently depending on which implementation is injected.
+* A UseCase in the same module and package as its domain interface must be declared in the interface's file
+    * **Why:** A UseCase is the implementation of one interface, and a reader of either needs the other. Two files named `X` and `XImpl` in one package separate a contract from its only implementation and double the file count of the package. An interface published to `:api` is in a different module from its implementation, so those two are separate files by construction.
+    * **Note:** The parent is resolved through the UseCase file's imports and matched against the client's classified domain interfaces by fully-qualified name. Module and package are compared per source set, so an implementation in a platform source set of the interface's module, which cannot share the interface's file, is not asked to.
 
 ##### Guidance
 
 * A UseCase may inject domain interfaces to perform its logic
 * A UseCase that becomes too complex should be broken into private, file-private, or nested parts
+* A UseCase should exist for a decision, or for a composition of capabilities that exist independently of it, not to forward one call
+    * **Why:** A UseCase over one domain interface adds a class, a binding, and a contract between the caller and that one dependency; the same logic as a default function of the dependency's interface, or as the dependency's own Repository property, adds none of them.
+    * **Note:** The audit reports a UseCase whose primary constructor takes exactly one domain interface of its side. Authorization wrappers and error translation are the usual reasons such a UseCase stays.
+    * **Audited:** a test reports non-conforming code without ever failing.
+
+##### Examples
+
+A UseCase exists for a decision over capabilities that exist independently of it; the Repository stores what it is told. It shares its interface's file when both are in the same module and package; the implementation of an interface published to `:api` has its own file in the client module.
+
+```kotlin
+// feature/shop/client/domain/Reorder.kt
+package feature.shop.client.domain
+
+fun interface Reorder {
+    suspend operator fun invoke(id: OrderId)
+}
+
+internal class ReorderImpl(
+    private val getOrder: GetOrder,
+    private val updateCart: UpdateCart,
+) : Reorder {
+    override suspend fun invoke(id: OrderId) {
+        val order = getOrder(id) ?: throw OrderNotFoundException()
+        val available = order.lines.filter { it.stillAvailable }
+        if (available.isEmpty()) throw NothingToReorderException()
+        updateCart.addLines(available)
+    }
+}
+```
+
+An implementation step with one caller is a private function of that caller, not a further domain interface.
+
+```kotlin
+// feature/shop/client/domain/RefreshCartPrices.kt
+package feature.shop.client.domain
+
+internal class RefreshCartPricesImpl(
+    private val getCart: GetCart,
+    private val getPrices: GetPrices,
+    private val updateCart: UpdateCart,
+) : RefreshCartPrices {
+    override suspend fun invoke(cartId: CartId) {
+        val cart = getCart(cartId) ?: return
+        val prices = getPrices(cart.lines.map { it.productId })
+        updateCart.prices(cartId, reprice(cart, prices))
+    }
+
+    private fun reprice(cart: Cart, prices: Map<ProductId, Money>): List<CartLine> { ... }
+}
+```
 
 ---
 
@@ -265,7 +386,7 @@ data class CheckoutInputs(
 )
 ```
 
-The corrected form: the consumer injects each interface directly.
+The corrected form when the consumer needs the capabilities: it injects each interface directly.
 
 ```kotlin
 // feature/shop/client/ui/CheckoutViewModel.kt
@@ -275,6 +396,22 @@ class CheckoutViewModel(
     private val getShippingOptions: GetShippingOptions,
     private val calculateTotal: CalculateTotal,
 ) : ViewModel() { ... }
+```
+
+The corrected form when the consumer needs the values: one domain interface returns a model carrying them, and the consumer injects that one interface.
+
+```kotlin
+// feature/shop/client/domain/CheckoutInputs.kt
+package feature.shop.client.domain
+
+data class CheckoutInputs(
+    val shippingOptions: List<ShippingOption>,
+    val total: Money,
+)
+
+fun interface FlowOfCheckoutInputs {
+    operator fun invoke(cartId: CartId): Flow<CheckoutInputs>
+}
 ```
 
 ---

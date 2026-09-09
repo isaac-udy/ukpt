@@ -31,7 +31,7 @@ abstract class RepositoryRules<G : RuleGroup>(
 
     @Describe("A Repository must not implement domain interfaces directly")
     val doesNotImplementDomainInterfaces by rule {
-        rationale("Inheriting the interface makes one class *be* many contracts, so its surface can only grow; exposing them as properties keeps each contract separately nameable and separately injectable.")
+        rationale("Inheriting the interface makes the Repository type the thing a consumer depends on, and every contract it implements travels with it; a property is one contract, injected on its own, and the Repository stays out of every constructor.")
         note("A parent reference is resolved through its file's imports and matched against the side's classified domain interfaces by fully-qualified name — an `:api`-declared parent often resolves to no source declaration, and a simple-name match would collide with unrelated types sharing the name.")
         scope { scope, exempt ->
             val domainInterfaces = scope.domainInterfaceFqnsOnSide(side)
@@ -65,7 +65,7 @@ abstract class RepositoryRules<G : RuleGroup>(
 
     @Describe("A Repository must not inject domain interfaces")
     val doesNotInjectDomainInterfaces by rule {
-        rationale("A Repository that injects a contract is calling a sibling adapter through the abstract layer, which makes the graph unreadable and easy to cycle. Logic that needs several interfaces is a UseCase.")
+        rationale("A Repository that injects a contract calls a sibling adapter through the abstract layer, which makes the graph unreadable and easy to cycle. A Repository assembles the storage it owns into a domain model behind one property; a UseCase composes capabilities that exist independently of one another.")
         note("A parameter type — bare, aliased, or inside a wrapper such as `Lazy<…>` — is resolved through its file's imports and matched against the side's classified domain interfaces by fully-qualified name.")
         scope { scope, exempt ->
             val domainInterfaces = scope.domainInterfaceFqnsOnSide(side)
@@ -75,7 +75,7 @@ abstract class RepositoryRules<G : RuleGroup>(
                 .flatMap { cls ->
                     cls.primaryConstructor?.parameters.orEmpty()
                         .filter { param -> cls.containingFile.typeExpressionResolvesTo(param.type.name, domainInterfaces) }
-                        .map { Violation(cls, "Repository injects domain interface `${it.type.name}` — move multi-interface logic to a UseCase") }
+                        .map { Violation(cls, "Repository injects domain interface `${it.type.name}`: compose independent capabilities in a UseCase, or assemble owned storage behind one property here") }
                 }
         }
     }

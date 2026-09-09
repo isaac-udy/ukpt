@@ -12,13 +12,13 @@ import dev.isaacudy.udytils.state.fromFlow
 import dev.isaacudy.udytils.state.fromSuspending
 import dev.isaacudy.udytils.state.viewModelState
 import feature.ukpt.client.domain.FlowOfGreetingSummary
-import feature.ukpt.client.domain.GetGreeting
-import feature.ukpt.client.domain.ResetGreetings
+import feature.ukpt.client.domain.Greet
+import feature.ukpt.client.domain.UpdateGreetings
 
 class UkptViewModel(
     private val flowOfGreetingSummary: FlowOfGreetingSummary,
-    private val getGreeting: GetGreeting,
-    private val resetGreetings: ResetGreetings,
+    private val greet: Greet,
+    private val updateGreetings: UpdateGreetings,
 ) : ViewModel() {
 
     private val navigation by navigationHandle<UkptDestination>()
@@ -29,7 +29,7 @@ class UkptViewModel(
     private val confirmResetResult by registerForNavigationResult(
         onCompleted = {
             jobManager.launchReplacing(RESET_ACTION) {
-                resetGreetings()
+                updateGreetings.reset()
             }
         },
     )
@@ -51,7 +51,7 @@ class UkptViewModel(
 
     fun onGreetClicked() {
         jobManager.launchReplacing(GREET_ACTION) {
-            AsyncState.fromSuspending<Unit> { getGreeting() }
+            AsyncState.fromSuspending<Unit> { greet() }
                 .collect { state.update { copy(greetAction = it) } }
         }
     }

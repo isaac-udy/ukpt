@@ -13,9 +13,9 @@ import dev.enro.test.sendCompletedForTest
 import dev.isaacudy.udytils.state.AsyncState
 import feature.ukpt.Greeting
 import feature.ukpt.client.domain.FlowOfGreetingSummary
-import feature.ukpt.client.domain.GetGreeting
+import feature.ukpt.client.domain.Greet
 import feature.ukpt.client.domain.GreetingSummary
-import feature.ukpt.client.domain.ResetGreetings
+import feature.ukpt.client.domain.UpdateGreetings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
@@ -35,6 +35,7 @@ class UkptViewModelTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
     private val createdViewModels = mutableListOf<ViewModel>()
+    private val emptySummary = GreetingSummary(greetings = emptyList())
 
     private fun <T : ViewModel> T.track(): T {
         createdViewModels += this
@@ -59,35 +60,25 @@ class UkptViewModelTest {
 
     @Test
     fun loadLifecycleReachesSuccessOnEmission() = runEnroTest {
-        val summaryFlow = MutableStateFlow(
-            GreetingSummary(
-                latestGreeting = Greeting(text = "Hello"),
-                greetingHistory = listOf(Greeting(text = "Hello")),
-            )
-        )
+        val summaryFlow = MutableStateFlow(GreetingSummary(greetings = listOf(Greeting(text = "Hello"))))
         putNavigationHandleForViewModel<UkptViewModel, UkptDestination>(UkptDestination)
 
         val vm = UkptViewModel(
             flowOfGreetingSummary = FlowOfGreetingSummary { summaryFlow },
-            getGreeting = GetGreeting { "Hello" },
-            resetGreetings = ResetGreetings { },
+            greet = Greet { },
+            updateGreetings = UpdateGreetings { },
         ).track()
 
         val state = vm.state.value
         assertIs<AsyncState.Success<GreetingSummary>>(state.greetingSummary)
-        assertEquals("Hello", state.greetingSummary.data.latestGreeting?.text)
-        assertEquals(1, state.greetingSummary.data.greetingHistory.size)
+        assertEquals("Hello", state.greetingSummary.data.latest?.text)
+        assertEquals(1, state.greetingSummary.data.greetings.size)
     }
 
     @Test
     fun loadErrorLandsInAsyncStateError() = runEnroTest {
         var shouldFail = true
-        val summaryFlow = MutableStateFlow(
-            GreetingSummary(
-                latestGreeting = null,
-                greetingHistory = emptyList(),
-            )
-        )
+        val summaryFlow = MutableStateFlow(emptySummary)
 
         putNavigationHandleForViewModel<UkptViewModel, UkptDestination>(UkptDestination)
 
@@ -99,8 +90,8 @@ class UkptViewModelTest {
                     summaryFlow
                 }
             },
-            getGreeting = GetGreeting { "Hello" },
-            resetGreetings = ResetGreetings { },
+            greet = Greet { },
+            updateGreetings = UpdateGreetings { },
         ).track()
 
         assertIs<AsyncState.Error<GreetingSummary>>(vm.state.value.greetingSummary)
@@ -113,20 +104,15 @@ class UkptViewModelTest {
 
     @Test
     fun greetActionDrivesStateToSuccess() = runEnroTest {
-        val summaryFlow = MutableStateFlow(
-            GreetingSummary(latestGreeting = null, greetingHistory = emptyList())
-        )
+        val summaryFlow = MutableStateFlow(emptySummary)
         var greetCalled = false
 
         putNavigationHandleForViewModel<UkptViewModel, UkptDestination>(UkptDestination)
 
         val vm = UkptViewModel(
             flowOfGreetingSummary = FlowOfGreetingSummary { summaryFlow },
-            getGreeting = GetGreeting {
-                greetCalled = true
-                "Hello"
-            },
-            resetGreetings = ResetGreetings { },
+            greet = Greet { greetCalled = true },
+            updateGreetings = UpdateGreetings { },
         ).track()
 
         vm.onGreetClicked()
@@ -137,16 +123,14 @@ class UkptViewModelTest {
 
     @Test
     fun greetActionErrorLandsInAsyncStateError() = runEnroTest {
-        val summaryFlow = MutableStateFlow(
-            GreetingSummary(latestGreeting = null, greetingHistory = emptyList())
-        )
+        val summaryFlow = MutableStateFlow(emptySummary)
 
         putNavigationHandleForViewModel<UkptViewModel, UkptDestination>(UkptDestination)
 
         val vm = UkptViewModel(
             flowOfGreetingSummary = FlowOfGreetingSummary { summaryFlow },
-            getGreeting = GetGreeting { throw IllegalStateException("greet failed") },
-            resetGreetings = ResetGreetings { },
+            greet = Greet { throw IllegalStateException("greet failed") },
+            updateGreetings = UpdateGreetings { },
         ).track()
 
         vm.onGreetClicked()
@@ -155,47 +139,43 @@ class UkptViewModelTest {
     }
 
     @Test
-    fun resetViaDialogCompletionTriggersResetGreetings() = runEnroTest {
-        val summaryFlow = MutableStateFlow(
-            GreetingSummary(latestGreeting = null, greetingHistory = emptyList())
-        )
-        var resetCalled = false
+    fun resetViaDialogCompletionResetsGreetings() = runEnroTest {
+        val summaryFlow = MutableStateFlow(emptySummary)
+        val updates = mutableListOf<UpdateGreetings.Update>()
 
         val handle = putNavigationHandleForViewModel<UkptViewModel, UkptDestination>(UkptDestination)
 
         val vm = UkptViewModel(
             flowOfGreetingSummary = FlowOfGreetingSummary { summaryFlow },
-            getGreeting = GetGreeting { "Hello" },
-            resetGreetings = ResetGreetings { resetCalled = true },
+            greet = Greet { },
+            updateGreetings = UpdateGreetings { updates += it },
         ).track()
 
         vm.onResetRequested()
         val child = handle.assertOpened<ConfirmResetDestination>()
         child.sendCompletedForTest()
 
-        assertTrue(resetCalled)
+        assertEquals(listOf<UpdateGreetings.Update>(UpdateGreetings.Update.Reset), updates)
     }
 
     @Test
-    fun resetDialogClosedDoesNotTriggerResetGreetings() = runEnroTest {
-        val summaryFlow = MutableStateFlow(
-            GreetingSummary(latestGreeting = null, greetingHistory = emptyList())
-        )
-        var resetCalled = false
+    fun resetDialogClosedDoesNotResetGreetings() = runEnroTest {
+        val summaryFlow = MutableStateFlow(emptySummary)
+        val updates = mutableListOf<UpdateGreetings.Update>()
 
         val handle = putNavigationHandleForViewModel<UkptViewModel, UkptDestination>(UkptDestination)
 
         val vm = UkptViewModel(
             flowOfGreetingSummary = FlowOfGreetingSummary { summaryFlow },
-            getGreeting = GetGreeting { "Hello" },
-            resetGreetings = ResetGreetings { resetCalled = true },
+            greet = Greet { },
+            updateGreetings = UpdateGreetings { updates += it },
         ).track()
 
         vm.onResetRequested()
         val child = handle.assertOpened<ConfirmResetDestination>()
         child.sendClosedForTest()
 
-        // Absence is the assertion: sendClosedForTest must not invoke resetGreetings.
-        assertTrue(!resetCalled)
+        // Absence is the assertion: sendClosedForTest must not reach updateGreetings.
+        assertTrue(updates.isEmpty())
     }
 }

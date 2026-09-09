@@ -1,16 +1,21 @@
 package architecture.rules.shared
 
 import architecture.definitions.isMutable
+import architecture.definitions.resolveTypeToken
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
+import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
 import dev.isaacudy.udytils.architecture.*
 
 /**
  * The UseCase rules, declared once and instantiated by each sided domain group's concrete
- * `object UseCase : UseCaseRules<Group>()`. The side supplies nothing here — the group's package
- * gate does all the scoping — so the base carries the whole discipline; a concrete object adds
- * only its side's narrative and any side-specific rules.
+ * `object UseCase : UseCaseRules<Group>(side)`. The group's package gate does the scoping of the
+ * rules; [side] scopes only the dependency audit to the side's classified domain interfaces. The
+ * base carries the whole discipline; a concrete object adds only its side's narrative and any
+ * side-specific rules.
  */
-abstract class UseCaseRules<G : RuleGroup> : Construct<G>(
+abstract class UseCaseRules<G : RuleGroup>(
+    private val side: String,
+) : Construct<G>(
     requirements = listOf(
         isClassWhere("is a non-sealed/data/enum/value class named `[DomainInterface]Impl`") { decl ->
             !decl.hasSealedModifier && !decl.hasDataModifier && !decl.hasEnumModifier && !decl.hasValueModifier &&
@@ -52,11 +57,63 @@ abstract class UseCaseRules<G : RuleGroup> : Construct<G>(
         }
     }
 
+    @Describe("A UseCase in the same module and package as its domain interface must be declared in the interface's file")
+    val declaredInItsInterfaceFile by rule {
+        rationale(
+            """
+            A UseCase is the implementation of one interface, and a reader of either needs the
+            other. Two files named `X` and `XImpl` in one package separate a contract from its
+            only implementation and double the file count of the package. An interface published
+            to `:api` is in a different module from its implementation, so those two are separate
+            files by construction.
+            """.trimIndent(),
+        )
+        note("The parent is resolved through the UseCase file's imports and matched against the $side's classified domain interfaces by fully-qualified name. Module and package are compared per source set, so an implementation in a platform source set of the interface's module, which cannot share the interface's file, is not asked to.")
+        scope { scope, exempt ->
+            val interfaces = scope.interfaces()
+                .filter { isDomainInterfaceOnSide(it, side) }
+                .mapNotNull { iface -> (iface as? KoFullyQualifiedNameProvider)?.fullyQualifiedName?.let { it to iface } }
+                .toMap()
+            scope.classes()
+                .filter { test(it) }
+                .filterNot { exempt(it) }
+                .mapNotNull { cls ->
+                    val implFile = cls.containingFile
+                    val parent = cls.parents().singleOrNull() ?: return@mapNotNull null
+                    val iface = implFile.resolveTypeToken(parent.name)?.let { interfaces[it] } ?: return@mapNotNull null
+                    val interfaceFile = iface.containingFile
+                    if (interfaceFile.path == implFile.path) return@mapNotNull null
+                    if (interfaceFile.packagee?.name != implFile.packagee?.name) return@mapNotNull null
+                    if (sourceSetRoot(interfaceFile.path) != sourceSetRoot(implFile.path)) return@mapNotNull null
+                    val fileName = interfaceFile.path.substringAfterLast('/')
+                    Violation(cls, "UseCase `${cls.name}` has its own file beside `${iface.name}` in the same package; declare it in `$fileName`")
+                }
+        }
+    }
+
     @Describe("A UseCase may inject domain interfaces to perform its logic")
     val mayInjectDomainInterfaces by guidance
 
     @Describe("A UseCase that becomes too complex should be broken into private, file-private, or nested parts")
     val breakDownComplexUseCases by guidance
+
+    @Describe("A UseCase should exist for a decision, or for a composition of capabilities that exist independently of it, not to forward one call")
+    val existsForADecision by guidance {
+        rationale("A UseCase over one domain interface adds a class, a binding, and a contract between the caller and that one dependency; the same logic as a default function of the dependency's interface, or as the dependency's own Repository property, adds none of them.")
+        note("The audit reports a UseCase whose primary constructor takes exactly one domain interface of its side. Authorization wrappers and error translation are the usual reasons such a UseCase stays.")
+        auditScope { scope, exempt ->
+            val fqns = scope.domainInterfaceFqnsOnSide(side)
+            scope.classes()
+                .filter { test(it) }
+                .filterNot { exempt(it) }
+                .mapNotNull { cls ->
+                    val consumed = consumedInterfaces(cls, fqns)
+                    if (consumed.size != 1) return@mapNotNull null
+                    val dependency = consumed.single().substringAfterLast('.')
+                    Violation(cls, "`${cls.name}` injects one domain interface, `$dependency`. Could the logic be a default function of `$dependency`, or a property of the Repository that provides it?")
+                }
+        }
+    }
 }
 
 /**
@@ -75,3 +132,7 @@ private fun KoClassDeclaration.associatedDomainInterfaceName(): String? {
     val parentName = parents.single().name
     return if (name == "${parentName}Impl") parentName else null
 }
+
+/** The path up to and including the source-set directory: `…/client/src/commonMain`. */
+private fun sourceSetRoot(path: String): String =
+    path.substringBeforeLast("/src/") + "/src/" + path.substringAfterLast("/src/").substringBefore('/')

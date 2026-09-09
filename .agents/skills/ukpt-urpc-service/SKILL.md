@@ -34,7 +34,10 @@ also stands up the host (Step 5). Copy-paste skeletons are in `templates.md`.
    (the `ServerServices.ServiceImpl` construct). A ServiceImpl is an **entry point**: it answers the
    request and hands the work to `server.domain` — inject this feature's domain interfaces
    (`ServerServices.ServiceImpl.mayInjectDomainInterfaces`) and state a new one when the operation
-   needs logic that doesn't exist yet. **Never persistence** — no `server.data` imports, no
+   needs logic that doesn't exist yet. Before stating one, name its consumer, its domain result, and
+   its provider: reads a ServiceImpl needs together are one Repository property returning one domain
+   model, not one interface per storage call (`ServerDomain.DomainInterface.namesACapability`,
+   `ServerDomain.DomainInterface.readProjections`). **Never persistence** — no `server.data` imports, no
    StorageClasses (`ServerServices.ServiceImpl.noPersistenceInjection`, `ServerServices.noDataImports`) —
    and **never another feature's Service contract**
    (`ServerServices.noForeignServiceContractInjection`): reach another server feature through the
