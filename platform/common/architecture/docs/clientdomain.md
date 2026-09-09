@@ -52,6 +52,13 @@ layer supplies the context, so the names never repeat it.
     * **Note:** Composition across two subsystems belongs to their shared ancestor, where a shared payload is an ordinary [domain model](#domain-model) and a shared contract an ordinary [domain interface](#domain-interface).
     * **Enforced by:** `ProjectRules.subsystemVisibility`
 
+##### Guidance
+
+* A feature's `client.domain` layer should hold domain interfaces in proportion to its domain models and consumers, not one per storage call or field
+    * **Note:** The audit reports one line per feature: domain interfaces (published ones counted separately), domain models in `client.domain` and the feature root, UseCases, and how many interfaces have no production consumer, one, or several. Many interfaces beside few models, or a high one-consumer share, marks the feature for the domain contract inventory in `ukpt-architecture-review`.
+    * **Note:** A consumer is a class whose primary constructor takes the interface; DI modules and tests are not consumers.
+    * **Audited:** a test reports non-conforming code without ever failing.
+
 ---
 
 ## [Domain Interface](../src/main/kotlin/architecture/rules/clientdomain/DomainInterface.kt)

@@ -76,6 +76,13 @@ object ServerDomain : DomainGroupRules(
         enforcedBy("ModuleRules.crossFeatureCodeViaApi")
     }
 
+    @Describe("A feature's `server.domain` layer should hold domain interfaces in proportion to its domain models and consumers, not one per storage call or field")
+    val inventory by guidance {
+        note("The audit reports one line per feature: domain interfaces (published ones counted separately), domain models in `server.domain` and the feature root, UseCases, and how many interfaces have no production consumer, one, or several. Many interfaces beside few models, or a high one-consumer share, marks the feature for the domain contract inventory in `ukpt-architecture-review`.")
+        note("A consumer is a class whose primary constructor takes the interface; DI modules and tests are not consumers.")
+        audit(inventoryAudit())
+    }
+
     @Describe("A `server.domain` package imports this layer only through its own package, its direct child subsystems, and its ancestors up to the layer root")
     val subsystemVisibility by rule {
         note("A subsystem is a capability the feature has that nothing outside it names — the framework of a processing pipeline, an audio subtree. It earns a package at the point where a reader scanning the layer root has to skip past it, and the constructs classify inside one exactly as they do at the root: a subsystem is a location, not a kind of thing.")
