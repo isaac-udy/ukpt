@@ -1,7 +1,9 @@
 package architecture.rules.shared
 
 import architecture.definitions.isMutable
+import architecture.definitions.resolveTypeToken
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
+import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
 import dev.isaacudy.udytils.architecture.*
 
 /**
@@ -55,6 +57,40 @@ abstract class UseCaseRules<G : RuleGroup>(
         }
     }
 
+    @Describe("A UseCase in the same module and package as its domain interface must be declared in the interface's file")
+    val declaredInItsInterfaceFile by rule {
+        rationale(
+            """
+            A UseCase is the implementation of one interface, and a reader of either needs the
+            other. Two files named `X` and `XImpl` in one package separate a contract from its
+            only implementation and double the file count of the package. An interface published
+            to `:api` is in a different module from its implementation, so those two are separate
+            files by construction.
+            """.trimIndent(),
+        )
+        note("The parent is resolved through the UseCase file's imports and matched against the $side's classified domain interfaces by fully-qualified name. Module and package are compared per source set, so an implementation in a platform source set of the interface's module, which cannot share the interface's file, is not asked to.")
+        scope { scope, exempt ->
+            val interfaces = scope.interfaces()
+                .filter { isDomainInterfaceOnSide(it, side) }
+                .mapNotNull { iface -> (iface as? KoFullyQualifiedNameProvider)?.fullyQualifiedName?.let { it to iface } }
+                .toMap()
+            scope.classes()
+                .filter { test(it) }
+                .filterNot { exempt(it) }
+                .mapNotNull { cls ->
+                    val implFile = cls.containingFile
+                    val parent = cls.parents().singleOrNull() ?: return@mapNotNull null
+                    val iface = implFile.resolveTypeToken(parent.name)?.let { interfaces[it] } ?: return@mapNotNull null
+                    val interfaceFile = iface.containingFile
+                    if (interfaceFile.path == implFile.path) return@mapNotNull null
+                    if (interfaceFile.packagee?.name != implFile.packagee?.name) return@mapNotNull null
+                    if (sourceSetRoot(interfaceFile.path) != sourceSetRoot(implFile.path)) return@mapNotNull null
+                    val fileName = interfaceFile.path.substringAfterLast('/')
+                    Violation(cls, "UseCase `${cls.name}` has its own file beside `${iface.name}` in the same package; declare it in `$fileName`")
+                }
+        }
+    }
+
     @Describe("A UseCase may inject domain interfaces to perform its logic")
     val mayInjectDomainInterfaces by guidance
 
@@ -96,3 +132,7 @@ private fun KoClassDeclaration.associatedDomainInterfaceName(): String? {
     val parentName = parents.single().name
     return if (name == "${parentName}Impl") parentName else null
 }
+
+/** The path up to and including the source-set directory: `…/client/src/commonMain`. */
+private fun sourceSetRoot(path: String): String =
+    path.substringBeforeLast("/src/") + "/src/" + path.substringAfterLast("/src/").substringBefore('/')

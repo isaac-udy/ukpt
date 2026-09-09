@@ -1,7 +1,15 @@
 # Domain interface cohesion guidance
 
-A guidance change. No rule is added, renamed, removed, or made stricter, so no existing code fails
-and no `@ArchitectureException` needs updating.
+Guidance, advisory audits, and one new enforced rule. Existing code fails only where a UseCase has
+its own file beside its interface's file in one domain package.
+
+New rule on the shared UseCase rules, instantiated for `ClientDomain.UseCase` and
+`ServerDomain.UseCase`:
+
+- **`declaredInItsInterfaceFile`**: a UseCase in the same module and package as its domain
+  interface is declared in the interface's file. `Reorder.kt` holds `Reorder` and `ReorderImpl`.
+  The implementation of an interface published to `:api` keeps its own file in the client or
+  server module.
 
 New Guidance on the shared DomainInterface rules, instantiated for `ClientDomain.DomainInterface`
 and `ServerDomain.DomainInterface`:
@@ -61,7 +69,19 @@ it the same way or drop it.
 
 ## Detection
 
-Nothing fails. Candidates for review, per feature and layer:
+`verifyArchitecture` fails `ClientDomain.UseCase.declaredInItsInterfaceFile` or
+`ServerDomain.UseCase.declaredInItsInterfaceFile` once per UseCase file beside its interface's
+file:
+
+```bash
+find feature -path "*/build" -prune -o -path "*/domain/*" -name "*Impl.kt" -print \
+    | grep -v "/src/[^/]*[Tt]est/" \
+    | while read -r f; do
+        [ -f "$(dirname "$f")/$(basename "$f" Impl.kt).kt" ] && echo "$f"
+      done
+```
+
+Everything else is advisory. Candidates for review, per feature and layer:
 
 ```bash
 # Domain interfaces per feature and layer
@@ -82,7 +102,11 @@ interfaces mostly have one consumer, is where the review pays.
 
 ## Migration
 
-Optional. For each candidate group, run the domain contract inventory in the
+For each UseCase file the detection lists, move the class into the interface's file below the
+interface and delete the `Impl` file. The package, the class name, and the Koin binding do not
+change, so nothing else is edited.
+
+The rest is optional. For each candidate group, run the domain contract inventory in the
 `ukpt-architecture-review` skill. Where a group of reads has one consumer and one provider, and the
 facts share scope, freshness, and failure behaviour, replace the group with one Repository property
 returning one domain model, and delete the interfaces, properties, and bindings it replaces. Keep

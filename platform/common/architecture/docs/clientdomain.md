@@ -256,6 +256,9 @@ A class that implements a single [domain interface](#domain-interface).
     * **Why:** A UseCase instance is shared by its consumers and may be invoked concurrently; a `var` property lets one invocation change another's behaviour or internal state.
 * A UseCase must not override any default function of its domain interface
     * **Why:** The only abstract member of a domain interface is the primary `operator fun invoke`; every other function is a default. Default functions are contract behaviour built on `invoke`; overriding one makes the same helper behave differently depending on which implementation is injected.
+* A UseCase in the same module and package as its domain interface must be declared in the interface's file
+    * **Why:** A UseCase is the implementation of one interface, and a reader of either needs the other. Two files named `X` and `XImpl` in one package separate a contract from its only implementation and double the file count of the package. An interface published to `:api` is in a different module from its implementation, so those two are separate files by construction.
+    * **Note:** The parent is resolved through the UseCase file's imports and matched against the client's classified domain interfaces by fully-qualified name. Module and package are compared per source set, so an implementation in a platform source set of the interface's module, which cannot share the interface's file, is not asked to.
 
 ##### Guidance
 
@@ -268,11 +271,15 @@ A class that implements a single [domain interface](#domain-interface).
 
 ##### Examples
 
-A UseCase exists for a decision over capabilities that exist independently of it; the Repository stores what it is told.
+A UseCase exists for a decision over capabilities that exist independently of it; the Repository stores what it is told. It shares its interface's file when both are in the same module and package; the implementation of an interface published to `:api` has its own file in the client module.
 
 ```kotlin
-// feature/shop/client/domain/ReorderImpl.kt
+// feature/shop/client/domain/Reorder.kt
 package feature.shop.client.domain
+
+fun interface Reorder {
+    suspend operator fun invoke(id: OrderId)
+}
 
 internal class ReorderImpl(
     private val getOrder: GetOrder,
@@ -290,7 +297,7 @@ internal class ReorderImpl(
 An implementation step with one caller is a private function of that caller, not a further domain interface.
 
 ```kotlin
-// feature/shop/client/domain/RefreshCartPricesImpl.kt
+// feature/shop/client/domain/RefreshCartPrices.kt
 package feature.shop.client.domain
 
 internal class RefreshCartPricesImpl(

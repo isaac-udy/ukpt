@@ -1,8 +1,12 @@
-A UseCase exists for a decision over capabilities that exist independently of it; the Repository stores what it is told.
+A UseCase exists for a decision over capabilities that exist independently of it; the Repository stores what it is told. It shares its interface's file when both are in the same module and package; the implementation of an interface published to `:api` has its own file in the server module.
 
 ```kotlin
-// feature/shop/server/domain/SubmitOrderImpl.kt
+// feature/shop/server/domain/SubmitOrder.kt
 package feature.shop.server.domain
+
+fun interface SubmitOrder {
+    suspend operator fun invoke(id: OrderId)
+}
 
 internal class SubmitOrderImpl(
     private val getOrder: GetOrder,
@@ -19,7 +23,7 @@ internal class SubmitOrderImpl(
 Phases of an orchestration with one caller are private functions of that caller, not further domain interfaces; phase order, failure isolation, and cancellation stay visible in one place.
 
 ```kotlin
-// feature/shop/server/domain/ReconcileOrdersImpl.kt
+// feature/shop/server/domain/ReconcileOrders.kt
 package feature.shop.server.domain
 
 internal class ReconcileOrdersImpl(

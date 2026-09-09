@@ -33,7 +33,9 @@ Interfaces come from consumers, not from storage. Before the first `fun interfac
 1. List the consumers (ViewModels, ServiceImpls, UseCases) and the question each one asks.
 2. Write the domain models those answers need; facts one consumer needs together are one model.
 3. Derive one interface per question, provided by the Repository that owns the storage. A UseCase
-   exists only where a decision, or a composition of independent capabilities, exists.
+   exists only where a decision, or a composition of independent capabilities, exists, and it is
+   declared in its interface's file when both are in the same module and package
+   (`ClientDomain.UseCase.declaredInItsInterfaceFile`).
 Guidance: `ClientDomain.DomainInterface.namesACapability`, `.readProjections`,
 `.collapsedUpdateFamilies`, and the `ServerDomain` twins. `ukpt-architecture-review` has the
 domain contract inventory to check the result.

@@ -1,8 +1,12 @@
-A UseCase exists for a decision over capabilities that exist independently of it; the Repository stores what it is told.
+A UseCase exists for a decision over capabilities that exist independently of it; the Repository stores what it is told. It shares its interface's file when both are in the same module and package; the implementation of an interface published to `:api` has its own file in the client module.
 
 ```kotlin
-// feature/shop/client/domain/ReorderImpl.kt
+// feature/shop/client/domain/Reorder.kt
 package feature.shop.client.domain
+
+fun interface Reorder {
+    suspend operator fun invoke(id: OrderId)
+}
 
 internal class ReorderImpl(
     private val getOrder: GetOrder,
@@ -20,7 +24,7 @@ internal class ReorderImpl(
 An implementation step with one caller is a private function of that caller, not a further domain interface.
 
 ```kotlin
-// feature/shop/client/domain/RefreshCartPricesImpl.kt
+// feature/shop/client/domain/RefreshCartPrices.kt
 package feature.shop.client.domain
 
 internal class RefreshCartPricesImpl(
