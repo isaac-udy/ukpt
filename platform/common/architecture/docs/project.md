@@ -6,8 +6,9 @@
 # [Project Rules](../src/main/kotlin/architecture/rules/project/ProjectRules.kt)
 
 These rules are not tied to a Construct or a single package; they apply across every feature
-module. Several govern the process for [architecture exceptions](exceptions.md); the mechanism
-itself is documented there.
+module, and the dependency injection rules across every Koin module in the project, platform
+and `:app` modules included. Several govern the process for
+[architecture exceptions](exceptions.md); the mechanism itself is documented there.
 
 Context for the exception-handling rules: exceptions defined in the
 [services contract](serverservices.md#service-interface) cross the client/server boundary as
@@ -58,6 +59,16 @@ is the async-result wrapper that [ViewModels](clientui.md#view-model) consume.
     * **Note:** Only the required suffix is checked for a sealed variant, so a hierarchy pinned to a pre-move fully-qualified name for compatibility already satisfies this — the type chain is the end of an FQN.
     * **Note:** The required chain runs from the outermost declaring type, not just the immediate sealed parent: two destinations each nesting a sealed `Action` with a `Delete` variant would otherwise share the discriminator `"Action.Delete"`, and a value two readers can claim identifies neither.
     * **Note:** A destination is checked exactly, not by suffix: nothing durable rides on a navigation key, so there is no compatibility case that would justify a longer value.
+* A DI binding of an application class must use the constructor reference style `singleOf(::Constructor).bind(BindingType::class)`, not a lambda that constructs the class
+    * **Why:** The reference style lets Koin validate the constructor parameters against the graph at startup; a lambda hides a missing or cyclic dependency until the first injection at runtime. A lambda that passes a literal, or omits an argument that has a default, fixes a setting at the binding site, where no other binding and no test can change it.
+    * **Note:** Covers every Koin module in the project: feature dependency modules, platform modules, and the `:app` shells.
+    * **Note:** A lambda remains the form for a value the graph does not construct: a typed configuration object (`single { OrdersConfig(region = "eu") }`), a third-party client built through its own builder, or a Repository property bound under its interface (`single<GetOrders> { get<OrdersRepository>().getOrders }`). A data, value, enum, sealed, or abstract class constructed in a lambda is such a value. A lambda that declares runtime parameters (`factory { params -> … }`) is the form Koin gives that case.
+    * **Note:** Koin's constructor-reference DSL stops at 22 constructor parameters. A binding whose constructor has more than 22 parameters may use the lambda style, since no reference form exists.
+* A class a DI module registers must not give a constructor parameter a default value
+    * **Why:** Koin's constructor-reference DSL resolves every parameter from the graph; a Kotlin default expression does not make the parameter optional to Koin. `clock: Clock = Clock.System` or `timeout: Duration = 15.seconds` is satisfied only when the graph binds that type, and an unbound type fails at the first resolution of the class, which for a lazily resolved worker is the first request that needs it. A default the graph does satisfy is a value tests exercise and production never does.
+    * **Note:** A dependency is a required constructor parameter, even one production always satisfies with a standard instance (`single<Clock> { Clock.System }`). A setting fixed for every deployment is a private property or a constant of the class. A setting that varies between deployments is a field of a typed configuration object the dependency module assembles and the graph injects: a [domain model](serverdomain.md#domain-model) for a UseCase, a [configuration](serverdata.md#configuration) in the data layer.
+    * **Note:** Applies to the classes a Koin module registers by constructor reference or constructs in a binding lambda. A data, value, enum, sealed, or abstract class constructed in a lambda is a value assembled by hand and keeps its defaults, as do wire models, UI state, and ordinary functions, which nothing injects.
+    * **Note:** Koin's `verify()` treats a parameter with a default as optional and only warns when its type is unbound, so a graph-resolution test does not close this gap; this rule does.
 * A `TransactionRunner` may only be injected by a UseCase or a Repository
     * **Why:** Opening a transaction is a statement about which writes have to land together, and only two places are positioned to make it. A [UseCase](serverdomain.md#use-case) composes several domain interfaces and is the one place that knows the whole unit of work; a [Repository](serverdata.md#repository) owns the writes it makes through its StorageClasses. Everything else is on the wrong side of that knowledge: an entry point in `server.services` would be scoping a transaction around contracts whose implementations it cannot see, and a [StorageClass](serverdata.md#storage-class) already runs inside whatever transaction its caller opened — taking the runner would let it widen a boundary it is a participant in.
     * **Note:** A block that spans two features' writes is a UseCase by construction: a Repository may not inject a domain interface, so it cannot reach another feature's contract to put inside one.

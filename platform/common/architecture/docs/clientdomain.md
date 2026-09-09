@@ -357,6 +357,12 @@ belongs in the feature root with the compatibility obligations that come with it
     * **Note:** The feature's vocabulary has one source of truth in the root; a private copy of a concept drifts from it as both change.
     * **Verification:** not automatically verifiable; enforced by review.
 
+##### Guidance
+
+* A typed configuration value for a UseCase is a domain model of its side, assembled in the dependency module and injected
+    * **Note:** A setting that varies between deployments reaches a UseCase as a field of an immutable data class the dependency module constructs (`single { ReconciliationConfig(cleanupTimeout = 15.seconds) }`), never as a constructor default (`ProjectRules.injectableConstructorsHaveNoDefaults`). A setting fixed for every deployment is a private property of the UseCase.
+    * **Note:** The data layer's counterpart is a [configuration](clientdata.md#configuration): a `[Name]Config` data class beside the Repository or adapter it configures.
+
 ##### Examples
 
 A computed read projection that groups related domain objects into a single consistent snapshot. The projection preserves domain objects rather than flattening to display strings; the domain interface that produces it groups by consistency and failure boundary, not by screen.

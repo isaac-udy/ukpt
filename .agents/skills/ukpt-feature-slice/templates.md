@@ -387,8 +387,12 @@ import org.koin.dsl.module
 // VMs via Koin. On wasmJs/JS there is no reflection, so a missing registration crashes at runtime
 // (Factory.create … not implemented) — invisible to compileKotlinWasmJs.
 // singleOf + bind registers domain interface implementations (UseCases).
+// Every application class is bound by constructor reference and gives no constructor parameter a
+// default (ProjectRules.constructorReferenceBindings, ProjectRules.injectableConstructorsHaveNoDefaults);
+// a setting that varies between deployments is a `<Name>Config` data class bound with `single { … }`.
 val <name>ClientDependencies = module {
     // singleOf(::<Name>Impl) bind <Name>::class
+    // single { <Name>Config(baseUrl = "…") }
     viewModelOf(::<Name>ViewModel)
 }
 ```
@@ -538,8 +542,8 @@ dialog returns data that complete/close cannot represent. The destination carrie
 ## §9 — Wiring checklist (edits to EXISTING files — the easy-to-forget step)
 - [ ] `settings.gradle.kts` — three `include(":feature:<name>:…")` (§4).
 - [ ] `app/client/common/build.gradle.kts` — `commonMain` → `implementation(projects.feature.<name>.client)`.
-- [ ] `app/client/common/src/commonMain/kotlin/com/isaacudy/ukpt/App.kt` — `import feature.<name>.<name>ClientDependencies`
-      and add it to `KoinApplication(application = { modules(ukptClientDependencies, <name>ClientDependencies) })`.
+- [ ] `app/client/common/src/commonMain/kotlin/com/isaacudy/ukpt/ClientDependencies.kt` — `import feature.<name>.<name>ClientDependencies`
+      and add it to the `clientDependencies` list (`App()` installs that list; `:app:client:common:jvmTest` verifies it).
 - [ ] `app/server/build.gradle.kts` — `implementation(projects.feature.<name>.server)` (only if using the server).
 - [ ] Add a navigation entry to the new `<Name>Destination` from wherever the app should reach it.
 - [ ] (Server DI / urpc host: defer to the `ukpt-urpc-service` skill — done when the feature gets its first service.)

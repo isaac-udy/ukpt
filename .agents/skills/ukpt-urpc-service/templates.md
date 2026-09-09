@@ -89,21 +89,25 @@ val <name>ServerDependencies = module {
 ## §4 — Host (`:app:server`, FIRST service only)
 Path: `app/server/src/main/kotlin/com/isaacudy/ukpt/Server.kt`
 
-`main()` already resolves the database config and installs Koin with the postgres modules — this
-is what a first service adds to it, not a replacement:
+`main()` already resolves the database config and installs Koin with `serverDependencies(postgresConfig)`
+(`app/server/src/main/kotlin/com/isaacudy/ukpt/ServerDependencies.kt`, the list
+`ServerDependenciesTest` verifies) — this is what a first service adds, not a replacement:
 
 ```kotlin
-import dev.isaacudy.udytils.urpc.koin.urpcWithKoin
+// ServerDependencies.kt
 import feature.<name>.<name>ServerDependencies
+
+internal fun serverDependencies(postgresConfig: PostgresConfig): List<Module> = listOf(
+    postgresDependencies(postgresConfig),
+    postgresPlatformDependencies,
+    <name>ServerDependencies,              // ← each feature adds its module here
+)
+
+// Server.kt
+import dev.isaacudy.udytils.urpc.koin.urpcWithKoin
 import io.ktor.server.websocket.WebSockets
 
-    install(Koin) {
-        modules(
-            postgresDependencies(postgresConfig),
-            postgresPlatformDependencies,
-            <name>ServerDependencies,          // ← each feature adds its module here
-        )
-    }
+    install(Koin) { modules(serverDependencies(postgresConfig)) }
     install(WebSockets)                        // required even if every call is unary
     routing { urpcWithKoin() }                 // replaces the placeholder `get("/")` route
 ```

@@ -7,7 +7,6 @@ import dev.enro.asBackstack
 import dev.enro.asInstance
 import dev.enro.ui.NavigationDisplay
 import dev.enro.ui.rememberNavigationContainer
-import feature.ukpt.ukptClientDependencies
 import feature.ukpt.client.ui.UkptDestination
 import org.koin.compose.KoinApplication
 import platform.design.ProvideUkptViewport
@@ -17,7 +16,7 @@ import platform.design.UkptTheme
 fun App() {
     // Start Koin for the composition. The Enro ViewModel factory (in UkptNavigation)
     // resolves ViewModels from this Koin scope.
-    KoinApplication(application = { modules(ukptClientDependencies) }) {
+    KoinApplication(application = { modules(clientDependencies) }) {
         // The design system is installed once, here, above navigation — so every destination
         // renders inside it and no screen wraps a theme of its own. UkptTheme wraps a
         // MaterialTheme derived from the tokens, so raw material internals inherit them too.

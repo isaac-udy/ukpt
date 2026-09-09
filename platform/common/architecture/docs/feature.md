@@ -83,8 +83,8 @@ dependency injection: Koin modules that define the feature's DI bindings, wiring
     * **Note:** Enforced project-wide by `ProjectRules.serialNamePinnedOnPolymorphicTypes`; restated here because the root is where the wire vocabulary lives.
     * **Enforced by:** `ProjectRules.serialNamePinnedOnPolymorphicTypes`
 * A DI binding must use the constructor reference style `singleOf(::Constructor).bind(BindingType::class)`, not the lambda style `single<BindingType> { Constructor(get()) }`
-    * **Why:** The reference style lets Koin validate the constructor parameters against the graph at startup; the lambda style hides missing or cyclic dependencies until the first injection at runtime.
-    * **Note:** Koin's constructor-reference DSL (`singleOf`, `factoryOf`, `viewModelOf`) stops at 22 constructor parameters. A binding whose constructor has more than 22 parameters may use the lambda style, since no reference form exists; every other binding must use the reference style.
+    * **Note:** Enforced project-wide by `ProjectRules.constructorReferenceBindings`, together with `ProjectRules.injectableConstructorsHaveNoDefaults`; restated here because the feature root is where a feature's bindings live.
+    * **Enforced by:** `ProjectRules.constructorReferenceBindings`
 
 ---
 
@@ -297,6 +297,16 @@ The configuration for Dependency Injection (DI) that wires the feature together.
   modules provided by feature modules into the final dependency graph. When a new dependency
   module is added, it must be registered in both `:app:client:common` and `:app:server`; when
   a new Service is added, it must be registered in `:app:server`.
+* **Note:** Every application class is bound by constructor reference — `singleOf`,
+  `factoryOf`, `scopedOf`, or `viewModelOf`, whichever lifetime the class needs — so the graph
+  supplies every constructor parameter, and a registered class gives no parameter a default
+  (`ProjectRules.constructorReferenceBindings`,
+  `ProjectRules.injectableConstructorsHaveNoDefaults`). A lambda binds what the graph does not
+  construct: a typed configuration object, a third-party client built through its builder, a
+  Repository property under its domain interface.
+* **Note:** The `:app` shells keep their module lists in one place (`clientDependencies`,
+  `serverDependencies`) so a graph-resolution test can verify every registered constructor
+  against the graph without booting the application.
 
 ##### Requirements
 
@@ -334,6 +344,32 @@ internal class UserServiceImpl(
     private val getUser: GetUser,
 ) : UserService { /* … */ }
 ```
+
+A dependency the graph supplies, a setting fixed for every deployment kept private, and a setting that varies between deployments carried by a configuration the module assembles (`ProjectRules.injectableConstructorsHaveNoDefaults`):
+
+```kotlin
+// feature.orders.server.domain.ReconcileOrders.kt (:server)
+internal class ReconcileOrdersImpl(
+    private val getOrdersAwaitingReconciliation: GetOrdersAwaitingReconciliation,
+    private val updateOrder: UpdateOrder,
+    private val clock: Clock,
+    private val config: ReconciliationConfig,
+) : ReconcileOrders {
+    private val batchSize = 50
+    // …
+}
+
+// feature.orders.server.domain.ReconciliationConfig.kt (:server)
+internal data class ReconciliationConfig(val cleanupTimeout: Duration)
+
+// feature.orders.ordersServerDependencies.kt (:server)
+val ordersServerDependencies = module {
+    single { ReconciliationConfig(cleanupTimeout = 15.seconds) }
+    singleOf(::ReconcileOrdersImpl).bind(ReconcileOrders::class)
+}
+```
+
+The clock is bound once, by the `:app` shell: `single<Clock> { Clock.System }`. Not `clock: Clock = Clock.System` or `cleanupTimeout: Duration = 15.seconds` on the constructor: `singleOf` resolves both from the graph, the defaults never apply, and an unbound `Duration` fails at the first resolution of `ReconcileOrdersImpl`. Not `single { ReconcileOrdersImpl(get(), get(), get(), cleanupTimeout = 15.seconds) }`: the setting is fixed at the binding site, and Koin no longer validates the constructor (`ProjectRules.constructorReferenceBindings`).
 
 ---
 

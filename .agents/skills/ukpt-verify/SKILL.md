@@ -89,6 +89,22 @@ After changing a rule or an examples file, regenerate the generated documentatio
 ./gradlew :platform:common:architecture:updateArchitectureDocumentation
 ```
 
+### Dependency graph
+
+```
+./gradlew :app:server:test :app:client:common:jvmTest
+```
+`ServerDependenciesTest` and `ClientDependenciesTest` run koin-test's `verify()` over one module
+including the list the shell installs (`serverDependencies(...)` in `ServerDependencies.kt`,
+`clientDependencies` in `ClientDependencies.kt`): every registered constructor parameter must have
+a definition, checked by reflection without instantiating anything or opening a database. Keep
+the single including module: `verifyAll()` checks each module alone, so a dependency bound by
+another module reads as missing. A parameter with a default
+value only warns here while `singleOf` resolves it at runtime — `verifyArchitecture` fails it
+(`ProjectRules.injectableConstructorsHaveNoDefaults`). An entry point the server resolves lazily (a
+scheduled job, a worker) also needs a test that resolves it from a running graph; a server start
+or health check does not prove it.
+
 ### UI snapshots
 
 UI snapshots are preview-driven: every `@Preview` composable is discovered by
