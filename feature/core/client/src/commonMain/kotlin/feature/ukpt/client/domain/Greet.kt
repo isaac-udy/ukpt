@@ -1,5 +1,5 @@
 package feature.ukpt.client.domain
 
-fun interface ResetGreetings {
+fun interface Greet {
     suspend operator fun invoke()
 }

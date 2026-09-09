@@ -31,6 +31,14 @@ Skills, carried by the file sync: `ukpt-architecture-review` gains a domain cont
 covers server capability design; `ukpt-feature-slice` and `ukpt-urpc-service` gain a
 models-before-interfaces step.
 
+The `:feature:core` worked example follows the guidance. Its client domain is now
+`FlowOfGreetingSummary` and `UpdateGreetings` (an `Update.Add`/`Update.Reset` family) provided by
+`GreetingRepository`, and `Greet`, a UseCase that decides the greeting text and calls
+`updateGreetings.add`. `GreetingSummary` holds the greeting list and derives `latest`.
+`FlowOfGreetings`, `FlowOfLatestGreeting`, `FlowOfGreetingHistory`, `FlowOfGreetingSummaryImpl`,
+`GetGreeting`, and `ResetGreetings` are gone. A project that kept the greeting example may reshape
+it the same way or drop it.
+
 ## Detection
 
 Nothing fails. Candidates for review, per feature and layer:

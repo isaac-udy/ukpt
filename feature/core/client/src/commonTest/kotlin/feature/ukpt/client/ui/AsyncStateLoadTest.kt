@@ -20,10 +20,7 @@ class AsyncStateLoadTest {
 
     @Test
     fun fromFlowProducesLoadingThenSuccess() = runTest {
-        val summary = GreetingSummary(
-            latestGreeting = Greeting(text = "Hello"),
-            greetingHistory = listOf(Greeting(text = "Hello")),
-        )
+        val summary = GreetingSummary(greetings = listOf(Greeting(text = "Hello")))
         val states = AsyncState.fromFlow(flowOf(summary)).toList()
 
         assertTrue(states[0].isLoading())

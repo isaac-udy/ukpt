@@ -78,12 +78,12 @@ internal fun UkptScreenContent(
                     verticalArrangement = Arrangement.spacedBy(UkptSpacing.md),
                 ) {
                     Text(
-                        text = summary.data.latestGreeting?.text ?: "No greetings yet",
+                        text = summary.data.latest?.text ?: "No greetings yet",
                         style = UkptTheme.typography.title,
                         color = UkptTheme.colors.onSurface,
                     )
                     Text(
-                        text = "${summary.data.greetingHistory.size} greetings in history",
+                        text = "${summary.data.greetings.size} greetings in history",
                         style = UkptTheme.typography.caption,
                         color = UkptTheme.colors.onSurfaceVariant,
                     )
@@ -145,10 +145,9 @@ internal fun UkptScreenSuccessPreview() {
             state = UkptState(
                 greetingSummary = AsyncState.Success(
                     GreetingSummary(
-                        latestGreeting = Greeting(text = "Hello, ukpt!"),
-                        greetingHistory = listOf(
-                            Greeting(text = "Hello, ukpt!"),
+                        greetings = listOf(
                             Greeting(text = "Hi there"),
+                            Greeting(text = "Hello, ukpt!"),
                         ),
                     ),
                 ),
@@ -167,10 +166,7 @@ internal fun UkptScreenEmptySuccessPreview() {
         UkptScreenContent(
             state = UkptState(
                 greetingSummary = AsyncState.Success(
-                    GreetingSummary(
-                        latestGreeting = null,
-                        greetingHistory = emptyList(),
-                    ),
+                    GreetingSummary(greetings = emptyList()),
                 ),
             ),
             onGreet = {},
