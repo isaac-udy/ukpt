@@ -15,4 +15,4 @@ import dev.isaacudy.udytils.architecture.Describe
     * **Note:** A phase of an orchestration with one caller is a private function of that caller.
       It becomes a UseCase of its own when a second caller needs it on its own.
 """)
-object UseCase : UseCaseRules<ClientDomain>()
+object UseCase : UseCaseRules<ClientDomain>(side = "client")

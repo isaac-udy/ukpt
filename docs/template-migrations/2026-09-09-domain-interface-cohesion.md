@@ -16,6 +16,26 @@ and `ServerDomain.DomainInterface`:
 - **`mutationResults`**: a mutation returns the value its caller needs next, and no value when an
   observed read projection carries the outcome.
 
+Advisory audits, reported by `auditArchitecture` and counted in the `verifyArchitecture` summary
+line, never failing the build. Each grouped finding names one candidate, lists its declarations as
+evidence, and ends in a review question:
+
+- **`ClientDomain.inventory` / `ServerDomain.inventory`**: one line per feature with the domain
+  interface, domain model, and UseCase counts and how many interfaces have no consumer, one, or
+  several. Printed on every run.
+- **`…DomainInterface.readProjections`**: three or more reads from one provider whose only
+  consumer is one class.
+- **`…DomainInterface.namesACapability`**: a class injecting six or more domain interfaces; a
+  mixed group of three or more with one consumer; a `Get<Model><Part>` name.
+- **`…DomainInterface.collapsedUpdateFamilies`**: three or more mutations on one noun from one
+  provider.
+- **`…DomainInterface.consumedInProduction`** (new Guidance): an interface no class injects.
+- **`…UseCase.existsForADecision`** (new Guidance): a UseCase whose constructor takes one domain
+  interface.
+
+A consumer is a class whose primary constructor takes the interface. Expect a long report on a
+project with many one-consumer interfaces; the findings are the review's starting list.
+
 Reworded: `collapsedUpdateFamilies` no longer states that reads stay separate because their return
 types differ. `ClientData.Repository.doesNotInjectDomainInterfaces` and
 `ServerData.Repository.doesNotInjectDomainInterfaces` now say a Repository assembles owned storage

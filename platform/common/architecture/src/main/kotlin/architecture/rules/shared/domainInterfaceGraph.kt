@@ -1,11 +1,15 @@
 package architecture.rules.shared
 
+import architecture.definitions.containingFilePackage
 import architecture.definitions.featureName
 import architecture.definitions.isApiModule
+import architecture.definitions.isFeatureModule
 import architecture.definitions.resolveTypeToken
 import architecture.definitions.typeTokens
 import com.lemonappdev.konsist.api.container.KoScope
+import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
+import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
 import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
 
 /**
@@ -98,4 +102,23 @@ internal fun consumedInterfaces(cls: KoClassDeclaration, fqns: Set<String>): Set
         .flatMap { param -> typeTokens(param.type.name).mapNotNull { file.resolveTypeToken(it) } }
         .filter { it in fqns }
         .toSet()
+}
+
+/**
+ * The domain models visible to [side]'s domain layer: data, sealed, enum, and value declarations
+ * in that layer's package or in a feature root (a package under `feature.<name>` that names
+ * neither `client` nor `server`).
+ */
+internal fun KoScope.domainModelsOnSide(side: String): List<KoBaseDeclaration> =
+    declarations(includeNested = false)
+        .filter { it.isFeatureModule() && it.isModelShape() }
+        .filter { decl ->
+            val pkg = decl.containingFilePackage()
+            pkg.contains(".$side.domain") || (!pkg.contains(".client") && !pkg.contains(".server"))
+        }
+
+private fun KoBaseDeclaration.isModelShape(): Boolean = when (this) {
+    is KoClassDeclaration -> hasDataModifier || hasSealedModifier || hasEnumModifier || hasValueModifier
+    is KoInterfaceDeclaration -> hasSealedModifier
+    else -> false
 }

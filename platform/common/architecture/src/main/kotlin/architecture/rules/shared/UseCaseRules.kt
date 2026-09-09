@@ -6,11 +6,14 @@ import dev.isaacudy.udytils.architecture.*
 
 /**
  * The UseCase rules, declared once and instantiated by each sided domain group's concrete
- * `object UseCase : UseCaseRules<Group>()`. The side supplies nothing here — the group's package
- * gate does all the scoping — so the base carries the whole discipline; a concrete object adds
- * only its side's narrative and any side-specific rules.
+ * `object UseCase : UseCaseRules<Group>(side)`. The group's package gate does the scoping of the
+ * rules; [side] scopes only the dependency audit to the side's classified domain interfaces. The
+ * base carries the whole discipline; a concrete object adds only its side's narrative and any
+ * side-specific rules.
  */
-abstract class UseCaseRules<G : RuleGroup> : Construct<G>(
+abstract class UseCaseRules<G : RuleGroup>(
+    private val side: String,
+) : Construct<G>(
     requirements = listOf(
         isClassWhere("is a non-sealed/data/enum/value class named `[DomainInterface]Impl`") { decl ->
             !decl.hasSealedModifier && !decl.hasDataModifier && !decl.hasEnumModifier && !decl.hasValueModifier &&
@@ -57,6 +60,24 @@ abstract class UseCaseRules<G : RuleGroup> : Construct<G>(
 
     @Describe("A UseCase that becomes too complex should be broken into private, file-private, or nested parts")
     val breakDownComplexUseCases by guidance
+
+    @Describe("A UseCase should exist for a decision, or for a composition of capabilities that exist independently of it, not to forward one call")
+    val existsForADecision by guidance {
+        rationale("A UseCase over one domain interface adds a class, a binding, and a contract between the caller and that one dependency; the same logic as a default function of the dependency's interface, or as the dependency's own Repository property, adds none of them.")
+        note("The audit reports a UseCase whose primary constructor takes exactly one domain interface of its side. Authorization wrappers and error translation are the usual reasons such a UseCase stays.")
+        auditScope { scope, exempt ->
+            val fqns = scope.domainInterfaceFqnsOnSide(side)
+            scope.classes()
+                .filter { test(it) }
+                .filterNot { exempt(it) }
+                .mapNotNull { cls ->
+                    val consumed = consumedInterfaces(cls, fqns)
+                    if (consumed.size != 1) return@mapNotNull null
+                    val dependency = consumed.single().substringAfterLast('.')
+                    Violation(cls, "`${cls.name}` injects one domain interface, `$dependency`. Could the logic be a default function of `$dependency`, or a property of the Repository that provides it?")
+                }
+        }
+    }
 }
 
 /**

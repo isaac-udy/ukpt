@@ -32,7 +32,11 @@ belong to `ukpt-verify`.
    `auditArchitecture` prints the full advisory report (written to the build directory as
    `audit.md` under `reports/architecture/`).
    Advisory findings are review prompts — act on those touching the code under review; a finding
-   is not a proven violation.
+   is not a proven violation. The report carries the per-feature domain inventory
+   (`ClientDomain.inventory`, `ServerDomain.inventory`) and grouped domain-interface candidates
+   (read families with one consumer, high fan-in, update families, uninjected interfaces,
+   one-dependency UseCases), each with its declarations as evidence: start the domain contract
+   inventory in step 4 from those rows.
 
 3. For every selected Screen/ViewModel/State, produce an **async-state inventory**:
 

@@ -8,9 +8,12 @@ import dev.isaacudy.udytils.architecture.*
  * The DomainInterface rules shared by both sided domain groups. What differs per side is how an
  * interface is *satisfied* — the client accepts a Repository property or a UseCase, the server
  * additionally accepts IntegrationClient-shaped adapters — so each concrete object declares its
- * own provided-by rule, ending in [providedByCheck] with its side's adapter suffixes.
+ * own provided-by rule, ending in [providedByCheck] with its side's adapter suffixes. [side]
+ * scopes the guidance audits to the side's classified interfaces.
  */
-abstract class DomainInterfaceRules<G : RuleGroup> : Construct<G>(
+abstract class DomainInterfaceRules<G : RuleGroup>(
+    private val side: String,
+) : Construct<G>(
     requirements = listOf(
         isInterfaceWhere("is a `fun interface`") { it.hasFunModifier && !it.hasSealedModifier },
         isInterfaceWhere("has a primary function that is an `operator fun invoke`") { decl ->
@@ -42,6 +45,14 @@ abstract class DomainInterfaceRules<G : RuleGroup> : Construct<G>(
         note("Before adding a Domain Interface, name its consumer, the domain result it returns, its provider, and its reason to exist apart from the interfaces beside it. Several interfaces added together for one consumer are a candidate for one Repository property returning one domain model.")
         note("An implementation step with one caller is a private function, a file-private function, or a nested class of that caller, not a Domain Interface.")
         note("Assembling a domain model from storage the feature owns does not permit reading another feature's storage, injecting a sibling Repository, or holding a Domain Interface inside a domain model.")
+        note("The audit reports a class injecting six or more domain interfaces, grouped by provider; a group of three or more interfaces from one provider with one consumer that mixes reads and other operations; and a `Get<Model><Part>` or `FlowOf<Model><Part>` name where `Model` is a domain model. Each is a review question with its evidence, not a defect.")
+        auditScope { scope, _ ->
+            val graph = scope.domainInterfaceGraph(side)
+            val models = DomainInterfaceAudits.modelNames(scope.domainModelsOnSide(side))
+            DomainInterfaceAudits.consumersWithHighFanIn(graph) +
+                DomainInterfaceAudits.mixedFamiliesWithOneConsumer(graph) +
+                DomainInterfaceAudits.partOfModelNames(graph, models)
+        }
     }
 
     @Describe("When a consumer needs several facts about one domain model at once, and those facts share scope, freshness, and failure behaviour, a Domain Interface should return one immutable domain model carrying all of them")
@@ -57,11 +68,28 @@ abstract class DomainInterfaceRules<G : RuleGroup> : Construct<G>(
         note("Returning one data class does not by itself make its facts consistent. When the consumer needs one consistent snapshot, the provider uses one query, one transaction at a suitable isolation level, a shared lock, or a revision, and preserves authorization and tenant scope across every constituent read.")
         note("Queries over one collection that differ only in their filter share one Domain Interface: a nested `sealed interface Input` carries the variants and a default function per variant keeps call sites flat.")
         note("A domain model with lifecycle states is a sealed hierarchy whose variants carry the values each state requires, in place of nullable properties and Booleans that are meaningful only in combination.")
+        note("The audit reports three or more reads from one provider whose only consumer is one class. Constructor injection is the evidence, so the finding asks whether the reads are collected together; it does not prove they are.")
+        auditScope { scope, _ ->
+            DomainInterfaceAudits.readFamiliesWithOneConsumer(scope.domainInterfaceGraph(side))
+        }
     }
 
     @Describe("When several mutations act on one domain model and share a return type, prefer a single `Update[Noun]` interface over one interface per mutation: a nested `sealed interface Update` carries the variants, the abstract `invoke(id, update)` is the single entry point, and default functions (`title(...)`, `addMember(...)`) keep call sites flat. When publishing through `:api`, publish exactly the capability another feature needs, never the whole mutation family.")
     val collapsedUpdateFamilies by guidance {
         note("Reads do not join an update family: a read returns the domain model it produces, and reads a consumer needs together form one read projection.")
+        note("The audit reports three or more mutations on one noun from one provider, by name (`CreateTeam`, `UpdateTeam`, `DeleteTeam`). Whether they share a return type, and so form one family, is the reviewer's call.")
+        auditScope { scope, _ ->
+            DomainInterfaceAudits.operationFamilies(scope.domainInterfaceGraph(side))
+        }
+    }
+
+    @Describe("A Domain Interface should be injected by at least one production class")
+    val consumedInProduction by guidance {
+        note("A DI module binds an interface without consuming it, and a test fake is not a consumer. An interface published through `:api` may be consumed from another feature's module, which the audit sees when that module is in scope.")
+        note("The audit reports interfaces no class injects through its primary constructor. A consumer outside a constructor, such as an app-module lambda or a top-level function, is not counted.")
+        auditScope { scope, _ ->
+            DomainInterfaceAudits.interfacesWithoutConsumer(scope.domainInterfaceGraph(side))
+        }
     }
 
     @Describe("A mutation should return the value its caller needs next, and no value when an observed read projection already carries the outcome")
