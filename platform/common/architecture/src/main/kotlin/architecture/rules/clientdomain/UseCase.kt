@@ -12,5 +12,7 @@ import dev.isaacudy.udytils.architecture.Describe
       logic should become a default function of the other domain interface instead.
     * **Note:** When breaking down a complex UseCase, use file-private extension functions,
       private functions, or nested classes instead of additional domain interfaces or UseCases.
+    * **Note:** A phase of an orchestration with one caller is a private function of that caller.
+      It becomes a UseCase of its own when a second caller needs it on its own.
 """)
 object UseCase : UseCaseRules<ClientDomain>()

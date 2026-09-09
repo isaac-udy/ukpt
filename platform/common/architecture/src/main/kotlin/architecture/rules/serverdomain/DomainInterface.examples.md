@@ -58,3 +58,23 @@ fun interface FlowOfUsers {
 
 class UserNotFoundException : RuntimeException()
 ```
+
+---
+
+A read whose result has lifecycle states returns a sealed domain model; each variant carries the values that state requires, so no consumer checks nullable properties against Booleans.
+
+```kotlin
+sealed interface OrderState {
+    val id: OrderId
+
+    data class Draft(override val id: OrderId, val lines: List<OrderLine>) : OrderState
+    data class Submitted(override val id: OrderId, val lines: List<OrderLine>, val payment: Payment) : OrderState
+    data class Cancelled(override val id: OrderId, val reason: String) : OrderState
+}
+
+fun interface GetOrderState {
+    suspend operator fun invoke(id: OrderId): OrderState?
+}
+```
+
+The [Repository examples](serverdata.md#repository) show the consumer before and after the Repository assembles such a model.

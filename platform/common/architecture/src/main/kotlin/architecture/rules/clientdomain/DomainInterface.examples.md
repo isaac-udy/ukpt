@@ -68,3 +68,37 @@ fun interface FlowOfUserProfile {
     operator fun invoke(userId: User.Id): Flow<UserProfile>
 }
 ```
+
+---
+
+Reads that one consumer always uses together, before: one interface per fact, and the consumer joins them.
+
+```kotlin
+fun interface FlowOfCheckoutItems {
+    operator fun invoke(cartId: CartId): Flow<List<CartItem>>
+}
+
+fun interface FlowOfCheckoutShipping {
+    operator fun invoke(cartId: CartId): Flow<ShippingOption?>
+}
+
+fun interface FlowOfCheckoutTotal {
+    operator fun invoke(cartId: CartId): Flow<Money>
+}
+```
+
+After: one read projection returned by the Repository that owns the cart, and the three interfaces above are gone.
+
+```kotlin
+data class Checkout(
+    val items: List<CartItem>,
+    val shipping: ShippingOption?, // null: no option chosen yet
+    val total: Money,
+)
+
+fun interface FlowOfCheckout {
+    operator fun invoke(cartId: CartId): Flow<Checkout>
+}
+```
+
+`FlowOfCheckoutPromotions` stays a separate interface: promotions are optional, polled on their own schedule, and their failure must not fail the checkout.

@@ -28,6 +28,16 @@ system's types carry (`<Prefix>Theme`, `<Prefix>Colors`). It is `Ukpt` in the te
 whatever the project was renamed to downstream — read `platform/client/design` to see which. It does
 **not** vary per feature.
 
+## Domain shape (before writing `client.domain` or `server.domain`)
+Interfaces come from consumers, not from storage. Before the first `fun interface`:
+1. List the consumers (ViewModels, ServiceImpls, UseCases) and the question each one asks.
+2. Write the domain models those answers need; facts one consumer needs together are one model.
+3. Derive one interface per question, provided by the Repository that owns the storage. A UseCase
+   exists only where a decision, or a composition of independent capabilities, exists.
+Guidance: `ClientDomain.DomainInterface.namesACapability`, `.readProjections`,
+`.collapsedUpdateFamilies`, and the `ServerDomain` twins. `ukpt-architecture-review` has the
+domain contract inventory to check the result.
+
 ## Steps
 1. **Module dirs + three `build.gradle.kts`** (templates.md §1–3). Substitute the namespace strings and
    the `projects.feature.<name>.*` accessors; keep everything else verbatim. Heed the gotchas below.

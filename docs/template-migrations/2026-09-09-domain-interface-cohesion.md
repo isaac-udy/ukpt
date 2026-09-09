@@ -1,0 +1,67 @@
+# Domain interface cohesion guidance
+
+A guidance change. No rule is added, renamed, removed, or made stricter, so no existing code fails
+and no `@ArchitectureException` needs updating.
+
+New Guidance on the shared DomainInterface rules, instantiated for `ClientDomain.DomainInterface`
+and `ServerDomain.DomainInterface`:
+
+- **`namesACapability`**: a Domain Interface names a capability a consumer asks for, or returns a
+  domain model a consumer needs; it does not mirror one storage call, one property of a model, or
+  one step of an implementation. An implementation step with one caller is a private function.
+- **`readProjections`**: facts about one model that a consumer needs together, sharing scope,
+  freshness, and failure behaviour, come back as one immutable domain model from the Repository
+  that owns the storage. The notes state when reads stay separate, that a data class alone does
+  not make its facts consistent, and that filter variants over one collection share one interface.
+- **`mutationResults`**: a mutation returns the value its caller needs next, and no value when an
+  observed read projection carries the outcome.
+
+Reworded: `collapsedUpdateFamilies` no longer states that reads stay separate because their return
+types differ. `ClientData.Repository.doesNotInjectDomainInterfaces` and
+`ServerData.Repository.doesNotInjectDomainInterfaces` now say a Repository assembles owned storage
+into a domain model behind one property and a UseCase composes independent capabilities. The
+Repository narratives lead with domain model assembly. `ClientUi.ViewModel.aggregateReadProjection`
+points the reviewer through the aggregate to its input contracts.
+
+Examples: the Repository, DomainInterface, and DomainModel examples show a consumer before and
+after the Repository assembles the model, a read that stays separate, and a lifecycle-state model.
+`UseCase.examples.md` is new on both groups.
+
+Skills, carried by the file sync: `ukpt-architecture-review` gains a domain contract inventory and
+covers server capability design; `ukpt-feature-slice` and `ukpt-urpc-service` gain a
+models-before-interfaces step.
+
+## Detection
+
+Nothing fails. Candidates for review, per feature and layer:
+
+```bash
+# Domain interfaces per feature and layer
+grep -rl "^fun interface " --include="*.kt" feature | grep "/domain/" \
+    | sed -E 's#feature/([^/]+)/([^/]+)/.*#\1 \2#' | sort | uniq -c
+
+# Interfaces referenced from at most one production file besides their provider (approximate)
+for f in $(grep -rl "^fun interface " --include="*.kt" feature | grep "/domain/"); do
+    name=$(basename "$f" .kt)
+    n=$(grep -rlw "$name" --include="*.kt" feature app \
+        | grep -v "/$name.kt\|Dependencies.kt\|Test" | wc -l)
+    [ "$n" -le 2 ] && echo "$n $name"
+done | sort -n
+```
+
+A feature whose `domain` package holds many interfaces and few domain models, or whose
+interfaces mostly have one consumer, is where the review pays.
+
+## Migration
+
+Optional. For each candidate group, run the domain contract inventory in the
+`ukpt-architecture-review` skill. Where a group of reads has one consumer and one provider, and the
+facts share scope, freshness, and failure behaviour, replace the group with one Repository property
+returning one domain model, and delete the interfaces, properties, and bindings it replaces. Keep
+reads that a consumer uses alone or whose boundaries differ.
+
+## Verification
+
+```bash
+./gradlew :platform:common:architecture:verifyArchitecture
+```

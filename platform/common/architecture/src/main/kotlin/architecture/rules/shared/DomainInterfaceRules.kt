@@ -30,8 +30,51 @@ abstract class DomainInterfaceRules<G : RuleGroup> : Construct<G>(
     @Describe("A Domain Interface may define additional default functions that call the primary function")
     val interfaceDefaults by guidance
 
-    @Describe("When several mutations act on one domain model and share a return type, prefer a single `Update[Noun]` interface over one interface per mutation: a nested `sealed interface Update` carries the variants, the abstract `invoke(id, update)` is the single entry point, and default functions (`title(...)`, `addMember(...)`) keep call sites flat. Reads stay separate interfaces — their return types differ. When publishing through `:api`, publish exactly the capability another feature needs, never the whole mutation family.")
-    val collapsedUpdateFamilies by guidance
+    @Describe("A Domain Interface should name a capability a consumer asks for, or return a domain model a consumer needs; it should not mirror one storage call, one property of a domain model, or one step of an implementation")
+    val namesACapability by guidance {
+        rationale(
+            """
+            A consumer that injects several storage-shaped interfaces and joins their results
+            reconstructs a domain model the owning Repository could have produced; the join, and
+            the knowledge of which storage produces each part, then repeats in every consumer.
+            """.trimIndent(),
+        )
+        note("Before adding a Domain Interface, name its consumer, the domain result it returns, its provider, and its reason to exist apart from the interfaces beside it. Several interfaces added together for one consumer are a candidate for one Repository property returning one domain model.")
+        note("An implementation step with one caller is a private function, a file-private function, or a nested class of that caller, not a Domain Interface.")
+        note("Assembling a domain model from storage the feature owns does not permit reading another feature's storage, injecting a sibling Repository, or holding a Domain Interface inside a domain model.")
+    }
+
+    @Describe("When a consumer needs several facts about one domain model at once, and those facts share scope, freshness, and failure behaviour, a Domain Interface should return one immutable domain model carrying all of them")
+    val readProjections by guidance {
+        rationale(
+            """
+            One read returns one snapshot. Several reads assembled by the consumer return facts
+            from different moments, and every consumer decides for itself how a partially loaded
+            model behaves.
+            """.trimIndent(),
+        )
+        note("Reads stay separate when a consumer uses one of them alone, when their authorization, freshness, failure, or lifecycle differs, or when one is optional and its failure must not fail the other. Appearing on the same Screen is not a reason to combine reads.")
+        note("Returning one data class does not by itself make its facts consistent. When the consumer needs one consistent snapshot, the provider uses one query, one transaction at a suitable isolation level, a shared lock, or a revision, and preserves authorization and tenant scope across every constituent read.")
+        note("Queries over one collection that differ only in their filter share one Domain Interface: a nested `sealed interface Input` carries the variants and a default function per variant keeps call sites flat.")
+        note("A domain model with lifecycle states is a sealed hierarchy whose variants carry the values each state requires, in place of nullable properties and Booleans that are meaningful only in combination.")
+    }
+
+    @Describe("When several mutations act on one domain model and share a return type, prefer a single `Update[Noun]` interface over one interface per mutation: a nested `sealed interface Update` carries the variants, the abstract `invoke(id, update)` is the single entry point, and default functions (`title(...)`, `addMember(...)`) keep call sites flat. When publishing through `:api`, publish exactly the capability another feature needs, never the whole mutation family.")
+    val collapsedUpdateFamilies by guidance {
+        note("Reads do not join an update family: a read returns the domain model it produces, and reads a consumer needs together form one read projection.")
+    }
+
+    @Describe("A mutation should return the value its caller needs next, and no value when an observed read projection already carries the outcome")
+    val mutationResults by guidance {
+        rationale(
+            """
+            A caller that receives an identifier and reads the model back performs a second read
+            for a value the producer had in hand. A caller that receives a value it never uses
+            carries a contract with no consumer.
+            """.trimIndent(),
+        )
+        note("A returned value describes the state captured within the mutation, including whether the mutation was accepted; it does not imply the state is unchanged after the mutation completes.")
+    }
 
     @Describe("A Domain Interface's primary-function parameters must be shared domain models, the layer's own domain models, nested types, primitives, standard date/time value types, collections of those, or a `Flow` of those")
     val primaryParameterTypes by rule {

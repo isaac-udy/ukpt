@@ -126,6 +126,7 @@ object ViewModel : Construct<ClientUi>(
         )
         note("A domain interface that composes several sources into one read model (`FlowOf...`) groups by consistency and failure boundary, not by screen. Compose in a UseCase when the combination is read-model logic; compose in a Repository when it is one data source's atomic projection.")
         note("Live polling and optional resources may stay separate from the primary projection when their failure should not make the screen unusable.")
+        note("Review the projection's inputs as well as the ViewModel: a family of domain interfaces whose only consumer is the projection's UseCase belongs behind the Repository that owns their storage, as one property returning the projection (`ClientDomain.DomainInterface.readProjections`).")
     }
 
     @Describe("A ViewModel must use `JobManager` to manage coroutines, never a `var job: Job?` reference")
