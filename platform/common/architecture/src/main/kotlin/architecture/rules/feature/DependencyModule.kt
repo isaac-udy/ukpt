@@ -20,6 +20,16 @@ import com.lemonappdev.konsist.api.provider.KoContainingFileProvider
       modules provided by feature modules into the final dependency graph. When a new dependency
       module is added, it must be registered in both `:app:client:common` and `:app:server`; when
       a new Service is added, it must be registered in `:app:server`.
+    * **Note:** Every application class is bound by constructor reference — `singleOf`,
+      `factoryOf`, `scopedOf`, or `viewModelOf`, whichever lifetime the class needs — so the graph
+      supplies every constructor parameter, and a registered class gives no parameter a default
+      (`ProjectRules.constructorReferenceBindings`,
+      `ProjectRules.injectableConstructorsHaveNoDefaults`). A lambda binds what the graph does not
+      construct: a typed configuration object, a third-party client built through its builder, a
+      Repository property under its domain interface.
+    * **Note:** The `:app` shells keep their module lists in one place (`clientDependencies`,
+      `serverDependencies`) so a graph-resolution test can verify every registered constructor
+      against the graph without booting the application.
 """)
 object DependencyModule : Construct<FeatureRules>(
     requirements = listOf(

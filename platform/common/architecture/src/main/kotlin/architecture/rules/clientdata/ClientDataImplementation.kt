@@ -14,6 +14,9 @@ object ClientDataImplementation : Construct<ClientData>(
     requirements = listOf(
         isClass,
         isClassWhere("is not named `[Name]Repository`") { !it.name.endsWith("Repository") },
+        isClassWhere("is not a `data class` named `[Name]Config` or `[Name]Configuration`") {
+            !(it.hasDataModifier && (it.name.endsWith("Config") || it.name.endsWith("Configuration")))
+        },
         predicate("resides in `feature.[name].client.data` (not `client.data.storage`)") { decl ->
             val pkg = decl.containingFilePackage()
             pkg.containsPackageSegment("data") && !pkg.containsPackageSegment("storage")

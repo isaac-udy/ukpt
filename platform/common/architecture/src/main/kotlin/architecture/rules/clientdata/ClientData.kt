@@ -23,6 +23,9 @@ import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
     This is also the only layer that may talk to the server: Repositories call
     [Services](serverservices.md#service-interface) — the `:api` contract — to reach it
     (`ClientData.clientServerDependencyRestriction`).
+
+    A setting of this layer that varies between deployments is a [configuration](#configuration):
+    a `[Name]Config` data class the dependency module assembles and the graph injects.
 """)
 object ClientData : RuleGroup(
     inPackage = "feature..client.data..",
@@ -31,6 +34,7 @@ object ClientData : RuleGroup(
         ClientDataInterface,
         ClientDataImplementation,
         ClientStorage,
+        Configuration,
     ),
 ) {
 

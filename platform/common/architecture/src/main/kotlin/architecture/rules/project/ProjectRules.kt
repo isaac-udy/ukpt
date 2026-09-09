@@ -16,6 +16,10 @@ import architecture.definitions.serialNameValue
 import architecture.definitions.typeNestingChain
 import architecture.definitions.typeTokens
 import architecture.rules.serverservices.servicesPackageRegex
+import architecture.utils.KOIN_MAX_CONSTRUCTOR_REF_PARAMS
+import architecture.utils.koinModuleFiles
+import architecture.utils.koinRegistrations
+import architecture.utils.projectClassesByFqn
 import dev.isaacudy.udytils.architecture.*
 
 import architecture.definitions.isFeatureModule
@@ -31,8 +35,9 @@ import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
  */
 @Describe("""
     These rules are not tied to a Construct or a single package; they apply across every feature
-    module. Several govern the process for [architecture exceptions](exceptions.md); the mechanism
-    itself is documented there.
+    module, and the dependency injection rules across every Koin module in the project, platform
+    and `:app` modules included. Several govern the process for
+    [architecture exceptions](exceptions.md); the mechanism itself is documented there.
 
     Context for the exception-handling rules: exceptions defined in the
     [services contract](serverservices.md#service-interface) cross the client/server boundary as
@@ -361,6 +366,77 @@ object ProjectRules : RuleGroup() {
                                 " — the discriminator has to name the type that encloses it",
                         )
                     }
+                }
+        }
+    }
+
+    // ---- §5.7 Dependency injection ---------------------------------------------------------
+    @Describe("A DI binding of an application class must use the constructor reference style `singleOf(::Constructor).bind(BindingType::class)`, not a lambda that constructs the class")
+    val constructorReferenceBindings by rule {
+        rationale(
+            """
+            The reference style lets Koin validate the constructor parameters against the graph at
+            startup; a lambda hides a missing or cyclic dependency until the first injection at
+            runtime. A lambda that passes a literal, or omits an argument that has a default, fixes
+            a setting at the binding site, where no other binding and no test can change it.
+            """.trimIndent(),
+        )
+        note("Covers every Koin module in the project: feature dependency modules, platform modules, and the `:app` shells.")
+        note("A lambda remains the form for a value the graph does not construct: a typed configuration object (`single { OrdersConfig(region = \"eu\") }`), a third-party client built through its own builder, or a Repository property bound under its interface (`single<GetOrders> { get<OrdersRepository>().getOrders }`). A data, value, enum, sealed, or abstract class constructed in a lambda is such a value. A lambda that declares runtime parameters (`factory { params -> … }`) is the form Koin gives that case.")
+        note("Koin's constructor-reference DSL stops at $KOIN_MAX_CONSTRUCTOR_REF_PARAMS constructor parameters. A binding whose constructor has more than $KOIN_MAX_CONSTRUCTOR_REF_PARAMS parameters may use the lambda style, since no reference form exists.")
+        scope { scope, exempt ->
+            val getStyle = Regex("""\b([A-Z][A-Za-z0-9_]*)\s*\(\s*get\s*[<(]""")
+            val classesByFqn = scope.projectClassesByFqn()
+            scope.koinModuleFiles()
+                .filterNot { exempt(it) }
+                .flatMap { file ->
+                    val getStyleNames = getStyle.findAll(file.text).map { it.groupValues[1] }.toSet()
+                    val constructedNames = file.koinRegistrations(classesByFqn)
+                        .filterNot { it.byReference }
+                        .map { it.cls.name }
+                        .toSet()
+                    (getStyleNames + constructedNames)
+                        .filterNot { name ->
+                            val parameterCount = file.resolveTypeToken(name)?.let { classesByFqn[it] }?.primaryConstructor?.parameters?.size ?: 0
+                            parameterCount > KOIN_MAX_CONSTRUCTOR_REF_PARAMS
+                        }
+                        .sorted()
+                        .map { name -> Violation(file.path, "DI binding constructs `$name` in a lambda instead of `singleOf(::$name).bind(...)`") }
+                }
+        }
+    }
+
+    @Describe("A class a DI module registers must not give a constructor parameter a default value")
+    val injectableConstructorsHaveNoDefaults by rule {
+        rationale(
+            """
+            Koin's constructor-reference DSL resolves every parameter from the graph; a Kotlin
+            default expression does not make the parameter optional to Koin. `clock: Clock =
+            Clock.System` or `timeout: Duration = 15.seconds` is satisfied only when the graph
+            binds that type, and an unbound type fails at the first resolution of the class, which
+            for a lazily resolved worker is the first request that needs it. A default the graph
+            does satisfy is a value tests exercise and production never does.
+            """.trimIndent(),
+        )
+        note("A dependency is a required constructor parameter, even one production always satisfies with a standard instance (`single<Clock> { Clock.System }`). A setting fixed for every deployment is a private property or a constant of the class. A setting that varies between deployments is a field of a typed configuration object the dependency module assembles and the graph injects: a [domain model](serverdomain.md#domain-model) for a UseCase, a [configuration](serverdata.md#configuration) in the data layer.")
+        note("Applies to the classes a Koin module registers by constructor reference or constructs in a binding lambda. A data, value, enum, sealed, or abstract class constructed in a lambda is a value assembled by hand and keeps its defaults, as do wire models, UI state, and ordinary functions, which nothing injects.")
+        note("Koin's `verify()` treats a parameter with a default as optional and only warns when its type is unbound, so a graph-resolution test does not close this gap; this rule does.")
+        scope { scope, exempt ->
+            val classesByFqn = scope.projectClassesByFqn()
+            scope.koinModuleFiles()
+                .flatMap { it.koinRegistrations(classesByFqn) }
+                .map { it.cls }
+                .distinctBy { (it as? KoFullyQualifiedNameProvider)?.fullyQualifiedName ?: it.name }
+                .filterNot { exempt(it) }
+                .flatMap { cls ->
+                    cls.primaryConstructor?.parameters.orEmpty()
+                        .filter { it.defaultValue != null }
+                        .map { param ->
+                            Violation(
+                                cls,
+                                "injectable class `${cls.name}` gives constructor parameter `${param.name}` a default value — the graph supplies every parameter of a registered class: bind the dependency, make a fixed setting a private property, or move a variable setting into a typed configuration object",
+                            )
+                        }
                 }
         }
     }

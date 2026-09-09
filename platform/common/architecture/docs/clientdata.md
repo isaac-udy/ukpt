@@ -18,12 +18,16 @@ This is also the only layer that may talk to the server: Repositories call
 [Services](serverservices.md#service-interface) — the `:api` contract — to reach it
 (`ClientData.clientServerDependencyRestriction`).
 
+A setting of this layer that varies between deployments is a [configuration](#configuration):
+a `[Name]Config` data class the dependency module assembles and the graph injects.
+
 ##### Constructs
 
 * [Repository](#repository)
 * [Client Data Interface](#client-data-interface)
 * [Client Data Implementation](#client-data-implementation)
 * [Client Storage](#client-storage)
+* [Configuration](#configuration)
 
 ##### Rules
 
@@ -158,6 +162,7 @@ a Repository. Usually a platform-specific implementation of a
 * A Client Data Implementation resides in `feature..client.data..`
 * A Client Data Implementation is a class
 * A Client Data Implementation is not named `[Name]Repository`
+* A Client Data Implementation is not a `data class` named `[Name]Config` or `[Name]Configuration`
 * A Client Data Implementation resides in `feature.[name].client.data` (not `client.data.storage`)
 
 ---
@@ -204,3 +209,64 @@ actual class AuthCredentialStorage actual constructor() {
     // Android-specific implementation using SharedPreferences/DataStore
 }
 ```
+
+---
+
+## [Configuration](../src/main/kotlin/architecture/rules/clientdata/Configuration.kt)
+
+A `data class` named `[Name]Config` or `[Name]Configuration` in `client.data`: the settings
+of a [Repository](#repository) or [client data implementation](#client-data-implementation)
+that vary between deployments or supported modes, assembled by the
+[dependency module](feature.md#dependency-module) and injected. A setting fixed for every
+deployment is a private property of the class that uses it, not a configuration field.
+
+* **Note:** The counterpart for a [UseCase](clientdomain.md#use-case) is a
+  [domain model](clientdomain.md#domain-model) in `client.domain`; the data layer's
+  configuration is here because a data-layer setting names the storage or the service behind
+  it, which `client.domain` never names.
+
+##### Requirements
+
+* A Configuration resides in `feature..client.data..`
+* A Configuration is a `data class`
+* A Configuration is named `[Name]Config` or `[Name]Configuration`
+* A Configuration resides in `feature.[name].client.data..`
+
+##### Rules
+
+* A Configuration must be immutable — no `var` properties
+    * **Why:** A configuration is shared by every class the graph injects it into; a `var` lets one consumer change another's settings after the graph is assembled.
+* A Configuration is constructed in a dependency module or an `:app` module, never by the class that consumes it
+    * **Why:** The consuming class receives its configuration through its constructor, so the values are decided where the graph is assembled and a test supplies other values the same way. A class that constructs its own configuration holds settings nothing outside it decides.
+    * **Note:** A file that declares Koin bindings, or any file of an `:app` module, may construct it; the configuration's own file may declare a companion value. Test sources are outside the scope.
+
+##### Examples
+
+A setting that varies between deployments, carried by a configuration the dependency module assembles; the clock is a dependency the graph supplies, and the page size a setting fixed for every deployment:
+
+```kotlin
+// feature/shop/client/data/CatalogConfig.kt
+package feature.shop.client.data
+
+internal data class CatalogConfig(val baseUrl: String)
+
+// feature/shop/client/data/CatalogRepository.kt
+package feature.shop.client.data
+
+internal class CatalogRepository(
+    private val client: HttpClient,
+    private val clock: Clock,
+    private val config: CatalogConfig,
+) {
+    private val pageSize = 50
+    // …
+}
+
+// feature/shop/shopClientDependencies.kt
+val shopClientDependencies = module {
+    single { CatalogConfig(baseUrl = "https://api.example.com") }
+    singleOf(::CatalogRepository)
+}
+```
+
+Not `clock: Clock = Clock.System` or `pageSize: Int = 50` on the constructor (`ProjectRules.injectableConstructorsHaveNoDefaults`), and not `single { CatalogRepository(get(), get(), CatalogConfig(baseUrl = "…")) }` (`ProjectRules.constructorReferenceBindings`).

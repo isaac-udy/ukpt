@@ -54,7 +54,7 @@ also stands up the host (Step 5). Copy-paste skeletons are in `templates.md`.
    binding to the single `UrpcService` type, so registering a second service overwrites the first and the host's
    `getAll<UrpcService>()` returns only one → **every other service 404s**. `bindService`/`urpcService` register
    each binding under its own concrete type and add `UrpcService` as a *secondary* type, so all coexist.
-   (`FeatureRules.constructorReferenceBindings`: use constructor-reference binding style, not `single<T> { … }` lambdas.)
+   (`ProjectRules.constructorReferenceBindings`: use constructor-reference binding style, not `single<T> { … }` lambdas.)
 5. **First service only — teach the host to serve urpc** (idempotent; skip if already wired):
    - `Server.kt` already has a Koin host (it wires the postgres modules), so add
      `<name>ServerDependencies` to the existing `modules(...)` list — that part is what every later
@@ -76,7 +76,7 @@ also stands up the host (Step 5). Copy-paste skeletons are in `templates.md`.
 - **`ServerServices.noDataImports`** / **`ServerServices.noForeignServiceContractInjection`** — the layer never imports persistence, and never injects another feature's Service contract; the published `server.domain` interface is the cross-feature channel.
 - **`ProjectRules.subsystemVisibility`** — a `server.services` sub-package sees its own package, its direct children, and its ancestors — never a sibling.
 - **`ServerData.StorageClass.returnsRowTypesOnly`** — storage classes take/return `XxxRow` only, never domain types.
-- **`FeatureRules.DependencyModule`** (construct) + **`FeatureRules.constructorReferenceBindings`** + **`FeatureRules.DependencyModule.urpcServiceBinding`** — DI is a `val <name>ServerDependencies` module in `feature.<name>`; constructor-ref bindings; the `scope<UrpcCall> { … bindService(…) }` form above.
+- **`FeatureRules.DependencyModule`** (construct) + **`ProjectRules.constructorReferenceBindings`** + **`FeatureRules.DependencyModule.urpcServiceBinding`** — DI is a `val <name>ServerDependencies` module in `feature.<name>`; constructor-ref bindings; the `scope<UrpcCall> { … bindService(…) }` form above.
 - **`ProjectRules.noCatchException`** / **`ProjectRules.serviceExceptionsSerializable`** — no `catch (Exception)`; `@Serializable` service exceptions.
 
 ## Reference — real, compiling examples (read, don't copy-into-the-repo)

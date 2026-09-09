@@ -79,4 +79,10 @@ abstract class DomainModelRules<G : RuleGroup>(
         note("The feature's vocabulary has one source of truth in the root; a private copy of a concept drifts from it as both change.")
         unverifiable()
     }
+
+    @Describe("A typed configuration value for a UseCase is a domain model of its side, assembled in the dependency module and injected")
+    val carriesConfiguration by guidance {
+        note("A setting that varies between deployments reaches a UseCase as a field of an immutable data class the dependency module constructs (`single { ReconciliationConfig(cleanupTimeout = 15.seconds) }`), never as a constructor default (`ProjectRules.injectableConstructorsHaveNoDefaults`). A setting fixed for every deployment is a private property of the UseCase.")
+        note("The data layer's counterpart is a [configuration](${side}data.md#configuration): a `[Name]Config` data class beside the Repository or adapter it configures.")
+    }
 }

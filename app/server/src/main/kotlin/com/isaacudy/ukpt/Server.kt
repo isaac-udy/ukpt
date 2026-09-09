@@ -4,7 +4,6 @@ import dev.isaacudy.udytils.postgres.PostgresConfig
 import dev.isaacudy.udytils.postgres.PostgresMigrator
 import dev.isaacudy.udytils.postgres.buildHikariDataSource
 import dev.isaacudy.udytils.postgres.embedded.DevServer
-import dev.isaacudy.udytils.postgres.koin.postgresDependencies
 import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
@@ -13,7 +12,6 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import org.koin.ktor.plugin.Koin
 import platform.server.development.UkptDevDatabase
-import platform.server.postgres.postgresPlatformDependencies
 
 fun main() {
     // Resolved before the server is built: the schema has to be migrated — and a dev database
@@ -22,10 +20,7 @@ fun main() {
 
     embeddedServer(Netty, port = ServerConfiguration.serverPort, host = "0.0.0.0") {
         install(Koin) {
-            modules(
-                postgresDependencies(postgresConfig),
-                postgresPlatformDependencies,
-            )
+            modules(serverDependencies(postgresConfig))
         }
         routing {
             get("/") {

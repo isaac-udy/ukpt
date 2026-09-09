@@ -34,6 +34,10 @@ import dev.isaacudy.udytils.architecture.*
     call — a model name, a prompt written for that model, a response schema — belongs beside the
     client that sends it, never in the layers above.
 
+    A setting of this layer that varies between deployments — a bucket, an endpoint, a timeout —
+    is a [configuration](#configuration): a `[Name]Config` data class beside the class it
+    configures, assembled by the dependency module and injected.
+
     [Storage records](#storage-record), [codec objects](#codec-object), and
     [mapping functions](#mapping-function) are the supporting shapes: the persistence types a
     StorageClass returns, the JSON encoders that put a domain shape in a column, and the
@@ -159,6 +163,7 @@ object ServerData : RuleGroup(
         CodecObject,
         MappingFunction,
         IntegrationClient,
+        Configuration,
     ),
 ) {
 

@@ -31,6 +31,10 @@ states in its own terms rather than the vendor's, with no table underneath. They
 call — a model name, a prompt written for that model, a response schema — belongs beside the
 client that sends it, never in the layers above.
 
+A setting of this layer that varies between deployments — a bucket, an endpoint, a timeout —
+is a [configuration](#configuration): a `[Name]Config` data class beside the class it
+configures, assembled by the dependency module and injected.
+
 [Storage records](#storage-record), [codec objects](#codec-object), and
 [mapping functions](#mapping-function) are the supporting shapes: the persistence types a
 StorageClass returns, the JSON encoders that put a domain shape in a column, and the
@@ -155,6 +159,7 @@ a tested rule.
 * [Codec Object](#codec-object)
 * [Mapping Function](#mapping-function)
 * [Integration Client](#integration-client)
+* [Configuration](#configuration)
 
 ##### Rules
 
@@ -464,3 +469,69 @@ and nothing else's. Swapping the provider should change one file.
     * **Why:** The vendor is an implementation detail. Callers depend on the domain interface it provides, never on the client itself.
 * An IntegrationClient must not leak vendor types through the domain interface it provides
     * **Verification:** not automatically verifiable; enforced by review.
+
+---
+
+## [Configuration](../src/main/kotlin/architecture/rules/serverdata/Configuration.kt)
+
+A `data class` named `[Name]Config` or `[Name]Configuration` in `server.data`: the settings
+of a [Repository](#repository), [StorageClass](#storage-class), or
+[IntegrationClient](#integration-client) that vary between deployments or supported modes,
+assembled by the [dependency module](feature.md#dependency-module) and injected. A setting
+fixed for every deployment is a private property of the class that uses it, not a
+configuration field.
+
+* **Note:** The counterpart for a [UseCase](serverdomain.md#use-case) is a
+  [domain model](serverdomain.md#domain-model) in `server.domain`; the data layer's
+  configuration is here because a data-layer setting names a bucket, a vendor endpoint, or a
+  table, which `server.domain` never names.
+* **Note:** Reading the environment is the dependency module's job, or the `:app` shell's:
+  `single { InvoicesConfig(bucket = System.getenv("INVOICES_BUCKET") ?: "invoices") }`. The
+  class that receives the configuration never reads the environment itself.
+
+##### Requirements
+
+* A Configuration resides in `feature..server.data..`
+* A Configuration is a `data class`
+* A Configuration is named `[Name]Config` or `[Name]Configuration`
+* A Configuration resides in `feature.[name].server.data..`
+
+##### Rules
+
+* A Configuration must be immutable — no `var` properties
+    * **Why:** A configuration is shared by every class the graph injects it into; a `var` lets one consumer change another's settings after the graph is assembled.
+* A Configuration is constructed in a dependency module or an `:app` module, never by the class that consumes it
+    * **Why:** The consuming class receives its configuration through its constructor, so the values are decided where the graph is assembled and a test supplies other values the same way. A class that constructs its own configuration holds settings nothing outside it decides.
+    * **Note:** A file that declares Koin bindings, or any file of an `:app` module, may construct it; the configuration's own file may declare a companion value. Test sources are outside the scope.
+
+##### Examples
+
+A setting that varies between deployments, carried by a configuration the dependency module assembles; the clock is a dependency the graph supplies, and the retry count a setting fixed for every deployment:
+
+```kotlin
+// feature/orders/server/data/InvoicesConfig.kt
+package feature.orders.server.data
+
+internal data class InvoicesConfig(val bucket: String)
+
+// feature/orders/server/data/InvoicesClient.kt
+package feature.orders.server.data
+
+internal class InvoicesClient(
+    private val storage: ObjectStorage,
+    private val clock: Clock,
+    private val config: InvoicesConfig,
+) {
+    private val maxRetries = 3
+    val getInvoice = GetInvoice { id -> /* … */ }
+}
+
+// feature/orders/ordersServerDependencies.kt
+val ordersServerDependencies = module {
+    single { InvoicesConfig(bucket = System.getenv("INVOICES_BUCKET") ?: "invoices") }
+    singleOf(::InvoicesClient)
+    single<GetInvoice> { get<InvoicesClient>().getInvoice }
+}
+```
+
+Not `clock: Clock = Clock.System` or `maxRetries: Int = 3` on the constructor (`ProjectRules.injectableConstructorsHaveNoDefaults`), not `single { InvoicesClient(get(), get(), InvoicesConfig(bucket = "invoices")) }` (`ProjectRules.constructorReferenceBindings`), and not `private val config = InvoicesConfig(bucket = "invoices")` inside the client (`ServerData.Configuration.assembledAtTheCompositionBoundary`).

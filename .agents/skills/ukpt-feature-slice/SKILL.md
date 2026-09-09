@@ -60,7 +60,8 @@ domain contract inventory to check the result.
    harness canvas.
 5. **Wire it up** — the easy-to-forget edits to existing files (templates.md §9 checklist):
    - `app/client/common/build.gradle.kts` → `implementation(projects.feature.<name>.client)`.
-   - `app/client/common/.../App.kt` → add `<name>ClientDependencies` to `modules(...)` + its import.
+   - `app/client/common/.../ClientDependencies.kt` → add `<name>ClientDependencies` to the `clientDependencies`
+     list + its import; `./gradlew :app:client:common:jvmTest` then verifies every registered constructor.
    - `app/server/build.gradle.kts` → `implementation(projects.feature.<name>.server)` (if using the server).
    - Server DI: `Server.kt` has a Koin host already (it wires the postgres modules), so add
      `<name>ServerDependencies` to its `modules(...)` list once the feature has something to bind.
