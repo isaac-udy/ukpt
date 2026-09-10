@@ -129,15 +129,16 @@ internal object DomainInterfaceAudits {
                 )
             }
 
-    /** Interfaces no production class injects. */
+    /** Interfaces nothing injects and nothing resolves out of the Koin container. */
     fun interfacesWithoutConsumer(graph: DomainInterfaceGraph): List<Violation> =
         graph.nodes
-            .filter { it.consumers.isEmpty() }
+            .filter { it.consumerCount == 0 }
             .sortedBy { it.name }
             .map { node ->
                 Violation(
                     where = "${node.name} (feature.${node.feature})",
-                    message = "no class injects it. A consumer outside a constructor (an app-module lambda, a top-level function) is not counted; check before deleting.",
+                    message = "no class injects it and no `get<T>()`/`inject<T>()`/`koinInject<T>()` resolves it. " +
+                        "A consumer that reaches it some other way is not counted; check before deleting.",
                 )
             }
 

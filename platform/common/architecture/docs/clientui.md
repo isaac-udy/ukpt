@@ -327,10 +327,12 @@ The complete, immutable representation of a Screen's data at a single point in t
 * A ViewModel State object must be immutable (val properties only)
 * A ViewModel State object must have a 1:1 relationship with a ViewModel type
     * **Verification:** not automatically verifiable; enforced by review.
-* A ViewModel State object must not pair a progress-verb Boolean property with an error-synonym sibling — this is a hand-rolled async lifecycle; use `AsyncState<T>` / `AsyncState<Unit>` (via `fromFlow`/`fromSuspending`) or `UpdatableState<T>`
+* A ViewModel State object must not pair a stored progress-verb Boolean property with an error-synonym sibling — this is a hand-rolled async lifecycle; use `AsyncState<T>` / `AsyncState<Unit>` (via `fromFlow`/`fromSuspending`) or `UpdatableState<T>`
     * **Why:** A Boolean progress flag paired with an error property reimplements the state machine `AsyncState` already provides. The hand-rolled pair lacks idle/loading distinction, drops progress reporting, and forces every consumer to combine two fields that `AsyncState` keeps atomic.
+    * **Note:** The pair is two stored properties. A Boolean with a getter holds no state of its own — `val deleting: Boolean get() = deleteProgress is AsyncState.Loading` reads the lifecycle it derives from — so it is not half of a pair and the rule skips it.
 * A ViewModel State object must use `AsyncState<T>` / `UpdatableState<T>` for asynchronously loaded data and action progress
     * **Why:** Sentinel defaults (`""`, `emptyList()`, `false`) conflate a legitimate successful value with not-started, loading, and error. A required async value needs an explicit lifecycle state: `AsyncState<T>` for load-once data and action progress (`AsyncState<Unit>` for fire-and-observe actions like save/send/submit), or `UpdatableState<T>` when already-loaded data should stay visible through a refresh or error. An ordinary nullable or synchronous property remains valid when `null` has exactly one meaning.
+    * **Note:** The audit reports stored progress-verb Booleans. A Boolean with a getter derives its value from another property — `val refreshing: Boolean get() = refreshProgress is AsyncState.Loading` reads the `AsyncState` rather than standing in for it — so the audit skips it; a getter that flattens an `AsyncState` is `noFlattenedAsyncProxies`' subject instead.
     * **Verification:** not automatically verifiable; enforced by review.
     * **Audited:** a test reports non-conforming code without ever failing.
 * A ViewModel State object must not define custom sealed types for loading/success/error; use `AsyncState<T>` instead

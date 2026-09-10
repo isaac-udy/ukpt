@@ -72,8 +72,8 @@ abstract class DomainGroupRules(
         graph.byFeature().toSortedMap().map { (feature, nodes) ->
             val published = nodes.count { it.published }
             val useCases = nodes.count { it.hasUseCase }
-            val unconsumed = nodes.count { it.consumers.isEmpty() }
-            val single = nodes.count { it.consumers.size == 1 }
+            val unconsumed = nodes.count { it.consumerCount == 0 }
+            val single = nodes.count { it.consumerCount == 1 }
             val several = nodes.size - unconsumed - single
             Violation(
                 "feature.$feature $layer",

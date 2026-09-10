@@ -30,7 +30,7 @@ object ViewModelState : Construct<ClientUi>(
 
     @Describe("A ViewModel State object must have a 1:1 relationship with a ViewModel type")
     val viewModelRelationship by rule { unverifiable() }
-    @Describe("A ViewModel State object must not pair a progress-verb Boolean property with an error-synonym sibling — this is a hand-rolled async lifecycle; use `AsyncState<T>` / `AsyncState<Unit>` (via `fromFlow`/`fromSuspending`) or `UpdatableState<T>`")
+    @Describe("A ViewModel State object must not pair a stored progress-verb Boolean property with an error-synonym sibling — this is a hand-rolled async lifecycle; use `AsyncState<T>` / `AsyncState<Unit>` (via `fromFlow`/`fromSuspending`) or `UpdatableState<T>`")
     val noManualAsyncLifecycleFields by rule {
         rationale(
             """
@@ -40,6 +40,7 @@ object ViewModelState : Construct<ClientUi>(
             `AsyncState` keeps atomic.
             """.trimIndent(),
         )
+        note("The pair is two stored properties. A Boolean with a getter holds no state of its own — `val deleting: Boolean get() = deleteProgress is AsyncState.Loading` reads the lifecycle it derives from — so it is not half of a pair and the rule skips it.")
         val progressPattern = Regex("^(is)?(loading|saving|sending|submitting|refreshing|deleting|updating)", RegexOption.IGNORE_CASE)
         val errorPattern = Regex("error|failure|exception|throwable", RegexOption.IGNORE_CASE)
         constrain { decl, _ ->
@@ -49,6 +50,7 @@ object ViewModelState : Construct<ClientUi>(
             if (errorProps.isEmpty()) return@constrain emptyList()
             props
                 .filter { it.type?.name == "Boolean" }
+                .filterNot { it.hasGetter }
                 .filter { progressPattern.containsMatchIn(it.name) }
                 .map { progressProp ->
                     val pairedError = errorProps.first()
@@ -70,14 +72,16 @@ object ViewModelState : Construct<ClientUi>(
             when `null` has exactly one meaning.
             """.trimIndent(),
         )
+        note("The audit reports stored progress-verb Booleans. A Boolean with a getter derives its value from another property — `val refreshing: Boolean get() = refreshProgress is AsyncState.Loading` reads the `AsyncState` rather than standing in for it — so the audit skips it; a getter that flattens an `AsyncState` is `noFlattenedAsyncProxies`' subject instead.")
         unverifiable { decl, _ ->
             val cls = decl as? KoClassDeclaration ?: return@unverifiable emptyList()
             val props = cls.properties()
             val errorProps = props.filter { Regex("error|failure|exception|throwable", RegexOption.IGNORE_CASE).containsMatchIn(it.name) }
             val progressPattern = Regex("^(is)?(loading|saving|sending|submitting|refreshing|deleting|updating)", RegexOption.IGNORE_CASE)
-            // Flag lone progress-verb Booleans (no error sibling — those are caught by noManualAsyncLifecycleFields)
+            // Flag lone stored progress-verb Booleans (no error sibling — those are caught by noManualAsyncLifecycleFields)
             props
                 .filter { it.type?.name == "Boolean" }
+                .filterNot { it.hasGetter }
                 .filter { progressPattern.containsMatchIn(it.name) }
                 .filter { errorProps.isEmpty() }
                 .map { Violation(it, "likely manual progress flag `${it.name}: Boolean` — consider `AsyncState<Unit>` (via `fromSuspending`/`fromFlow`)") }
