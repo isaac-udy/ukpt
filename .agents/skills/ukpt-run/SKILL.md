@@ -26,6 +26,10 @@ reload), use `ukpt-drive-app`.
 ```
 Boots against an embedded Postgres that keeps its data between runs; see Dev database below.
 
+To run it outside Gradle, `./gradlew :app:server:installDist` writes a launcher and every module jar
+to `app/server/build/install/server/`; start it with `bin/server` and the same env switches. The
+`ukpt-server-packaging` skill covers how those jars are named.
+
 ## Web (dev server)
 
 ```
