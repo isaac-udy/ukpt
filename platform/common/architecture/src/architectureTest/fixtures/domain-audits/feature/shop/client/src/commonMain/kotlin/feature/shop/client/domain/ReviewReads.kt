@@ -38,3 +38,19 @@ fun interface GetPromotions {
 fun interface GetOrphan {
     suspend operator fun invoke(): String
 }
+
+fun interface GetResolvedFromKoin {
+    suspend operator fun invoke(): String
+}
+
+fun interface GetResolvedByInjectDelegate {
+    suspend operator fun invoke(): String
+}
+
+fun interface GetResolvedInCompose {
+    suspend operator fun invoke(): String
+}
+
+fun interface GetBoundNotConsumed {
+    suspend operator fun invoke(): String
+}

@@ -15,6 +15,11 @@ import kotlin.test.assertTrue
  * `AdministerTeamsImpl` injects a Create/Update/Delete family, whose `RequireReviewerImpl`
  * forwards one dependency, and whose `GetOrphan` nothing injects. `GetPromotions` and
  * `GetReviewAuthor` have several consumers and must stay out of every group.
+ *
+ * The app module beside it carries the three Koin resolution forms — `koin.get<T>()`,
+ * `by inject<T>()`, `koinInject<T>()` — over `GetResolvedFromKoin`,
+ * `GetResolvedByInjectDelegate`, and `GetResolvedInCompose`, plus a `bind GetBoundNotConsumed::class`
+ * whose interface no one resolves.
  */
 class DomainInterfaceAuditsTest {
 
@@ -83,9 +88,17 @@ class DomainInterfaceAuditsTest {
     }
 
     @Test
-    fun `an interface nothing injects is reported`() {
-        val orphan = findings("ClientDomain.DomainInterface.consumedInProduction").single()
-        assertEquals("GetOrphan (feature.shop)", orphan.where)
+    fun `an interface nothing injects and nothing resolves is reported`() {
+        val unconsumed = findings("ClientDomain.DomainInterface.consumedInProduction").map { it.where }
+        assertEquals(listOf("GetBoundNotConsumed (feature.shop)", "GetOrphan (feature.shop)"), unconsumed)
+    }
+
+    @Test
+    fun `an interface resolved out of the Koin container is not reported`() {
+        val unconsumed = findings("ClientDomain.DomainInterface.consumedInProduction").map { it.where }.toString()
+        assertTrue("GetResolvedFromKoin" !in unconsumed, unconsumed)
+        assertTrue("GetResolvedByInjectDelegate" !in unconsumed, unconsumed)
+        assertTrue("GetResolvedInCompose" !in unconsumed, unconsumed)
     }
 
     @Test
@@ -100,7 +113,7 @@ class DomainInterfaceAuditsTest {
         val inventory = findings("ClientDomain.inventory").single()
         assertEquals("feature.shop client.domain", inventory.where)
         assertEquals(
-            "14 domain interfaces (0 published), 2 domain models, 4 UseCases; consumers per interface: none 1, one 11, several 2",
+            "18 domain interfaces (0 published), 2 domain models, 4 UseCases; consumers per interface: none 2, one 14, several 2",
             inventory.message,
         )
     }

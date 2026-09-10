@@ -52,6 +52,7 @@ object DesignSystemRules : RuleGroup() {
     val noLiteralsInFeatureUi by guidance {
         note("Audited rather than enforced: a literal is occasionally right — a one-off illustration, an aspect ratio — and the judgement is easier to make in review than in a rule.")
         note("A value the tokens don't have is a signal the palette or scale is missing a role. Add the role rather than the literal, so a theme change reaches it.")
+        note("A `@Preview` function is exempt: the viewport it frames (`UkptPreviewFrame(width = 360.dp)`) is part of what the preview asserts, and it describes the device being rendered rather than the design language. A non-preview helper the preview calls is not exempt.")
         audit { scope, exempt ->
             // `Color(0x…)` and a bare numeric `.dp`/`.sp`: the two forms that silently survive a
             // palette or scale change. Token reads (`UkptTheme.colors.accent`, `UkptSpacing.md`)
@@ -59,6 +60,7 @@ object DesignSystemRules : RuleGroup() {
             val literalValue = Regex("""Color\(\s*0x|(?<![\w.])\d+(\.\d+)?\.(dp|sp)\b""")
             scope.functions()
                 .filter { it.resideInPackage("feature..ui..") }
+                .filterNot { it.hasAnnotationWithName("Preview") }
                 .filterNot { exempt(it) }
                 .filter { literalValue.containsMatchIn(it.text) }
                 .map { Violation(it, "literal colour or dimension in feature `ui` — prefer a design-system token") }

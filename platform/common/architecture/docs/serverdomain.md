@@ -137,7 +137,8 @@ process, and belongs outside the block entirely.
     * **Audited:** a test reports non-conforming code without ever failing.
 * A Domain Interface should be injected by at least one production class
     * **Note:** A DI module binds an interface without consuming it, and a test fake is not a consumer. An interface published through `:api` may be consumed from another feature's module, which the audit sees when that module is in scope.
-    * **Note:** The audit reports interfaces no class injects through its primary constructor. A consumer outside a constructor, such as an app-module lambda or a top-level function, is not counted.
+    * **Note:** The audit counts two forms of consumption: a class taking the interface as a primary-constructor parameter, and a file resolving it out of the Koin container with `get<T>()`, `inject<T>()`, or `koinInject<T>()` — the form an app module's startup wiring or a Compose entry point uses. A `bind T::class` in a module is the binding, not a consumer, and is not counted.
+    * **Note:** A consumer that reaches the interface in neither form — through reflection, or a lambda parameter typed elsewhere — is not counted, so an interface reported here is a question to check rather than proven dead code.
     * **Audited:** a test reports non-conforming code without ever failing.
 * A mutation should return the value its caller needs next, and no value when an observed read projection already carries the outcome
     * **Why:** A caller that receives an identifier and reads the model back performs a second read for a value the producer had in hand. A caller that receives a value it never uses carries a contract with no consumer.

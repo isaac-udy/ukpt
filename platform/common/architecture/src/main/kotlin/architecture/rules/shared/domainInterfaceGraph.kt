@@ -9,6 +9,7 @@ import architecture.definitions.typeTokens
 import com.lemonappdev.konsist.api.container.KoScope
 import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
+import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
 import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
 import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
 
@@ -30,8 +31,17 @@ internal data class DomainInterfaceNode(
     val published: Boolean,
     val providers: List<String>,
     val consumers: List<DomainInterfaceConsumer>,
+    /** Files resolving this interface out of the Koin container — see [koinResolutionSite]. */
+    val resolutionSites: List<String>,
 ) {
     val hasUseCase: Boolean get() = providers.any { it == "${name}Impl" }
+
+    /**
+     * Constructor consumers plus Koin resolution sites: every production reference that takes the
+     * interface to call it. The grouped audits count [consumers] alone, because what they report —
+     * interfaces injected together into one class — is a property of constructor injection.
+     */
+    val consumerCount: Int get() = consumers.size + resolutionSites.size
 }
 
 internal class DomainInterfaceGraph(
@@ -49,7 +59,8 @@ private val adapterSuffixes = listOf("Repository", "Client", "Provider")
  * interface (a UseCase, or an adapter implementing it directly), or an adapter-suffixed class with
  * a property whose declaration head resolves to it. Consumers are resolved through each parameter
  * type's tokens and the file's imports, so an alias or a wrapper such as `Lazy<…>` still counts and
- * an unrelated type sharing the simple name does not.
+ * an unrelated type sharing the simple name does not. Files resolving an interface out of the Koin
+ * container are collected separately, as [DomainInterfaceNode.resolutionSites].
  */
 internal fun KoScope.domainInterfaceGraph(side: String): DomainInterfaceGraph {
     val interfaces = interfaces()
@@ -59,6 +70,13 @@ internal fun KoScope.domainInterfaceGraph(side: String): DomainInterfaceGraph {
 
     val providers = mutableMapOf<String, MutableList<String>>()
     val consumers = mutableMapOf<String, MutableList<DomainInterfaceConsumer>>()
+    val resolutionSites = mutableMapOf<String, MutableList<String>>()
+
+    files.forEach { file ->
+        koinResolvedInterfaces(file, fqns).forEach { fqn ->
+            resolutionSites.getOrPut(fqn) { mutableListOf() } += file.name
+        }
+    }
 
     classes().forEach { cls ->
         val file = cls.containingFile
@@ -90,6 +108,7 @@ internal fun KoScope.domainInterfaceGraph(side: String): DomainInterfaceGraph {
             published = iface.isApiModule(),
             providers = providers[fqn].orEmpty().distinct(),
             consumers = consumers[fqn].orEmpty().distinctBy { it.fqn },
+            resolutionSites = resolutionSites[fqn].orEmpty().distinct(),
         )
     }
     return DomainInterfaceGraph(side, nodes)
@@ -103,6 +122,31 @@ internal fun consumedInterfaces(cls: KoClassDeclaration, fqns: Set<String>): Set
         .filter { it in fqns }
         .toSet()
 }
+
+/**
+ * The three Koin resolution call shapes, written as a type argument: `get<T>(`, `inject<T>(`, and
+ * Compose's `koinInject<T>(`. The lookbehind admits a receiver dot (`koin.get<T>()`,
+ * `getKoin().get<T>()`) while rejecting a longer identifier that merely ends in the same letters.
+ *
+ * A bare reference to the type is deliberately not matched. A Koin module writes its binding as
+ * `single { get<AuthRepository>().flowOfAccessToken } bind FlowOfAccessToken::class`, where
+ * `FlowOfAccessToken::class` names what is being *provided*; counting it would make every bound
+ * interface look consumed. The `get<AuthRepository>()` on the same line is a resolution and does
+ * count — against `AuthRepository`, not against the interface the line binds.
+ */
+private val koinResolutionSite = Regex("""(?<![A-Za-z0-9_])(?:koinInject|inject|get)<([A-Za-z_][A-Za-z0-9_.]*)>\s*\(""")
+
+/**
+ * The domain-interface FQNs [file] resolves out of the Koin container. A resolution site is a
+ * consumer without a constructor — an app module's startup wiring, a Compose entry point, a
+ * `single { … }` body — so the type token is resolved through the file's imports exactly as
+ * [consumedInterfaces] resolves a parameter type.
+ */
+private fun koinResolvedInterfaces(file: KoFileDeclaration, fqns: Set<String>): Set<String> =
+    koinResolutionSite.findAll(file.text)
+        .mapNotNull { file.resolveTypeToken(it.groupValues[1]) }
+        .filter { it in fqns }
+        .toSet()
 
 /**
  * The domain models visible to [side]'s domain layer: data, sealed, enum, and value declarations

@@ -86,7 +86,8 @@ abstract class DomainInterfaceRules<G : RuleGroup>(
     @Describe("A Domain Interface should be injected by at least one production class")
     val consumedInProduction by guidance {
         note("A DI module binds an interface without consuming it, and a test fake is not a consumer. An interface published through `:api` may be consumed from another feature's module, which the audit sees when that module is in scope.")
-        note("The audit reports interfaces no class injects through its primary constructor. A consumer outside a constructor, such as an app-module lambda or a top-level function, is not counted.")
+        note("The audit counts two forms of consumption: a class taking the interface as a primary-constructor parameter, and a file resolving it out of the Koin container with `get<T>()`, `inject<T>()`, or `koinInject<T>()` — the form an app module's startup wiring or a Compose entry point uses. A `bind T::class` in a module is the binding, not a consumer, and is not counted.")
+        note("A consumer that reaches the interface in neither form — through reflection, or a lambda parameter typed elsewhere — is not counted, so an interface reported here is a question to check rather than proven dead code.")
         auditScope { scope, _ ->
             DomainInterfaceAudits.interfacesWithoutConsumer(scope.domainInterfaceGraph(side))
         }

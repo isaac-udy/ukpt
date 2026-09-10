@@ -28,4 +28,5 @@ features read tokens rather than restating values.
 * A feature's `ui` package should read colours and dimensions from the design system rather than declaring them literally
     * **Note:** Audited rather than enforced: a literal is occasionally right — a one-off illustration, an aspect ratio — and the judgement is easier to make in review than in a rule.
     * **Note:** A value the tokens don't have is a signal the palette or scale is missing a role. Add the role rather than the literal, so a theme change reaches it.
+    * **Note:** A `@Preview` function is exempt: the viewport it frames (`UkptPreviewFrame(width = 360.dp)`) is part of what the preview asserts, and it describes the device being rendered rather than the design language. A non-preview helper the preview calls is not exempt.
     * **Audited:** a test reports non-conforming code without ever failing.
