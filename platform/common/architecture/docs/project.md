@@ -29,6 +29,12 @@ is the async-result wrapper that [ViewModels](clientui.md#view-model) consume.
 * An `AsyncState` must never be constructed directly via `Loading`/`Success`/`Error`; use `AsyncState.fromSuspending`/`fromFlow` instead
     * **Why:** Direct construction skips the exception capture, cancellation, and state-flow protocol that `AsyncState.fromSuspending`/`fromFlow` handle uniformly, silently breaking the contract the rest of the codebase relies on. Files that legitimately build AsyncState values (defining its semantics, or the server-side status pattern) opt out with `@file:ArchitectureException`.
     * **Note:** A construction inside a `@Preview` function is sample state for a snapshot/preview, not production wiring, so it is exempt — no `@ArchitectureException` is needed. The rule still flags direct construction in any real code, including a `@Preview`'s non-preview helpers.
+* A property must not be backed by a separate `_[name]` property; the stored value is an explicit backing field (`field = …`) of the property that exposes it
+    * **Why:** A backing property is two declarations for one value: the exposed `val [name]` and a private `_[name]` that every write names. An explicit backing field is one declaration; inside the declaring class or file the compiler smart casts the property to the field's type, so a write names the property itself.
+    * **Note:** An explicit backing field is Stable from Kotlin 2.4 and needs no compiler flag. It applies to a `val` that is not `open`, not delegated, and has no custom getter, with a field type that is a subtype of the property type: `val state: StateFlow<S>` over `field = MutableStateFlow(…)`, `val items: List<T>` over `field = mutableListOf()`.
+    * **Note:** An explicit backing field cannot be reassigned. A value the class reassigns is `var [name]: T` with a `private set`.
+    * **Note:** A private value whose type is not a subtype of the exposed property's type — a `Channel` behind a `Flow` — is its own property, named for what it holds (`eventChannel`), not `_events`.
+    * **Note:** Reported by the pair: a `_[name]` property beside a `[name]` property in the same class, object, interface, or file. A `_`-prefixed property with no such sibling is not reported.
 * A package in a feature layer must name that layer only through its own package, its direct child subsystems, and its ancestors up to the layer root
     * **Why:** A subsystem package is a boundary, not a namespace. One level inward is what gives it an interior: the parent names the subsystem, and the subsystem chooses what of itself the parent may see — the same property depth-is-privacy gives the whole taxonomy. Unlimited inward visibility would make a subtree a prefix and nothing more, so the root could name a vendor client three levels down and no boundary would exist anywhere.  Sideways is forbidden because two subsystems that name each other are one subsystem with a package split through it. Composition between them belongs to their shared ancestor, which is the package that is allowed to know both.
     * **Note:** Upward is unrestricted: a shared payload is an ordinary domain model at the shared ancestor and a shared contract an ordinary domain interface there, and the layer's own purity rules already bound what either can do.
@@ -81,6 +87,46 @@ is the async-result wrapper that [ViewModels](clientui.md#view-model) consume.
 * An architecture exception should be temporary; revisit it periodically and remove it once the underlying issue is resolved
 
 ##### Examples
+
+Example for `ProjectRules.noBackingProperties`:
+
+```kotlin
+// Good
+class CartStore {
+    val items: StateFlow<List<Item>>
+        field = MutableStateFlow(emptyList())
+
+    fun add(item: Item) {
+        items.value = items.value + item
+    }
+}
+
+// Avoid
+class CartStore {
+    private val _items = MutableStateFlow<List<Item>>(emptyList())
+    val items: StateFlow<List<Item>> get() = _items
+
+    fun add(item: Item) {
+        _items.value = _items.value + item
+    }
+}
+```
+
+A value the class reassigns is a `var` with a `private set`; an explicit backing field cannot be reassigned:
+
+```kotlin
+// Good
+class CartStore {
+    var lastSyncedAt: Instant? = null
+        private set
+}
+
+// Avoid
+class CartStore {
+    private var _lastSyncedAt: Instant? = null
+    val lastSyncedAt: Instant? get() = _lastSyncedAt
+}
+```
 
 Example for `ProjectRules.sealedActionVariants`:
 
