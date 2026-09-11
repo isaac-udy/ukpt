@@ -150,6 +150,39 @@ object ProjectRules : RuleGroup() {
         }
     }
 
+    @Describe("A property must not be backed by a separate `_[name]` property; the stored value is an explicit backing field (`field = …`) of the property that exposes it")
+    val noBackingProperties by rule {
+        rationale(
+            """
+            A backing property is two declarations for one value: the exposed `val [name]` and a
+            private `_[name]` that every write names. An explicit backing field is one declaration;
+            inside the declaring class or file the compiler smart casts the property to the field's
+            type, so a write names the property itself.
+            """.trimIndent(),
+        )
+        note("An explicit backing field is Stable from Kotlin 2.4 and needs no compiler flag. It applies to a `val` that is not `open`, not delegated, and has no custom getter, with a field type that is a subtype of the property type: `val state: StateFlow<S>` over `field = MutableStateFlow(…)`, `val items: List<T>` over `field = mutableListOf()`.")
+        note("An explicit backing field cannot be reassigned. A value the class reassigns is `var [name]: T` with a `private set`.")
+        note("A private value whose type is not a subtype of the exposed property's type — a `Channel` behind a `Flow` — is its own property, named for what it holds (`eventChannel`), not `_events`.")
+        note("Reported by the pair: a `_[name]` property beside a `[name]` property in the same class, object, interface, or file. A `_`-prefixed property with no such sibling is not reported.")
+        scope { scope, exempt ->
+            val containers = scope.classesAndInterfacesAndObjects(includeNested = true) + scope.files
+            containers.flatMap { container ->
+                val properties = container.properties(includeNested = false)
+                val byName = properties.associateBy { it.name }
+                properties
+                    .filter { it.name.startsWith("_") && it.name.length > 1 }
+                    .filterNot { exempt(it) }
+                    .mapNotNull { backing ->
+                        val exposed = byName[backing.name.drop(1)] ?: return@mapNotNull null
+                        Violation(
+                            backing,
+                            "`${backing.name}` backs `${exposed.name}` — declare `${exposed.name}` with an explicit backing field (`field = …`), or as `var ${exposed.name}` with a `private set` when the class reassigns it",
+                        )
+                    }
+            }
+        }
+    }
+
     // ---- subsystem packages ------------------------------------------------------------------
     @Describe("A package in a feature layer must name that layer only through its own package, its direct child subsystems, and its ancestors up to the layer root")
     val subsystemVisibility by rule {
