@@ -76,3 +76,7 @@ lives in `app/server/build/dev-postgres/pg<major>/` and survives restarts (`clea
 - `UKPT_DEV_SCENARIO` — names a `DevScenarios` entry to seed a **new** cluster with. Seeding is
   once-per-cluster; asking for a scenario over existing data fails rather than inserting on top.
 - `PORT` — what the server listens on, default 8080.
+
+`run` reads the three `UKPT_DEV_*` switches at execution time, not from the configuration-cache
+entry, so a scenario set in an IDE run configuration or one shell does not carry into later runs
+from another, and changing a switch reuses the cached entry.
