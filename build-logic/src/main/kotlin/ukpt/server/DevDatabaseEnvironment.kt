@@ -14,6 +14,9 @@ object DevDatabaseEnvironment {
     /** Where a persistent dev cluster keeps its data. */
     const val DIRECTORY: String = "UKPT_DEV_DB_DIR"
 
+    /** Names the `DevScenarios` entry a brand-new cluster is seeded with. */
+    const val SCENARIO: String = "UKPT_DEV_SCENARIO"
+
     /** A cluster that survives restarts — the default for `run`. */
     const val MODE_EMBEDDED: String = "embedded"
 
