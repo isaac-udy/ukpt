@@ -34,6 +34,8 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
+apply(from = "gradle/embedded-sdk-location.settings.gradle.kts")
+
 include(":app:client:common")
 include(":app:client:android")
 include(":app:client:desktop")

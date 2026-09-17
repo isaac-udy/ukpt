@@ -104,6 +104,14 @@ Two consequences:
 - **Toolchain bumps are a three-repository job.** Kotlin, Compose and AGP must stay compatible across
   ukpt, Enro and udytils. Bump them together.
 
+An included build is a separate build with its own root directory, and AGP reads `sdk.dir` from the
+`local.properties` in the root directory of the build that owns the project. The submodules
+therefore cannot see this project's `local.properties`, which is what an IDE writes and what a clone
+otherwise has. [`gradle/embedded-sdk-location.settings.gradle.kts`](gradle/embedded-sdk-location.settings.gradle.kts),
+applied from `settings.gradle.kts`, copies the entry into `embedded-*/local.properties` before the
+builds are included. A machine that exports `ANDROID_HOME` needs none of this: AGP falls back to the
+environment, which every build in the tree sees.
+
 ### Using published versions instead
 
 Both libraries are published to Maven Central, so this is entirely optional. To drop a submodule:
