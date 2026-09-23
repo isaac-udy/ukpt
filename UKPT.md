@@ -24,7 +24,6 @@ Follow the rules in [`platform/common/architecture/README.md`](./platform/common
 - The rules are a machine-readable **object catalog** in [`platform/common/architecture/src/main/kotlin/architecture/rules/`](./platform/common/architecture/src/main/kotlin/architecture/rules) (a `RuleGroup` object per layer in its own sub-package; one top-level `Construct<Group>` object per construct in its own file, listed in the group's `constructs`; a rule per property; the engine is the `dev.isaacudy.udytils:architecture-core` artifact from `embedded-udytils`). Rules shared by the client/server twins of one construct are declared once on abstract base classes in [`rules/shared/`](./platform/common/architecture/src/main/kotlin/architecture/rules/shared) and instantiated per side. Every rule has a stable **path ID** — the object/property path, e.g. `ClientDomain.UseCase.noOverridingDefaults` — and an enforcement tag; [`docs/rule-index.md`](./platform/common/architecture/docs/rule-index.md) lists them all.
 - The README and everything under `platform/common/architecture/docs/` are **generated**: rule statements and narrative come from `@Describe` annotations in the catalog; example blocks come from `<Construct>.examples.md` files in the group's package. Edit the catalog or an examples file — never the generated files — then regenerate with `./gradlew :platform:common:architecture:updateArchitectureDocumentation`.
 - Exemptions require human sign-off: `@ArchitectureException(ruleIds = ["..."])` ([docs/exceptions.md](./platform/common/architecture/docs/exceptions.md)).
-- Comment discipline: see [docs/code-comments.md](./docs/code-comments.md) — a comment must say something the code cannot.
 
 ## Toolchain & constraints
 
@@ -40,6 +39,14 @@ Follow the rules in [`platform/common/architecture/README.md`](./platform/common
 git submodule update --init --recursive
 ```
 New code may rely on APIs that only exist in a newer submodule commit.
+
+## Working as an agent
+
+**Comments.** Write none by default: a clearer name, a `require(...)` message, or a restructured flow usually carries the point instead. A comment that earns its place is one line, two at most, and states a constraint, invariant or trap that the names cannot. It addresses the next reader of the file, not the reviewer of the change, and describes the code as it is; history belongs in the commit message. Detail and examples: [docs/code-comments.md](./docs/code-comments.md).
+
+**Before handing off a change**, re-read every comment the diff adds, including in work delegated to subagents, and delete each one that narrates the change, argues with the reviewer, or restates a name or type.
+
+**Merging and releasing.** Open pull requests and watch CI freely, but stop at "CI is green — ready to merge". Merging, enabling auto-merge, dispatching a release or deploy, and changing cloud infrastructure or provider configuration each need the project owner's explicit go-ahead for that specific action; report the command instead of running it. A question from the owner, an approval of a different change, or the agent's own "I'll merge on green" is not that go-ahead.
 
 ## Building as an agent
 
