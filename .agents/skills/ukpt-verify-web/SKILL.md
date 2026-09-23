@@ -30,6 +30,8 @@ Open the served URL, confirm the page actually renders (the `<body>` gets popula
 
 **Done when:** webpack succeeds **and** the served page renders with no console errors on the affected screens.
 
+Both gates build in development mode. The production build, its brotli-compressed wasm and the host configuration are covered by `ukpt-web-deploy`.
+
 ## Failure signatures → cause → fix
 
 | Symptom | Gate | Cause | Fix |

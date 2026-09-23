@@ -76,6 +76,7 @@ After changes, compile every platform (client + server), not just the touched mo
 - `ukpt-run` — per-platform run commands, dev database setup and env switches.
 - `ukpt-drive-app` — drive the running desktop app through the Compose Hot Reload MCP server: semantic tree, clicks, screenshots, hot reload, runtime errors.
 - `ukpt-verify-web` — wasm bundle and runtime verification.
+- `ukpt-web-deploy` — serving the web client: brotli-compressed wasm, headers, cache policy, host recipes.
 - `ukpt-ui-atlas` — `./gradlew generateUiAtlas`, manifest schema.
 - `ukpt-server-packaging` — fat jar build, service-file checks, smoke test.
 - `ukpt-feature-slice` — scaffold `:feature:<name>:{api,client,server}`.

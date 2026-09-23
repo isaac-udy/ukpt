@@ -67,3 +67,11 @@ internal fun ConfirmResetDialogPreview() {
         ConfirmResetDialogScreenContent()
     }
 }
+
+@Preview
+@Composable
+internal fun ConfirmResetDialogDarkPreview() {
+    UkptPreviewFrame(colors = UkptColors.Dark) {
+        ConfirmResetDialogScreenContent()
+    }
+}

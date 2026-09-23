@@ -47,6 +47,15 @@ fun UkptTheme(
                 surface = colors.surface,
                 onSurface = colors.onSurface,
                 surfaceVariant = colors.surface,
+                // Dialogs, menus, sheets and cards paint their containers with these roles; left
+                // unset they keep material's light defaults under either palette.
+                surfaceContainerLowest = colors.surface,
+                surfaceContainerLow = colors.surface,
+                surfaceContainer = colors.surface,
+                surfaceContainerHigh = colors.surface,
+                surfaceContainerHighest = colors.surface,
+                surfaceBright = colors.surface,
+                surfaceDim = colors.surface,
                 onSurfaceVariant = colors.onSurfaceVariant,
                 outline = colors.outline,
                 error = colors.error,

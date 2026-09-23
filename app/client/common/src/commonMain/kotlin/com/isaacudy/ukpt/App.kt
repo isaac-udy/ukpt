@@ -3,10 +3,7 @@ package com.isaacudy.ukpt
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import dev.enro.asBackstack
-import dev.enro.asInstance
 import dev.enro.ui.NavigationDisplay
-import dev.enro.ui.rememberNavigationContainer
 import feature.ukpt.client.ui.UkptDestination
 import org.koin.compose.KoinApplication
 import platform.design.ProvideUkptViewport
@@ -22,9 +19,7 @@ fun App() {
         // MaterialTheme derived from the tokens, so raw material internals inherit them too.
         UkptTheme {
             ProvideUkptViewport {
-                val rootContainer = rememberNavigationContainer(
-                    backstack = listOf(UkptDestination.asInstance()).asBackstack(),
-                )
+                val rootContainer = rememberRootNavigationContainer(UkptDestination)
                 NavigationDisplay(
                     state = rootContainer,
                     modifier = Modifier.fillMaxSize(),

@@ -1,0 +1,4 @@
+interface:
+  display_name: "UKPT Web Deploy"
+  short_description: "Serve the wasm web client from a static host"
+  default_prompt: "Use $ukpt-web-deploy to deploy the web client with brotli-compressed wasm."
