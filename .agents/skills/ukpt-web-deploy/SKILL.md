@@ -126,7 +126,9 @@ spinner when `wasm-manifest.js` is missing.
 
 ## Deep links
 
-A destination with an Enro path binding puts its path in the address bar, so a reload of
+On web, `rememberRootNavigationContainer` (`app/client/common`) installs Enro's web history plugin
+and starts the root container on the destination whose `@NavigationPath` matches the address bar.
+The address bar shows the path of the deepest active destination that has one, so a reload of
 `/some/screen` requests that path from the host. The host must answer unknown paths with `index.html` (a not-found page on an object
 store, `try_files $uri /index.html` on nginx, `try_files {path} /index.html` on Caddy, a rewrite
 rule on edge hosts). `index.html` sets `<base href="/">`, so its relative script URLs resolve from
