@@ -8,5 +8,6 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class Greeting(
+    val id: Long,
     val text: String,
 )
