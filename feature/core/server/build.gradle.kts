@@ -1,5 +1,6 @@
 plugins {
     id("ukpt.jvm-library")
+    id("ukpt.html-snapshot")
 }
 
 dependencies {
@@ -9,6 +10,7 @@ dependencies {
     // declare rule-scoped exemptions (a tiny artifact — no Konsist or test machinery).
     implementation(libs.udytils.architectureAnnotations)
 
+    implementation(projects.platform.server.web)
     implementation(libs.ktor.serverCore)
     implementation(libs.ktor.clientCore)
     implementation(libs.ktor.clientCio)
@@ -20,4 +22,7 @@ dependencies {
 
     testImplementation(libs.kotlin.testJunit)
     testImplementation(libs.kotlinx.coroutinesTest)
+    testImplementation(libs.ktor.serverTestHost)
+    testImplementation(libs.jsoup)
+    testImplementation(libs.udytils.htmlSnapshot)
 }

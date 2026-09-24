@@ -40,6 +40,7 @@ Rules land enforced from their first commit, never as audits, and no declaration
 
 - [Module Rules](docs/module.md)
 - [Feature Rules](docs/feature.md)
+- [Server Web](docs/serverweb.md)
 - [Server Domain](docs/serverdomain.md)
 - [Server Data](docs/serverdata.md)
 - [Project Rules](docs/project.md)

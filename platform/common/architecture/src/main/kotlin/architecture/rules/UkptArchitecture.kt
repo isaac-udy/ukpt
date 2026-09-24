@@ -8,6 +8,7 @@ import architecture.rules.module.ModuleRules
 import architecture.rules.project.ProjectRules
 import architecture.rules.serverdata.ServerData
 import architecture.rules.serverdomain.ServerDomain
+import architecture.rules.serverweb.ServerWeb
 
 /**
  * UKPT's architecture definition for the `htmx` template branch: the rule groups in document order,
@@ -52,6 +53,7 @@ object UkptArchitecture : ArchitectureDefinition(
     groups = listOf(
         ModuleRules,
         FeatureRules,
+        ServerWeb,
         ServerDomain,
         ServerData,
         ProjectRules,
