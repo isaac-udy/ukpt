@@ -22,11 +22,12 @@ import kotlinx.html.p
 import kotlinx.html.section
 import kotlinx.html.span
 import kotlinx.html.ul
+import platform.server.web.LayoutState
 import platform.server.web.textField
 import platform.server.web.ukptLayout
 
 internal fun HTML.greetingsPage(state: GreetingsPageState) {
-    ukptLayout(title = "Greetings", scripts = listOf(UkptPaths.GREETING_NAME_SCRIPT)) {
+    ukptLayout(LayoutState(title = "Greetings", scripts = listOf(UkptPaths.GREETING_NAME_SCRIPT))) {
         h1 { +"Greetings" }
         greetingForm(state.form, state.errors)
         greetingList(state.greetings)

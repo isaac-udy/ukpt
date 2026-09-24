@@ -1,59 +1,18 @@
 package platform.server.web
 
-import dev.isaacudy.udytils.htmx.alpineScript
-import dev.isaacudy.udytils.htmx.htmxConfig
-import dev.isaacudy.udytils.htmx.htmxScripts
-import kotlinx.html.HEAD
 import kotlinx.html.HTML
 import kotlinx.html.MAIN
-import kotlinx.html.body
-import kotlinx.html.div
-import kotlinx.html.head
-import kotlinx.html.id
-import kotlinx.html.lang
-import kotlinx.html.link
 import kotlinx.html.main
-import kotlinx.html.meta
-import kotlinx.html.role
-import kotlinx.html.script
-import kotlinx.html.title
 
-/**
- * The document every page renders into. [scripts] are the page's own script files; they run
- * before Alpine starts, so the components they register on `alpine:init` exist when it does.
- */
-fun HTML.ukptLayout(
-    title: String,
-    scripts: List<String> = emptyList(),
-    content: MAIN.() -> Unit,
-) {
-    lang = "en"
-    head {
-        meta(charset = "utf-8")
-        meta(name = "viewport", content = "width=device-width, initial-scale=1")
-        title(title)
-        link(rel = "icon", type = "image/svg+xml", href = "/static/platform/favicon.svg")
-        htmxConfig()
-        link(rel = "stylesheet", href = "/static/platform/css/tokens.css")
-        link(rel = "stylesheet", href = "/static/platform/css/base.css")
-        htmxScripts()
-        deferredScript("/static/platform/js/app.js")
-        scripts.forEach { deferredScript(it) }
-        alpineScript()
-    }
-    body {
-        div("app-error") {
-            id = APP_ERROR_ID
-            role = "alert"
-            attributes["hidden"] = ""
-        }
+/** A page's title and its own script files, which run before Alpine starts. */
+data class LayoutState(
+    val title: String,
+    val scripts: List<String> = emptyList(),
+)
+
+/** The default layout: the page's content in the document's `main` region. */
+fun HTML.ukptLayout(state: LayoutState, content: MAIN.() -> Unit) {
+    ukptDocument(DocumentState(state.title, scripts = state.scripts)) {
         main("page") { content() }
     }
-}
-
-/** The element `app.js` fills when an htmx request fails; the layout renders it empty and hidden. */
-const val APP_ERROR_ID: String = "app-error"
-
-private fun HEAD.deferredScript(src: String) {
-    script(src = src) { defer = true }
 }

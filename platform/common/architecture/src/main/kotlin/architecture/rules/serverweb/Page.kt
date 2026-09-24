@@ -6,7 +6,8 @@ import com.lemonappdev.konsist.api.declaration.KoFunctionDeclaration
 
 @Describe("""
     A whole HTML document: a top-level `fun HTML.[name]Page(state: [Name]State)` that renders its
-    [View State](#view-state) inside the platform layout. A handler responds with it through
+    [View State](#view-state) inside a [Layout](#layout) — the platform's `ukptLayout`, or a shell
+    the project's features share. A handler responds with it through
     `call.respondHtml { [name]Page(state) }`.
 
     A Page composes [Components](#component). A handler that answers an htmx request renders the
@@ -31,9 +32,9 @@ object Page : Construct<ServerWeb>(
         }
     }
 
-    @Describe("A Page must render through the platform layout")
+    @Describe("A Page must render through a Layout")
     val rendersThroughLayout by rule {
-        rationale("The layout carries the htmx configuration, the scripts in the order Alpine needs, and the error region the platform script fills.")
+        rationale("Every Layout ends at the platform's document, which carries the htmx configuration, the scripts in the order Alpine needs, and the error region the platform script fills.")
         note("Tested on the function body: a call to a function whose name ends in `Layout`.")
         constrain { decl, _ ->
             val fn = decl as? KoFunctionDeclaration ?: return@constrain emptyList()

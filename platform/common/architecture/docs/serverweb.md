@@ -29,6 +29,7 @@ any other script. A feature keeps its scripts and styles in `static/[name]/`.
 
 * [Routes](#routes)
 * [Page](#page)
+* [Layout](#layout)
 * [Component](#component)
 * [View State](#view-state)
 * [Form](#form)
@@ -43,6 +44,9 @@ any other script. A feature keeps its scripts and styles in `static/[name]/`.
     * **Note:** Tested over imports of `feature.[name].server.data` and of the generated tables in `platform.server.postgres.tables`.
 * The `server.web` layer must not import Koin
     * **Why:** A Routes class receives its domain interfaces through its constructor, and the feature's dependency module binds it. A lookup inside a handler is a dependency the constructor does not state, so `ServerDependenciesTest` cannot verify it.
+* The `server.web` layer must not render `<head>` or `<body>`; the platform's document does
+    * **Why:** The platform's document puts the htmx configuration, the scripts in the order Alpine needs, and the error region the platform script fills into every page. A shell that renders its own `<head>` or `<body>` drops them; one that needs regions of its own is a [Layout](#layout) over `ukptDocument`.
+    * **Note:** Tested over imports of `kotlinx.html.head` and `kotlinx.html.body`.
 * Markup must set `hx-*`, `sse-*` and Alpine attributes through the `dev.isaacudy.udytils.htmx` builders, never as string attribute names
     * **Why:** The builders accept only values that htmx and Alpine do not evaluate as JavaScript: no `hx-on`, no trigger filters, and Alpine directives that name a member of a registered component. An attribute name written as a string bypasses that check, and a typo in it renders an attribute htmx ignores.
     * **Note:** Tested over every Kotlin file that imports `kotlinx.html`, in feature and platform modules: a string literal that starts with `hx-`, `sse-`, `x-`, `@` or `:` followed by a letter.
@@ -141,7 +145,8 @@ singleOf(::OrdersRoutes) bind WebRoutes::class
 ## [Page](../src/main/kotlin/architecture/rules/serverweb/Page.kt)
 
 A whole HTML document: a top-level `fun HTML.[name]Page(state: [Name]State)` that renders its
-[View State](#view-state) inside the platform layout. A handler responds with it through
+[View State](#view-state) inside a [Layout](#layout) — the platform's `ukptLayout`, or a shell
+the project's features share. A handler responds with it through
 `call.respondHtml { [name]Page(state) }`.
 
 A Page composes [Components](#component). A handler that answers an htmx request renders the
@@ -156,8 +161,8 @@ Component it replaces, not the Page.
 
 * A Page must take exactly one parameter, its View State
     * **Why:** Everything a Page shows is in its View State, so a snapshot test of the Page covers every value the handler can put on it.
-* A Page must render through the platform layout
-    * **Why:** The layout carries the htmx configuration, the scripts in the order Alpine needs, and the error region the platform script fills.
+* A Page must render through a Layout
+    * **Why:** Every Layout ends at the platform's document, which carries the htmx configuration, the scripts in the order Alpine needs, and the error region the platform script fills.
     * **Note:** Tested on the function body: a call to a function whose name ends in `Layout`.
 
 ##### Examples
@@ -167,7 +172,7 @@ its event stream through a sink element that swaps nothing itself:
 
 ```kotlin
 internal fun HTML.ordersPage(state: OrdersPageState) {
-    ukptLayout(title = "Orders", scripts = listOf(OrdersPaths.QUANTITY_SCRIPT)) {
+    ukptLayout(LayoutState(title = "Orders", scripts = listOf(OrdersPaths.QUANTITY_SCRIPT))) {
         h1 { +"Orders" }
         orderForm(state.form, state.errors)
         orderList(state.orders)
@@ -192,6 +197,60 @@ internal fun UL.orderItem(order: Order) {
     li {
         elementId = OrdersIds.order(order.id)
         +order.summary
+    }
+}
+```
+
+---
+
+## [Layout](../src/main/kotlin/architecture/rules/serverweb/Layout.kt)
+
+Markup that several [Pages](#page) render inside, such as an app shell with navigation: a
+top-level `fun HTML.[name]Layout(state: [Name]LayoutState, content: FlowContent.() -> Unit)`.
+Its [View State](#view-state) carries everything the shell shows, and `content` renders the
+Page's own part.
+
+A Layout renders through the platform: `ukptLayout` puts the page in the document's `main`
+region, and `ukptDocument` hands a shell that draws its own regions the document's `body`.
+Layouts nest, and every chain ends at the platform, which alone renders `<head>` and `<body>`.
+
+##### Requirements
+
+* A Layout resides in `feature..server.web..`
+* A Layout has an `HTML` receiver and is named `[name]Layout`
+
+##### Rules
+
+* A Layout must take exactly two parameters: its View State, then the content it renders around
+    * **Why:** Everything a Layout shows is in its View State, so a snapshot test of a Page covers every value its shell can put on it.
+* A Layout must render through another Layout or the platform's document
+    * **Why:** The platform's document carries the htmx configuration, the scripts in the order Alpine needs, and the error region the platform script fills.
+    * **Note:** Tested on the function body: a call to a function whose name ends in `Layout` or `Document`, other than the Layout itself.
+
+##### Examples
+
+A shell with navigation draws its own regions, so it renders through the platform's document
+rather than `ukptLayout`. Its View State carries everything the shell shows, and each Page passes
+its own:
+
+```kotlin
+data class ShopShellLayoutState(
+    val title: String,
+    val signedInAs: String,
+    val section: ShopSection,
+)
+
+fun HTML.shopShellLayout(state: ShopShellLayoutState, content: FlowContent.() -> Unit) {
+    ukptDocument(DocumentState(state.title, stylesheets = listOf(ShopPaths.SHELL_STYLESHEET))) {
+        shopNavigation(state.section, state.signedInAs)
+        main("page") { content() }
+    }
+}
+
+internal fun HTML.ordersPage(state: OrdersPageState) {
+    shopShellLayout(state.shell) {
+        h1 { +"Orders" }
+        orderList(state.orders)
     }
 }
 ```

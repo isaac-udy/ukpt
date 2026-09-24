@@ -109,7 +109,7 @@ private suspend fun ApplicationCall.respondError(status: HttpStatusCode, title: 
         return
     }
     respondHtml(status) {
-        ukptLayout(title) {
+        ukptLayout(LayoutState(title)) {
             h1 { +title }
             p { +message }
             p { a(href = "/") { +"Go to the start page" } }
