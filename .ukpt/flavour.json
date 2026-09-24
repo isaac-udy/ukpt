@@ -32,7 +32,9 @@
     ".agents/skills/ukpt-architecture-review/**": "Reviews the web layer instead of ViewModels. Carry over changes to the domain and server reviews."
   },
   "diverged": {
-    "UKPT.md": "The introduction, Toolchain, Verification and Reference sections describe this branch. Take main's changes elsewhere.",
+    "UKPT.md": "The introduction, Architecture orientation, Toolchain, Submodules, Verification and Reference sections describe this branch. Take main's changes elsewhere.",
+    "AGENTS.md": "Names only the embedded-udytils submodule.",
+    "app/server/src/main/kotlin/com/isaacudy/ukpt/ServerDependencies.kt": "Lists ukptServerDependencies.",
     "settings.gradle.kts": "No client or Enro includes; includes :platform:server:web.",
     "build.gradle.kts": "No Android, Compose, KSP or atlas plugins.",
     "build-logic/build.gradle.kts": "No Android, Compose or Paparazzi plugins on the convention classpath.",

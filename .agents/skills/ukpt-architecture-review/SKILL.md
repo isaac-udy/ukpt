@@ -1,27 +1,25 @@
 ---
 name: ukpt-architecture-review
 description: >-
-  Review a UKPT feature or screen for semantic architecture rules that static
-  verification cannot prove: asynchronous ViewModel state, domain read
-  projections, loading/error rendering, dialog-as-destination boundaries, and
-  domain contract shape on client and server (interfaces that mirror storage
-  calls, read families with one consumer, UseCase and ServiceImpl fan-in). Use
-  for explicit architecture reviews, large ViewModel/State refactors, changes
-  that add several domain interfaces, or codebase audits; not for ordinary
-  compile/test verification.
+  Review a UKPT feature or page for semantic architecture rules that static
+  verification cannot prove: web request flows (htmx and non-JavaScript
+  answers, form errors, live lists), domain read projections, and domain
+  contract shape (interfaces that mirror storage calls, read families with one
+  consumer, UseCase and Routes fan-in). Use for explicit architecture reviews,
+  new pages or form flows, changes that add several domain interfaces, or
+  codebase audits; not for ordinary compile/test verification.
 ---
 
 # ukpt-architecture-review
 
-Semantic review of the architecture rules `verifyArchitecture` cannot prove: the Client UI State
-rules, and the domain contract guidance on client and server. Enforced rules and compilation
-belong to `ukpt-verify`.
+Semantic review of the architecture rules `verifyArchitecture` cannot prove: how the web layer
+answers requests, and the domain contract guidance. Enforced rules and compilation belong to
+`ukpt-verify`.
 
 ## Procedure
 
 1. Read `AGENTS.md`, `UKPT.md`, and only the generated architecture pages for the layers under
-   review (`platform/common/architecture/docs/clientui.md`, `clientdomain.md`, `serverdomain.md`,
-   `serverdata.md`).
+   review (`platform/common/architecture/docs/serverweb.md`, `serverdomain.md`, `serverdata.md`).
 
 2. Run verification and audit:
    ```
@@ -33,18 +31,17 @@ belong to `ukpt-verify`.
    `audit.md` under `reports/architecture/`).
    Advisory findings are review prompts — act on those touching the code under review; a finding
    is not a proven violation. The report carries the per-feature domain inventory
-   (`ClientDomain.inventory`, `ServerDomain.inventory`) and grouped domain-interface candidates
-   (read families with one consumer, high fan-in, update families, uninjected interfaces,
-   one-dependency UseCases), each with its declarations as evidence: start the domain contract
-   inventory in step 4 from those rows.
+   (`ServerDomain.inventory`) and grouped domain-interface candidates (read families with one
+   consumer, high fan-in, update families, uninjected interfaces, one-dependency UseCases), each
+   with its declarations as evidence: start the domain contract inventory in step 4 from those rows.
 
-3. For every selected Screen/ViewModel/State, produce an **async-state inventory**:
+3. For every route under review, produce a **request inventory**:
 
-   | Field or field-group | Source (Flow, suspending op, sync UI input, navigation state) | Empty/null a legitimate success? | Required vs auxiliary | Consistency/failure boundary | How loading, error, retry, and cancellation render |
-   |---|---|---|---|---|---|
+   | Route | htmx answer (fragment, `204`, retarget) | Answer without JavaScript (page, `303`) | Invalid input (`422` + what re-renders) | What else on the page must change, and how (event stream, `HX-Trigger`, out-of-band) |
+   |---|---|---|---|---|
 
 4. For every domain interface the change adds, touches, or consumes, produce a **domain contract
-   inventory**. Walk the whole composition chain: the ViewModel or ServiceImpl, every UseCase
+   inventory**. Walk the whole composition chain: the Routes class or event stream, every UseCase
    under it, and the Repository properties under those. A review that stops at the aggregate
    misses the family of inputs that exist only to feed it.
 
@@ -62,31 +59,25 @@ belong to `ukpt-verify`.
 
 5. Flag these patterns in the code under review:
 
-   - Sentinel defaults standing in for "not loaded" (`ClientUi.ViewModelState.usesAsyncState`).
-   - Manual progress/error pairs — a Boolean progress flag paired with an error-synonym sibling
-     (`ClientUi.ViewModelState.noManualAsyncLifecycleFields`).
-   - Lone progress-verb Boolean flags (`ClientUi.ViewModelState.usesAsyncState` audit).
-   - Several independent collectors reconstructing one concept
-     (`ClientUi.ViewModel.aggregateReadProjection`).
-   - Required data rendered through `getOrNull()` fallbacks that make unavailable data look
-     successfully empty (`ClientUi.Screen.asyncStateExhaustiveRendering`).
-   - Calculated proxy getters that flatten an `AsyncState` back into nullable/default values
-     (`ClientUi.ViewModelState.noFlattenedAsyncProxies`) — after any State adopts
-     `AsyncState<Projection>`, explicitly search for proxy getters that flatten the projection.
-   - Inline dialogs/sheets behind any wrapper, toggled by boolean flags in screen state
-     (`ClientUi.ViewModelState.noDialogVisibilityFlags`).
-   - A group of reads from one Repository whose only consumer is one UseCase, ViewModel, or
-     ServiceImpl (`ClientDomain.DomainInterface.readProjections`,
-     `ServerDomain.DomainInterface.readProjections`).
-   - A UseCase, ViewModel, or ServiceImpl constructor taking many domain interfaces from one
-     provider (`ClientDomain.DomainInterface.namesACapability`,
-     `ServerDomain.DomainInterface.namesACapability`).
+   - A form that works only with JavaScript: no `action`/`method`, or a handler with no answer
+     for a request without `HX-Request`.
+   - Validation errors answered with `200`, or a redirect answered to htmx instead of a fragment.
+   - A handler that renders part of the page from a second read the page does not share, so the
+     fragment and the full page can disagree.
+   - A live list whose items are rendered by a different function on the page and in its event
+     stream, or an event stream that does not send the whole list first
+     (`ServerWeb.EventStream.snapshotFirst`).
+   - An htmx swap target inside an Alpine root whose state the swap resets unintentionally.
+   - Behaviour in a script file that the server could render instead (a toggle whose state the
+     server needs, a computed value the page could carry).
+   - A group of reads from one Repository whose only consumer is one UseCase, Routes class or
+     event stream (`ServerDomain.DomainInterface.readProjections`).
+   - A UseCase or Routes constructor taking many domain interfaces from one provider
+     (`ServerDomain.DomainInterface.namesACapability`).
    - A mutation followed by a read of the same model, or a mutation returning an identifier when
-     the caller needs the model (`ClientDomain.DomainInterface.mutationResults`,
-     `ServerDomain.DomainInterface.mutationResults`).
+     the caller needs the model (`ServerDomain.DomainInterface.mutationResults`).
    - A UseCase that forwards one dependency, or an orchestration phase with one caller published
-     as its own interface (`ClientDomain.UseCase.breakDownComplexUseCases`,
-     `ServerDomain.UseCase.breakDownComplexUseCases`).
+     as its own interface (`ServerDomain.UseCase.breakDownComplexUseCases`).
    - Repository properties that are one storage call plus a mapping, with their results assembled
      downstream (`ServerData.Repository.mayInjectStorage`).
 
@@ -95,21 +86,19 @@ belong to `ukpt-verify`.
    owns the storage, or by a UseCase when the inputs are independent capabilities. `:feature:core`'s
    `GreetingSummary`/`FlowOfGreetingSummary` is the worked example.
 
-7. Verify that Loading, Error, populated Success, and legitimately-empty Success
-   previews/snapshot tests exist for each async screen.
+7. Verify that each page has HTML snapshots for its empty, populated and invalid-input states, and
+   route tests for both the htmx and the non-JavaScript answer of each handler.
 
 8. **Findings vs authorization:** a review request reports; only a change request implements
    and verifies.
 
 ## Closing checklist
 
-- [ ] Screen branches on the required `AsyncState` near its top level.
-- [ ] Loaded content receives a non-null domain object from the Success branch of the `AsyncState`.
-- [ ] Loading and Error are distinguishable from legitimate empty data.
-- [ ] The async owner of inline optional data is visible at the call site.
-- [ ] Remaining calculated state combines data or encodes a decision — not a renamed proxy.
-- [ ] No `orEmpty()` or default value invents a plausible loaded state.
-- [ ] Success, loading, and error surfaces are covered by previews or snapshot tests.
+- [ ] Every form posts without JavaScript and re-renders with its errors under `422`.
+- [ ] Every handler whose body depends on `HX-Request` calls `varyOnHtmx()`.
+- [ ] A page and its fragments are rendered by the same Components from the same View State.
+- [ ] Live lists send the whole list first and render items with the page's item Component.
+- [ ] Snapshots and route tests cover the states and both answers above.
 - [ ] Every domain interface in the inventory has a consumer that uses it alone, or a stated
       boundary that keeps it separate.
 - [ ] No family of reads exists only to feed one aggregate.

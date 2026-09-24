@@ -54,9 +54,9 @@ choice in `REVIEW` with the user:
 
 | Template value | Becomes | Where |
 | --- | --- | --- |
-| `com.isaacudy.ukpt` | `<package>` | app shells (packages, directories, `applicationId`), and `PRODUCT_BUNDLE_IDENTIFIER` in `app/client/ios/iosApp.xcodeproj/project.pbxproj` |
-| `ukpt` (lowercase word) | `<project-name>` | app/window titles, `rootProject.name`, project-facing README copy |
-| `ukpt` (identifier prefix) | lower-camel `<ProjectName>` | code identifiers such as `ukptClientDependencies`; rename only with their declaring feature |
+| `com.isaacudy.ukpt` | `<package>` | the `:app:server` shell (packages, directories) |
+| `ukpt` (lowercase word) | `<project-name>` | page titles, `rootProject.name`, project-facing README copy |
+| `ukpt` (identifier prefix) | lower-camel `<ProjectName>` | code identifiers such as `ukptServerDependencies` (rename only with their declaring feature) and `ukptLayout` in `:platform:server:web` (rename with every Page that calls it) |
 | `Ukpt` type prefix | `<ProjectName>` | `:feature:core` example types, app entry points |
 | `feature.ukpt` | `feature.<first-feature>` or leave | `:feature:core` example (see note) |
 | `UKPT_` (env-var prefix) | `<PROJECT_NAME>_`, uppercased with `-` as `_` | `UKPT_DEV_DB*` in `:app:server` **and** in `build-logic/src/main/` |
@@ -71,7 +71,7 @@ choice in `REVIEW` with the user:
 - `:feature:core` is a worked example. Either keep it as-is (recommended until the first real
   feature exists — the architecture examples reference it) or delete it after the first real
   feature is scaffolded with `ukpt-feature-slice`.
-- Do not rename anything under `embedded-enro/`, `embedded-udytils/`, or
+- Do not rename anything under `embedded-udytils/` or
   `platform/common/architecture/` (the rule catalog's `architecture.rules` package is not
   project-branded).
 - `AGENTS.md` is project-owned: rewrite its intro and add any project-specific guidance, but keep
@@ -110,30 +110,15 @@ per `.gitmodules` path.
 
 ## 5. Verify
 
-Run the full verification before the first commit — the six-target compile sweep (see the `ukpt-verify` skill)
-first, then the project-specific checks:
-
-```
-./gradlew :platform:common:architecture:verifyArchitecture
-./gradlew :feature:core:client:verifyPaparazzi --no-configuration-cache
-./gradlew :platform:client:design:verifyPaparazzi --no-configuration-cache
-./gradlew validateTemplate
-bash .agents/skills/ukpt-verify-web/run-bundle-check.sh
-
-# iOS: the Xcode project must still build after the bundle id is renamed.
-xcodebuild -project app/client/ios/iosApp.xcodeproj -scheme iosApp \
-           -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
-```
-
-Compiling the iOS targets does not exercise the app — the Compose/Enro entry point only runs when the
-app launches. If anything under `iosMain` changed, also run it in a simulator (⌘R from Xcode).
+Run the `ukpt-verify` sweep before the first commit, then start the server (`ukpt-run`) and load
+the page once: the rename touches the layout every page renders through, and the HTML goldens
+under `feature/core/server/src/test/snapshots/html/` are re-recorded if the page title changed.
 
 Then commit everything as the project's initial commit.
 
-## 6. Next: the design system
+## 6. Next: the design tokens
 
-The rename gives `:platform:client:design` the project's type prefix, but its palette and typefaces are
-still the template's **neutral placeholders** — deliberately anonymous, not an identity. Point the
-user at the `ukpt-design-system` skill to author the real one, and to decide what primitives are
-built on (Material3, Compose Unstyled, or bare foundation) before any are written. That decision is
-expensive to reverse.
+The stylesheets in `platform/server/web/src/main/resources/static/platform/css/` carry the
+template's **neutral placeholder** tokens — deliberately anonymous, not an identity. Point the user
+at `tokens.css` to set the project's palette, type and spacing; `base.css` and every feature
+stylesheet read the token names, which stay.

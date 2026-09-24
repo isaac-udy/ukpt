@@ -1,58 +1,30 @@
 ---
 name: ukpt-run
 description: >-
-  Run or launch the app on any platform — Desktop, Android, Web, iOS, and
-  Server — plus the embedded dev-Postgres and dev database setup (data location,
-  env switches, wipe, seeding). Use when launching the app or working with the
-  dev database.
+  Run the server — the development loop, the embedded dev-Postgres and dev
+  database setup (data location, env switches, wipe, seeding). Use when
+  launching the app or working with the dev database.
 ---
 
 # ukpt-run
 
 Identifiers here use the template's UKPT identity (`UKPT_DEV_DB`, `feature.ukpt`); projects rename these — the map is in `.ukpt/template.json`.
 
-## Desktop
-
-```
-./gradlew :app:client:desktop:run
-```
-To launch under hot reload and control the app from an agent (semantic tree, clicks, screenshots,
-reload), use `ukpt-drive-app`.
-
-## Server (Ktor)
+## Server
 
 ```
 ./gradlew :app:server:run
 ```
-Boots against an embedded Postgres that keeps its data between runs; see Dev database below.
+Open `http://localhost:8080`. The server boots against an embedded Postgres that keeps its data
+between runs; see Dev database below.
+
+The development loop is restart-based: stop the server and run it again after a change to Kotlin,
+a script or a stylesheet. Static files are served with `Cache-Control: no-cache`, so a reload
+after the restart picks them up. `-Pdevelopment` sets `io.ktor.development=true`.
 
 To run it outside Gradle, `./gradlew :app:server:installDist` writes a launcher and every module jar
 to `app/server/build/install/server/`; start it with `bin/server` and the same env switches. The
 `ukpt-server-packaging` skill covers how those jars are named.
-
-## Web (dev server)
-
-```
-./gradlew :app:client:web:wasmJsBrowserDevelopmentRun --no-configuration-cache
-```
-Open the served URL. The `--no-configuration-cache` flag is required (upstream `KotlinWebpack`
-limitation).
-
-## Android
-
-Run from Android Studio, or `./gradlew :app:client:android:installDebug` to a connected
-device/emulator.
-
-## iOS
-
-Open `app/client/ios/iosApp.xcodeproj` in Xcode and run. There is no Gradle command: the Xcode
-project's "Compile Kotlin framework" build phase invokes
-`:app:client:common:embedAndSignAppleFrameworkForXcode`, which builds `App.framework` and puts it
-where the linker expects.
-
-Simulator builds are **Apple Silicon only** — `:app:client:common` declares `iosArm64` +
-`iosSimulatorArm64`, so the Xcode project excludes the `x86_64` simulator slice. Add an `iosX64()`
-target if you need Intel Macs.
 
 ## Dev database
 

@@ -4,7 +4,7 @@ This project is based on the [UKPT template](https://github.com/isaac-udy/ukpt).
 template-owned: it is synced by the `ukpt-template-update` skill, so don't edit it in downstream
 projects — project-specific guidance belongs in AGENTS.md.
 
-UKPT is a Kotlin Multiplatform project **template** — Compose UI, Enro navigation, Koin DI, urpc for the client/server contract, and a Ktor server. It targets Android, Desktop (JVM), Web (wasmJs), and iOS, plus a JVM server. It starts minimal; build features out from the documented patterns — `:feature:core` is the worked example to copy.
+UKPT is a Kotlin project **template**. This is its `htmx` branch: a Ktor server that renders HTML with kotlinx.html and updates it with htmx, server-sent events and Alpine.js, with Koin DI and Postgres. There are no client apps; the server is the application. It starts minimal; build features out from the documented patterns — `:feature:core` is the worked example to copy.
 
 This file holds operational guidance (commands, toolchain, submodules) and pointers to the rules. The architecture rules are the source of truth in [`platform/common/architecture/README.md`](./platform/common/architecture/README.md) — don't restate them here. The embedded builds carry their own repository guidance.
 
@@ -12,29 +12,32 @@ This file holds operational guidance (commands, toolchain, submodules) and point
 
 Downstream projects update via the `ukpt-template-update` skill. When a change affects code that only exists downstream — a convention change, an architecture rule added/renamed/tightened, a structural change — bump `templateVersion` in [`.ukpt/template.json`](./.ukpt/template.json) and add a [`docs/template-migrations/`](./docs/template-migrations/README.md) entry in the same commit. Version bumps and template-owned file changes don't need an entry. Before committing any template change, run `./gradlew validateTemplate`.
 
+This branch follows `main` by merging it. [`.ukpt/flavour.json`](./.ukpt/flavour.json) lists what the branch dropped from `main` and how each file that differs is merged; `validateTemplate` checks it. Template maintainers merge `main` with the `template-flavour-sync` skill.
+
 ## Architecture
 
 Follow the rules in [`platform/common/architecture/README.md`](./platform/common/architecture/README.md), enforced by Konsist tests. Orientation:
 
-- **Module groups**: `:app` (executable shells + DI wiring), `:feature` (vertical slices — `:api` contract, `:client` UI/logic, `:server` implementation), `:platform` (reusable infrastructure).
-- **Feature packages are side-first**: `feature.<name>` holds the shared wire vocabulary; below it a side, then a layer — client: `client.ui`, `client.domain`, `client.data`; server: `server.services` (the `@Urpc` contract in `:api`, its `ServiceImpl` on `:server`), `server.domain`, `server.data`. Publication to `:api` is a module move that never changes the package.
-- **Domain interfaces name capabilities.** A `fun interface` in `client.domain` or `server.domain` is a capability a consumer asks for or a domain model it needs, never one storage call, one field, or one implementation step; facts a consumer needs together come back as one model from the Repository that owns the storage. Guidance: `ClientDomain.DomainInterface.namesACapability`, `.readProjections`, `.collapsedUpdateFamilies`, and their `ServerDomain` twins.
+- **Module groups**: `:app` (the `:app:server` shell + DI wiring), `:feature` (vertical slices — `:api` for what other features may use, `:server` for everything else), `:platform` (reusable infrastructure; `:platform:server:web` holds the page layout, `WebRoutes`, and the static assets).
+- **Feature packages**: `feature.<name>` holds the shared vocabulary; below it `server`, then a layer — `server.web` (routes, pages, components, forms, event streams), `server.domain`, `server.data`. Publication to `:api` is a module move that never changes the package.
+- **Markup is typed and script-free.** `hx-*`, `sse-*` and Alpine attributes come from the `dev.isaacudy.udytils.htmx` builders; JavaScript lives in files under a module's `static/` resources, loaded from this origin under a `script-src 'self'` content security policy. Every form also works without JavaScript. Rules: the `ServerWeb` group in the rule catalog.
+- **Domain interfaces name capabilities.** A `fun interface` in `server.domain` is a capability a consumer asks for or a domain model it needs, never one storage call, one field, or one implementation step; facts a consumer needs together come back as one model from the Repository that owns the storage. Guidance: `ServerDomain.DomainInterface.namesACapability`, `.readProjections`, `.collapsedUpdateFamilies`.
 - **No `_[name]` backing properties.** A read-only property whose stored type is narrower than its exposed type declares an explicit backing field (`val items: StateFlow<T>` over `field = MutableStateFlow(…)`; Stable in Kotlin 2.4, no flag); a value the class reassigns is a `var` with a `private set`. Rule: `ProjectRules.noBackingProperties`.
-- **Injectable constructors have no defaults.** A class a Koin module registers is bound by constructor reference (`singleOf`, `factoryOf`, `scopedOf`, `viewModelOf`) and takes every dependency as a required parameter; a fixed setting is a private property, a setting that varies is a typed `[Name]Config` the dependency module assembles. The `:app` shells keep their module lists in `ClientDependencies.kt` and `ServerDependencies.kt`, which `ClientDependenciesTest`/`ServerDependenciesTest` verify. Rules: `ProjectRules.constructorReferenceBindings`, `ProjectRules.injectableConstructorsHaveNoDefaults`.
-- The rules are a machine-readable **object catalog** in [`platform/common/architecture/src/main/kotlin/architecture/rules/`](./platform/common/architecture/src/main/kotlin/architecture/rules) (a `RuleGroup` object per layer in its own sub-package; one top-level `Construct<Group>` object per construct in its own file, listed in the group's `constructs`; a rule per property; the engine is the `dev.isaacudy.udytils:architecture-core` artifact from `embedded-udytils`). Rules shared by the client/server twins of one construct are declared once on abstract base classes in [`rules/shared/`](./platform/common/architecture/src/main/kotlin/architecture/rules/shared) and instantiated per side. Every rule has a stable **path ID** — the object/property path, e.g. `ClientDomain.UseCase.noOverridingDefaults` — and an enforcement tag; [`docs/rule-index.md`](./platform/common/architecture/docs/rule-index.md) lists them all.
+- **Injectable constructors have no defaults.** A class a Koin module registers is bound by constructor reference (`singleOf`, `factoryOf`, `scopedOf`, `viewModelOf`) and takes every dependency as a required parameter; a fixed setting is a private property, a setting that varies is a typed `[Name]Config` the dependency module assembles. `:app:server` keeps its module list in `ServerDependencies.kt`, which `ServerDependenciesTest` verifies. Rules: `ProjectRules.constructorReferenceBindings`, `ProjectRules.injectableConstructorsHaveNoDefaults`.
+- The rules are a machine-readable **object catalog** in [`platform/common/architecture/src/main/kotlin/architecture/rules/`](./platform/common/architecture/src/main/kotlin/architecture/rules) (a `RuleGroup` object per layer in its own sub-package; one top-level `Construct<Group>` object per construct in its own file, listed in the group's `constructs`; a rule per property; the engine is the `dev.isaacudy.udytils:architecture-core` artifact from `embedded-udytils`). Rules shared by the client/server twins of one construct are declared once on abstract base classes in [`rules/shared/`](./platform/common/architecture/src/main/kotlin/architecture/rules/shared) and instantiated per side. Every rule has a stable **path ID** — the object/property path, e.g. `ServerDomain.UseCase.noOverridingDefaults` — and an enforcement tag; [`docs/rule-index.md`](./platform/common/architecture/docs/rule-index.md) lists them all.
 - The README and everything under `platform/common/architecture/docs/` are **generated**: rule statements and narrative come from `@Describe` annotations in the catalog; example blocks come from `<Construct>.examples.md` files in the group's package. Edit the catalog or an examples file — never the generated files — then regenerate with `./gradlew :platform:common:architecture:updateArchitectureDocumentation`.
 - Exemptions require human sign-off: `@ArchitectureException(ruleIds = ["..."])` ([docs/exceptions.md](./platform/common/architecture/docs/exceptions.md)).
 
 ## Toolchain & constraints
 
 - JDK target **11** (`jvmTarget = JVM_11`); Gradle **9.6.1** (wrapper). Exact dependency versions live in [`gradle/libs.versions.toml`](./gradle/libs.versions.toml).
-- **AGP tracks the latest stable** (9.2.1) because Compose Multiplatform 1.12+ maps to androidx Compose 1.12, whose AAR metadata requires AGP 9.1.0 and compileSdk 37. IntelliJ IDEA 2026.1 syncs AGP only up to 9.0.0, so Android work needs Android Studio until the IDE catches up. Compose stays current; AGP follows it.
-- `embedded-enro` and `embedded-udytils` are **composite (`includeBuild`) builds**. Gradle refuses to load two AGP versions in one build, so the AGP pin must be identical in all three catalogs; a Kotlin / Compose / AGP bump is made across all three repos together, not in isolation.
-- A Compose or androidx bump must run `:app:client:android:checkDebugAarMetadata`, not only `compileDebugKotlin`: the AAR metadata check is where minimum AGP and compileSdk are enforced, and it has no opt-out. The `ukpt-verify` sweep includes it.
+- `embedded-udytils` is a **composite (`includeBuild`) build**. Some of its modules are multiplatform with an Android target, so configuring it needs an Android SDK: set `sdk.dir` in `local.properties` (`gradle/embedded-sdk-location.settings.gradle.kts` copies it into the composite build). The application itself has no Android code.
+- The version catalog is shared with `main`, so it lists Compose, Android and Enro entries this branch does not use.
+- htmx, the htmx `sse` extension and the Alpine CSP build come from the `dev.isaacudy.udytils:htmx` artifact; its version pins theirs.
 
 ## Submodules
 
-`embedded-enro` (navigation) and `embedded-udytils` (core / ui / urpc / postgres utilities) are **git submodules** that are actively developed and depended upon. After pulling, always sync them:
+`embedded-udytils` (core / htmx / postgres / architecture utilities) is a **git submodule** that is actively developed and depended upon. After pulling, always sync it:
 ```
 git submodule update --init --recursive
 ```
@@ -52,12 +55,12 @@ New code may rely on APIs that only exist in a newer submodule commit.
 
 Agents often run several at a time — subagents in one session, plus other sessions and other projects on the same machine. Nothing coordinates them, so each build has to be a good citizen on its own. The failure mode isn't a slow build, it's a machine that stops being usable: once memory is oversubscribed the box swaps, and swapping stalls everything, not just Gradle.
 
-**Memory is the binding constraint, not CPU.** Each concurrent build needs its own daemon pair — the Gradle daemon (`org.gradle.jvmargs`) and the *separate* Kotlin compile daemon (`kotlin.daemon.jvmargs`), both 3 GB in [`gradle.properties`](./gradle.properties) — plus out-of-process Kotlin/Native for the iOS targets and a test JVM for Paparazzi. A daemon serves one build at a time, so a second concurrent build forks a second pair instead of sharing the first. At roughly 6 GB a build, a 16 GB machine tops out near two.
+**Memory is the binding constraint, not CPU.** Each concurrent build needs its own daemon pair — the Gradle daemon (`org.gradle.jvmargs`) and the *separate* Kotlin compile daemon (`kotlin.daemon.jvmargs`), both 3 GB in [`gradle.properties`](./gradle.properties) — plus a test JVM, and an embedded Postgres for the schema codegen and dev database. A daemon serves one build at a time, so a second concurrent build forks a second pair instead of sharing the first. At roughly 6 GB a build, a 16 GB machine tops out near two.
 
 In order of leverage:
 
 1. **Don't build what you don't need.** A docs, comment, or guidance-only change has no runtime surface — there is nothing a compile would verify. Skip it.
-2. **Scope the build to the change.** Prefer one module's task (`:feature:core:client:compileKotlin`) over the full six-target sweep (see `ukpt-verify`). `verifyArchitecture` and `validateTemplate` are cheap; `assembleDebug`, the full sweep, `recordPaparazzi`, and anything Kotlin/Native are not. Never `clean` unless the task genuinely depends on it — the configuration and build caches are on, and `clean` discards exactly what makes a rebuild cheap.
+2. **Scope the build to the change.** Prefer one module's task (`:feature:core:server:test`) over the full sweep (see `ukpt-verify`). `verifyArchitecture` and `validateTemplate` are cheap; the full sweep and `smokeTestFatJar` are not. Never `clean` unless the task genuinely depends on it — the configuration and build caches are on, and `clean` discards exactly what makes a rebuild cheap.
 3. **Don't run heavy builds concurrently.** When orchestrating subagents, let them read, analyse, and edit in parallel — that part is cheap — then run compilation and verification one at a time. Parallelism belongs in the editing phase, not the build phase.
 4. **Throttle a background build** with `--max-workers=2`. Use a small *fixed* cap rather than a fraction of the core count: you can't know how many agents are running, and a per-agent fraction still multiplies by the number of agents, whereas a fixed cap bounds what each one contributes. A **foreground** build — one the user is waiting on — should not be throttled; it should finish fast.
 5. **Never override daemon memory on an invocation.** Passing `org.gradle.jvmargs` or `kotlin.daemon.jvmargs` on the command line means the running daemon no longer matches, so a new one is forked — asking for less memory gets you more of it. Those belong in `gradle.properties`, one value shared by everyone. For the same reason keep flags identical across agents doing the same kind of work: daemons are matched on their JVM args, so inconsistent flags fragment the daemon pool.
@@ -70,22 +73,16 @@ For most changes, don't start in the rule catalog. `./gradlew verifyArchitecture
 2. **Run `./gradlew verifyArchitecture`.** Cheap enough to run speculatively.
 3. **Look up only the rule ID that failed.** [`docs/rule-index.md`](./platform/common/architecture/docs/rule-index.md) maps the ID to its declaring source, and the layer page explains it with examples.
 
-`verifyArchitecture` also prints a one-line advisory audit summary; `./gradlew auditArchitecture` prints the full advisory report. Advisory findings are review prompts, not build failures. Substantial ViewModel/State work — new screens, async-state refactors, domain projection changes — should consult the Client UI State rules and use the `ukpt-architecture-review` skill. A change that adds several domain interfaces at once runs that skill's domain contract inventory before the interfaces are written.
+`verifyArchitecture` also prints a one-line advisory audit summary; `./gradlew auditArchitecture` prints the full advisory report. Advisory findings are review prompts, not build failures. Substantial web-layer work — new pages, live lists, form flows, domain projection changes — should use the `ukpt-architecture-review` skill. A change that adds several domain interfaces at once runs that skill's domain contract inventory before the interfaces are written.
 
-Read more widely when the change is shaped by the rules — a new feature slice or subsystem, a Construct the catalog does not have yet, a refactor that moves declarations between layers — and stop once the shape is clear. For small and medium edits it does not pay: the index states rules, while only the engine states how they are tested, so a front-to-back read can still miss the answer (`ClientUi.exhaustive` reads "every top-level declaration must match exactly one Construct"; that `private` declarations are exempt appears only in the engine's classification code).
+Read more widely when the change is shaped by the rules — a new feature slice or subsystem, a Construct the catalog does not have yet, a refactor that moves declarations between layers — and stop once the shape is clear. For small and medium edits it does not pay: the index states rules, while only the engine states how they are tested, so a front-to-back read can still miss the answer (`ServerWeb.exhaustive` reads "every top-level declaration must match exactly one Construct"; that `private` declarations are exempt appears only in the engine's classification code).
 
 ## Verification
 
-After changes, compile every platform (client + server), not just the touched module — the `ukpt-verify` skill has the full sweep and test commands. Paparazzi and `wasmJsBrowser*` tasks require `--no-configuration-cache`.
+After changes, run the `ukpt-verify` sweep, not just the touched module's tests — it has the compile, test, HTML snapshot and architecture commands.
 
 ## Reference
 
-- `ukpt-run` — per-platform run commands, dev database setup and env switches.
-- `ukpt-drive-app` — drive the running desktop app through the Compose Hot Reload MCP server: semantic tree, clicks, screenshots, hot reload, runtime errors.
-- `ukpt-verify-web` — wasm bundle and runtime verification.
-- `ukpt-web-deploy` — serving the web client: brotli-compressed wasm, headers, cache policy, host recipes.
-- `ukpt-ui-atlas` — `./gradlew generateUiAtlas`, manifest schema.
+- `ukpt-run` — run the server, dev database setup and env switches.
 - `ukpt-server-packaging` — fat jar build, service-file checks, smoke test.
-- `ukpt-feature-slice` — scaffold `:feature:<name>:{api,client,server}`.
-- `ukpt-urpc-service` — add or change a `@Urpc` service end-to-end.
-- `ukpt-design-system` — design system tokens and primitives.
+- `ukpt-feature-slice` — scaffold `:feature:<name>:{api,server}` with a web layer.
