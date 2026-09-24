@@ -11,9 +11,9 @@ and `:app` modules included. Several govern the process for
 [architecture exceptions](exceptions.md); the mechanism itself is documented there.
 
 Context for the exception-handling rules: exceptions defined in the
-[services contract](serverservices.md#service-interface) cross the client/server boundary as
+services contract cross the client/server boundary as
 serialised payloads, and the deserialised types don't always extend `Exception`. `AsyncState`
-is the async-result wrapper that [ViewModels](clientui.md#view-model) consume.
+is the async-result wrapper that ViewModels consume.
 
 ##### Rules
 

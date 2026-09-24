@@ -1,0 +1,61 @@
+{
+  "flavour": "htmx",
+  "upstream": "main",
+  "dropped": [
+    "app/client/**",
+    "platform/client/**",
+    "feature/*/client/**",
+    "feature/*/api/src/commonMain/**",
+    "feature/*/api/src/androidMain/**",
+    "feature/*/api/src/iosMain/**",
+    "feature/*/api/src/jvmMain/**",
+    "feature/*/api/src/wasmJsMain/**",
+    "feature/*/api/src/commonTest/**",
+    "feature/*/server/src/main/kotlin/feature/*/server/services/**",
+    "embedded-enro",
+    "kotlin-js-store/**",
+    ".mcp.json",
+    "build-logic/src/main/kotlin/ukpt.{compose-library,kmp-library,snapshot-testing,snapshot-testing-base}.gradle.kts",
+    "platform/common/architecture/src/main/kotlin/architecture/rules/{clientui,clientdomain,clientdata,serverservices,designsystem}/**",
+    "platform/common/architecture/docs/{clientui,clientdomain,clientdata,serverservices,designsystem}.md",
+    "platform/common/architecture/src/architectureTest/fixtures/{ui-audits,domain-audits,usecase-files}/**",
+    "platform/common/architecture/src/architectureTest/kotlin/architecture/rules/clientui/**",
+    "platform/common/architecture/src/architectureTest/kotlin/architecture/rules/shared/{DomainInterfaceAuditsTest,UseCaseFileTest}.kt",
+    ".agents/skills/{ukpt-drive-app,ukpt-ui-atlas,ukpt-verify-web,ukpt-web-deploy,ukpt-urpc-service,ukpt-design-system,ukpt-ux-review}/**",
+    ".claude/skills/{ukpt-drive-app,ukpt-ui-atlas,ukpt-verify-web,ukpt-web-deploy,ukpt-urpc-service,ukpt-design-system,ukpt-ux-review}"
+  ],
+  "replaced": {
+    "README.md": "Describes the htmx template. Read main's change for anything that also applies here.",
+    ".agents/skills/ukpt-verify/**": "The server-only sweep. Carry over changes to the server, architecture and template checks.",
+    ".agents/skills/ukpt-run/**": "Server and dev database only. Carry over changes to the server and dev database sections.",
+    ".agents/skills/ukpt-feature-slice/**": "Scaffolds :api and :server with the web layer. Carry over changes to the server, DI and settings steps.",
+    ".agents/skills/ukpt-architecture-review/**": "Reviews the web layer instead of ViewModels. Carry over changes to the domain and server reviews."
+  },
+  "diverged": {
+    "UKPT.md": "The introduction, Toolchain, Verification and Reference sections describe this branch. Take main's changes elsewhere.",
+    "settings.gradle.kts": "No client or Enro includes; includes :platform:server:web.",
+    "build.gradle.kts": "No Android, Compose, KSP or atlas plugins.",
+    "build-logic/build.gradle.kts": "No Android, Compose or Paparazzi plugins on the convention classpath.",
+    "gradle.properties": "No Android, wasm or native properties; no wasm or Paparazzi configuration-cache notes.",
+    ".claude/settings.json": "No hot-reload MCP or web bundle-check permissions.",
+    ".ukpt/template.json": "templateBranch is htmx; templateVersion is the later of both branches.",
+    ".agents/skills/ukpt-new-project/SKILL.md": "No iOS, Compose snapshot or design-system steps.",
+    ".agents/skills/ukpt-template-update/SKILL.md": "The identity-bearing file class names the web platform's tokens.css, not the Compose design module.",
+    "platform/common/architecture/src/main/kotlin/architecture/rules/UkptArchitecture.kt": "Group list, omittedDocs and introduction.",
+    "feature/core/api/build.gradle.kts": "A JVM library with no KSP or Enro.",
+    "feature/core/server/build.gradle.kts": "Web dependencies; no Enro, urpc or WebSockets.",
+    "app/server/build.gradle.kts": "Web dependencies; no WebSockets or auth.",
+    "app/server/src/main/kotlin/com/isaacudy/ukpt/Server.kt": "Installs the web platform and every WebRoutes binding."
+  },
+  "generated": {
+    "paths": [
+      "platform/common/architecture/README.md",
+      "platform/common/architecture/docs/**"
+    ],
+    "command": "./gradlew :platform:common:architecture:updateArchitectureDocumentation"
+  },
+  "migrations": {
+    "skipped": {},
+    "adapted": {}
+  }
+}
