@@ -162,6 +162,29 @@ class TemplateRepositoryValidatorTest {
     }
 
     @Test
+    fun nestedProjectReadsItsSubmodulesFromTheGitRoot() {
+        val project = repository.resolve("wolx")
+        createValidRepository(project)
+        Files.delete(project.resolve(".gitmodules"))
+        repository.resolve(".gitmodules").writeText(
+            "[submodule \"wolx/embedded-udytils\"]\n\tpath = wolx/embedded-udytils\n\turl = https://github.com/isaac-udy/udytils\n" +
+                "[submodule \"vendor/other\"]\n\tpath = vendor/other\n\turl = https://example.com/other\n",
+        )
+        project.resolve(".ukpt/template.json").writeText(
+            """{"templateVersion":"2026-07-15.2","templateCommit":"0123456789abcdef0123456789abcdef01234567",""" +
+                """"project":{"package":"com.example.app","name":"example","typePrefix":"Example"},""" +
+                """"submodules":{"embedded-udytils":"2222222222222222222222222222222222222222"}}""",
+        )
+
+        assertEquals(emptyList(), TemplateRepositoryValidator.validate(project, gitRoot = repository))
+        // Without the git root, the project has no .gitmodules and the recorded SHA looks stray.
+        assertEquals(
+            listOf("`submodules.embedded-udytils` is not a submodule path in .gitmodules"),
+            TemplateRepositoryValidator.validate(project).map { it.message },
+        )
+    }
+
+    @Test
     fun reportsMalformedTemplateBranch() {
         createValidRepository()
         repository.resolve(".ukpt/template.json").writeText("""{"templateVersion":"2026-07-15.2","templateBranch":"-htmx"}""")
@@ -229,12 +252,12 @@ class TemplateRepositoryValidatorTest {
             """"submodules":{"embedded-enro":"1111111111111111111111111111111111111111",""" +
             """"embedded-udytils":"2222222222222222222222222222222222222222"}}"""
 
-    private fun createValidRepository() {
-        repository.resolve(".ukpt").createDirectories()
-        repository.resolve(".ukpt/template.json").writeText("""{"templateVersion":"2026-07-15.2"}""")
+    private fun createValidRepository(root: Path = repository) {
+        root.resolve(".ukpt").createDirectories()
+        root.resolve(".ukpt/template.json").writeText("""{"templateVersion":"2026-07-15.2"}""")
 
-        repository.resolve("docs/template-migrations").createDirectories()
-        repository.resolve("docs/template-migrations/2026-07-15.1-example.md").writeText(
+        root.resolve("docs/template-migrations").createDirectories()
+        root.resolve("docs/template-migrations/2026-07-15.1-example.md").writeText(
             """
             # Example
 
@@ -249,15 +272,15 @@ class TemplateRepositoryValidatorTest {
             """.trimIndent(),
         )
 
-        repository.resolve(".gitmodules").writeText(
+        root.resolve(".gitmodules").writeText(
             "[submodule \"embedded-enro\"]\n\tpath = embedded-enro\n\turl = https://github.com/isaac-udy/Enro\n" +
                 "[submodule \"embedded-udytils\"]\n\tpath = embedded-udytils\n\turl = https://github.com/isaac-udy/udytils\n",
         )
 
-        repository.resolve("AGENTS.md").writeText("Read UKPT.md first.\n")
-        repository.resolve("CLAUDE.md").writeText("@AGENTS.md\n@UKPT.md\n")
+        root.resolve("AGENTS.md").writeText("Read UKPT.md first.\n")
+        root.resolve("CLAUDE.md").writeText("@AGENTS.md\n@UKPT.md\n")
 
-        val skill = repository.resolve(".agents/skills/ukpt-example")
+        val skill = root.resolve(".agents/skills/ukpt-example")
         skill.resolve("agents").createDirectories()
         skill.resolve("SKILL.md").writeText(
             """
@@ -278,7 +301,7 @@ class TemplateRepositoryValidatorTest {
             """.trimIndent(),
         )
 
-        val claudeSkills = repository.resolve(".claude/skills").createDirectories()
+        val claudeSkills = root.resolve(".claude/skills").createDirectories()
         Files.createSymbolicLink(
             claudeSkills.resolve("ukpt-example"),
             Path.of("../../.agents/skills/ukpt-example"),

@@ -7,7 +7,9 @@ import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
 // literal is not a comment), and block comments peeled innermost-first because Kotlin nests them.
 private val characterLiteral = Regex("""'(?:\\.|[^'\\])'""")
 private val rawString = Regex("\"\"\"" + """.*?""" + "\"\"\"", RegexOption.DOT_MATCHES_ALL)
-private val quotedString = Regex("\"(?:\\\\.|[^\"\\\\])*\"")
+// Unrolled so the engine recurses per escape, not per character: `(?:\\.|[^"\\])*` overflows the
+// stack on a string literal a few thousand characters long.
+private val quotedString = Regex("\"[^\"\\\\]*(?:\\\\.[^\"\\\\]*)*\"")
 private val templateExpression = Regex("""\$\{[^{}]*\}""")
 
 /** A block comment containing no nested opener — the innermost one, removed repeatedly. */
