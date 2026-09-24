@@ -11,6 +11,7 @@ import io.ktor.server.application.createApplicationPlugin
 import io.ktor.server.application.install
 import io.ktor.server.application.log
 import io.ktor.server.html.respondHtml
+import io.ktor.server.http.content.HttpStatusCodeContent
 import io.ktor.server.http.content.staticResources
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respondText
@@ -32,8 +33,11 @@ fun Application.installWebPlatform(
     install(SecurityHeaders) { policy = contentSecurityPolicy }
     install(SSE)
     install(StatusPages) {
-        status(HttpStatusCode.NotFound) { call, status ->
-            call.respondError(status, "Page not found", "There is nothing at this address.")
+        status(HttpStatusCode.NotFound) { status ->
+            // A route that answers 404 with its own body keeps it; only a bare status gets the page.
+            if (content is HttpStatusCodeContent) {
+                call.respondError(status, "Page not found", "There is nothing at this address.")
+            }
         }
         exception<Throwable> { call, cause ->
             call.application.log.error("Unhandled exception for ${call.request.local.uri}", cause)
