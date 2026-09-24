@@ -32,6 +32,7 @@ object ServerWeb : RuleGroup(
     constructs = listOf(
         Routes,
         Page,
+        Layout,
         Component,
         ViewState,
         Form,
@@ -81,6 +82,29 @@ object ServerWeb : RuleGroup(
                     file.imports
                         .filter { it.name.startsWith("org.koin.") }
                         .map { Violation(file.path, "server.web imports Koin `${it.name}`") }
+                }
+        }
+    }
+
+    @Describe("The `server.web` layer must not render `<head>` or `<body>`; the platform's document does")
+    val documentFromThePlatform by rule {
+        rationale(
+            """
+            The platform's document puts the htmx configuration, the scripts in the order Alpine
+            needs, and the error region the platform script fills into every page. A shell that
+            renders its own `<head>` or `<body>` drops them; one that needs regions of its own is a
+            [Layout](#layout) over `ukptDocument`.
+            """.trimIndent(),
+        )
+        note("Tested over imports of `kotlinx.html.head` and `kotlinx.html.body`.")
+        scope { scope, exempt ->
+            scope.files
+                .filter { it.isFeatureModule() && it.isInServerWeb() }
+                .filterNot { exempt(it) }
+                .flatMap { file ->
+                    file.imports
+                        .filter { it.name == "kotlinx.html.head" || it.name == "kotlinx.html.body" }
+                        .map { Violation(file.path, "server.web renders `<${it.name.substringAfterLast('.')}>` — render through a Layout") }
                 }
         }
     }

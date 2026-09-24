@@ -133,7 +133,7 @@ internal data class <Thing>sPageState(
 `<Thing>sPage.kt` — the Page and its Components:
 ```kotlin
 internal fun HTML.<thing>sPage(state: <Thing>sPageState) {
-    ukptLayout(title = "<Things>") {
+    ukptLayout(LayoutState(title = "<Things>")) {
         h1 { +"<Things>" }
         <thing>List(state.<thing>s)
     }

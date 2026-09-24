@@ -12,6 +12,7 @@ import io.ktor.server.routing.get
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import kotlinx.html.h1
+import kotlinx.html.nav
 import org.jsoup.Jsoup
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -21,7 +22,12 @@ class WebPlatformTest {
 
     private val routes = object : WebRoutes {
         override fun Route.install() {
-            get("/hello") { call.respondHtml { ukptLayout("Hello", scripts = listOf("/static/hello/hello.js")) { h1 { +"Hello" } } } }
+            get("/hello") { call.respondHtml { ukptLayout(LayoutState("Hello", scripts = listOf("/static/hello/hello.js"))) { h1 { +"Hello" } } } }
+            get("/shell") {
+                call.respondHtml {
+                    ukptDocument(DocumentState("Shell", stylesheets = listOf("/static/shell/shell.css"))) { nav { +"Menu" } }
+                }
+            }
             get("/boom") { error("boom") }
             get("/gone") { call.respondText("That item was withdrawn.", status = HttpStatusCode.NotFound) }
         }
@@ -43,6 +49,18 @@ class WebPlatformTest {
             document.select("script").map { it.attr("src").substringAfterLast('/') },
         )
         assertTrue(document.select("script").all { it.data().isEmpty() && it.hasAttr("defer") })
+    }
+
+    @Test
+    fun `a document renders its own body after the error region, with its stylesheets after the platform's`() = platformTest {
+        val document = Jsoup.parse(client.get("/shell").bodyAsText())
+
+        assertEquals(
+            listOf("tokens.css", "base.css", "shell.css"),
+            document.select("link[rel=stylesheet]").map { it.attr("href").substringAfterLast('/') },
+        )
+        assertEquals(listOf("div", "nav"), document.body().children().map { it.tagName() })
+        assertEquals(APP_ERROR_ID, document.body().child(0).id())
     }
 
     @Test

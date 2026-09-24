@@ -56,7 +56,10 @@ The complete catalog, one row per Construct or Rule. IDs are based on the object
 | `ServerWeb.Routes.mayInjectDomainInterfaces` | A Routes class may inject its feature's `server.domain` interfaces, and other features' `server.domain` interfaces published to `:api` | [guidance](../src/main/kotlin/architecture/rules/serverweb/Routes.kt) |
 | `ServerWeb.Page` | resides in `feature..server.web..` · has an `HTML` receiver and is named `[name]Page` | [construct](../src/main/kotlin/architecture/rules/serverweb/Page.kt) |
 | `ServerWeb.Page.takesItsViewState` | A Page must take exactly one parameter, its View State | [tested](../src/main/kotlin/architecture/rules/serverweb/Page.kt) |
-| `ServerWeb.Page.rendersThroughLayout` | A Page must render through the platform layout | [tested](../src/main/kotlin/architecture/rules/serverweb/Page.kt) |
+| `ServerWeb.Page.rendersThroughLayout` | A Page must render through a Layout | [tested](../src/main/kotlin/architecture/rules/serverweb/Page.kt) |
+| `ServerWeb.Layout` | resides in `feature..server.web..` · has an `HTML` receiver and is named `[name]Layout` | [construct](../src/main/kotlin/architecture/rules/serverweb/Layout.kt) |
+| `ServerWeb.Layout.takesItsViewStateAndContent` | A Layout must take exactly two parameters: its View State, then the content it renders around | [tested](../src/main/kotlin/architecture/rules/serverweb/Layout.kt) |
+| `ServerWeb.Layout.rendersThroughThePlatform` | A Layout must render through another Layout or the platform's document | [tested](../src/main/kotlin/architecture/rules/serverweb/Layout.kt) |
 | `ServerWeb.Component` | resides in `feature..server.web..` · has a kotlinx.html tag or content receiver other than `HTML` | [construct](../src/main/kotlin/architecture/rules/serverweb/Component.kt) |
 | `ServerWeb.Component.rendersValuesOnly` | A Component must render only the values it is given: no parameter may be a domain interface or a Routes class | [tested](../src/main/kotlin/architecture/rules/serverweb/Component.kt) |
 | `ServerWeb.ViewState` | resides in `feature..server.web..` · is a class or interface · is named `[Name]State` · satisfies one of: {is a `data class`, is `sealed`, is an `enum class`} | [construct](../src/main/kotlin/architecture/rules/serverweb/ViewState.kt) |
@@ -73,6 +76,7 @@ The complete catalog, one row per Construct or Rule. IDs are based on the object
 | `ServerWeb.WebConstants.noVariables` | A Web Constants object must hold no `var` | [tested](../src/main/kotlin/architecture/rules/serverweb/WebConstants.kt) |
 | `ServerWeb.noDataImports` | The `server.web` layer must never import `server.data` | [tested](../src/main/kotlin/architecture/rules/serverweb/ServerWeb.kt) |
 | `ServerWeb.noKoinImports` | The `server.web` layer must not import Koin | [tested](../src/main/kotlin/architecture/rules/serverweb/ServerWeb.kt) |
+| `ServerWeb.documentFromThePlatform` | The `server.web` layer must not render `<head>` or `<body>`; the platform's document does | [tested](../src/main/kotlin/architecture/rules/serverweb/ServerWeb.kt) |
 | `ServerWeb.typedHypermediaAttributes` | Markup must set `hx-*`, `sse-*` and Alpine attributes through the `dev.isaacudy.udytils.htmx` builders, never as string attribute names | [tested](../src/main/kotlin/architecture/rules/serverweb/ServerWeb.kt) |
 | `ServerWeb.noInlineScript` | Markup must not carry inline script: no `<script>` without `src`, no `on*` event-handler attributes, and no `unsafe` HTML | [tested](../src/main/kotlin/architecture/rules/serverweb/ServerWeb.kt) |
 | `ServerWeb.selfHostedAssets` | Markup must load scripts and stylesheets from this origin | [tested](../src/main/kotlin/architecture/rules/serverweb/ServerWeb.kt) |

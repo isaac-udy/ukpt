@@ -3,7 +3,7 @@ its event stream through a sink element that swaps nothing itself:
 
 ```kotlin
 internal fun HTML.ordersPage(state: OrdersPageState) {
-    ukptLayout(title = "Orders", scripts = listOf(OrdersPaths.QUANTITY_SCRIPT)) {
+    ukptLayout(LayoutState(title = "Orders", scripts = listOf(OrdersPaths.QUANTITY_SCRIPT))) {
         h1 { +"Orders" }
         orderForm(state.form, state.errors)
         orderList(state.orders)

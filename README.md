@@ -47,7 +47,7 @@ including `"templateBranch": "htmx"` — that later template updates depend on.
 The worked example in `:feature:core` is a greetings page:
 
 - **Pages and fragments.** A handler reads from the domain, builds a View State, and renders a Page
-  through `ukptLayout`. A request from htmx (`HX-Request: true`) gets the fragment it replaces
+  through `ukptLayout`, or through a shell of the project's own built on `ukptDocument`. A request from htmx (`HX-Request: true`) gets the fragment it replaces
   instead of the whole page.
 - **Forms work without JavaScript.** Every form has an `action` as well as `hx-post`. An invalid
   submission is re-rendered with its errors under `422`; a valid one answers htmx with a fresh

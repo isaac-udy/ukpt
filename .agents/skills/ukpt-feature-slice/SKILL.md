@@ -24,7 +24,8 @@ reference to read when in doubt.
 
 Do **not** copy the literal `ukpt`/`Ukpt` from core — substitute `<name>`/`<Name>`.
 `ukptLayout` is the project's layout function in `:platform:server:web`; it carries the project's
-prefix, not the feature's.
+prefix, not the feature's. A shell that several features share (navigation, the signed-in user) is
+a Layout of its own over `ukptDocument` (`ServerWeb.Layout`).
 
 ## Domain shape (before writing `server.domain`)
 Interfaces come from consumers, not from storage. Before the first `fun interface`:
@@ -72,7 +73,7 @@ the result.
   handler then answers htmx with `204 No Content` or a reset form; the stream updates every tab.
 - **Local UI state is Alpine, in a file.** Register components with `Alpine.data("<component>", ...)`
   inside `document.addEventListener("alpine:init", ...)` in `static/<name>/<file>.js`; pass its path
-  to `ukptLayout(scripts = ...)`. Markup names members only: `alpine { data("..."); on("input", "update"); text("remaining") }`.
+  to `ukptLayout(LayoutState(title, scripts = ...))`. Markup names members only: `alpine { data("..."); on("input", "update"); text("remaining") }`.
   Keep an htmx swap target outside an Alpine root unless resetting its state is intended.
 - **Typed markup.** `hx { }`, `sse { }`, `alpine { }` and `elementId =` — never `attributes["hx-…"]`,
   inline `<script>`, `onClick =`, `unsafe { }`, or a CDN URL (`ServerWeb.typedHypermediaAttributes`,
@@ -84,7 +85,7 @@ the result.
 - **`ServerWeb.Routes`** (construct) — `internal class <Name>Routes(...) : WebRoutes`;
   **`ServerWeb.Routes.noPersistenceInjection`** — inject domain interfaces, never a Repository.
 - **`ServerWeb.Page.takesItsViewState`** — a Page takes one `<Page>PageState`;
-  **`ServerWeb.Page.rendersThroughLayout`** — and renders through `ukptLayout`.
+  **`ServerWeb.Page.rendersThroughLayout`** — and renders through `ukptLayout` or a shared Layout.
 - **`ServerWeb.Form.rawInputProperties`** — a Form holds strings as submitted.
 - **`ServerWeb.noDataImports`**, **`ServerWeb.noKoinImports`** — the web layer imports neither.
 - **`FeatureRules.DependencyModule`** (construct) — DI is a `val <name>ServerDependencies` module in `feature.<name>`;
@@ -93,6 +94,6 @@ the result.
 ## Reference
 - The living template: `feature/core/{api,server}` (build files + `src/.../feature/ukpt/...`), and
   `feature/core/server/src/main/resources/static/ukpt/`.
-- The web platform: `platform/server/web` (`WebRoutes`, `ukptLayout`, `textField`, `FormResult`,
+- The web platform: `platform/server/web` (`WebRoutes`, `ukptLayout`, `ukptDocument`, `textField`, `FormResult`,
   `respondSeeOther`, `installWebPlatform`).
 - Skeletons + the wiring checklist: `templates.md` (this skill).
