@@ -31,7 +31,7 @@ Follow the rules in [`platform/common/architecture/README.md`](./platform/common
 ## Toolchain & constraints
 
 - JDK target **11** (`jvmTarget = JVM_11`); Gradle **9.6.1** (wrapper). Exact dependency versions live in [`gradle/libs.versions.toml`](./gradle/libs.versions.toml).
-- `embedded-udytils` is a **composite (`includeBuild`) build**. Some of its modules are multiplatform with an Android target, so configuring it needs an Android SDK: set `sdk.dir` in `local.properties` (`gradle/embedded-sdk-location.settings.gradle.kts` copies it into the composite build). The application itself has no Android code.
+- `embedded-udytils` is a **composite (`includeBuild`) build**. Some of its modules are multiplatform with Android and iOS targets. Gradle configures them, which needs no Android SDK or Kotlin/Native toolchain, and never runs their Android or iOS tasks. `gradle/embedded-sdk-location.settings.gradle.kts` is shared with `main` and does nothing when `local.properties` has no `sdk.dir`.
 - The version catalog is shared with `main`, so it lists Compose, Android and Enro entries this branch does not use.
 - htmx, the htmx `sse` extension and the Alpine CSP build come from the `dev.isaacudy.udytils:htmx` artifact; its version pins theirs.
 

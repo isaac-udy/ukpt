@@ -34,9 +34,8 @@ git submodule update --init --recursive     # required, see Embedded library
 ./gradlew :app:server:run                   # http://localhost:8080
 ```
 
-The server starts an embedded Postgres, so there is nothing else to install. The embedded udytils
-build still configures Android targets, so Gradle needs an Android SDK: set `sdk.dir` in
-`local.properties` or export `ANDROID_HOME`.
+The server starts an embedded Postgres, so there is nothing else to install: no Android SDK and no
+Node.js.
 
 To start a real project from the template, use the
 [`ukpt-new-project`](.agents/skills/ukpt-new-project) skill. It renames the packages and project
