@@ -519,11 +519,12 @@ object TemplateRepositoryValidator {
 
             // A repository-rooted path: its first segment names something at the repository root.
             // Paths relative to some other module (`design-system/README.md`) are ambiguous from
-            // here and are left alone rather than guessed at.
+            // here and are left alone rather than guessed at. Build outputs exist only after a build.
             if (!downstream) {
                 quoted
                     .filter { '/' in it && !isRemoteOrTemplated(it) }
                     .filter { it.substringBefore('/') in repositoryRoots }
+                    .filter { path -> path.split('/').none { it == "build" } }
                     .forEach { path ->
                         if (!Files.exists(repository.resolve(path))) {
                             issues += TemplateValidationIssue(relativePath, "referenced path does not exist: $path")

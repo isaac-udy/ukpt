@@ -57,7 +57,7 @@ class TemplateRepositoryValidatorTest {
 
             Copy `feature/core/client/Present.kt` and `feature/core/client/Gone.kt`.
             Honour `UiLayer.Composable.screenContentPreview` and `UiLayer.Composable.removedRule`.
-            Ignore `Modifier.padding`, `<name>/Templated.kt`, `design-system/README.md`,
+            Ignore `Modifier.padding`, `<name>/Templated.kt`, `design-system/README.md`, `feature/core/build/out.txt`,
             `feature/core/{api,client,server}` and [the template](https://github.com/isaac-udy/ukpt).
             See [templates](templates.md) and [missing](nope.md).
             """.trimIndent(),
