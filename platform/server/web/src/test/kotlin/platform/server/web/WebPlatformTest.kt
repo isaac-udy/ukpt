@@ -44,6 +44,27 @@ class WebPlatformTest {
     }
 
     @Test
+    fun `a project adds image and connect origins, or only reports violations`() = testApplication {
+        application {
+            installWebPlatform(
+                listOf(routes),
+                ContentSecurityPolicy(
+                    imageSources = listOf("https://images.example"),
+                    connectSources = listOf("https://analytics.example"),
+                    reportOnly = true,
+                ),
+            )
+        }
+        val response = client.get("/hello")
+
+        assertEquals(null, response.headers["Content-Security-Policy"])
+        val policy = response.headers["Content-Security-Policy-Report-Only"].orEmpty()
+        assertTrue("img-src 'self' data: https://images.example;" in policy, policy)
+        assertTrue("connect-src 'self' https://analytics.example;" in policy, policy)
+        assertTrue("script-src 'self';" in policy, policy)
+    }
+
+    @Test
     fun `platform and htmx assets are served`() = platformTest {
         assertEquals(HttpStatusCode.OK, client.get("/static/platform/css/base.css").status)
         assertEquals(HttpStatusCode.OK, client.get("${HtmxAssets.DEFAULT_PATH}/${HtmxAssets.HTMX}").status)
