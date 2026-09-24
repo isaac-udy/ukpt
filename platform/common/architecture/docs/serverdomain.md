@@ -7,7 +7,7 @@
 
 `feature.[name].server.domain` — the server's internal domain layer. This package contains
 single-function [domain interfaces](#domain-interface) that the server's
-[Services](serverservices.md#service-interface) consume and
+Services consume and
 [Repositories](serverdata.md#repository) provide, and [domain models](#domain-model) that never
 leave the server. The layer may include [UseCases](#use-case) when multiple domain interfaces
 need to be composed, [extension functions](#extension-function) and
@@ -30,7 +30,7 @@ cannot inject request-scoped authentication. A storage function reached from `se
 expressed here as a domain interface, or folded with its siblings into a [UseCase](#use-case)
 when the logic spans several.
 
-This layer has the same construct names and rules as [`client.domain`](clientdomain.md).
+This layer has the same construct names and rules as `client.domain`.
 
 ##### Constructs
 

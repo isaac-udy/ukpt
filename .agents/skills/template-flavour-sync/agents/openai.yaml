@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sync Template Flavour"
+  short_description: "Merge main into a template flavour branch"
+  default_prompt: "Use $template-flavour-sync to merge main into this flavour branch."

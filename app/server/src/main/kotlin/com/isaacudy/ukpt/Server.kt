@@ -7,11 +7,10 @@ import dev.isaacudy.udytils.postgres.embedded.DevServer
 import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
-import io.ktor.server.response.respondText
-import io.ktor.server.routing.get
-import io.ktor.server.routing.routing
+import org.koin.ktor.ext.getKoin
 import org.koin.ktor.plugin.Koin
 import platform.server.development.UkptDevDatabase
+import platform.server.web.installWebPlatform
 
 fun main() {
     // Resolved before the server is built: the schema has to be migrated — and a dev database
@@ -22,11 +21,7 @@ fun main() {
         install(Koin) {
             modules(serverDependencies(postgresConfig))
         }
-        routing {
-            get("/") {
-                call.respondText("Hello, ukpt server!")
-            }
-        }
+        installWebPlatform(getKoin().getAll())
     }.start(wait = true)
 }
 

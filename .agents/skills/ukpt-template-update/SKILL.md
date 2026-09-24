@@ -85,16 +85,12 @@ File classes:
   includes stay), app shells (`app/`), platform modules the project has extended.
 - **Example code (do not sync):** `:feature:core` and anything under `feature/` — template
   changes here are patterns, carried by migrations (§6), not file syncs.
-- **Identity-bearing (sync structure, never values):** `platform/client/design`. The module's *shape* is
-  the template's — which token files exist, the `<Prefix>Theme` wrapper, `DesignSystemDocImagesTest`.
-  Everything the project authored *inside* it is that project's identity: the palettes, the type
-  scale, the bundled typefaces, the `design-system/` page prose and its prohibition list, every
-  primitive beyond the scaffold's, and **every golden** — goldens are renders of the project's
-  identity, never the template's, so they are not synced under any circumstances. Apply structural
-  template changes; never overwrite authored values or prose. Where a template change touches a file
-  the project has authored, present both and ask, exactly as §5 does for the rule catalog. A project
-  still on the neutral placeholder palette can take the template side wholesale; a project that runs
-  its own design system elsewhere should skip this class entirely.
+- **Identity-bearing (sync structure, never values):** `platform/server/web/src/main/resources/static/platform/css/tokens.css`.
+  Its token *names* are the template's — `base.css` and feature stylesheets read them. Its values
+  are the project's identity: the palette, the type, the spacing. Apply a template change that adds
+  or renames a token; never overwrite a value the project set. Where a template change touches a
+  value the project authored, present both and ask, exactly as §5 does for the rule catalog. A
+  project still on the neutral placeholder values can take the template side wholesale.
 - **Generated (do not merge by hand):** `platform/common/architecture/README.md` and `docs/` —
   regenerated in §5.
 

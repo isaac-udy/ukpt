@@ -5,29 +5,33 @@
 
 # UKPT Architecture
 
-UKPT is a Kotlin Multiplatform template. Its architecture is built from vertical feature
-slices (`:feature:[name]:{api,client,server}`) over shared infrastructure (`:platform`),
-assembled by thin application shells (`:app`). Module-graph rules keep the slices independent.
+This is the `htmx` branch of the UKPT template: a Ktor server that renders HTML with kotlinx.html
+and updates it with htmx. Its architecture is built from vertical feature slices
+(`:feature:[name]:{api,server}`) over shared infrastructure (`:platform`), assembled by the
+`:app:server` application module. Module-graph rules keep the slices independent.
 
 A declaration's **package** says what it is; the Gradle **module** it lives in says who may see
 it. A feature is rooted at `feature.[name]`, which holds its shared vocabulary — the domain
-models that both the client and server use. One level down is `client` or `server`; two levels
-down is a layer within that. The deeper the package, the more private the code.
+models its layers and other features use. One level down is `server`; two levels down is a
+layer within it. The deeper the package, the more private the code.
 
 ```
-client.ui → client.domain ← client.data → [ contract ] ← server.services → server.domain ← server.data
+server.web → server.domain ← server.data
 ```
 
 The domain layer is the core of the application: it defines the interfaces and models that the
-other layers consume or implement. `client.ui` and `server.services` consume them; `client.data`
-and `server.data` define `Repository` classes that implement the interfaces and produce the
-models. The client and server communicate only through the RPC contract, and `client.data` is
-the only client package that may import the RPC contract.
+other layers consume or implement. `server.web` consumes them to answer HTTP requests with
+pages, fragments and event streams; `server.data` defines `Repository` classes that implement
+the interfaces and produce the models.
 
-The rules govern the feature modules. The composite builds (`embedded-enro`,
-`embedded-udytils`, and `build-logic`), test sources, and this rule module itself are not
-tested. `:feature:core` is the worked example the rules describe: it keeps its feature code in
-`feature.[name]` package namespaces so each slice stays liftable into its own module.
+The `main` branch of the template adds Compose clients and an RPC contract between client and
+server. The shared layer pages below still name them in places; this branch has neither, and
+links to their pages render as plain text.
+
+The rules govern the feature modules. The composite build (`embedded-udytils`), `build-logic`,
+test sources, and this rule module itself are not tested. `:feature:core` is the worked example
+the rules describe: it keeps its feature code in `feature.[name]` package namespaces so each
+slice stays liftable into its own module.
 
 Rules land enforced from their first commit, never as audits, and no declaration carries an
 `@ArchitectureException`. A rule that cannot be met is a design question, not a setting.
@@ -36,13 +40,9 @@ Rules land enforced from their first commit, never as audits, and no declaration
 
 - [Module Rules](docs/module.md)
 - [Feature Rules](docs/feature.md)
-- [Client Domain](docs/clientdomain.md)
-- [Client Data](docs/clientdata.md)
-- [Client Ui](docs/clientui.md)
-- [Server Services](docs/serverservices.md)
+- [Server Web](docs/serverweb.md)
 - [Server Domain](docs/serverdomain.md)
 - [Server Data](docs/serverdata.md)
-- [Design System Rules](docs/designsystem.md)
 - [Project Rules](docs/project.md)
 
 ## Reference

@@ -36,37 +36,15 @@ plugins {
 
 apply(from = "gradle/embedded-sdk-location.settings.gradle.kts")
 
-include(":app:client:common")
-include(":app:client:android")
-include(":app:client:desktop")
-include(":app:client:web")
 include(":app:server")
 
 include(":feature:core:api")
-include(":feature:core:client")
 include(":feature:core:server")
 
-include(":platform:client:design")
-include(":platform:client:ui")
 include(":platform:common:architecture")
 include(":platform:server:postgres")
 include(":platform:server:development")
-
-includeBuild("embedded-enro") {
-    name = "embedded-enro"
-    dependencySubstitution {
-         substitute(module("dev.enro:enro-processor")).using(project(":enro-processor"))
-         substitute(module("dev.enro:enro-annotations")).using(project(":enro-annotations"))
-         substitute(module("dev.enro:enro-test")).using(project(":enro-test"))
-         substitute(module("dev.enro:enro-lint")).using(project(":enro-lint"))
-         substitute(module("dev.enro:enro")).using(project(":enro"))
-         substitute(module("dev.enro:enro-common")).using(project(":enro-common"))
-         substitute(module("dev.enro:enro-runtime")).using(project(":enro-runtime"))
-         substitute(module("dev.enro:enro-compat")).using(project(":enro-compat"))
-         substitute(module("dev.enro:tests:application")).using(project(":tests:application"))
-         substitute(module("dev.enro:tests:module-one")).using(project(":tests:module-one"))
-    }
-}
+include(":platform:server:web")
 
 includeBuild("embedded-udytils") {
     name = "embedded-udytils"

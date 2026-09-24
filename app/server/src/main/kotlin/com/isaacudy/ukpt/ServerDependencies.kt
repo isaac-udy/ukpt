@@ -2,6 +2,7 @@ package com.isaacudy.ukpt
 
 import dev.isaacudy.udytils.postgres.PostgresConfig
 import dev.isaacudy.udytils.postgres.koin.postgresDependencies
+import feature.ukpt.ukptServerDependencies
 import org.koin.core.module.Module
 import platform.server.postgres.postgresPlatformDependencies
 
@@ -12,4 +13,5 @@ import platform.server.postgres.postgresPlatformDependencies
 internal fun serverDependencies(postgresConfig: PostgresConfig): List<Module> = listOf(
     postgresDependencies(postgresConfig),
     postgresPlatformDependencies,
+    ukptServerDependencies,
 )

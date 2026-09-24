@@ -1,0 +1,48 @@
+/*
+ * The design tokens. These are neutral placeholders: a project replaces the values with its own
+ * identity and keeps the names, which base.css and every feature stylesheet use.
+ */
+:root {
+  color-scheme: light dark;
+
+  --color-background: #fafafa;
+  --color-surface: #ffffff;
+  --color-text: #1b1b1f;
+  --color-text-muted: #5d5e66;
+  --color-border: #d9d9de;
+  --color-accent: #3c5bd6;
+  --color-on-accent: #ffffff;
+  --color-danger: #b3261e;
+  --color-danger-surface: #fbe9e8;
+
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --font-size-small: 0.875rem;
+  --font-size-body: 1rem;
+  --font-size-title: 1.5rem;
+  --line-height: 1.5;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+
+  --radius: 0.5rem;
+  --content-width: 40rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: #131316;
+    --color-surface: #1e1e22;
+    --color-text: #e4e4e9;
+    --color-text-muted: #a3a4ad;
+    --color-border: #3a3a41;
+    --color-accent: #8ea4ff;
+    --color-on-accent: #10183a;
+    --color-danger: #ffb4ab;
+    --color-danger-surface: #3b1512;
+  }
+}

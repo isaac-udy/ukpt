@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <title>Greetings</title>
+    <link href="/static/platform/favicon.svg" rel="icon" type="image/svg+xml">
+    <meta content="{&quot;allowEval&quot;:false,&quot;allowScriptTags&quot;:false,&quot;includeIndicatorStyles&quot;:false,&quot;selfRequestsOnly&quot;:true,&quot;responseHandling&quot;:[{&quot;code&quot;:&quot;204&quot;,&quot;swap&quot;:false},{&quot;code&quot;:&quot;[23]..&quot;,&quot;swap&quot;:true},{&quot;code&quot;:&quot;422&quot;,&quot;swap&quot;:true},{&quot;code&quot;:&quot;[45]..&quot;,&quot;swap&quot;:false,&quot;error&quot;:true},{&quot;code&quot;:&quot;...&quot;,&quot;swap&quot;:false}]}" name="htmx-config">
+    <link href="/static/platform/css/tokens.css" rel="stylesheet">
+    <link href="/static/platform/css/base.css" rel="stylesheet">
+    <script defer src="/assets/htmx/htmx-2.0.11.min.js"></script>
+    <script defer src="/assets/htmx/htmx-ext-sse-2.2.4.min.js"></script>
+    <script defer src="/static/platform/js/app.js"></script>
+    <script defer src="/static/ukpt/greeting-name.js"></script>
+    <script defer src="/assets/htmx/alpine-csp-3.17.4.min.js"></script>
+  </head>
+  <body>
+    <div class="app-error" hidden id="app-error" role="alert"></div>
+    <main class="page">
+      <h1>Greetings</h1>
+      <form action="/greetings" class="card" hx-disabled-elt="find button" hx-post="/greetings" hx-swap="outerHTML" hx-target="this" id="greeting-form" method="post">
+        <div x-data="greetingName" x-on:input="update">
+          <div class="field">
+            <label for="field-name">Name</label>
+            <input autocomplete="off" id="field-name" maxlength="40" name="name" type="text" value="">
+          </div>
+          <p class="muted">
+            <span x-text="remaining"></span>
+          </p>
+        </div>
+        <button class="button" type="submit">Greet</button>
+      </form>
+      <section class="card">
+        <h2>Everyone greeted so far</h2>
+        <ul class="list" data-empty-text="No greetings yet." id="greetings">
+          <li class="row" id="greeting-1">
+            <span class="grow">Hello, Ada</span>
+            <form action="/greetings/1/delete" hx-post="/greetings/1/delete" hx-swap="none" method="post">
+              <button class="button secondary" type="submit">Remove</button>
+            </form>
+          </li>
+          <li class="row" id="greeting-2">
+            <span class="grow">Hello again, Ada</span>
+            <form action="/greetings/2/delete" hx-post="/greetings/2/delete" hx-swap="none" method="post">
+              <button class="button secondary" type="submit">Remove</button>
+            </form>
+          </li>
+        </ul>
+        <div hx-ext="sse" hx-swap="none" sse-connect="/greetings/events" sse-swap="greetings"></div>
+      </section>
+    </main>
+  </body>
+</html>

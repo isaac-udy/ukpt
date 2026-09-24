@@ -12,9 +12,9 @@ the RPC contract, and share one vocabulary:
 client.ui → client.domain ← client.data → [ contract ] ← server.services → server.domain ← server.data
 ```
 
-The client and server have the same layer structure: a [UseCase](clientdomain.md#use-case) over
-[domain interfaces](clientdomain.md#domain-interface) answered by a
-[Repository](clientdata.md#repository) on the client has the same shape as a
+The client and server have the same layer structure: a UseCase over
+domain interfaces answered by a
+Repository on the client has the same shape as a
 [UseCase](serverdomain.md#use-case) over [domain interfaces](serverdomain.md#domain-interface)
 answered by a [Repository](serverdata.md#repository) on the server. Neither imports the other:
 the network is the only connection between client and server, and `:api` is the only channel
@@ -31,8 +31,8 @@ target.
 The root also shows, straight off the package path, how far a change reaches. A
 [shared domain model](#shared-domain-model) is used by the client, the server, and potentially
 other features, so renaming a field is a compatibility event. A
-[domain model](clientdomain.md#domain-model) in
-[`client.domain`](clientdomain.md#domain-model) or
+domain model in
+`client.domain` or
 [`server.domain`](serverdomain.md#domain-model) is used only within the client or server that
 defines it, and refactors freely. The `domain` layers build on the root: their models compose
 the shared ones.
@@ -43,16 +43,16 @@ the shared ones.
 
 The root holds domain objects and validation only: no interfaces with behaviour, no use cases, no
 logic beyond validating the values it carries. Anything with behaviour belongs on a side —
-single-function contracts are [domain interfaces](clientdomain.md#domain-interface) in
+single-function contracts are domain interfaces in
 `client.domain` or [`server.domain`](serverdomain.md#domain-interface).
 
 **In `:client` and `:server`, the same package holds the feature's wiring.** It is reserved for
 dependency injection: Koin modules that define the feature's DI bindings, wiring its
-[ViewModels](clientui.md#view-model), Repositories
-([client](clientdata.md#repository), [server](serverdata.md#repository)),
-[UseCases](clientdomain.md#use-case) ([server](serverdomain.md#use-case)),
+ViewModels, Repositories
+(client, [server](serverdata.md#repository)),
+UseCases ([server](serverdomain.md#use-case)),
 [StorageClasses](serverdata.md#storage-class), and
-[Service](serverservices.md#service-interface) implementations into the graph. Concrete classes
+Service implementations into the graph. Concrete classes
 (ServiceImpls, helpers, etc.) live in their layer-specific package; nothing else belongs here.
 
 ##### Constructs
@@ -76,7 +76,7 @@ dependency injection: Koin modules that define the feature's DI bindings, wiring
     * **Why:** The root is common Kotlin consumed by every target and by the server. A platform import here would break compilation for some target or drag transport/persistence machinery into the vocabulary itself.
     * **Note:** Scoped to `:api`, where the vocabulary lives; the same package name on `:client`/`:server` holds the feature's [dependency module](#dependency-module), which is out of scope because wiring a client or server necessarily names its platform types.
 * A feature root must declare only domain objects, constants, validation, and pure extensions over them
-    * **Why:** Behaviour in the root would be shared between client and server, and only vocabulary is shared. A single-function interface belongs in `client.domain` or `server.domain` ([client](clientdomain.md#domain-interface), [server](serverdomain.md#domain-interface)), where the data layer provides it.
+    * **Why:** Behaviour in the root would be shared between client and server, and only vocabulary is shared. A single-function interface belongs in `client.domain` or `server.domain` (client, [server](serverdomain.md#domain-interface)), where the data layer provides it.
     * **Note:** Enforced by the Constructs: a declaration in the root matching none of them fails the membership rule.
     * **Enforced by:** `architecture.everyDeclarationBelongsToALayer`
 * A feature root type that participates in polymorphic serialization must pin an explicit `@SerialName`
@@ -94,7 +94,7 @@ An immutable `@Serializable` type in the feature root: a business object or conc
 client and server use. Because both name it and it is serialized across the network, every
 field is part of a compatibility surface.
 
-The private counterpart is the [domain model](clientdomain.md#domain-model)
+The private counterpart is the domain model
 ([server](serverdomain.md#domain-model)), which refactors freely because nothing outside its
 client or server can observe the change. `Shared` is what says both the client and server name
 it, and the package is where that is written down. A private model may serialize too — for a
@@ -206,7 +206,7 @@ server implementation, carried across the service boundary, and matched by clien
 it crosses the wire, it is part of the feature's shared vocabulary and lives in the root.
 
 * **Note:** A shared exception must be listed in `@Throws` on the primary function of every
-  [domain interface](clientdomain.md#domain-interface)
+  domain interface
   ([server](serverdomain.md#domain-interface)) that raises it.
 * **Note:** `@Serializable` is part of what a shared exception *is* — a failure mode that
   cannot be serialized cannot cross the network, and
@@ -250,7 +250,7 @@ from the object's values and touches nothing else.
   free-standing behaviour. A top-level function with no receiver is logic, and logic lives on a
   side.
 * **Note:** Convenience logic for a domain interface belongs as default member functions on the
-  [interface](clientdomain.md#domain-interface) ([server](serverdomain.md#domain-interface))
+  interface ([server](serverdomain.md#domain-interface))
   itself. Extension functions are for adding behavior to shared domain models.
 
 ##### Requirements

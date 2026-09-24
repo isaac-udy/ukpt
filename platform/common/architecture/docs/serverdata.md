@@ -6,7 +6,7 @@
 # [Server Data](../src/main/kotlin/architecture/rules/serverdata/ServerData.kt)
 
 `feature.[name].server.data` — Postgres persistence and external integrations. The counterpart
-of [`client.data`](clientdata.md).
+of `client.data`.
 
 The layer has two levels, and which one you are writing decides what you may name — the package
 says which one you are in:
@@ -17,12 +17,12 @@ says which one you are in:
   properties rather than inheriting them, injects the StorageClasses it needs, and maps the Rows
   they return into domain objects. A domain object may span several tables; that composition
   happens here. This is the same construct as the client's
-  [Repository](clientdata.md#repository), with the same rules.
+  Repository, with the same rules.
 * In the `server.data.storage` subpackage, a [StorageClass](#storage-class) speaks
   [Rows](#storage-record) only. It holds the queries and the single write path for the tables it
   owns, and it names no domain type at all: the mapping is the Repository's job, not the
   query's. `.storage` is the Row-only subpackage, the counterpart of
-  [`client.data.storage`](clientdata.md#client-storage).
+  `client.data.storage`.
 
 [IntegrationClients](#integration-client) are the Repository idea pointed outward — an adapter
 onto GenAI, email, transcription, or object storage, providing a domain interface the server
@@ -44,7 +44,7 @@ name domain types by definition, so they belong at the `server.data` root.
 
 **This layer must never import `server.services`.** Wire contracts stay out of persistence, and
 storage can never reach the thing that is meant to consume it.
-[`ServerServices.noDataImports`](serverservices.md#rules) enforces the same separation from the
+`ServerServices.noDataImports` enforces the same separation from the
 other direction.
 
 ## Table ownership
@@ -229,7 +229,7 @@ injects the [StorageClasses](#storage-class) it reads and writes through, assemb
 writes domain values back as Rows. A domain model that spans several tables is assembled
 here, behind one property, before any narrower interface over the same tables is considered.
 
-It is the [client Repository](clientdata.md#repository) on the other side, with the same name and
+It is the client Repository on the other side, with the same name and
 the same rules. The difference is only what sits behind it: a Service and local storage on the
 client, tables on the server.
 
@@ -343,7 +343,7 @@ fun interface FlowOfOrderShipmentTracking {
 The single write path for the tables it owns, and the only place their queries are written. A
 StorageClass speaks [Rows](#storage-record): it takes and returns persistence shapes, and names
 no domain type at all. It lives in `feature.[name].server.data.storage`, the layer's Row-only
-subpackage, the counterpart of [`client.data.storage`](clientdata.md#client-storage). The
+subpackage, the counterpart of `client.data.storage`. The
 [Repository](#repository) above it, at the `server.data` root, injects it, maps what it returns,
 and provides the [domain interfaces](serverdomain.md#domain-interface) callers actually hold. See
 the [`server.data` overview](serverdata.md).

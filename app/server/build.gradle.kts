@@ -20,6 +20,7 @@ application {
 dependencies {
     implementation(projects.feature.core.server)
 
+    implementation(projects.platform.server.web)
     implementation(projects.platform.server.postgres)
     // The only module allowed to depend on this: it carries Zonky's embedded Postgres binaries.
     implementation(projects.platform.server.development)
@@ -29,8 +30,6 @@ dependencies {
     implementation(libs.koin.ktor)
     implementation(libs.ktor.serverCore)
     implementation(libs.ktor.serverNetty)
-    implementation(libs.ktor.serverWebsockets)
-    implementation(libs.ktor.server.auth)
 
     testImplementation(libs.ktor.serverTestHost)
     testImplementation(libs.kotlin.testJunit)

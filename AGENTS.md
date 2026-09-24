@@ -8,5 +8,5 @@ This file is project-owned. Put guidance specific to the project here; keep `UKP
 template-owned so template updates can replace it safely. `CLAUDE.md` imports both files for Claude
 Code, while Codex discovers this file and the shared skills under `.agents/skills/` directly.
 
-Do not change `embedded-enro/` or `embedded-udytils/` unless the task explicitly includes those
-libraries. They are independent repositories mounted as submodules.
+Do not change `embedded-udytils/` unless the task explicitly includes that library. It is an
+independent repository mounted as a submodule.
