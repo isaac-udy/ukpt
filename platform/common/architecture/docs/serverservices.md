@@ -31,7 +31,7 @@ Within a feature, the layer dependency rules are:
 * `server.services` may depend on [`server.domain`](serverdomain.md) — and never on
   [`server.data`](serverdata.md) (`ServerServices.noDataImports`).
 * `server.data` may depend on `server.domain` — and never on `server.services`
-  (`ServerData.noServiceImports`).
+  (`ServerData.noEntryPointImports`).
 * `client.data` may depend on `client.domain` and on this layer's contracts, so Repositories
   can call the server (`ClientData.clientServerDependencyRestriction`).
 * `client.ui` may depend on `client.domain` only; server calls go through
@@ -71,7 +71,7 @@ documented on [`server.data`](serverdata.md).
 ##### Rules
 
 * The `server.services` layer must never import `server.data`
-    * **Why:** `server.domain` sits between services and persistence and imports neither: services consume domain interfaces, and Repositories provide them. A ServiceImpl that reaches a table directly has skipped the layer where the contract should have been stated, so nothing else can reuse that access, and nothing names what the service actually needed.  `ServerData.noServiceImports` is the other half. Together they make storage a thing that *satisfies* a stated need rather than a thing services reach through.
+    * **Why:** `server.domain` sits between services and persistence and imports neither: services consume domain interfaces, and Repositories provide them. A ServiceImpl that reaches a table directly has skipped the layer where the contract should have been stated, so nothing else can reuse that access, and nothing names what the service actually needed.  `ServerData.noEntryPointImports` is the other half. Together they make storage a thing that *satisfies* a stated need rather than a thing services reach through.
     * **Note:** Tested over imports of persistence, wherever the imported file sits: reaching a table is the same act whatever the package holding it is called.
 * The `server.services` layer must not import client code
     * **Why:** The client and server meet at the RPC contract and nowhere else.

@@ -15,7 +15,7 @@ import architecture.definitions.sealedParentSimpleNames
 import architecture.definitions.serialNameValue
 import architecture.definitions.typeNestingChain
 import architecture.definitions.typeTokens
-import architecture.rules.serverservices.servicesPackageRegex
+import architecture.definitions.servicesPackageRegex
 import architecture.utils.KOIN_MAX_CONSTRUCTOR_REF_PARAMS
 import architecture.utils.koinModuleFiles
 import architecture.utils.koinRegistrations
