@@ -6,6 +6,7 @@ import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.html.respondHtml
+import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.testing.ApplicationTestBuilder
@@ -22,6 +23,7 @@ class WebPlatformTest {
         override fun Route.install() {
             get("/hello") { call.respondHtml { ukptLayout("Hello", scripts = listOf("/static/hello/hello.js")) { h1 { +"Hello" } } } }
             get("/boom") { error("boom") }
+            get("/gone") { call.respondText("That item was withdrawn.", status = HttpStatusCode.NotFound) }
         }
     }
 
@@ -79,5 +81,15 @@ class WebPlatformTest {
         val fragment = client.get("/missing") { header("HX-Request", "true") }
         assertEquals(HttpStatusCode.NotFound, fragment.status)
         assertEquals("There is nothing at this address.", fragment.bodyAsText())
+    }
+
+    @Test
+    fun `a route's own not-found body is kept`() = platformTest {
+        val response = client.get("/gone")
+        assertEquals(HttpStatusCode.NotFound, response.status)
+        assertEquals("That item was withdrawn.", response.bodyAsText())
+
+        val page = client.get("/missing")
+        assertEquals("Page not found", Jsoup.parse(page.bodyAsText()).select("h1").text())
     }
 }
