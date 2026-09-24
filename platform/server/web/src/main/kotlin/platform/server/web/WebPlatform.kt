@@ -25,8 +25,11 @@ import kotlinx.html.p
  * Installs what every page relies on: the security headers, server-sent events, HTML error pages,
  * the static assets, and the routes of every feature.
  */
-fun Application.installWebPlatform(routes: List<WebRoutes>) {
-    install(SecurityHeaders)
+fun Application.installWebPlatform(
+    routes: List<WebRoutes>,
+    contentSecurityPolicy: ContentSecurityPolicy = ContentSecurityPolicy(),
+) {
+    install(SecurityHeaders) { policy = contentSecurityPolicy }
     install(SSE)
     install(StatusPages) {
         status(HttpStatusCode.NotFound) { call, status ->
@@ -47,14 +50,35 @@ fun Application.installWebPlatform(routes: List<WebRoutes>) {
  * Scripts and styles load only from this origin, which is why no page may carry inline script or
  * a CDN URL. `style-src` allows no inline `<style>` either; htmx's indicator styles are turned off
  * in the layout's config for that reason.
+ *
+ * A project may add origins for images and for `fetch` traffic, never for scripts or styles.
+ * [reportOnly] reports violations in the browser console without enforcing the policy.
  */
-private val SecurityHeaders = createApplicationPlugin("SecurityHeaders") {
+data class ContentSecurityPolicy(
+    val imageSources: List<String> = emptyList(),
+    val connectSources: List<String> = emptyList(),
+    val reportOnly: Boolean = false,
+) {
+    internal val headerName: String
+        get() = if (reportOnly) "Content-Security-Policy-Report-Only" else "Content-Security-Policy"
+
+    internal val headerValue: String
+        get() = "default-src 'self'; script-src 'self'; style-src 'self'; " +
+            "img-src ${sources("'self' data:", imageSources)}; connect-src ${sources("'self'", connectSources)}; " +
+            "base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+
+    private fun sources(base: String, extra: List<String>) = (listOf(base) + extra).joinToString(" ")
+}
+
+private class SecurityHeadersConfig {
+    var policy = ContentSecurityPolicy()
+}
+
+private val SecurityHeaders = createApplicationPlugin("SecurityHeaders", ::SecurityHeadersConfig) {
+    val name = pluginConfig.policy.headerName
+    val value = pluginConfig.policy.headerValue
     onCall { call ->
-        call.response.headers.append(
-            "Content-Security-Policy",
-            "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; " +
-                "connect-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
-        )
+        call.response.headers.append(name, value)
         call.response.headers.append("X-Content-Type-Options", "nosniff")
         call.response.headers.append("Referrer-Policy", "same-origin")
     }
