@@ -45,7 +45,8 @@ List the conflicts with `git status --porcelain=v1`, then for each entry:
   `git rm -q -- <path>`.
 - `UD` (modified here, deleted on `main`): stop and ask; `main` removed something this branch
   still uses.
-- `UU`/`AA` under `generated.paths`: `git checkout --theirs -- <path>`; §5 regenerates it.
+- `UU`/`AA` under `generated.paths`: `git checkout --theirs -- <path>`; §5 regenerates it. A
+  generated file that merged without a conflict is regenerated there too.
 - `UU` under `replaced`: `git checkout --ours -- <path>`, then record `main`'s change for the report
   (`git diff HEAD...MERGE_HEAD -- <path>`).
 - `UU` under `diverged` or `migrations.adapted`: merge by hand, following the manifest note. Keep
@@ -73,8 +74,8 @@ For each entry the merge added under `docs/template-migrations/`, decide:
 
 - **Applies unchanged** — keep it.
 - **Applies differently** — edit it for this branch, and add it to `migrations.adapted` with what changed.
-- **Does not apply** (it changes code this branch dropped) — `git rm` it, and add it to
-  `migrations.skipped` with the reason.
+- **Does not apply** (it changes code this branch dropped) — `git rm -f` it (the merge staged it,
+  so a plain `git rm` refuses), and add it to `migrations.skipped` with the reason.
 
 ## 5. Marker and generated files
 
