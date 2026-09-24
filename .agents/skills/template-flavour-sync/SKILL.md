@@ -102,4 +102,5 @@ Commit the merge with a message that lists:
 - any file that conflicted outside the manifest, and the seam or manifest entry proposed for it.
 
 Stop at the commit. Pushing and opening a pull request follow the owner's instructions for the
-repository.
+repository. A pull request carrying the sync must be merged with a merge commit: a squash or rebase
+drops `main`'s commits from the flavour's history, and the next sync conflicts on everything again.
