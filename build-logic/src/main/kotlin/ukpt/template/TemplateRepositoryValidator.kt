@@ -80,10 +80,16 @@ object TemplateRepositoryValidator {
     /**
      * Returns all validation issues in [repository] so callers can report them together.
      * [trackedFiles] (repository-relative, as `git ls-files` prints them) enables the flavour
-     * manifest's dropped-path check; it is skipped when null.
+     * manifest's dropped-path check; it is skipped when null. [gitRoot] is the enclosing git
+     * checkout, which differs from [repository] when the project lives in a subdirectory of a larger
+     * repository; `.gitmodules` is read from there.
      */
-    fun validate(repository: Path, trackedFiles: List<String>? = null): List<TemplateValidationIssue> = buildList {
-        val templateVersion = validateMarker(repository, this)
+    fun validate(
+        repository: Path,
+        trackedFiles: List<String>? = null,
+        gitRoot: Path = repository,
+    ): List<TemplateValidationIssue> = buildList {
+        val templateVersion = validateMarker(repository, gitRoot, this)
         validateFlavourManifest(repository, trackedFiles, this)
         validateMigrations(repository, templateVersion, this)
         validateAgentGuidance(repository, this)
@@ -107,6 +113,7 @@ object TemplateRepositoryValidator {
 
     private fun validateMarker(
         repository: Path,
+        gitRoot: Path,
         issues: MutableList<TemplateValidationIssue>,
     ): TemplateVersion? {
         val relativePath = ".ukpt/template.json"
@@ -131,7 +138,7 @@ object TemplateRepositoryValidator {
 
         // A downstream marker (one carrying a `project` rename map) must also carry the rest of the
         // schema the ukpt-template-update skill relies on; the template's own marker is exempt.
-        if (root["project"] != null) validateDownstreamMarker(root, submodulePaths(repository), relativePath, issues)
+        if (root["project"] != null) validateDownstreamMarker(root, submodulePaths(repository, gitRoot), relativePath, issues)
 
         val branch = root["templateBranch"]
         when {
@@ -207,10 +214,18 @@ object TemplateRepositoryValidator {
         }
     }
 
-    private fun submodulePaths(repository: Path): List<String> {
-        val gitmodules = repository.resolve(".gitmodules")
+    /**
+     * Submodule paths relative to [repository]. Git only reads `.gitmodules` at [gitRoot], so a
+     * project nested in a larger checkout keeps its entries there, prefixed with its own path;
+     * submodules outside the project are not its concern.
+     */
+    private fun submodulePaths(repository: Path, gitRoot: Path): List<String> {
+        val gitmodules = gitRoot.resolve(".gitmodules")
         if (!Files.isRegularFile(gitmodules)) return emptyList()
-        return Regex("""(?m)^\s*path\s*=\s*(\S+)\s*$""").findAll(gitmodules.readText()).map { it.groupValues[1] }.toList()
+        val paths = Regex("""(?m)^\s*path\s*=\s*(\S+)\s*$""").findAll(gitmodules.readText()).map { it.groupValues[1] }
+        if (gitRoot == repository) return paths.toList()
+        val prefix = gitRoot.relativize(repository)
+        return paths.map(Path::of).filter { it.startsWith(prefix) }.map { prefix.relativize(it).toString() }.toList()
     }
 
     /**
