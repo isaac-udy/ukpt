@@ -44,6 +44,7 @@ include(":feature:core:server")
 include(":platform:common:architecture")
 include(":platform:server:postgres")
 include(":platform:server:development")
+include(":platform:server:web")
 
 includeBuild("embedded-udytils") {
     name = "embedded-udytils"
