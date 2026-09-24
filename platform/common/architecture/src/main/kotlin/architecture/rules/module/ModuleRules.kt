@@ -10,8 +10,7 @@ import architecture.definitions.isApiModule
 import architecture.definitions.isClientModule
 import architecture.definitions.isFeatureModule
 import architecture.definitions.isServerModule
-import architecture.rules.clientdomain.DomainInterface as ClientDomainInterface
-import architecture.rules.serverdomain.DomainInterface as ServerDomainInterface
+import architecture.rules.shared.isDomainInterfaceOnSide
 import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
 import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
 
@@ -269,7 +268,7 @@ object ModuleRules : RuleGroup() {
             prevent — the channel carries interfaces and models only.
             """.trimIndent(),
         )
-        note("Tested against the client- and server-side Domain Interface Constructs, so a supertype counts only when it is both shaped like one — a `fun interface` with an `operator fun invoke` — and declared in a `client.domain`/`server.domain` package.")
+        note("A supertype counts only when it is both shaped like a Domain Interface — a `fun interface` with an `operator fun invoke` — and declared in a `client.domain`/`server.domain` package.")
         note("A sealed interface is never a `fun interface`, so a sealed variant implementing its own nested sealed parent (e.g. `UpdateCampaign.Update`'s data classes) is not affected by this rule.")
         scope { scope, exempt ->
             scope.classes()
@@ -282,7 +281,7 @@ object ModuleRules : RuleGroup() {
                 .filter { cls ->
                     cls.parents().any { parent ->
                         val source = parent.sourceDeclaration as? KoBaseDeclaration
-                        ClientDomainInterface.test(source) || ServerDomainInterface.test(source)
+                        isDomainInterfaceOnSide(source, "client") || isDomainInterfaceOnSide(source, "server")
                     }
                 }
                 .map { Violation(it, "class in an `:api` module implements a domain interface — only the interface may be published, never its implementation") }

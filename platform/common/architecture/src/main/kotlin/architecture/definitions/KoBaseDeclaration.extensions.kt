@@ -299,7 +299,7 @@ fun KoBaseDeclaration.isSideFirstPackage(): Boolean = featureSide() != null
 /**
  * True for a declaration in `feature.[name].server.data` — the package the ServerData Constructs
  * classify. The group's `inPackage` gate is the same package, so a Construct can never reach wider
- * than this; the layer's file-based import rules (`ServerData.noServiceImports`,
+ * than this; the layer's file-based import rules (`ServerData.noEntryPointImports`,
  * `ServerData.noClientImports`, `ServerData.tableAccessOwnedByStorage`) use `isInServerData()`,
  * the file-level form of the same test.
  */

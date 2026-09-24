@@ -148,6 +148,81 @@ class TemplateRepositoryValidatorTest {
         assertTrue(messages.none { "embedded-enro" in it }, messages.toString())
     }
 
+    @Test
+    fun downstreamSubmodulesFollowGitmodules() {
+        createValidRepository()
+        repository.resolve(".gitmodules").writeText(
+            "[submodule \"embedded-udytils\"]\n\tpath = embedded-udytils\n\turl = https://github.com/isaac-udy/udytils\n",
+        )
+        repository.resolve(".ukpt/template.json").writeText(downstreamMarker())
+
+        val messages = TemplateRepositoryValidator.validate(repository).map { it.message }
+
+        assertEquals(listOf("`submodules.embedded-enro` is not a submodule path in .gitmodules"), messages)
+    }
+
+    @Test
+    fun reportsMalformedTemplateBranch() {
+        createValidRepository()
+        repository.resolve(".ukpt/template.json").writeText("""{"templateVersion":"2026-07-15.2","templateBranch":"-htmx"}""")
+
+        val messages = TemplateRepositoryValidator.validate(repository).map { it.message }
+
+        assertEquals(listOf("templateBranch '-htmx' is not a branch name"), messages)
+    }
+
+    @Test
+    fun acceptsAConsistentFlavourManifest() {
+        createFlavour()
+
+        assertEquals(
+            emptyList(),
+            TemplateRepositoryValidator.validate(repository, trackedFiles = listOf("UKPT.md", "app/server/Server.kt")),
+        )
+    }
+
+    @Test
+    fun reportsFlavourManifestDrift() {
+        createFlavour()
+        repository.resolve(".ukpt/template.json").writeText("""{"templateVersion":"2026-07-15.2","templateBranch":"main"}""")
+        Files.delete(repository.resolve("UKPT.md"))
+        repository.resolve("docs/template-migrations/2026-07-15.2-compose-only.md").writeText(
+            "# Compose\n\n## Detection\n\n## Migration\n\n## Verification\n",
+        )
+
+        val issues = TemplateRepositoryValidator.validate(
+            repository,
+            trackedFiles = listOf("app/server/Server.kt", "app/client/android/Main.kt", "embedded-enro"),
+        )
+        val messages = issues.map { "${it.path}: ${it.message}" }
+
+        assertTrue(messages.any { "`flavour` 'htmx' must match templateBranch 'main'" in it }, messages.toString())
+        assertTrue(messages.any { "`UKPT.md` is listed as replaced or diverged but does not exist" in it }, messages.toString())
+        assertTrue(messages.any { "`2026-07-15.2-compose-only.md` is listed as skipped but still exists" in it }, messages.toString())
+        assertTrue(messages.contains("app/client/android/Main.kt: is tracked but matches a `dropped` pattern in .ukpt/flavour.json"), messages.toString())
+        assertTrue(messages.contains("embedded-enro: is tracked but matches a `dropped` pattern in .ukpt/flavour.json"), messages.toString())
+        assertEquals(5, messages.size, messages.toString())
+    }
+
+    private fun createFlavour() {
+        createValidRepository()
+        repository.resolve(".ukpt/template.json").writeText("""{"templateVersion":"2026-07-15.2","templateBranch":"htmx"}""")
+        repository.resolve("UKPT.md").writeText("# UKPT\n")
+        repository.resolve(".ukpt/flavour.json").writeText(
+            """
+            {
+              "flavour": "htmx",
+              "upstream": "main",
+              "dropped": ["app/client/**", "embedded-enro"],
+              "diverged": { "UKPT.md": "htmx owns the introduction" },
+              "replaced": { ".agents/skills/ukpt-verify/**": "server-only sweep" },
+              "generated": { "paths": ["platform/common/architecture/docs/**"], "command": "./gradlew updateArchitectureDocumentation" },
+              "migrations": { "skipped": { "2026-07-15.2-compose-only.md": "Compose only" } }
+            }
+            """.trimIndent(),
+        )
+    }
+
     private fun downstreamMarker(): String =
         """{"templateVersion":"2026-07-15.2","templateCommit":"0123456789abcdef0123456789abcdef01234567",""" +
             """"project":{"package":"com.example.app","name":"example","typePrefix":"Example"},""" +
@@ -172,6 +247,11 @@ class TemplateRepositoryValidatorTest {
             ## Verification
             Verification.
             """.trimIndent(),
+        )
+
+        repository.resolve(".gitmodules").writeText(
+            "[submodule \"embedded-enro\"]\n\tpath = embedded-enro\n\turl = https://github.com/isaac-udy/Enro\n" +
+                "[submodule \"embedded-udytils\"]\n\tpath = embedded-udytils\n\turl = https://github.com/isaac-udy/udytils\n",
         )
 
         repository.resolve("AGENTS.md").writeText("Read UKPT.md first.\n")

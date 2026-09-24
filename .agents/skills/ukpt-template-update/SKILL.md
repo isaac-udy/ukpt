@@ -27,8 +27,11 @@ Three kinds of change, three mechanisms:
 - Clean working tree. Create a branch: `template-update/<new-version>`.
 - Read `.ukpt/template.json`. If it does not exist, this is a **first run**: see §8 before
   anything else.
-- Clone the template (full history, with submodules) into the scratchpad directory:
-  `git clone --recurse-submodules https://github.com/isaac-udy/ukpt <scratchpad>/ukpt-template`.
+- The marker's `templateBranch` names the template branch this project follows (`main` when
+  absent). Other branches are flavours of the template, such as `htmx`; a project never switches
+  branch during an update.
+- Clone that branch (full history, with submodules) into the scratchpad directory:
+  `git clone --branch <templateBranch> --recurse-submodules https://github.com/isaac-udy/ukpt <scratchpad>/ukpt-template`.
   Never add it as a remote of this project.
 - Resolve the two commits in the clone:
   - **base** = `templateCommit` from the marker (fallback: the commit that last set the marker's
@@ -46,9 +49,17 @@ changed, stop and tell the user to re-invoke the skill.
 
 ## 3. Read the delta
 
-`git -C <clone> diff --stat <base>..<new>` and read `docs/template-migrations/` entries dated
-after the base version. Summarise for the user what the update contains (versions, rules,
-migrations, submodule bumps) before changing anything.
+`git -C <clone> diff --stat <base>..<new>`, then list the migrations this update applies — the
+entries added between the two commits, in filename order:
+
+```
+git -C <clone> diff --name-only --diff-filter=A <base>..<new> -- docs/template-migrations/ | sort
+```
+
+Select by commit range, not by date: a flavour branch receives main's entries when it merges main,
+which can be later than the date in their names. Only a marker without `templateCommit` falls back
+to entries dated after its `templateVersion`. Summarise for the user what the update contains
+(versions, rules, migrations, submodule bumps) before changing anything.
 
 ## 4. File sync
 
@@ -115,23 +126,17 @@ Projects tweak and extend their rule catalogs. Never treat the catalog as templa
 
 ## 6. Submodules and migrations
 
-1. Bump `embedded-enro`/`embedded-udytils` to the template's pins at `<new>`
-   (`git -C <clone> ls-tree <new> embedded-enro embedded-udytils`), checkout, and record the SHAs
-   for the marker. API breaks surface in §7; fix them as part of the update.
-2. Apply every `docs/template-migrations/` entry dated after the base version, in order. Each
-   entry carries its own detection, steps, and verification. These operate on the project's own
-   features — the part no file sync can reach.
+1. Bump each submodule in the clone's `.gitmodules` to the template's pin at `<new>`
+   (`git -C <clone> ls-tree <new> <path>`), checkout, and record the SHAs for the marker. A
+   submodule the template added or removed is added or removed here too, through the migration
+   that introduced the change. API breaks surface in §7; fix them as part of the update.
+2. Apply the migrations listed in §3, in order. Each entry carries its own detection, steps, and
+   verification. These operate on the project's own features — the part no file sync can reach.
 
 ## 7. Verify
 
-Run the six-target compile sweep (see the `ukpt-verify` skill), then:
-
-```
-./gradlew :platform:common:architecture:verifyArchitecture
-./gradlew :feature:<each>:client:verifyPaparazzi --no-configuration-cache
-./gradlew validateTemplate
-bash .agents/skills/ukpt-verify-web/run-bundle-check.sh
-```
+Run the full `ukpt-verify` sweep — compile, tests, snapshots, `verifyArchitecture` and
+`validateTemplate`, as the template branch defines them.
 
 Then update `.ukpt/template.json` (`templateVersion`, `templateCommit`, submodule pins), commit,
 and summarise the update for the user as PR-ready notes: versions bumped, rules changed,

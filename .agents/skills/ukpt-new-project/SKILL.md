@@ -15,24 +15,23 @@ renamed, which is what `ukpt-template-update` needs later. Do not skip it.
 
 ## 1. Establish the baseline BEFORE renaming anything
 
-1. Resolve the template version and commit:
-   - `.ukpt/template.json` in the copy has `templateVersion`.
-   - Get the matching commit SHA: `git ls-remote https://github.com/isaac-udy/ukpt HEAD` if the
-     copy is fresh, or clone the template to a temp dir and find the commit that last set that
+1. Resolve the template branch, version and commit:
+   - `.ukpt/template.json` in the copy has `templateVersion` and `templateBranch` (`main` when
+     absent). The branch is the template flavour the project follows from now on.
+   - Get the matching commit SHA: `git ls-remote https://github.com/isaac-udy/ukpt refs/heads/<templateBranch>`
+     if the copy is fresh, or clone that branch to a temp dir and find the commit that last set that
      `templateVersion` value (`git log -S '<version>' -- .ukpt/template.json`).
-2. Record the submodule pins. A zip download does NOT include submodule content or pins — read
-   them from the template clone (`git ls-tree HEAD embedded-enro embedded-udytils`).
+2. Record the submodule pins, one per `path` in `.gitmodules`. A zip download does NOT include
+   submodule content or pins — read them from the template clone (`git ls-tree HEAD <path>`).
 
 ## 2. Git + submodules
 
 1. If there is no `.git`, run `git init`.
-2. Zip downloads have empty `embedded-enro`/`embedded-udytils` directories. Recreate them as real
-   submodules at the recorded pins:
+2. Zip downloads have empty submodule directories. Recreate each `.gitmodules` entry as a real
+   submodule at its recorded pin:
    ```
-   git submodule add https://github.com/isaac-udy/Enro embedded-enro
-   git submodule add https://github.com/isaac-udy/udytils embedded-udytils
-   git -C embedded-enro checkout <pinned-sha>
-   git -C embedded-udytils checkout <pinned-sha>
+   git submodule add <url> <path>
+   git -C <path> checkout <pinned-sha>
    ```
 3. Do NOT add the template repo as a remote. Updates come from a throwaway clone
    (`ukpt-template-update`), not from a persistent remote.
@@ -92,6 +91,7 @@ Write `.ukpt/template.json`:
 ```json
 {
   "templateVersion": "<version from step 1>",
+  "templateBranch": "<branch from step 1>",
   "templateCommit": "<sha from step 1>",
   "project": {
     "package": "<package>",
@@ -99,14 +99,14 @@ Write `.ukpt/template.json`:
     "typePrefix": "<ProjectName>"
   },
   "submodules": {
-    "embedded-enro": "<pinned-sha>",
-    "embedded-udytils": "<pinned-sha>"
+    "<path>": "<pinned-sha>"
   }
 }
 ```
 
 `project` is the rename map `ukpt-template-update` uses to translate template diffs into this
-project's names. Keep it accurate if the project is ever re-branded.
+project's names. Keep it accurate if the project is ever re-branded. `submodules` has one entry
+per `.gitmodules` path.
 
 ## 5. Verify
 

@@ -98,8 +98,8 @@ import dev.isaacudy.udytils.architecture.*
       [the codegen pipeline](#postgres-codegen-pipeline--runtime).
 
     Persistence is the outer edge of the server: `server.services` never imports it
-    (`ServerServices.noDataImports`), and it never imports `server.services`
-    (`ServerData.noServiceImports`).
+    (`ServerServices.noDataImports`), and it never imports `server.services` or any other entry
+    point (`ServerData.noEntryPointImports`).
 
     ### Generated `Table`/`Row` sources
 
@@ -167,25 +167,25 @@ object ServerData : RuleGroup(
     ),
 ) {
 
-    @Describe("The `server.data` layer must never import `server.services`")
-    val noServiceImports by rule {
+    @Describe("The `server.data` layer must import no server layer other than `server.domain` and `server.data`")
+    val noEntryPointImports by rule {
         rationale(
             """
-            Persistence exists to satisfy the domain, not to serve requests. An import of a service
-            contract would put the wire format inside the storage layer, and an import of a
-            ServiceImpl or a published operation would let a write reach back through the layer
-            that called it — a cycle between the layers.
+            Persistence exists to satisfy the domain, not to serve requests. The other server layers,
+            such as `server.services`, are entry points that call into the domain. An import of one
+            would put the request format inside the storage layer, or let a write reach back through
+            the layer that called it — a cycle between the layers.
             """.trimIndent(),
         )
-        note("Covers the whole of `server.services`, sub-packages included: everything under it is the caller.")
+        note("An allow-list: `server.domain` and `server.data` of any feature, sub-packages included. Every other `feature.[name].server.[layer]` import is a violation.")
         scope { scope, exempt ->
             scope.files
                 .filter { it.isFeatureModule() && it.isInServerData() }
                 .filterNot { exempt(it) }
                 .flatMap { file ->
                     file.imports
-                        .filter { it.name.isServerServicesImport() }
-                        .map { Violation(file.path, "server.data imports service code `${it.name}`") }
+                        .filter { it.name.isServerEntryPointImport() }
+                        .map { Violation(file.path, "server.data imports entry-point code `${it.name}`") }
                 }
         }
     }
@@ -409,8 +409,13 @@ internal fun KoFileDeclaration.isInServerDataStorage(): Boolean {
     return pkg.endsWith(".server.data.storage")
 }
 
-/** An import of the services layer — `feature.x.server.services.*`, sub-packages included. */
-internal fun String.isServerServicesImport(): Boolean {
-    if (!startsWith("feature.")) return false
-    return contains(".server.services.")
+/**
+ * An import of a server layer other than `domain` or `data` — `feature.x.server.<layer>.*` —
+ * which, on the server, is an entry point calling into the domain.
+ */
+internal fun String.isServerEntryPointImport(): Boolean {
+    val layer = serverLayerImport.matchEntire(this)?.groupValues?.get(1) ?: return false
+    return layer != "domain" && layer != "data"
 }
+
+private val serverLayerImport = Regex("""^feature\.[^.]+\.server\.([^.]+)\..+$""")

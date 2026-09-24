@@ -1,5 +1,6 @@
 package ukpt.template
 
+import java.io.File
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.file.DirectoryProperty
@@ -25,12 +26,24 @@ abstract class ValidateTemplateTask : DefaultTask() {
 
     @TaskAction
     fun validateTemplate() {
-        val issues = TemplateRepositoryValidator.validate(repositoryDirectory.get().asFile.toPath())
+        val repository = repositoryDirectory.get().asFile
+        val issues = TemplateRepositoryValidator.validate(repository.toPath(), trackedFiles(repository))
         if (issues.isNotEmpty()) {
             val report = issues.joinToString(separator = "\n") { "- ${it.path}: ${it.message}" }
             throw GradleException("UKPT template validation failed:\n$report")
         }
         logger.lifecycle("UKPT template validation passed")
+    }
+
+    /** Null outside a git checkout, which skips the checks that need the tracked-file list. */
+    private fun trackedFiles(repository: File): List<String>? {
+        val process = runCatching {
+            ProcessBuilder("git", "ls-files", "-z").directory(repository).redirectErrorStream(false).start()
+        }.getOrNull() ?: return null
+        val output = process.inputStream.bufferedReader().readText()
+        process.errorStream.readBytes()
+        if (process.waitFor() != 0) return null
+        return output.split('\u0000').filter(String::isNotEmpty)
     }
 }
 

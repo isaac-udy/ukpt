@@ -7,6 +7,7 @@ import architecture.definitions.featureName
 import architecture.definitions.featureNameFromContainingPackage
 import architecture.definitions.isFeatureModule
 import architecture.definitions.resolveTypeToken
+import architecture.definitions.servicesPackageRegex
 import architecture.definitions.typeTokens
 import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
 import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
@@ -39,7 +40,7 @@ import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
     * `server.services` may depend on [`server.domain`](serverdomain.md) — and never on
       [`server.data`](serverdata.md) (`ServerServices.noDataImports`).
     * `server.data` may depend on `server.domain` — and never on `server.services`
-      (`ServerData.noServiceImports`).
+      (`ServerData.noEntryPointImports`).
     * `client.data` may depend on `client.domain` and on this layer's contracts, so Repositories
       can call the server (`ClientData.clientServerDependencyRestriction`).
     * `client.ui` may depend on `client.domain` only; server calls go through
@@ -90,7 +91,7 @@ object ServerServices : RuleGroup(
             should have been stated, so nothing else can reuse that access, and nothing names what
             the service actually needed.
 
-            `ServerData.noServiceImports` is the other half. Together they make storage a thing that
+            `ServerData.noEntryPointImports` is the other half. Together they make storage a thing that
             *satisfies* a stated need rather than a thing services reach through.
             """.trimIndent(),
         )
@@ -189,12 +190,6 @@ object ServerServices : RuleGroup(
         enforcedBy("ProjectRules.subsystemMirrorsDomain")
     }
 }
-
-/**
- * The services package, `feature.x.server.services.**`. Group 1 is the feature name, group 2 the
- * dotted sub-path after `services` (absent for the services package itself).
- */
-internal val servicesPackageRegex = Regex("""^feature\.([^.]+)\.server\.services(?:\.(.+))?$""")
 
 /**
  * The dotted package sub-path after `…server.services` for this declaration, or `null` if it isn't

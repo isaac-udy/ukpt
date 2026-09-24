@@ -95,8 +95,8 @@ the boundary. That is what lets a UseCase compose one feature's write with anoth
   [the codegen pipeline](#postgres-codegen-pipeline--runtime).
 
 Persistence is the outer edge of the server: `server.services` never imports it
-(`ServerServices.noDataImports`), and it never imports `server.services`
-(`ServerData.noServiceImports`).
+(`ServerServices.noDataImports`), and it never imports `server.services` or any other entry
+point (`ServerData.noEntryPointImports`).
 
 ### Generated `Table`/`Row` sources
 
@@ -163,9 +163,9 @@ a tested rule.
 
 ##### Rules
 
-* The `server.data` layer must never import `server.services`
-    * **Why:** Persistence exists to satisfy the domain, not to serve requests. An import of a service contract would put the wire format inside the storage layer, and an import of a ServiceImpl or a published operation would let a write reach back through the layer that called it — a cycle between the layers.
-    * **Note:** Covers the whole of `server.services`, sub-packages included: everything under it is the caller.
+* The `server.data` layer must import no server layer other than `server.domain` and `server.data`
+    * **Why:** Persistence exists to satisfy the domain, not to serve requests. The other server layers, such as `server.services`, are entry points that call into the domain. An import of one would put the request format inside the storage layer, or let a write reach back through the layer that called it — a cycle between the layers.
+    * **Note:** An allow-list: `server.domain` and `server.data` of any feature, sub-packages included. Every other `feature.[name].server.[layer]` import is a violation.
 * The `server.data` layer must not import `client` code
     * **Why:** The client and server meet at the RPC contract and nowhere else.
 * A `server.data` class must provide domain interfaces by exposing them as properties, not by inheriting them

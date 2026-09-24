@@ -1,6 +1,7 @@
 package ukpt.template
 
 import java.io.IOException
+import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.LocalDate
@@ -10,6 +11,7 @@ import kotlin.io.path.name
 import kotlin.io.path.readText
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -73,9 +75,16 @@ object TemplateRepositoryValidator {
     private val ruleId = Regex("""`([A-Z][A-Za-z0-9]*(?:\.[A-Za-z][A-Za-z0-9]*)+)`""")
     private val gitSha = Regex("^[0-9a-fA-F]{40}$")
 
-    /** Returns all validation issues in [repository] so callers can report them together. */
-    fun validate(repository: Path): List<TemplateValidationIssue> = buildList {
+    private val refName = Regex("""^[A-Za-z0-9][A-Za-z0-9._/-]*$""")
+
+    /**
+     * Returns all validation issues in [repository] so callers can report them together.
+     * [trackedFiles] (repository-relative, as `git ls-files` prints them) enables the flavour
+     * manifest's dropped-path check; it is skipped when null.
+     */
+    fun validate(repository: Path, trackedFiles: List<String>? = null): List<TemplateValidationIssue> = buildList {
         val templateVersion = validateMarker(repository, this)
+        validateFlavourManifest(repository, trackedFiles, this)
         validateMigrations(repository, templateVersion, this)
         validateAgentGuidance(repository, this)
         validateSkills(repository, this)
@@ -121,9 +130,17 @@ object TemplateRepositoryValidator {
         }
 
         // A downstream marker (one carrying a `project` rename map) must also carry the rest of the
-        // schema the ukpt-template-update skill relies on; the template's own marker has only
-        // templateVersion and is exempt.
-        if (root["project"] != null) validateDownstreamMarker(root, relativePath, issues)
+        // schema the ukpt-template-update skill relies on; the template's own marker is exempt.
+        if (root["project"] != null) validateDownstreamMarker(root, submodulePaths(repository), relativePath, issues)
+
+        val branch = root["templateBranch"]
+        when {
+            branch == null -> Unit
+            branch !is JsonPrimitive || !branch.isString ->
+                issues += TemplateValidationIssue(relativePath, "templateBranch must be a string")
+            !refName.matches(branch.content) ->
+                issues += TemplateValidationIssue(relativePath, "templateBranch '${branch.content}' is not a branch name")
+        }
 
         val version = (root["templateVersion"] as? JsonPrimitive)?.contentOrNull
         if (version == null) {
@@ -141,14 +158,15 @@ object TemplateRepositoryValidator {
     /**
      * Validates the fields a downstream marker must carry beyond `templateVersion` (see the
      * `ukpt-new-project` skill): the `templateCommit` SHA, the `project` rename map
-     * (`package`/`name`/`typePrefix`), and both `submodules` SHAs. The update skill depends on every
-     * one to resolve its base commit and translate template diffs into the project's names, so a
-     * marker missing or malforming any of them would pass silently and then misdirect the next
-     * update — a missing `templateCommit` falls back to a fuzzy `git log -S`, a missing rename map is
-     * worse.
+     * (`package`/`name`/`typePrefix`), and a `submodules` SHA for each path in `.gitmodules`. The
+     * update skill depends on every one to resolve its base commit and translate template diffs into
+     * the project's names, so a marker missing or malforming any of them would pass silently and
+     * then misdirect the next update — a missing `templateCommit` falls back to a fuzzy
+     * `git log -S`, a missing rename map is worse.
      */
     private fun validateDownstreamMarker(
         marker: JsonObject,
+        submodulePaths: List<String>,
         relativePath: String,
         issues: MutableList<TemplateValidationIssue>,
     ) {
@@ -179,10 +197,100 @@ object TemplateRepositoryValidator {
         }
 
         when (val submodules = marker["submodules"]) {
-            is JsonObject -> listOf("embedded-enro", "embedded-udytils").forEach { sha(submodules[it], "submodules.$it") }
-            else -> issues += TemplateValidationIssue(relativePath, "`submodules` must be an object with embedded-enro and embedded-udytils SHAs")
+            is JsonObject -> {
+                submodulePaths.forEach { sha(submodules[it], "submodules.$it") }
+                (submodules.keys - submodulePaths.toSet()).forEach {
+                    issues += TemplateValidationIssue(relativePath, "`submodules.$it` is not a submodule path in .gitmodules")
+                }
+            }
+            else -> issues += TemplateValidationIssue(relativePath, "`submodules` must be an object with a SHA for each .gitmodules path")
         }
     }
+
+    private fun submodulePaths(repository: Path): List<String> {
+        val gitmodules = repository.resolve(".gitmodules")
+        if (!Files.isRegularFile(gitmodules)) return emptyList()
+        return Regex("""(?m)^\s*path\s*=\s*(\S+)\s*$""").findAll(gitmodules.readText()).map { it.groupValues[1] }.toList()
+    }
+
+    /**
+     * A template flavour — a long-lived branch that drops part of the template — declares what it
+     * dropped and how each divergent file is merged in `.ukpt/flavour.json`. The checks keep that
+     * manifest true: nothing it drops is tracked, the files it names exist, and it names the branch
+     * the marker records.
+     */
+    private fun validateFlavourManifest(
+        repository: Path,
+        trackedFiles: List<String>?,
+        issues: MutableList<TemplateValidationIssue>,
+    ) {
+        val relativePath = ".ukpt/flavour.json"
+        val file = repository.resolve(relativePath)
+        if (!Files.isRegularFile(file)) return
+        val manifest = runCatching { Json.parseToJsonElement(file.readText()).jsonObject }.getOrElse {
+            issues += TemplateValidationIssue(relativePath, "invalid JSON: ${it.message}")
+            return
+        }
+        fun issue(message: String) {
+            issues += TemplateValidationIssue(relativePath, message)
+        }
+        fun strings(field: String): List<String> = when (val value = manifest[field]) {
+            null -> emptyList()
+            is JsonArray -> value.mapNotNull { (it as? JsonPrimitive)?.takeIf(JsonPrimitive::isString)?.content }
+                .also { if (it.size != value.size) issue("`$field` must be an array of strings") }
+            else -> emptyList<String>().also { issue("`$field` must be an array of strings") }
+        }
+        fun notes(value: JsonElement?, field: String): Map<String, String> = when (value) {
+            null -> emptyMap()
+            is JsonObject -> value.mapValues { (_, note) -> (note as? JsonPrimitive)?.contentOrNull.orEmpty() }
+                .also { notes -> notes.filterValues(String::isBlank).keys.forEach { issue("`$field.$it` needs a note") } }
+            else -> emptyMap<String, String>().also { issue("`$field` must be an object of path to note") }
+        }
+
+        val flavour = (manifest["flavour"] as? JsonPrimitive)?.contentOrNull
+        val branch = runCatching {
+            (Json.parseToJsonElement(repository.resolve(".ukpt/template.json").readText()).jsonObject["templateBranch"] as? JsonPrimitive)?.contentOrNull
+        }.getOrNull()
+        when {
+            flavour.isNullOrBlank() -> issue("`flavour` must name the template branch")
+            flavour != branch -> issue("`flavour` '$flavour' must match templateBranch '$branch' in .ukpt/template.json")
+        }
+
+        val dropped = strings("dropped")
+        val named = notes(manifest["replaced"], "replaced") + notes(manifest["diverged"], "diverged")
+        named.keys.filterNot(::isGlob).forEach { path ->
+            if (!Files.exists(repository.resolve(path))) issue("`$path` is listed as replaced or diverged but does not exist")
+        }
+
+        when (val generated = manifest["generated"]) {
+            null -> Unit
+            is JsonObject -> if ((generated["command"] as? JsonPrimitive)?.contentOrNull.isNullOrBlank()) {
+                issue("`generated.command` must be the command that regenerates `generated.paths`")
+            }
+            else -> issue("`generated` must be an object with paths and command")
+        }
+
+        val migrations = manifest["migrations"] as? JsonObject
+        notes(migrations?.get("skipped"), "migrations.skipped").keys.forEach { name ->
+            if (Files.exists(repository.resolve("docs/template-migrations/$name"))) {
+                issue("migration `$name` is listed as skipped but still exists")
+            }
+        }
+        notes(migrations?.get("adapted"), "migrations.adapted").keys.forEach { name ->
+            if (!Files.exists(repository.resolve("docs/template-migrations/$name"))) {
+                issue("migration `$name` is listed as adapted but does not exist")
+            }
+        }
+
+        if (trackedFiles != null) {
+            val matchers = dropped.map { FileSystems.getDefault().getPathMatcher("glob:$it") }
+            trackedFiles.filter { tracked -> matchers.any { it.matches(Path.of(tracked)) } }.forEach { tracked ->
+                issues += TemplateValidationIssue(tracked, "is tracked but matches a `dropped` pattern in $relativePath")
+            }
+        }
+    }
+
+    private fun isGlob(path: String): Boolean = path.any { it == '*' || it == '?' || it == '{' || it == '[' }
 
     private fun validateMigrations(
         repository: Path,

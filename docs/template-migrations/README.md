@@ -2,7 +2,17 @@
 
 A log of ukpt template changes that downstream projects must apply by hand — convention changes,
 rule changes, and structural changes that a file sync cannot express. The `ukpt-template-update`
-skill walks these entries in order when updating a project.
+skill applies, in filename order, the entries added between the project's `templateCommit` and the
+template's current commit.
+
+## Template branches
+
+A template branch other than `main` (named by `templateBranch` in `.ukpt/template.json`) is a
+flavour of the template that merges `main` regularly. Entries arrive on a flavour with the merge,
+so their dates can precede the flavour's own earlier versions; selection is by commit range for
+that reason. A flavour deletes entries that do not apply to it and records them in
+`.ukpt/flavour.json` under `migrations.skipped`, and edits entries it applies differently, recorded
+under `migrations.adapted`.
 
 ## When to add an entry
 
