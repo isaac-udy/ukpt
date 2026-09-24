@@ -27,7 +27,12 @@ abstract class ValidateTemplateTask : DefaultTask() {
     @TaskAction
     fun validateTemplate() {
         val repository = repositoryDirectory.get().asFile
-        val issues = TemplateRepositoryValidator.validate(repository.toPath(), trackedFiles(repository))
+        val gitRoot = git(repository, "rev-parse", "--show-toplevel")?.trim()?.let { File(it).toPath().toRealPath() }
+        val issues = TemplateRepositoryValidator.validate(
+            repository = repository.toPath().toRealPath(),
+            trackedFiles = trackedFiles(repository),
+            gitRoot = gitRoot ?: repository.toPath().toRealPath(),
+        )
         if (issues.isNotEmpty()) {
             val report = issues.joinToString(separator = "\n") { "- ${it.path}: ${it.message}" }
             throw GradleException("UKPT template validation failed:\n$report")
@@ -35,15 +40,21 @@ abstract class ValidateTemplateTask : DefaultTask() {
         logger.lifecycle("UKPT template validation passed")
     }
 
-    /** Null outside a git checkout, which skips the checks that need the tracked-file list. */
-    private fun trackedFiles(repository: File): List<String>? {
+    /**
+     * Null outside a git checkout, which skips the checks that need the tracked-file list. Run from
+     * a nested project, `git ls-files` lists only that project's files, relative to it.
+     */
+    private fun trackedFiles(repository: File): List<String>? =
+        git(repository, "ls-files", "-z")?.split('\u0000')?.filter(String::isNotEmpty)
+
+    private fun git(directory: File, vararg args: String): String? {
         val process = runCatching {
-            ProcessBuilder("git", "ls-files", "-z").directory(repository).redirectErrorStream(false).start()
+            ProcessBuilder("git", *args).directory(directory).redirectErrorStream(false).start()
         }.getOrNull() ?: return null
         val output = process.inputStream.bufferedReader().readText()
         process.errorStream.readBytes()
         if (process.waitFor() != 0) return null
-        return output.split('\u0000').filter(String::isNotEmpty)
+        return output
     }
 }
 
