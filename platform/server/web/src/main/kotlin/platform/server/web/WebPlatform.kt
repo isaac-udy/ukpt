@@ -55,12 +55,15 @@ fun Application.installWebPlatform(
  * a CDN URL. `style-src` allows no inline `<style>` either; htmx's indicator styles are turned off
  * in the layout's config for that reason.
  *
- * A project may add origins for images and for `fetch` traffic, never for scripts or styles.
+ * A project may add origins for images, for `fetch` traffic and for form submissions, never for
+ * scripts or styles. Browsers apply `form-action` to the redirect that answers a form post too, so
+ * a form handled here that redirects to another site needs that site in [formActionSources].
  * [reportOnly] reports violations in the browser console without enforcing the policy.
  */
 data class ContentSecurityPolicy(
     val imageSources: List<String> = emptyList(),
     val connectSources: List<String> = emptyList(),
+    val formActionSources: List<String> = emptyList(),
     val reportOnly: Boolean = false,
 ) {
     internal val headerName: String
@@ -69,7 +72,7 @@ data class ContentSecurityPolicy(
     internal val headerValue: String
         get() = "default-src 'self'; script-src 'self'; style-src 'self'; " +
             "img-src ${sources("'self' data:", imageSources)}; connect-src ${sources("'self'", connectSources)}; " +
-            "base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+            "base-uri 'self'; form-action ${sources("'self'", formActionSources)}; frame-ancestors 'none'"
 
     private fun sources(base: String, extra: List<String>) = (listOf(base) + extra).joinToString(" ")
 }
