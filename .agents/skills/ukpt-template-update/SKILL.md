@@ -25,6 +25,11 @@ Three kinds of change, three mechanisms:
 ## 1. Preconditions
 
 - Clean working tree. Create a branch: `template-update/<new-version>`.
+- The project root is the directory holding `settings.gradle.kts` and `.ukpt/`. It may be a
+  subdirectory of a larger git repository; every path in this skill is relative to the project
+  root, not the git root. Git keeps `.gitmodules` at the git root, where the project's submodules
+  are listed under its own path (`<subdir>/embedded-udytils`); the marker's `submodules` keys omit
+  that prefix.
 - Read `.ukpt/template.json`. If it does not exist, this is a **first run**: see §8 before
   anything else.
 - The marker's `templateBranch` names the template branch this project follows (`main` when
