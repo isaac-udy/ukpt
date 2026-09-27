@@ -3,9 +3,13 @@ package platform.server.web
 import dev.isaacudy.udytils.htmx.HtmxAssets
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
 import io.ktor.server.html.respondHtml
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
@@ -26,7 +30,7 @@ class WebPlatformTest {
             get("/hello") { call.respondHtml { ukptLayout(LayoutState("Hello", scripts = listOf("/static/hello/hello.js"))) { h1 { +"Hello" } } } }
             get("/shell") {
                 call.respondHtml {
-                    ukptDocument(DocumentState("Shell", stylesheets = listOf("/static/shell/shell.css"))) { nav { +"Menu" } }
+                    ukptDocument(DocumentState("Shell", stylesheets = listOf("/static/shell/shell.css"), alpine = false)) { nav { +"Menu" } }
                 }
             }
             get("/boom") { error("boom") }
@@ -53,7 +57,7 @@ class WebPlatformTest {
     }
 
     @Test
-    fun `a document renders its own body after the error region, with its stylesheets after the platform's`() = platformTest {
+    fun `a document renders its own body after the error region, with its stylesheets after the platform's, and can leave Alpine out`() = platformTest {
         val document = Jsoup.parse(client.get("/shell").bodyAsText())
 
         assertEquals(
@@ -62,6 +66,7 @@ class WebPlatformTest {
         )
         assertEquals(listOf("div", "nav"), document.body().children().map { it.tagName() })
         assertEquals(APP_ERROR_ID, document.body().child(0).id())
+        assertTrue(document.select("script").none { it.attr("src").endsWith(HtmxAssets.ALPINE_CSP) })
     }
 
     @Test
@@ -88,9 +93,57 @@ class WebPlatformTest {
     }
 
     @Test
+    fun `the policy sends violations to the report endpoint, which accepts them`() = platformTest {
+        val response = client.get("/hello")
+        val policy = response.headers["Content-Security-Policy"].orEmpty()
+        assertTrue(policy.endsWith("; report-uri /csp-report"), policy)
+
+        val report = client.post(CSP_REPORT_PATH) {
+            contentType(ContentType.parse("application/csp-report"))
+            setBody("""{"csp-report":{"effective-directive":"script-src-elem","blocked-uri":"inline"}}""")
+        }
+        assertEquals(HttpStatusCode.NoContent, report.status)
+        val junk = client.post(CSP_REPORT_PATH) { setBody("x".repeat(100_000)) }
+        assertEquals(HttpStatusCode.NoContent, junk.status)
+    }
+
+    @Test
+    fun `a report is read, and logged URLs stop at their path`() {
+        val report = parseCspReport(
+            """{"csp-report":{"document-uri":"https://site.example/login?returnTo=%2Fsecret","violated-directive":"script-src-elem",
+               "effective-directive":"script-src-elem","blocked-uri":"inline","source-file":"https://site.example/login","line-number":12,
+               "disposition":"report"}}""",
+        )
+        assertEquals(
+            CspViolation("script-src-elem", "inline", "https://site.example/login", "https://site.example/login", 12, "report"),
+            report,
+        )
+
+        val image = parseCspReport(
+            """{"csp-report":{"document-uri":"https://site.example/a#x","violated-directive":"img-src",
+               "blocked-uri":"https://images.example/p.png?sig=abc","disposition":"enforce"}}""",
+        )
+        assertEquals(
+            "CSP violation (enforce): img-src blocked https://images.example/p.png on https://site.example/a",
+            image?.describe(),
+        )
+
+        assertEquals(null, parseCspReport("not json"))
+        assertEquals(null, parseCspReport("""{"something":"else"}"""))
+    }
+
+    @Test
     fun `platform and htmx assets are served`() = platformTest {
         assertEquals(HttpStatusCode.OK, client.get("/static/platform/css/base.css").status)
         assertEquals(HttpStatusCode.OK, client.get("${HtmxAssets.DEFAULT_PATH}/${HtmxAssets.HTMX}").status)
+    }
+
+    @Test
+    fun `vendored files are kept for a year and the project's own are revalidated`() = platformTest {
+        assertEquals("no-cache", client.get("/static/platform/css/base.css").headers["Cache-Control"])
+        assertEquals("max-age=31536000, public", client.get("/static/test/vendor/lib-1.0.0.js").headers["Cache-Control"])
+        assertTrue(isVendored("jar:file:/srv/app.jar!/static/analytics/vendor/lib-1.2.3.js"))
+        assertTrue(!isVendored("/home/vendor/app/build/resources/main/static/app/js/app.js"))
     }
 
     @Test

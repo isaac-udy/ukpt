@@ -47,6 +47,7 @@ fun Application.installWebPlatform(
     }
     routing {
         webAssets()
+        cspReports()
         routes.forEach { with(it) { install() } }
     }
 }
@@ -59,7 +60,8 @@ fun Application.installWebPlatform(
  * A project may add origins for images, for `fetch` traffic and for form submissions, never for
  * scripts or styles. Browsers apply `form-action` to the redirect that answers a form post too, so
  * a form handled here that redirects to another site needs that site in [formActionSources].
- * [reportOnly] reports violations in the browser console without enforcing the policy.
+ * Browsers post each violation to [CSP_REPORT_PATH], which logs it; [reportOnly] reports
+ * violations without enforcing the policy, so a policy can be tried against real traffic first.
  */
 data class ContentSecurityPolicy(
     val imageSources: List<String> = emptyList(),
@@ -73,7 +75,8 @@ data class ContentSecurityPolicy(
     internal val headerValue: String
         get() = "default-src 'self'; script-src 'self'; style-src 'self'; " +
             "img-src ${sources("'self' data:", imageSources)}; connect-src ${sources("'self'", connectSources)}; " +
-            "base-uri 'self'; form-action ${sources("'self'", formActionSources)}; frame-ancestors 'none'"
+            "base-uri 'self'; form-action ${sources("'self'", formActionSources)}; frame-ancestors 'none'; " +
+            "report-uri $CSP_REPORT_PATH"
 
     private fun sources(base: String, extra: List<String>) = (listOf(base) + extra).joinToString(" ")
 }
@@ -94,14 +97,21 @@ private val SecurityHeaders = createApplicationPlugin("SecurityHeaders", ::Secur
 
 /**
  * `/assets/htmx` serves the versioned htmx and Alpine builds; `/static` serves every module's
- * `static/` resources, which each feature keeps under its own directory name.
+ * `static/` resources, which each feature keeps under its own directory name. A third-party file
+ * sits in a `vendor/` directory with its version in its name, so browsers keep it for a year;
+ * everything else is revalidated on every load.
  */
 private fun Route.webAssets() {
     htmxAssets()
     staticResources("/static", "static") {
-        cacheControl { listOf(CacheControl.NoCache(null)) }
+        cacheControl { resource ->
+            if (isVendored(resource.path)) listOf(CacheControl.MaxAge(maxAgeSeconds = 31_536_000, visibility = CacheControl.Visibility.Public))
+            else listOf(CacheControl.NoCache(null))
+        }
     }
 }
+
+internal fun isVendored(resourcePath: String): Boolean = "/vendor/" in resourcePath.substringAfterLast("/static/")
 
 /**
  * Only a page navigation gets a full page. htmx does not swap a failed response, so an htmx

@@ -9,6 +9,7 @@ dependencies {
     api(libs.ktor.serverHtmlBuilder)
     api(libs.ktor.serverSse)
     implementation(libs.ktor.serverStatusPages)
+    implementation(libs.kotlinx.serialization)
 
     testImplementation(libs.kotlin.testJunit)
     testImplementation(libs.ktor.serverTestHost)
