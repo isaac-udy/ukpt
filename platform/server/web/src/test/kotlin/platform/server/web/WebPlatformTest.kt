@@ -64,13 +64,14 @@ class WebPlatformTest {
     }
 
     @Test
-    fun `a project adds image and connect origins, or only reports violations`() = testApplication {
+    fun `a project adds image, connect and form-action origins, or only reports violations`() = testApplication {
         application {
             installWebPlatform(
                 listOf(routes),
                 ContentSecurityPolicy(
                     imageSources = listOf("https://images.example"),
                     connectSources = listOf("https://analytics.example"),
+                    formActionSources = listOf("https://legacy.example"),
                     reportOnly = true,
                 ),
             )
@@ -81,6 +82,7 @@ class WebPlatformTest {
         val policy = response.headers["Content-Security-Policy-Report-Only"].orEmpty()
         assertTrue("img-src 'self' data: https://images.example;" in policy, policy)
         assertTrue("connect-src 'self' https://analytics.example;" in policy, policy)
+        assertTrue("form-action 'self' https://legacy.example;" in policy, policy)
         assertTrue("script-src 'self';" in policy, policy)
     }
 
