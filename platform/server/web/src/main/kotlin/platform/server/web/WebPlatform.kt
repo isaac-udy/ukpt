@@ -46,6 +46,7 @@ fun Application.installWebPlatform(
     }
     routing {
         webAssets()
+        cspReports()
         routes.forEach { with(it) { install() } }
     }
 }
@@ -58,7 +59,8 @@ fun Application.installWebPlatform(
  * A project may add origins for images, for `fetch` traffic and for form submissions, never for
  * scripts or styles. Browsers apply `form-action` to the redirect that answers a form post too, so
  * a form handled here that redirects to another site needs that site in [formActionSources].
- * [reportOnly] reports violations in the browser console without enforcing the policy.
+ * Browsers post each violation to [CSP_REPORT_PATH], which logs it; [reportOnly] reports
+ * violations without enforcing the policy, so a policy can be tried against real traffic first.
  */
 data class ContentSecurityPolicy(
     val imageSources: List<String> = emptyList(),
@@ -72,7 +74,8 @@ data class ContentSecurityPolicy(
     internal val headerValue: String
         get() = "default-src 'self'; script-src 'self'; style-src 'self'; " +
             "img-src ${sources("'self' data:", imageSources)}; connect-src ${sources("'self'", connectSources)}; " +
-            "base-uri 'self'; form-action ${sources("'self'", formActionSources)}; frame-ancestors 'none'"
+            "base-uri 'self'; form-action ${sources("'self'", formActionSources)}; frame-ancestors 'none'; " +
+            "report-uri $CSP_REPORT_PATH; report-to $CSP_REPORT_GROUP"
 
     private fun sources(base: String, extra: List<String>) = (listOf(base) + extra).joinToString(" ")
 }
@@ -86,6 +89,7 @@ private val SecurityHeaders = createApplicationPlugin("SecurityHeaders", ::Secur
     val value = pluginConfig.policy.headerValue
     onCall { call ->
         call.response.headers.append(name, value)
+        call.response.headers.append("Reporting-Endpoints", "$CSP_REPORT_GROUP=\"$CSP_REPORT_PATH\"")
         call.response.headers.append("X-Content-Type-Options", "nosniff")
         call.response.headers.append("Referrer-Policy", "same-origin")
     }
