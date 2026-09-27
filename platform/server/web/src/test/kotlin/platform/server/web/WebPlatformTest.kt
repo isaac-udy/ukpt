@@ -29,7 +29,7 @@ class WebPlatformTest {
             get("/hello") { call.respondHtml { ukptLayout(LayoutState("Hello", scripts = listOf("/static/hello/hello.js"))) { h1 { +"Hello" } } } }
             get("/shell") {
                 call.respondHtml {
-                    ukptDocument(DocumentState("Shell", stylesheets = listOf("/static/shell/shell.css"))) { nav { +"Menu" } }
+                    ukptDocument(DocumentState("Shell", stylesheets = listOf("/static/shell/shell.css"), alpine = false)) { nav { +"Menu" } }
                 }
             }
             get("/boom") { error("boom") }
@@ -56,7 +56,7 @@ class WebPlatformTest {
     }
 
     @Test
-    fun `a document renders its own body after the error region, with its stylesheets after the platform's`() = platformTest {
+    fun `a document renders its own body after the error region, with its stylesheets after the platform's, and can leave Alpine out`() = platformTest {
         val document = Jsoup.parse(client.get("/shell").bodyAsText())
 
         assertEquals(
@@ -65,6 +65,7 @@ class WebPlatformTest {
         )
         assertEquals(listOf("div", "nav"), document.body().children().map { it.tagName() })
         assertEquals(APP_ERROR_ID, document.body().child(0).id())
+        assertTrue(document.select("script").none { it.attr("src").endsWith(HtmxAssets.ALPINE_CSP) })
     }
 
     @Test
