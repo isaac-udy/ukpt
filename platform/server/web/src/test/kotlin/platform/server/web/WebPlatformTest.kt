@@ -3,8 +3,12 @@ package platform.server.web
 import dev.isaacudy.udytils.htmx.HtmxAssets
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
 import io.ktor.server.html.respondHtml
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
@@ -84,6 +88,46 @@ class WebPlatformTest {
         assertTrue("connect-src 'self' https://analytics.example;" in policy, policy)
         assertTrue("form-action 'self' https://legacy.example;" in policy, policy)
         assertTrue("script-src 'self';" in policy, policy)
+    }
+
+    @Test
+    fun `the policy sends violations to the report endpoint, which accepts them`() = platformTest {
+        val response = client.get("/hello")
+        val policy = response.headers["Content-Security-Policy"].orEmpty()
+        assertTrue(policy.endsWith("; report-uri /csp-report"), policy)
+
+        val report = client.post(CSP_REPORT_PATH) {
+            contentType(ContentType.parse("application/csp-report"))
+            setBody("""{"csp-report":{"effective-directive":"script-src-elem","blocked-uri":"inline"}}""")
+        }
+        assertEquals(HttpStatusCode.NoContent, report.status)
+        val junk = client.post(CSP_REPORT_PATH) { setBody("x".repeat(100_000)) }
+        assertEquals(HttpStatusCode.NoContent, junk.status)
+    }
+
+    @Test
+    fun `a report is read, and logged URLs stop at their path`() {
+        val report = parseCspReport(
+            """{"csp-report":{"document-uri":"https://site.example/login?returnTo=%2Fsecret","violated-directive":"script-src-elem",
+               "effective-directive":"script-src-elem","blocked-uri":"inline","source-file":"https://site.example/login","line-number":12,
+               "disposition":"report"}}""",
+        )
+        assertEquals(
+            CspViolation("script-src-elem", "inline", "https://site.example/login", "https://site.example/login", 12, "report"),
+            report,
+        )
+
+        val image = parseCspReport(
+            """{"csp-report":{"document-uri":"https://site.example/a#x","violated-directive":"img-src",
+               "blocked-uri":"https://images.example/p.png?sig=abc","disposition":"enforce"}}""",
+        )
+        assertEquals(
+            "CSP violation (enforce): img-src blocked https://images.example/p.png on https://site.example/a",
+            image?.describe(),
+        )
+
+        assertEquals(null, parseCspReport("not json"))
+        assertEquals(null, parseCspReport("""{"something":"else"}"""))
     }
 
     @Test
