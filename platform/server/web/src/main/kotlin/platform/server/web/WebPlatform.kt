@@ -75,7 +75,7 @@ data class ContentSecurityPolicy(
         get() = "default-src 'self'; script-src 'self'; style-src 'self'; " +
             "img-src ${sources("'self' data:", imageSources)}; connect-src ${sources("'self'", connectSources)}; " +
             "base-uri 'self'; form-action ${sources("'self'", formActionSources)}; frame-ancestors 'none'; " +
-            "report-uri $CSP_REPORT_PATH; report-to $CSP_REPORT_GROUP"
+            "report-uri $CSP_REPORT_PATH"
 
     private fun sources(base: String, extra: List<String>) = (listOf(base) + extra).joinToString(" ")
 }
@@ -89,7 +89,6 @@ private val SecurityHeaders = createApplicationPlugin("SecurityHeaders", ::Secur
     val value = pluginConfig.policy.headerValue
     onCall { call ->
         call.response.headers.append(name, value)
-        call.response.headers.append("Reporting-Endpoints", "$CSP_REPORT_GROUP=\"$CSP_REPORT_PATH\"")
         call.response.headers.append("X-Content-Type-Options", "nosniff")
         call.response.headers.append("Referrer-Policy", "same-origin")
     }

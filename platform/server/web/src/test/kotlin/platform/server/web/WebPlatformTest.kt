@@ -94,8 +94,7 @@ class WebPlatformTest {
     fun `the policy sends violations to the report endpoint, which accepts them`() = platformTest {
         val response = client.get("/hello")
         val policy = response.headers["Content-Security-Policy"].orEmpty()
-        assertTrue(policy.endsWith("report-uri /csp-report; report-to csp"), policy)
-        assertEquals("csp=\"/csp-report\"", response.headers["Reporting-Endpoints"])
+        assertTrue(policy.endsWith("; report-uri /csp-report"), policy)
 
         val report = client.post(CSP_REPORT_PATH) {
             contentType(ContentType.parse("application/csp-report"))
@@ -107,33 +106,28 @@ class WebPlatformTest {
     }
 
     @Test
-    fun `both report formats are read, and logged URLs stop at their path`() {
-        val legacy = parseCspReport(
+    fun `a report is read, and logged URLs stop at their path`() {
+        val report = parseCspReport(
             """{"csp-report":{"document-uri":"https://site.example/login?returnTo=%2Fsecret","violated-directive":"script-src-elem",
                "effective-directive":"script-src-elem","blocked-uri":"inline","source-file":"https://site.example/login","line-number":12,
                "disposition":"report"}}""",
         )
         assertEquals(
-            listOf(CspViolation("script-src-elem", "inline", "https://site.example/login", "https://site.example/login", 12, "report")),
-            legacy,
+            CspViolation("script-src-elem", "inline", "https://site.example/login", "https://site.example/login", 12, "report"),
+            report,
         )
 
-        val batch = parseCspReport(
-            """[{"type":"csp-violation","url":"https://site.example/a","body":{"documentURL":"https://site.example/a#x",
-                "effectiveDirective":"img-src","blockedURL":"https://images.example/p.png?sig=abc","disposition":"enforce"}},
-               {"type":"deprecation","body":{}}]""",
-        )
-        assertEquals(
-            listOf(CspViolation("img-src", "https://images.example/p.png", "https://site.example/a", null, null, "enforce")),
-            batch,
+        val image = parseCspReport(
+            """{"csp-report":{"document-uri":"https://site.example/a#x","violated-directive":"img-src",
+               "blocked-uri":"https://images.example/p.png?sig=abc","disposition":"enforce"}}""",
         )
         assertEquals(
             "CSP violation (enforce): img-src blocked https://images.example/p.png on https://site.example/a",
-            batch.single().describe(),
+            image?.describe(),
         )
 
-        assertEquals(emptyList(), parseCspReport("not json"))
-        assertEquals(emptyList(), parseCspReport("""{"something":"else"}"""))
+        assertEquals(null, parseCspReport("not json"))
+        assertEquals(null, parseCspReport("""{"something":"else"}"""))
     }
 
     @Test

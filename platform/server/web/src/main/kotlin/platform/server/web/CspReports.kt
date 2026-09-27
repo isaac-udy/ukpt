@@ -9,15 +9,16 @@ import io.ktor.server.routing.post
 import io.ktor.utils.io.readRemaining
 import kotlinx.io.readString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.intOrNull
 
-/** Where browsers send the policy's violations: `report-uri` names it, and `report-to` names [CSP_REPORT_GROUP]. */
+/**
+ * Where browsers send the policy's violations, named by `report-uri`. The policy has no `report-to`:
+ * Chrome then ignores `report-uri` and queues reports for the Reporting API instead, which only
+ * delivers from HTTPS and after a delay.
+ */
 const val CSP_REPORT_PATH: String = "/csp-report"
-
-internal const val CSP_REPORT_GROUP: String = "csp"
 
 private const val MAX_REPORT_BYTES = 16 * 1024L
 private const val MAX_VIOLATIONS_PER_MINUTE = 60
@@ -33,7 +34,8 @@ internal fun Route.cspReports() {
     val limit = MinuteLimit(MAX_VIOLATIONS_PER_MINUTE)
     post(CSP_REPORT_PATH) {
         val body = call.receiveChannel().readRemaining(MAX_REPORT_BYTES).readString()
-        for (violation in parseCspReport(body)) {
+        val violation = parseCspReport(body)
+        if (violation != null) {
             val n = limit.next()
             when {
                 n <= MAX_VIOLATIONS_PER_MINUTE -> call.application.log.warn(violation.describe())
@@ -59,39 +61,19 @@ internal data class CspViolation(
     }
 }
 
-/**
- * Reads both report formats: the Reporting API's batch (`report-to`, `application/reports+json`)
- * and the older single `{"csp-report": …}` (`report-uri`, `application/csp-report`).
- */
-internal fun parseCspReport(body: String): List<CspViolation> =
-    when (val json = runCatching { Json.parseToJsonElement(body) }.getOrNull()) {
-        is JsonArray -> json.mapNotNull { report ->
-            val entry = report as? JsonObject ?: return@mapNotNull null
-            if (entry.text("type") != "csp-violation") return@mapNotNull null
-            val b = entry["body"] as? JsonObject ?: return@mapNotNull null
-            CspViolation(
-                directive = b.text("effectiveDirective"),
-                blocked = b.url("blockedURL"),
-                document = b.url("documentURL"),
-                source = b.url("sourceFile"),
-                line = b.number("lineNumber"),
-                disposition = b.text("disposition"),
-            )
-        }
-        is JsonObject -> listOfNotNull(
-            (json["csp-report"] as? JsonObject)?.let { r ->
-                CspViolation(
-                    directive = r.text("effective-directive") ?: r.text("violated-directive"),
-                    blocked = r.url("blocked-uri"),
-                    document = r.url("document-uri"),
-                    source = r.url("source-file"),
-                    line = r.number("line-number"),
-                    disposition = r.text("disposition"),
-                )
-            },
-        )
-        else -> emptyList()
-    }
+/** A `report-uri` report is one `{"csp-report": …}` object (`application/csp-report`). */
+internal fun parseCspReport(body: String): CspViolation? {
+    val json = runCatching { Json.parseToJsonElement(body) }.getOrNull() as? JsonObject
+    val r = json?.get("csp-report") as? JsonObject ?: return null
+    return CspViolation(
+        directive = r.text("effective-directive") ?: r.text("violated-directive"),
+        blocked = r.url("blocked-uri"),
+        document = r.url("document-uri"),
+        source = r.url("source-file"),
+        line = r.number("line-number"),
+        disposition = r.text("disposition"),
+    )
+}
 
 private fun JsonObject.primitive(key: String): JsonPrimitive? = get(key) as? JsonPrimitive
 
