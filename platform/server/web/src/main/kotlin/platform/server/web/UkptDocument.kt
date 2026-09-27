@@ -19,12 +19,14 @@ import kotlinx.html.title
 
 /**
  * What the document around every page needs: its title, and the page's own stylesheets and
- * script files, all served from this origin.
+ * script files, all served from this origin. A document whose pages use no Alpine attributes sets
+ * [alpine] false: Alpine otherwise walks every subtree htmx swaps in, looking for them.
  */
 data class DocumentState(
     val title: String,
     val stylesheets: List<String> = emptyList(),
     val scripts: List<String> = emptyList(),
+    val alpine: Boolean = true,
 )
 
 /**
@@ -46,7 +48,7 @@ fun HTML.ukptDocument(state: DocumentState, content: BODY.() -> Unit) {
         htmxScripts()
         deferredScript("/static/platform/js/app.js")
         state.scripts.forEach { deferredScript(it) }
-        alpineScript()
+        if (state.alpine) alpineScript()
     }
     body {
         div("app-error") {
