@@ -7,6 +7,7 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.server.html.respondHtml
@@ -146,14 +147,21 @@ class WebPlatformTest {
     }
 
     @Test
-    fun `errors render a page, or text for htmx`() = platformTest {
-        val page = client.get("/boom")
+    fun `errors render a page for a navigation, or text for htmx and scripts`() = platformTest {
+        val page = client.get("/boom") { header("Sec-Fetch-Mode", "navigate") }
         assertEquals(HttpStatusCode.InternalServerError, page.status)
         assertEquals("Something went wrong", Jsoup.parse(page.bodyAsText()).select("h1").text())
+
+        val headerless = client.get("/boom") { header(HttpHeaders.Accept, "text/html,application/xhtml+xml") }
+        assertEquals("Something went wrong", Jsoup.parse(headerless.bodyAsText()).select("h1").text())
 
         val fragment = client.get("/missing") { header("HX-Request", "true") }
         assertEquals(HttpStatusCode.NotFound, fragment.status)
         assertEquals("There is nothing at this address.", fragment.bodyAsText())
+
+        val fetched = client.get("/boom") { header("Sec-Fetch-Mode", "cors") }
+        assertEquals(HttpStatusCode.InternalServerError, fetched.status)
+        assertEquals("The request could not be completed.", fetched.bodyAsText())
     }
 
     @Test
@@ -162,7 +170,7 @@ class WebPlatformTest {
         assertEquals(HttpStatusCode.NotFound, response.status)
         assertEquals("That item was withdrawn.", response.bodyAsText())
 
-        val page = client.get("/missing")
+        val page = client.get("/missing") { header("Sec-Fetch-Mode", "navigate") }
         assertEquals("Page not found", Jsoup.parse(page.bodyAsText()).select("h1").text())
     }
 }

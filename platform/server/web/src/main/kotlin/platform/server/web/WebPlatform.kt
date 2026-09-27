@@ -14,6 +14,7 @@ import io.ktor.server.html.respondHtml
 import io.ktor.server.http.content.HttpStatusCodeContent
 import io.ktor.server.http.content.staticResources
 import io.ktor.server.plugins.statuspages.StatusPages
+import io.ktor.server.request.accept
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.routing
@@ -113,11 +114,12 @@ private fun Route.webAssets() {
 internal fun isVendored(resourcePath: String): Boolean = "/vendor/" in resourcePath.substringAfterLast("/static/")
 
 /**
- * htmx does not swap a failed response, so an htmx request gets a short text body that `app.js`
- * shows in the layout's error region; any other request gets a full page.
+ * Only a page navigation gets a full page. htmx does not swap a failed response, so an htmx
+ * request gets a short text body that `app.js` shows in the layout's error region, and a script's
+ * `fetch` gets the same text to show as it chooses.
  */
 private suspend fun ApplicationCall.respondError(status: HttpStatusCode, title: String, message: String) {
-    if (isHtmx) {
+    if (!isNavigation) {
         respondText(message, ContentType.Text.Plain, status)
         return
     }
@@ -129,3 +131,11 @@ private suspend fun ApplicationCall.respondError(status: HttpStatusCode, title: 
         }
     }
 }
+
+/** Browsers say so in `Sec-Fetch-Mode`; a client that doesn't send it is navigating if it asks for HTML. */
+private val ApplicationCall.isNavigation: Boolean
+    get() {
+        if (isHtmx) return false
+        val mode = request.headers["Sec-Fetch-Mode"] ?: return request.accept().orEmpty().contains("text/html")
+        return mode == "navigate"
+    }
