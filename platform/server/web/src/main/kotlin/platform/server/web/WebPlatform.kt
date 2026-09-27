@@ -96,14 +96,21 @@ private val SecurityHeaders = createApplicationPlugin("SecurityHeaders", ::Secur
 
 /**
  * `/assets/htmx` serves the versioned htmx and Alpine builds; `/static` serves every module's
- * `static/` resources, which each feature keeps under its own directory name.
+ * `static/` resources, which each feature keeps under its own directory name. A third-party file
+ * sits in a `vendor/` directory with its version in its name, so browsers keep it for a year;
+ * everything else is revalidated on every load.
  */
 private fun Route.webAssets() {
     htmxAssets()
     staticResources("/static", "static") {
-        cacheControl { listOf(CacheControl.NoCache(null)) }
+        cacheControl { resource ->
+            if (isVendored(resource.path)) listOf(CacheControl.MaxAge(maxAgeSeconds = 31_536_000, visibility = CacheControl.Visibility.Public))
+            else listOf(CacheControl.NoCache(null))
+        }
     }
 }
+
+internal fun isVendored(resourcePath: String): Boolean = "/vendor/" in resourcePath.substringAfterLast("/static/")
 
 /**
  * htmx does not swap a failed response, so an htmx request gets a short text body that `app.js`

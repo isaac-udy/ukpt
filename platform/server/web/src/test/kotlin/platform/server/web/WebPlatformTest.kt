@@ -137,6 +137,14 @@ class WebPlatformTest {
     }
 
     @Test
+    fun `vendored files are kept for a year and the project's own are revalidated`() = platformTest {
+        assertEquals("no-cache", client.get("/static/platform/css/base.css").headers["Cache-Control"])
+        assertEquals("max-age=31536000, public", client.get("/static/test/vendor/lib-1.0.0.js").headers["Cache-Control"])
+        assertTrue(isVendored("jar:file:/srv/app.jar!/static/analytics/vendor/lib-1.2.3.js"))
+        assertTrue(!isVendored("/home/vendor/app/build/resources/main/static/app/js/app.js"))
+    }
+
+    @Test
     fun `errors render a page, or text for htmx`() = platformTest {
         val page = client.get("/boom")
         assertEquals(HttpStatusCode.InternalServerError, page.status)
