@@ -40,9 +40,9 @@ Open the served URL.
 ## Web, Compose HTML (dev server)
 
 ```
-./gradlew -Pukpt.htmlWebClient=true :app:client:web-html:jsBrowserDevelopmentRun
+./gradlew :app:client:web-html:jsBrowserDevelopmentRun
 ```
-Open the served URL. The client exists only when `ukpt.htmlWebClient` is true; see `ukpt-html-web`.
+Open the served URL. See `ukpt-html-web`.
 
 ## Android
 

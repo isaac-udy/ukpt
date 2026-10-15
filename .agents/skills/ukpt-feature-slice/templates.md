@@ -51,8 +51,6 @@ dependencies {
 ## §2 — `:client` build → `feature/<name>/client/build.gradle.kts`
 
 ```kotlin
-import ukpt.isHtmlWebClientEnabled
-
 plugins {
     // Compose library + Paparazzi host-test wiring. Android resource processing (and the R class
     // Paparazzi resolves reflectively), the host-test component and the stub-R classpath fix all
@@ -124,15 +122,13 @@ kotlin {
         wasmJsMain.dependencies {
             implementation(libs.kotlinx.browser)
         }
-        if (isHtmlWebClientEnabled) {
-            jsMain.dependencies {
-                implementation(projects.platform.client.designHtml)
-                implementation(libs.compose.htmlCore)
-                implementation(libs.enro.html)
-            }
-            jsTest.dependencies {
-                implementation(libs.compose.htmlTestUtils)
-            }
+        jsMain.dependencies {
+            implementation(projects.platform.client.designHtml)
+            implementation(libs.compose.htmlCore)
+            implementation(libs.enro.html)
+        }
+        jsTest.dependencies {
+            implementation(libs.compose.htmlTestUtils)
         }
     }
 }

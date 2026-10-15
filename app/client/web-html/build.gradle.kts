@@ -1,7 +1,6 @@
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 
-// The Compose HTML web client. settings.gradle.kts includes this module only when
-// `ukpt.htmlWebClient` is true. It has no Compose UI dependency, and verifyHtmlBundle fails the
+// The Compose HTML web client. It has no Compose UI dependency, and verifyHtmlBundle fails the
 // build if Compose UI reaches the production bundle.
 plugins {
     alias(libs.plugins.kotlinMultiplatform)

@@ -25,7 +25,7 @@ import com.lemonappdev.konsist.api.provider.KoNameProvider
 
     ### Compose HTML Screens
 
-    When the project builds the Compose HTML web client (`ukpt.htmlWebClient`), each Screen that
+    When the project keeps the Compose HTML web client (`:app:client:web-html`), each Screen that
     client reaches has a Compose HTML twin in the same package under `src/jsMain/`, named with an
     `Html` infix (`UkptHtmlScreen`, `confirmResetDialogHtmlDestination`). It renders the same
     ViewModel and State, is annotated `@NavigationDestination.PlatformOverride`, and builds from

@@ -1,5 +1,3 @@
-import ukpt.isHtmlWebClientEnabled
-
 plugins {
     // Compose library + Paparazzi host-test wiring (see ukpt.snapshot-testing).
     id("ukpt.snapshot-testing")
@@ -70,15 +68,13 @@ kotlin {
         wasmJsMain.dependencies {
             implementation(libs.kotlinx.browser)
         }
-        if (isHtmlWebClientEnabled) {
-            jsMain.dependencies {
-                implementation(projects.platform.client.designHtml)
-                implementation(libs.compose.htmlCore)
-                implementation(libs.enro.html)
-            }
-            jsTest.dependencies {
-                implementation(libs.compose.htmlTestUtils)
-            }
+        jsMain.dependencies {
+            implementation(projects.platform.client.designHtml)
+            implementation(libs.compose.htmlCore)
+            implementation(libs.enro.html)
+        }
+        jsTest.dependencies {
+            implementation(libs.compose.htmlTestUtils)
         }
     }
 }

@@ -30,13 +30,15 @@ git submodule update --init --recursive     # required, see Embedded libraries
 ./gradlew :app:client:desktop:run                          # Desktop
 ./gradlew :app:server:run                                  # Server, on :8080
 ./gradlew :app:client:android:installDebug                 # Android
-./gradlew :app:client:web:wasmJsBrowserDevelopmentRun     # Web
+./gradlew :app:client:web:wasmJsBrowserDevelopmentRun     # Web, canvas
+./gradlew :app:client:web-html:jsBrowserDevelopmentRun    # Web, Compose HTML
 open app/client/ios/iosApp.xcodeproj                       # iOS — then run (⌘R)
 ```
 
-A second web client, `:app:client:web-html`, renders the same screens with Compose HTML: DOM
-elements instead of a canvas. It is off by default; set `ukpt.htmlWebClient=true` in
-`gradle.properties` and see the [`ukpt-html-web`](.agents/skills/ukpt-html-web) skill.
+The template has two web clients. `:app:client:web` renders the Compose UI screens to a canvas.
+`:app:client:web-html` renders a Compose HTML twin of each screen as DOM elements, from the same
+ViewModels. `ukpt-new-project` asks which to keep and compares them; the
+[`ukpt-html-web`](.agents/skills/ukpt-html-web) skill covers the HTML client.
 
 The iOS app has no Gradle command: an Xcode build phase invokes
 `:app:client:common:embedAndSignAppleFrameworkForXcode`, which builds `App.framework` from the shared
@@ -164,6 +166,7 @@ Compile every target after a cross-platform change:
           :app:client:android:checkDebugAarMetadata \
           :app:client:desktop:compileKotlin \
           :app:client:web:compileKotlinWasmJs \
+          :app:client:web-html:compileKotlinJs \
           :app:client:common:compileKotlinIosArm64 \
           :app:client:common:compileKotlinIosSimulatorArm64 \
           :app:server:compileKotlin

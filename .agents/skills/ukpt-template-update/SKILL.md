@@ -100,6 +100,11 @@ File classes:
   the project has authored, present both and ask, exactly as §5 does for the rule catalog. A project
   still on the neutral placeholder palette can take the template side wholesale; a project that runs
   its own design system elsewhere should skip this class entirely.
+- **Deleted web client (do not sync):** a project keeps one or both web clients
+  (`ukpt-new-project`, "Choose the web clients"). If `app/client/web` is absent, skip template
+  changes to it. If `app/client/web-html` is absent, skip changes to it, to
+  `platform/client/design-html`, and to features' `src/jsMain/` and `src/jsTest/`. Skip the steps
+  migrations give for that client.
 - **Generated (do not merge by hand):** `platform/common/architecture/README.md` and `docs/` —
   regenerated in §5.
 

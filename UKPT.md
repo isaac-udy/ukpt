@@ -4,7 +4,7 @@ This project is based on the [UKPT template](https://github.com/isaac-udy/ukpt).
 template-owned: it is synced by the `ukpt-template-update` skill, so don't edit it in downstream
 projects — project-specific guidance belongs in AGENTS.md.
 
-UKPT is a Kotlin Multiplatform project **template** — Compose UI, Enro navigation, Koin DI, urpc for the client/server contract, and a Ktor server. It targets Android, Desktop (JVM), Web (wasmJs), and iOS, plus a JVM server. It starts minimal; build features out from the documented patterns — `:feature:core` is the worked example to copy.
+UKPT is a Kotlin Multiplatform project **template** — Compose UI, Enro navigation, Koin DI, urpc for the client/server contract, and a Ktor server. It targets Android, Desktop (JVM), Web, and iOS, plus a JVM server. The template has two web clients: `:app:client:web` renders the Compose UI screens to a canvas (wasmJs), and `:app:client:web-html` renders Compose HTML twins of them as DOM elements (Kotlin/JS). A project keeps one or both. It starts minimal; build features out from the documented patterns — `:feature:core` is the worked example to copy.
 
 This file holds operational guidance (commands, toolchain, submodules) and pointers to the rules. The architecture rules are the source of truth in [`platform/common/architecture/README.md`](./platform/common/architecture/README.md) — don't restate them here. The embedded builds carry their own repository guidance.
 
@@ -86,7 +86,7 @@ After changes, compile every platform (client + server), not just the touched mo
 - `ukpt-drive-app` — drive the running desktop app through the Compose Hot Reload MCP server: semantic tree, clicks, screenshots, hot reload, runtime errors.
 - `ukpt-verify-web` — wasm bundle and runtime verification.
 - `ukpt-web-deploy` — serving the web client: brotli-compressed wasm, headers, cache policy, host recipes.
-- `ukpt-html-web` — the opt-in Compose HTML web client (`ukpt.htmlWebClient`): HTML screens, design tokens, gates.
+- `ukpt-html-web` — the Compose HTML web client: HTML screens, design tokens, gates, removing it.
 - `ukpt-ui-atlas` — `./gradlew generateUiAtlas`, manifest schema.
 - `ukpt-server-packaging` — fat jar build, service-file checks, smoke test.
 - `ukpt-feature-slice` — scaffold `:feature:<name>:{api,client,server}`.
