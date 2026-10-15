@@ -62,6 +62,8 @@ includeBuild("embedded-enro") {
          substitute(module("dev.enro:enro")).using(project(":enro"))
          substitute(module("dev.enro:enro-common")).using(project(":enro-common"))
          substitute(module("dev.enro:enro-runtime")).using(project(":enro-runtime"))
+         substitute(module("dev.enro:enro-ui")).using(project(":enro-ui"))
+         substitute(module("dev.enro:enro-html")).using(project(":enro-html"))
          substitute(module("dev.enro:enro-compat")).using(project(":enro-compat"))
          substitute(module("dev.enro:tests:application")).using(project(":tests:application"))
          substitute(module("dev.enro:tests:module-one")).using(project(":tests:module-one"))
@@ -72,6 +74,7 @@ includeBuild("embedded-udytils") {
     name = "embedded-udytils"
     dependencySubstitution {
         substitute(module("dev.isaacudy.udytils:core")).using(project(":core"))
+        substitute(module("dev.isaacudy.udytils:viewmodel")).using(project(":viewmodel"))
         substitute(module("dev.isaacudy.udytils:ui")).using(project(":ui"))
         substitute(module("dev.isaacudy.udytils:snapshot")).using(project(":snapshot"))
         substitute(module("dev.isaacudy.udytils:htmx")).using(project(":htmx"))
