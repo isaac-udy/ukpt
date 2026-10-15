@@ -1,5 +1,6 @@
 plugins {
     id("ukpt.kmp-library")
+    id("ukpt.html-web")
     alias(libs.plugins.kotlinKsp)
 }
 

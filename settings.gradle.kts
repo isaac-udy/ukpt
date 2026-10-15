@@ -40,6 +40,9 @@ include(":app:client:common")
 include(":app:client:android")
 include(":app:client:desktop")
 include(":app:client:web")
+if (providers.gradleProperty("ukpt.htmlWebClient").orNull.toBoolean()) {
+    include(":app:client:web-html")
+}
 include(":app:server")
 
 include(":feature:core:api")

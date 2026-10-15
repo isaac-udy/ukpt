@@ -2,6 +2,7 @@ plugins {
     // Compose library + Paparazzi host-test wiring: the design-system docs are backed by
     // preview-driven doc-surface snapshots (see design-system/README.md).
     id("ukpt.snapshot-testing")
+    id("ukpt.html-web")
 }
 
 kotlin {
