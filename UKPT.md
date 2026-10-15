@@ -41,7 +41,7 @@ Follow the rules in [`platform/common/architecture/README.md`](./platform/common
 ```
 git submodule update --init --recursive
 ```
-New code may rely on APIs that only exist in a newer submodule commit.
+New code may rely on APIs that only exist in a newer submodule commit. For a new git worktree, see **Fresh worktrees** under [Building as an agent](#building-as-an-agent).
 
 ## Working as an agent
 
@@ -64,6 +64,8 @@ In order of leverage:
 3. **Don't run heavy builds concurrently.** When orchestrating subagents, let them read, analyse, and edit in parallel — that part is cheap — then run compilation and verification one at a time. Parallelism belongs in the editing phase, not the build phase.
 4. **Throttle a background build** with `--max-workers=2`. Use a small *fixed* cap rather than a fraction of the core count: you can't know how many agents are running, and a per-agent fraction still multiplies by the number of agents, whereas a fixed cap bounds what each one contributes. A **foreground** build — one the user is waiting on — should not be throttled; it should finish fast.
 5. **Never override daemon memory on an invocation.** Passing `org.gradle.jvmargs` or `kotlin.daemon.jvmargs` on the command line means the running daemon no longer matches, so a new one is forked — asking for less memory gets you more of it. Those belong in `gradle.properties`, one value shared by everyone. For the same reason keep flags identical across agents doing the same kind of work: daemons are matched on their JVM args, so inconsistent flags fragment the daemon pool.
+
+**Fresh worktrees.** A new git worktree starts without the gitignored `local.properties`, and unless whoever created it ran it, without the submodule checked out (`git submodule status` shows a leading `-` and `embedded-udytils` is empty). Before the first build in a worktree, run `git submodule update --init --recursive`. This branch needs no `local.properties`. Never copy the main checkout's `local.properties` into a worktree — besides `sdk.dir` it may hold tokens or signing secrets.
 
 ## Checking architecture rules as an agent
 

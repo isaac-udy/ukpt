@@ -294,9 +294,10 @@ The configuration for Dependency Injection (DI) that wires the feature together.
   `[name]ServerDependencies` in `:server`. The Construct enforces the `Dependencies` suffix;
   the `Client`/`Server` infix is convention.
 * **Note:** The `:app` modules (application shells) are responsible for collecting the DI
-  modules provided by feature modules into the final dependency graph. When a new dependency
-  module is added, it must be registered in both `:app:client:common` and `:app:server`; when
-  a new Service is added, it must be registered in `:app:server`.
+  modules provided by feature modules into the final dependency graph. A `:client` dependency
+  module is registered in every client shell's `ClientDependencies.kt` (`:app:client:common`
+  and `:app:client:web-html`) and a `:server` one in `:app:server`; when a new Service is
+  added, it must be registered in `:app:server`.
 * **Note:** Every application class is bound by constructor reference — `singleOf`,
   `factoryOf`, `scopedOf`, or `viewModelOf`, whichever lifetime the class needs — so the graph
   supplies every constructor parameter, and a registered class gives no parameter a default
@@ -318,6 +319,9 @@ The configuration for Dependency Injection (DI) that wires the feature together.
 
 * A Dependency Module must only bind/provide dependencies that are both defined and implemented in its own feature
     * **Why:** If feature A binds an implementation of feature B's domain interface, feature B's DI graph silently depends on feature A, and removing or refactoring A breaks B's wiring at runtime rather than at compile time. Each feature owns its own bindings; cross-feature consumption goes through `:api` interfaces only.
+* A `:client` Dependency Module must be listed in every client shell's `ClientDependencies.kt`
+    * **Why:** `:app:client:common` and `:app:client:web-html` each keep their own `clientDependencies` list, because the HTML client can't depend on the Compose UI shell. A module missing from one list fails only when that client first resolves a ViewModel from it.
+    * **Note:** Reads every `app/client/*/src/**/ClientDependencies.kt`, including shells the current build doesn't include.
 * A Dependency Module registers a service's generated `[Name]ServiceUrpcBinding` by chaining `.bindService(::[Name]ServiceUrpcBinding)` off the implementation's binding, inside the per-call `scope<UrpcCall> { }` block
     * **Note:** `bindService` (from `dev.isaacudy.udytils.urpc.koin`) registers the binding under its own concrete type, bound to `UrpcService`, with the impl resolved lazily.
     * **Note:** Never use `scoped<UrpcService> { [Name]ServiceUrpcBinding { get() } }`: every such binding shares the `UrpcService` definition key, so co-registered services override each other and `getAll<UrpcService>()` returns only one. The test catches this form.
