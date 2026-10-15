@@ -212,5 +212,8 @@ that doesn't exist — so a filename typo or a renamed method is caught here rat
   pure Compose module.
 - **Changing a token re-records every golden**, in this module and in every feature. That is the
   system working, but review the diffs.
+- **Changing a token also changes `platform/client/design-html/src/css/ukpt-design.css`**, the
+  Compose HTML client's copy. `./gradlew :platform:client:design-html:jvmTest` lists each CSS
+  property that differs; see `ukpt-html-web`.
 - **This is a template-owned module.** Changing its *structure* (not its values) is a template change:
   see UKPT.md → Template versioning.

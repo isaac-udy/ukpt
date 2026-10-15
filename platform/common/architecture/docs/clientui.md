@@ -41,6 +41,11 @@ The layer rules below apply across the whole `feature.[name].client.ui` package.
     * **Note:** Tested over the import's package segments, so a `data` or `services` package is out of bounds wherever it sits and whichever feature owns it.
 * The `client.ui` layer must not use `koinInject`: all dependencies are injected through ViewModels
     * **Why:** Resolving from Koin inside a Composable bypasses the ViewModel as the single dependency surface, makes the screen untestable in snapshot tests (there is no Koin runtime), and re-resolves on every recomposition.
+* A `client.ui` file in `src/jsMain/` must not import Compose UI: it renders with Compose HTML
+    * **Why:** `src/jsMain/` holds the Compose HTML screens of `:app:client:web-html`. A Compose UI import there brings skiko into the HTML bundle, which `verifyHtmlBundle` rejects only after a production webpack build.
+    * **Note:** Compose UI here means `androidx.compose.ui`, `foundation`, `material`, `material3` and `animation`, Compose resources, udytils `:ui`, and the Compose design system. `androidx.compose.runtime` and `platform.design.html` are allowed.
+* A `client.ui` file in `src/jsMain/` declares only Screens and composables: State, ViewModels and value types live in `commonMain`
+    * **Why:** An HTML Screen renders the same ViewModel and State as its Compose UI Screen. A class declared beside it would give the HTML client behaviour the other clients don't share.
 * A `client.ui` package imports this layer only through its own package, its direct child subsystems, and its ancestors up to the layer root
     * **Note:** A `client.ui` subsystem is a screen family the rest of the UI reaches through one entry point — an onboarding flow's steps, a sign-in provider's screens. It needs no matching `client.domain` subsystem: the rule restricts what a subsystem may import, not what must exist.
     * **Enforced by:** `ProjectRules.subsystemVisibility`
@@ -74,6 +79,15 @@ DSL is for screens that need to declare custom metadata, such as `directOverlay(
 property name may end in `Screen` or `Destination`; both are accepted because the property is
 the destination declaration site.
 
+### Compose HTML Screens
+
+When the project builds the Compose HTML web client (`ukpt.htmlWebClient`), each Screen that
+client reaches has a Compose HTML twin in the same package under `src/jsMain/`, named with an
+`Html` infix (`UkptHtmlScreen`, `confirmResetDialogHtmlDestination`). It renders the same
+ViewModel and State, is annotated `@NavigationDestination.PlatformOverride`, and builds from
+`platform.design.html`. Its `[Name]HtmlScreenContent` is tested in `src/jsTest/` instead of by
+a `@Preview`.
+
 ##### Requirements
 
 * A Screen resides in `feature..client.ui..`
@@ -97,6 +111,8 @@ the destination declaration site.
     * **Why:** The Screen function connects the ViewModel; the `ScreenContent` function takes only state and callbacks, so previews and snapshot tests can render every state without a ViewModel. Marking it `internal` lets the test source set call it; `private` makes the screen untestable.
 * A ViewModel must be injected into its Screen using `viewModel()`, not `koinViewModel()`
     * **Why:** `viewModel()` ties the ViewModel's lifecycle to the navigation backstack entry: when the entry is popped, the ViewModel is cleared. `koinViewModel()` resolves through Koin and either scopes to the wrong lifecycle or returns a singleton, leaking state between screens or returning stale state on re-entry.
+* A Screen in `src/jsMain/` must be annotated `@NavigationDestination.PlatformOverride`
+    * **Why:** Enro's code generator treats only `PlatformOverride` destinations as Compose HTML screens. An HTML Screen annotated `@NavigationDestination` is a second binding for the key, and the generator reports the Compose UI Screen as having no HTML override.
 
 ##### Guidance
 
@@ -218,7 +234,10 @@ Snapshots are preview-driven: `PreviewSnapshotTest` (in `src/androidHostTest/`) 
 
 * A `[Name]ScreenContent` composable must be called from a `@Preview` composable in the same file
     * **Why:** Previews are the snapshot surface: `PreviewSnapshotTest` renders every `@Preview` in the module, so a ScreenContent without a preview has no snapshot coverage. The preview must live in the same file as the ScreenContent it renders — co-locating it keeps each screen's preview next to the screen, discoverable and maintained with it, instead of drifting into a single shared "screen previews" file.
-    * **Note:** Compose HTML screens in `src/jsMain/` are exempt: Paparazzi renders Compose UI only.
+    * **Note:** Compose HTML ScreenContents in `src/jsMain/` are tested in `src/jsTest/` instead (`ClientUi.Composable.htmlScreenContentTested`): Paparazzi renders Compose UI only.
+* A `[Name]ScreenContent` composable in `src/jsMain/` must be called from a test in its module's `src/jsTest/`
+    * **Why:** A Compose HTML ScreenContent has no `@Preview` and no snapshot. A `src/jsTest/` test that composes it with `html-test-utils` and reads the DOM is its coverage.
+    * **Note:** Test sources are outside the governed scope; the rule reads `src/jsTest/` files directly.
 * Dialog primitives (`AlertDialog`, `BasicAlertDialog`, `DatePickerDialog`, `ModalBottomSheet`, `androidx.compose.ui.window.Dialog`) may only be invoked in a file that declares a dialog destination (one containing a `directOverlay` metadata marker)
     * **Why:** Dialogs are their own destinations: a `NavigationKey` rendered through Enro's overlay support, not an inline composable toggled by a boolean in screen state. Restricting dialog primitives to dialog-destination files makes embedded dialogs a build failure, not a review finding. Platform and design-system modules are exempt — they may define dialog primitives and wrappers.
     * **Note:** Detection is import-based: an import of any dialog primitive in a non-dialog-destination file is a violation, regardless of whether the call site is reached.

@@ -11,11 +11,14 @@ kotlin {
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         outputModuleName.set("App")
+        // A local, not project.projectDir inside the block: the webpack config is stored in the
+        // configuration cache, and reading the Project there captures it.
+        val devServerRoot = layout.projectDirectory.asFile.path
         browser {
             commonWebpackConfig {
                 outputFileName = "App.js"
                 devServer = (devServer ?: KotlinWebpackConfig.DevServer()).apply {
-                    static(project.projectDir.path)
+                    static(devServerRoot)
                 }
             }
         }

@@ -3,6 +3,7 @@ package architecture.rules.clientui
 import dev.isaacudy.udytils.architecture.*
 
 import architecture.definitions.isFeatureModule
+import architecture.definitions.isHtmlSource
 import com.lemonappdev.konsist.api.Konsist
 
 @Describe("""
@@ -63,7 +64,7 @@ object Composable : Construct<ClientUi>(
             drifting into a single shared "screen previews" file.
             """.trimIndent(),
         )
-        note("Compose HTML screens in `src/jsMain/` are exempt: Paparazzi renders Compose UI only.")
+        note("Compose HTML ScreenContents in `src/jsMain/` are tested in `src/jsTest/` instead (`ClientUi.Composable.htmlScreenContentTested`): Paparazzi renders Compose UI only.")
         scope { scope, exempt ->
             val previewsByFile = scope.functions()
                 .filter { it.hasAnnotationWithName("Preview") }
@@ -71,7 +72,7 @@ object Composable : Construct<ClientUi>(
             scope.functions()
                 .filter { it.name.endsWith("ScreenContent") }
                 .filter { it.resideInPackage("feature..client.ui..") }
-                .filterNot { it.containingFile.path.contains("/src/jsMain/") }
+                .filterNot { it.isHtmlSource() }
                 .filterNot { exempt(it) }
                 .filterNot { fn ->
                     previewsByFile[fn.containingFile.path]
@@ -79,6 +80,31 @@ object Composable : Construct<ClientUi>(
                         .any { preview -> preview.text.contains("${fn.name}(") }
                 }
                 .map { Violation(it, "no @Preview composable in the same file calls `${it.name}(`") }
+        }
+    }
+
+    @Describe("A `[Name]ScreenContent` composable in `src/jsMain/` must be called from a test in its module's `src/jsTest/`")
+    val htmlScreenContentTested by rule {
+        rationale(
+            """
+            A Compose HTML ScreenContent has no `@Preview` and no snapshot. A `src/jsTest/` test
+            that composes it with `html-test-utils` and reads the DOM is its coverage.
+            """.trimIndent(),
+        )
+        note("Test sources are outside the governed scope; the rule reads `src/jsTest/` files directly.")
+        scope { scope, exempt ->
+            scope.functions()
+                .filter { it.name.endsWith("ScreenContent") }
+                .filter { it.resideInPackage("feature..client.ui..") }
+                .filter { it.isHtmlSource() }
+                .filterNot { exempt(it) }
+                .filterNot { fn ->
+                    val module = fn.containingFile.path.substringBefore("/src/")
+                    jsTestFiles.any { (path, text) ->
+                        path.startsWith("$module/src/jsTest/") && text.contains("${fn.name}(")
+                    }
+                }
+                .map { Violation(it, "no test in `src/jsTest/` calls `${it.name}(`") }
         }
     }
 
@@ -155,5 +181,13 @@ private val hostTestFiles: List<Pair<String, String>> by lazy {
         .scopeFromProject()
         .files
         .filter { it.path.contains("/src/androidHostTest/") }
+        .map { it.path to it.text }
+}
+
+private val jsTestFiles: List<Pair<String, String>> by lazy {
+    Konsist
+        .scopeFromProject()
+        .files
+        .filter { it.path.contains("/src/jsTest/") }
         .map { it.path to it.text }
 }

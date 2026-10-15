@@ -17,7 +17,7 @@ what a host must do with it; the pipeline itself belongs to the project.
 ## What the build produces
 
 ```
-./gradlew :app:client:web:wasmJsBrowserDistribution --no-configuration-cache
+./gradlew :app:client:web:wasmJsBrowserDistribution
 ```
 
 writes `app/client/web/build/dist/wasmJs/productionExecutable/`:
@@ -133,6 +133,19 @@ The address bar shows the path of the deepest active destination that has one, s
 store, `try_files $uri /index.html` on nginx, `try_files {path} /index.html` on Caddy, a rewrite
 rule on edge hosts). `index.html` sets `<base href="/">`, so its relative script URLs resolve from
 the site root at any path. A site served from a sub-path changes the base to that path.
+
+## Compose HTML client
+
+When `ukpt.htmlWebClient` is true (see `ukpt-html-web`),
+
+```
+./gradlew -Pukpt.htmlWebClient=true :app:client:web-html:jsBrowserDistribution
+```
+
+writes `app/client/web-html/build/dist/js/productionExecutable/`: `index.html`, `App.js`,
+`App.js.map` and `ukpt-design.css`, all stable-named. There is no wasm, so the serving contract
+above does not apply. Upload the files with `no-cache, max-age=0`, leave compression to the host or
+CDN, and leave out `App.js.map` unless the source may be public. Deep links work as described below.
 
 ## Local development
 

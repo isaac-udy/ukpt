@@ -6,6 +6,7 @@ import architecture.definitions.containsPackageSegment
 import architecture.definitions.featureName
 import architecture.definitions.featureNameFromContainingPackage
 import architecture.definitions.isFeatureModule
+import architecture.definitions.isHtmlSource
 import architecture.definitions.resolveTypeToken
 import architecture.rules.shared.domainInterfaceFqnsOnSide
 import architecture.utils.publishedDomainFqns
@@ -136,6 +137,46 @@ object ClientUi : RuleGroup(
         }
     }
 
+    @Describe("A `client.ui` file in `src/jsMain/` must not import Compose UI: it renders with Compose HTML")
+    val htmlSourceUsesNoComposeUi by rule {
+        rationale(
+            """
+            `src/jsMain/` holds the Compose HTML screens of `:app:client:web-html`. A Compose UI
+            import there brings skiko into the HTML bundle, which `verifyHtmlBundle` rejects only
+            after a production webpack build.
+            """.trimIndent(),
+        )
+        note("Compose UI here means `androidx.compose.ui`, `foundation`, `material`, `material3` and `animation`, Compose resources, udytils `:ui`, and the Compose design system. `androidx.compose.runtime` and `platform.design.html` are allowed.")
+        scope { scope, exempt ->
+            scope.files
+                .filter { it.isFeatureModule() && it.isHtmlSource() && it.packagee?.name?.contains(".client.ui") == true }
+                .filterNot { exempt(it) }
+                .flatMap { file ->
+                    file.imports
+                        .filter { import -> composeUiImportPrefixes.any { import.name.startsWith(it) } }
+                        .filterNot { it.name.startsWith("platform.design.html.") }
+                        .map { Violation(file.path, "Compose HTML file imports Compose UI `${it.name}`") }
+                }
+        }
+    }
+
+    @Describe("A `client.ui` file in `src/jsMain/` declares only Screens and composables: State, ViewModels and value types live in `commonMain`")
+    val htmlSourceDeclaresOnlyComposables by rule {
+        rationale(
+            """
+            An HTML Screen renders the same ViewModel and State as its Compose UI Screen. A class
+            declared beside it would give the HTML client behaviour the other clients don't share.
+            """.trimIndent(),
+        )
+        scope { scope, exempt ->
+            scope.files
+                .filter { it.isFeatureModule() && it.isHtmlSource() && it.packagee?.name?.contains(".client.ui") == true }
+                .flatMap { it.classesAndInterfacesAndObjects() }
+                .filterNot { exempt(it) }
+                .map { Violation(it, "Compose HTML file declares `${it.name}`; move it to `commonMain`") }
+        }
+    }
+
     @Describe("Dialog destinations communicate with their opener through navigation results, not shared state or callbacks")
     val dialogsCommunicateViaResults by guidance {
         note("A dialog destination follows the same screen conventions as any other destination — it has its own ViewModel, and the ViewModel performs the navigation actions (`complete`/`requestClose` via its `navigationHandle`). Composables never reference the navigation handle directly.")
@@ -156,3 +197,14 @@ object ClientUi : RuleGroup(
         enforcedBy("ProjectRules.subsystemMirrorsDomain")
     }
 }
+
+private val composeUiImportPrefixes = listOf(
+    "androidx.compose.ui.",
+    "androidx.compose.foundation.",
+    "androidx.compose.material.",
+    "androidx.compose.material3.",
+    "androidx.compose.animation.",
+    "org.jetbrains.compose.resources.",
+    "dev.isaacudy.udytils.ui.",
+    "platform.design.",
+)

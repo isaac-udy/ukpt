@@ -50,6 +50,7 @@ include(":feature:core:client")
 include(":feature:core:server")
 
 include(":platform:client:design")
+include(":platform:client:design-html")
 include(":platform:client:ui")
 include(":platform:common:architecture")
 include(":platform:server:postgres")

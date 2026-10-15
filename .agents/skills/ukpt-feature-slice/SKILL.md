@@ -62,6 +62,8 @@ domain contract inventory to check the result.
    - `app/client/common/build.gradle.kts` → `implementation(projects.feature.<name>.client)`.
    - `app/client/common/.../ClientDependencies.kt` → add `<name>ClientDependencies` to the `clientDependencies`
      list + its import; `./gradlew :app:client:common:jvmTest` then verifies every registered constructor.
+   - `app/client/web-html` → the same list entry in its `ClientDependencies.kt`, the feature client in
+     its `jsMain` dependencies, and a Compose HTML screen per destination (the `ukpt-html-web` skill).
    - `app/server/build.gradle.kts` → `implementation(projects.feature.<name>.server)` (if using the server).
    - Server DI: `Server.kt` has a Koin host already (it wires the postgres modules), so add
      `<name>ServerDependencies` to its `modules(...)` list once the feature has something to bind.
@@ -70,6 +72,7 @@ domain contract inventory to check the result.
 6. **Verify** — the six-target compile sweep (see the `ukpt-verify` skill), record + verify Paparazzi for the new client
    module, and `./gradlew :platform:common:architecture:verifyArchitecture`. If the feature has web UI, run
    the `ukpt-verify-web` skill — a forgotten `viewModelOf` only crashes at runtime on wasm, invisible to compile.
+   With `ukpt.htmlWebClient=true`, also run the Compose HTML gates in `ukpt-verify`.
 
 ## Dialogs are destinations, not screen state (templates.md §8)
 A screen that needs a dialog (confirm, editor, picker) does **not** get a boolean visibility flag

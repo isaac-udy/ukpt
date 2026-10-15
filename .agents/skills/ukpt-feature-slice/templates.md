@@ -8,6 +8,7 @@ These mirror `:feature:core` — if core's build files change materially, update
 ```kotlin
 plugins {
     id("ukpt.kmp-library")
+    id("ukpt.html-web")
     alias(libs.plugins.kotlinKsp)
 }
 
@@ -50,11 +51,15 @@ dependencies {
 ## §2 — `:client` build → `feature/<name>/client/build.gradle.kts`
 
 ```kotlin
+import ukpt.isHtmlWebClientEnabled
+
 plugins {
     // Compose library + Paparazzi host-test wiring. Android resource processing (and the R class
     // Paparazzi resolves reflectively), the host-test component and the stub-R classpath fix all
     // come from the conventions — do not restate them here.
     id("ukpt.snapshot-testing")
+    // Kotlin/JS for the Compose HTML web client; the HTML screens live in jsMain.
+    id("ukpt.html-web")
     alias(libs.plugins.kotlinKsp)
 }
 
@@ -118,6 +123,16 @@ kotlin {
         }
         wasmJsMain.dependencies {
             implementation(libs.kotlinx.browser)
+        }
+        if (isHtmlWebClientEnabled) {
+            jsMain.dependencies {
+                implementation(projects.platform.client.designHtml)
+                implementation(libs.compose.htmlCore)
+                implementation(libs.enro.html)
+            }
+            jsTest.dependencies {
+                implementation(libs.compose.htmlTestUtils)
+            }
         }
     }
 }
@@ -544,6 +559,10 @@ dialog returns data that complete/close cannot represent. The destination carrie
 - [ ] `app/client/common/build.gradle.kts` — `commonMain` → `implementation(projects.feature.<name>.client)`.
 - [ ] `app/client/common/src/commonMain/kotlin/com/isaacudy/ukpt/ClientDependencies.kt` — `import feature.<name>.<name>ClientDependencies`
       and add it to the `clientDependencies` list (`App()` installs that list; `:app:client:common:jvmTest` verifies it).
+- [ ] `app/client/web-html/src/jsMain/kotlin/com/isaacudy/ukpt/ClientDependencies.kt` — the same import and list
+      entry (`FeatureRules.DependencyModule.registeredInEveryClientShell` checks both lists).
+- [ ] `app/client/web-html/build.gradle.kts` — `jsMain` → `implementation(projects.feature.<name>.client)`, and a
+      Compose HTML screen per destination (`ukpt-html-web`). Skip both if the project deleted `app/client/web-html`.
 - [ ] `app/server/build.gradle.kts` — `implementation(projects.feature.<name>.server)` (only if using the server).
 - [ ] Add a navigation entry to the new `<Name>Destination` from wherever the app should reach it.
 - [ ] (Server DI / urpc host: defer to the `ukpt-urpc-service` skill — done when the feature gets its first service.)
