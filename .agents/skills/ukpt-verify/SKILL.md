@@ -25,6 +25,7 @@ Compile every platform (client + server) to verify correctness:
           :app:client:android:checkDebugAarMetadata \
           :app:client:desktop:compileKotlin \
           :app:client:web:compileKotlinWasmJs \
+          :app:client:web-html:compileKotlinJs \
           :app:client:common:compileKotlinIosArm64 \
           :app:client:common:compileKotlinIosSimulatorArm64 \
           :app:server:compileKotlin
@@ -32,6 +33,8 @@ Compile every platform (client + server) to verify correctness:
 `checkDebugAarMetadata` enforces each Android dependency's minimum AGP and compileSdk;
 `compileDebugKotlin` never reaches it. It is cheap, and it is the only gate on the sweep that a
 Compose or androidx bump can fail (`assembleDebug` runs it too, at the cost of a full build).
+`:app:client:web-html:compileKotlinJs` runs Enro's code generator, which fails for a Compose UI
+screen with no Compose HTML twin. A project that deleted one of the web clients drops its line.
 
 The common module's Android / JVM / wasm targets compile transitively via the per-platform app
 modules; the iOS targets are built directly from `:app:client:common`. There is no
@@ -58,17 +61,16 @@ Every other task, including the web webpack and dev-server tasks, is cache-clean
 
 ## Compose HTML client
 
-When `ukpt.htmlWebClient` is true, also run, one at a time:
+Run, one at a time:
 ```
-./gradlew -Pukpt.htmlWebClient=true :feature:core:client:jsTest
-./gradlew -Pukpt.htmlWebClient=true :app:client:web-html:check
+./gradlew :feature:core:client:jsTest
+./gradlew :app:client:web-html:check
+./gradlew :platform:client:design-html:jvmTest
 ```
 `jsTest` runs the common tests on Kotlin/JS and the `[Name]HtmlScreenContent` tests in `src/jsTest/`.
-`check` builds the production bundle and runs `verifyHtmlBundle`. The `ukpt-html-web` skill covers
-the failure messages. With the property false, neither module has a JS target.
-
-`./gradlew :platform:client:design-html:jvmTest` runs whatever the property's value:
-`UkptDesignCssTest` fails when `ukpt-design.css` differs from the Compose design tokens.
+`check` builds the production bundle and runs `verifyHtmlBundle`. `UkptDesignCssTest` fails when
+`ukpt-design.css` differs from the Compose design tokens. The `ukpt-html-web` skill covers the
+failure messages. Skip this section if the project deleted `app/client/web-html`.
 
 ## Testing
 

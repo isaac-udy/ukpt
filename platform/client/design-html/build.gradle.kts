@@ -1,5 +1,4 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import ukpt.isHtmlWebClientEnabled
 
 // The design system for the Compose HTML web client: the primitives in jsMain and the stylesheet
 // in src/css. The jvm target exists only for UkptDesignCssTest, which checks the stylesheet's
@@ -24,11 +23,9 @@ kotlin {
             implementation(projects.platform.client.design)
             implementation(libs.kotlin.test)
         }
-        if (isHtmlWebClientEnabled) {
-            jsMain.dependencies {
-                implementation(libs.compose.runtime)
-                implementation(libs.compose.htmlCore)
-            }
+        jsMain.dependencies {
+            implementation(libs.compose.runtime)
+            implementation(libs.compose.htmlCore)
         }
     }
 }

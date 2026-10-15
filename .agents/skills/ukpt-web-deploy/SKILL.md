@@ -136,10 +136,8 @@ the site root at any path. A site served from a sub-path changes the base to tha
 
 ## Compose HTML client
 
-When `ukpt.htmlWebClient` is true (see `ukpt-html-web`),
-
 ```
-./gradlew -Pukpt.htmlWebClient=true :app:client:web-html:jsBrowserDistribution
+./gradlew :app:client:web-html:jsBrowserDistribution
 ```
 
 writes `app/client/web-html/build/dist/js/productionExecutable/`: `index.html`, `App.js`,

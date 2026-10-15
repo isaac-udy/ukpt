@@ -2,7 +2,8 @@
 name: ukpt-new-project
 description: >-
   Turn a fresh copy of the ukpt template (zip download or GitHub "use this template") into a real
-  project — rename the packages/app identity, set up the git repo and submodules, and write the
+  project — choose which web clients to keep, rename the packages/app identity, set up the git
+  repo and submodules, and write the
   .ukpt/template.json marker that makes future ukpt-template-update runs possible. Use when
   starting a new project from ukpt.
 ---
@@ -36,7 +37,33 @@ renamed, which is what `ukpt-template-update` needs later. Do not skip it.
 3. Do NOT add the template repo as a remote. Updates come from a throwaway clone
    (`ukpt-template-update`), not from a persistent remote.
 
-## 3. Rename
+## 3. Choose the web clients
+
+The template builds two web clients from the same ViewModels and State. Show the user this
+comparison, then ask which to keep: the canvas client, the Compose HTML client, or both.
+
+| | Canvas: `:app:client:web` | Compose HTML: `:app:client:web-html` |
+| --- | --- | --- |
+| Renders | The Compose UI screens the other platforms use, drawn to a `<canvas>` (Kotlin/Wasm) | A Compose HTML twin of each screen, as DOM elements styled with CSS (Kotlin/JS) |
+| Screens per destination | One, shared with Android, desktop and iOS | Two: the Compose UI screen and its twin in the feature's `src/jsMain/`, with a `src/jsTest/` test |
+| Download, template as shipped (brotli) | About 3.7 MB | About 275 KB |
+| Browsers | Needs WasmGC: Chrome 119, Firefox 120, Safari 18.2 or later | Any current browser |
+| Page text | Pixels: find-in-page, browser translation, autofill and extensions can't read it | DOM text: find-in-page, translation, autofill, extensions and screen readers work as on any web page |
+| Design system | `:platform:client:design`, checked by Paparazzi snapshots | `ukpt-design.css` and the `platform.design.html` primitives; a test checks the token values, nothing checks the rendering |
+| UI libraries | Any Compose Multiplatform UI library, Compose resources, udytils `:ui` | Compose HTML only: no Material3, no Compose resources text; udytils' confirmation and error dialogs are not supported yet |
+
+Keeping both costs both columns: every destination needs its Compose HTML twin, and Enro fails
+the HTML client's compile when one is missing.
+
+Apply the choice before renaming, so the rename has fewer files to change:
+
+- **Canvas only:** follow "Removing the HTML client" in `ukpt-html-web`.
+- **Compose HTML only:** delete `app/client/web` and its `settings.gradle.kts` line. Library modules
+  keep their wasmJs target: `ukpt.kmp-library` declares it, and `ukpt.html-web` copies its symbol
+  processors to Kotlin/JS.
+- **Both:** delete nothing.
+
+## 4. Rename
 
 Ask the user for the project name and base package if not given. Rename by semantic scope; never
 run an unrestricted repository-wide replacement for `ukpt` or `Ukpt`.
@@ -84,7 +111,7 @@ choice in `REVIEW` with the user:
   `-Pukpt.renameFailOnReplace=true`. It must report zero `REPLACE` occurrences; `REVIEW` and `KEEP`
   entries may remain by design.
 
-## 4. Write the marker
+## 5. Write the marker
 
 Write `.ukpt/template.json`:
 
@@ -108,17 +135,21 @@ Write `.ukpt/template.json`:
 project's names. Keep it accurate if the project is ever re-branded. `submodules` has one entry
 per `.gitmodules` path.
 
-## 5. Verify
+## 6. Verify
 
-Run the full verification before the first commit — the six-target compile sweep (see the `ukpt-verify` skill)
-first, then the project-specific checks:
+Run the full verification before the first commit — the compile sweep (see the `ukpt-verify` skill;
+drop the deleted web client's line) first, then the project-specific checks:
 
 ```
 ./gradlew :platform:common:architecture:verifyArchitecture
 ./gradlew :feature:core:client:verifyPaparazzi --no-configuration-cache
 ./gradlew :platform:client:design:verifyPaparazzi --no-configuration-cache
 ./gradlew validateTemplate
+
+# Canvas client, if kept:
 bash .agents/skills/ukpt-verify-web/run-bundle-check.sh
+
+# Compose HTML client, if kept: the "Compose HTML client" section of ukpt-verify.
 
 # iOS: the Xcode project must still build after the bundle id is renamed.
 xcodebuild -project app/client/ios/iosApp.xcodeproj -scheme iosApp \
@@ -130,7 +161,7 @@ app launches. If anything under `iosMain` changed, also run it in a simulator (�
 
 Then commit everything as the project's initial commit.
 
-## 6. Next: the design system
+## 7. Next: the design system
 
 The rename gives `:platform:client:design` the project's type prefix, but its palette and typefaces are
 still the template's **neutral placeholders** — deliberately anonymous, not an identity. Point the

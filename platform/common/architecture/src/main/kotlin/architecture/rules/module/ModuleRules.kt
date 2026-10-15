@@ -27,7 +27,7 @@ import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
     * **Purpose**: Final executable entry points and dependency injection (DI) wiring.
     * **Structure**: May contain sub-groups (e.g., `:app:admin`, `:app:customer`) if multiple applications are built from the same codebase.
     * **Child Modules**: Each app contains a `:client` (Mobile/Desktop/Web) and/or a `:server` (Ktor executable).
-        * **Client structure (AGP 9.0)**: AGP 9.0 does not allow one module to be both a KMP library and a `com.android.application`, so `:app:client` is a group: `:app:client:common` is a KMP library holding the shared UI, navigation, DI wiring, and the iOS framework entry point; `:app:client:android`, `:app:client:desktop`, and `:app:client:web` are thin application modules holding only an entry point and platform packaging, each depending on `:app:client:common`.
+        * **Client structure (AGP 9.0)**: AGP 9.0 does not allow one module to be both a KMP library and a `com.android.application`, so `:app:client` is a group: `:app:client:common` is a KMP library holding the shared UI, navigation, DI wiring, and the iOS framework entry point; `:app:client:android`, `:app:client:desktop`, and `:app:client:web` are thin application modules holding only an entry point and platform packaging, each depending on `:app:client:common`. `:app:client:web-html`, the Compose HTML web client, does not depend on `:app:client:common`: it holds its own navigation component and `ClientDependencies.kt`, and depends on the feature clients directly.
     * **Constraints**: Must not contain business logic. Limited to infrastructure configuration and DI module aggregation.
 
     ## `:feature` (Vertical slices of functionality)

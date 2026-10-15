@@ -1,12 +1,12 @@
 ---
 name: ukpt-html-web
 description: >-
-  Build the opt-in Compose HTML (DOM) web client, :app:client:web-html — the
-  ukpt.htmlWebClient switch, Compose HTML screens in a feature's jsMain as
-  PlatformOverride twins of the Compose UI screens, the platform.design.html
-  primitives and ukpt-design.css tokens, the jsTest coverage, the bundle gate,
-  and the Enro and webpack failure messages. Use when enabling the HTML client,
-  adding or changing an HTML screen, or when a Compose HTML build fails.
+  Build the Compose HTML (DOM) web client, :app:client:web-html — Compose HTML
+  screens in a feature's jsMain as PlatformOverride twins of the Compose UI
+  screens, the platform.design.html primitives and ukpt-design.css tokens, the
+  jsTest coverage, the bundle gate, the Enro and webpack failure messages, and
+  removing the client. Use when adding or changing an HTML screen, when a
+  Compose HTML build fails, or when removing the HTML client.
 ---
 
 # ukpt-html-web
@@ -14,20 +14,13 @@ description: >-
 Identifiers here use the template's UKPT identity (`feature.ukpt`, `Ukpt`); projects rename these — the map is in `.ukpt/template.json`.
 
 `:app:client:web-html` renders the feature ViewModels and State with Compose HTML: DOM elements,
-no canvas, no skiko. It runs beside the canvas client `:app:client:web`; neither replaces the other.
+no canvas, no skiko. The template builds it beside the canvas client `:app:client:web`; a project
+keeps either or both (`ukpt-new-project`, "Choose the web clients").
 
-## The switch
-
-`ukpt.htmlWebClient` in `gradle.properties` is `false` by default. Set it to `true`, or pass
-`-Pukpt.htmlWebClient=true`, and:
-
-- `settings.gradle.kts` includes `:app:client:web-html`;
-- every module that applies `id("ukpt.html-web")` gains a Kotlin/JS browser target, and its wasmJs
-  symbol processors also run for JS (`build-logic/src/main/kotlin/ukpt.html-web.gradle.kts`);
-- `jsMain`/`jsTest` dependencies declared behind `if (isHtmlWebClientEnabled)` apply.
-
-With the switch off, nothing compiles for JS. `verifyArchitecture` checks the HTML sources either
-way, because it reads files from disk.
+Every module that applies `id("ukpt.html-web")` has a Kotlin/JS browser target, and its wasmJs
+symbol processors also run for JS (`build-logic/src/main/kotlin/ukpt.html-web.gradle.kts`). Every
+`:feature:<name>:api` and `:client`, and every platform module a `:client` `commonMain` depends on,
+applies it.
 
 ## Layout
 
@@ -73,8 +66,8 @@ The rules, all run by `verifyArchitecture`:
 
 `ukpt-design.css` restates `UkptColors` (Light, and Dark under `prefers-color-scheme: dark`),
 `UkptSpacing`, `UkptShapes` and the `UkptTypography` sizes, line heights and weights as
-`--ukpt-*` custom properties. `UkptDesignCssTest` (`:platform:client:design-html:jvmTest`, run with
-the switch on or off) fails and lists each property that differs from the Compose value. After a
+`--ukpt-*` custom properties. `UkptDesignCssTest` (`:platform:client:design-html:jvmTest`) fails
+and lists each property that differs from the Compose value. After a
 token change in `:platform:client:design`, change the CSS to match.
 
 Fonts are not checked: `UkptFonts.System` is the platform default, and the CSS names a system font
@@ -87,9 +80,9 @@ stylesheet through the `htmlStylesheetElements` configuration in
 ## Run and verify
 
 ```
-./gradlew -Pukpt.htmlWebClient=true :app:client:web-html:jsBrowserDevelopmentRun
-./gradlew -Pukpt.htmlWebClient=true :feature:core:client:jsTest
-./gradlew -Pukpt.htmlWebClient=true :app:client:web-html:check
+./gradlew :app:client:web-html:jsBrowserDevelopmentRun
+./gradlew :feature:core:client:jsTest
+./gradlew :app:client:web-html:check
 ```
 
 `check` builds the production bundle and runs `verifyHtmlBundle`. In the served app, open the
@@ -116,7 +109,15 @@ renders errors from its State.
 
 ## Removing the HTML client
 
-A project that won't ship it deletes `app/client/web-html` and `platform/client/design-html`, their
-`settings.gradle.kts` lines, the `ukpt.htmlWebClient` property, each feature's `src/jsMain/` and
-`src/jsTest/`, the `id("ukpt.html-web")` lines and the `if (isHtmlWebClientEnabled)` blocks.
-`registeredInEveryClientShell` then checks only `:app:client:common`.
+A project that won't ship it deletes:
+
+- `app/client/web-html` and `platform/client/design-html`, and their `settings.gradle.kts` lines;
+- each feature's `src/jsMain/` and `src/jsTest/`;
+- `kotlin-js-store/yarn.lock`, the Kotlin/JS lock file (`kotlin-js-store/wasm/` is the canvas
+  client's);
+- every `id("ukpt.html-web")` line, and the `jsMain`/`jsTest` dependency blocks in the `:client`
+  builds.
+
+`build-logic` and the version catalog are template-owned: leave the `ukpt.html-web` plugin and the
+`compose-html*` entries in place. `registeredInEveryClientShell` then checks only
+`:app:client:common`. Then run the `ukpt-verify` sweep without the Compose HTML client section.
