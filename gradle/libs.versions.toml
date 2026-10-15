@@ -72,6 +72,8 @@ ktor-clientContentNegotiation = { module = "io.ktor:ktor-client-content-negotiat
 kotlinx-io = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version.ref = "kotlinx-io" }
 kotlinx-browser = { module = "org.jetbrains.kotlinx:kotlinx-browser", version.ref = "kotlinx-browser" }
 
+compose-htmlCore = { module = "org.jetbrains.compose.html:html-core", version.ref = "composeMultiplatform" }
+
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
 koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin" }
 koin-composeViewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
@@ -83,6 +85,7 @@ konsist = { module = "com.lemonappdev:konsist", version.ref = "konsist" }
 
 enro-core = { module = "dev.enro:enro" }
 enro-common = { module = "dev.enro:enro-common" }
+enro-html = { module = "dev.enro:enro-html" }
 enro-test = { module = "dev.enro:enro-test" }
 enro-processor = { module = "dev.enro:enro-processor" }
 

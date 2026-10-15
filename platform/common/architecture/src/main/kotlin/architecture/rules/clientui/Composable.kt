@@ -63,6 +63,7 @@ object Composable : Construct<ClientUi>(
             drifting into a single shared "screen previews" file.
             """.trimIndent(),
         )
+        note("Compose HTML screens in `src/jsMain/` are exempt: Paparazzi renders Compose UI only.")
         scope { scope, exempt ->
             val previewsByFile = scope.functions()
                 .filter { it.hasAnnotationWithName("Preview") }
@@ -70,6 +71,7 @@ object Composable : Construct<ClientUi>(
             scope.functions()
                 .filter { it.name.endsWith("ScreenContent") }
                 .filter { it.resideInPackage("feature..client.ui..") }
+                .filterNot { it.containingFile.path.contains("/src/jsMain/") }
                 .filterNot { exempt(it) }
                 .filterNot { fn ->
                     previewsByFile[fn.containingFile.path]

@@ -1,6 +1,10 @@
+import ukpt.isHtmlWebClientEnabled
+
 plugins {
     // Compose library + Paparazzi host-test wiring (see ukpt.snapshot-testing).
     id("ukpt.snapshot-testing")
+    // Kotlin/JS for the Compose HTML web client; the HTML screens live in jsMain.
+    id("ukpt.html-web")
     alias(libs.plugins.kotlinKsp)
 }
 
@@ -65,6 +69,12 @@ kotlin {
         }
         wasmJsMain.dependencies {
             implementation(libs.kotlinx.browser)
+        }
+        if (isHtmlWebClientEnabled) {
+            jsMain.dependencies {
+                implementation(libs.compose.htmlCore)
+                implementation(libs.enro.html)
+            }
         }
     }
 }
