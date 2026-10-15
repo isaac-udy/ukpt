@@ -72,8 +72,12 @@ kotlin {
         }
         if (isHtmlWebClientEnabled) {
             jsMain.dependencies {
+                implementation(projects.platform.client.designHtml)
                 implementation(libs.compose.htmlCore)
                 implementation(libs.enro.html)
+            }
+            jsTest.dependencies {
+                implementation(libs.compose.htmlTestUtils)
             }
         }
     }

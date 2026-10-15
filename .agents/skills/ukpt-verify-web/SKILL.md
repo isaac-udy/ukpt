@@ -18,19 +18,21 @@ A green compile is necessary but not sufficient — you must bundle *and* serve.
 
 **1. Bundle gate** — catches `node:` imports (mode 1) and the `.DS_Store` IC crash (mode 4):
 ```
-./gradlew :app:client:web:wasmJsBrowserDevelopmentWebpack --no-configuration-cache
+./gradlew :app:client:web:wasmJsBrowserDevelopmentWebpack
 ```
 Ergonomics: `bash .agents/skills/ukpt-verify-web/run-bundle-check.sh` runs this and flags the two build-time signatures for you.
 
 **2. Runtime gate** — catches the navigation entry-point gap (mode 2) and the missing ViewModel factory (mode 3). These are **invisible to webpack**:
 ```
-./gradlew :app:client:web:wasmJsBrowserDevelopmentRun --no-configuration-cache
+./gradlew :app:client:web:wasmJsBrowserDevelopmentRun
 ```
 Open the served URL, confirm the page actually renders (the `<body>` gets populated by `ComposeViewport`), open the browser console, and **navigate to the changed screen(s)** — mode 3 only fires when a `viewModel()` destination first composes.
 
 **Done when:** webpack succeeds **and** the served page renders with no console errors on the affected screens.
 
 Both gates build in development mode. The production build, its brotli-compressed wasm and the host configuration are covered by `ukpt-web-deploy`.
+
+These gates cover the canvas client, `:app:client:web`. The Compose HTML client, `:app:client:web-html`, has its own gates in `ukpt-html-web`.
 
 ## Failure signatures → cause → fix
 

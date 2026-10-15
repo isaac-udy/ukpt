@@ -33,10 +33,16 @@ to `app/server/build/install/server/`; start it with `bin/server` and the same e
 ## Web (dev server)
 
 ```
-./gradlew :app:client:web:wasmJsBrowserDevelopmentRun --no-configuration-cache
+./gradlew :app:client:web:wasmJsBrowserDevelopmentRun
 ```
-Open the served URL. The `--no-configuration-cache` flag is required (upstream `KotlinWebpack`
-limitation).
+Open the served URL.
+
+## Web, Compose HTML (dev server)
+
+```
+./gradlew -Pukpt.htmlWebClient=true :app:client:web-html:jsBrowserDevelopmentRun
+```
+Open the served URL. The client exists only when `ukpt.htmlWebClient` is true; see `ukpt-html-web`.
 
 ## Android
 

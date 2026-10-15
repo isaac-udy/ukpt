@@ -2,6 +2,7 @@ package architecture.rules.clientui
 
 import dev.isaacudy.udytils.architecture.*
 
+import architecture.definitions.isHtmlSource
 import com.lemonappdev.konsist.api.declaration.KoFunctionDeclaration
 import com.lemonappdev.konsist.api.declaration.KoPropertyDeclaration
 import com.lemonappdev.konsist.api.provider.KoAnnotationProvider
@@ -21,6 +22,15 @@ import com.lemonappdev.konsist.api.provider.KoNameProvider
     DSL is for screens that need to declare custom metadata, such as `directOverlay()`. The
     property name may end in `Screen` or `Destination`; both are accepted because the property is
     the destination declaration site.
+
+    ### Compose HTML Screens
+
+    When the project builds the Compose HTML web client (`ukpt.htmlWebClient`), each Screen that
+    client reaches has a Compose HTML twin in the same package under `src/jsMain/`, named with an
+    `Html` infix (`UkptHtmlScreen`, `confirmResetDialogHtmlDestination`). It renders the same
+    ViewModel and State, is annotated `@NavigationDestination.PlatformOverride`, and builds from
+    `platform.design.html`. Its `[Name]HtmlScreenContent` is tested in `src/jsTest/` instead of by
+    a `@Preview`.
 """)
 object Screen : Construct<ClientUi>(
     requirements = listOf(
@@ -158,6 +168,26 @@ object Screen : Construct<ClientUi>(
                 listOf(Violation(decl, "Screen file imports `koinViewModel`; inject ViewModels via `viewModel()`"))
             } else {
                 emptyList()
+            }
+        }
+    }
+
+    @Describe("A Screen in `src/jsMain/` must be annotated `@NavigationDestination.PlatformOverride`")
+    val htmlScreenIsPlatformOverride by rule {
+        rationale(
+            """
+            Enro's code generator treats only `PlatformOverride` destinations as Compose HTML
+            screens. An HTML Screen annotated `@NavigationDestination` is a second binding for the
+            key, and the generator reports the Compose UI Screen as having no HTML override.
+            """.trimIndent(),
+        )
+        constrain { decl, _ ->
+            if (!decl.isHtmlSource()) return@constrain emptyList()
+            val annotated = decl as? KoAnnotationProvider ?: return@constrain emptyList()
+            if (annotated.hasAnnotation { it.text.contains("NavigationDestination.PlatformOverride") }) {
+                emptyList()
+            } else {
+                listOf(Violation(decl, "Compose HTML Screen is not annotated `@NavigationDestination.PlatformOverride`"))
             }
         }
     }

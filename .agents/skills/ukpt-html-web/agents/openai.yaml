@@ -1,0 +1,4 @@
+interface:
+  display_name: "UKPT Compose HTML Web"
+  short_description: "Build and verify the Compose HTML web client"
+  default_prompt: "Use $ukpt-html-web to add or verify Compose HTML screens."

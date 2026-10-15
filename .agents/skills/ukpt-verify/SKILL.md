@@ -14,7 +14,8 @@ description: >-
 Identifiers here use the template's UKPT identity (`UkptPreviewFrame`, `feature.ukpt`); projects rename these — the map is in `.ukpt/template.json`.
 
 For web/wasm bundle and runtime verification, use the `ukpt-verify-web` skill — it covers the four
-wasm-only failure modes that compilation misses.
+wasm-only failure modes that compilation misses. The Compose HTML client is covered below and in
+`ukpt-html-web`.
 
 ## Compiling
 
@@ -47,15 +48,27 @@ skill to bundle and serve the app in a browser.
 
 `--no-configuration-cache` is **required** on these tasks:
 
-- **`wasmJsBrowser*` tasks** (`wasmJsBrowserDevelopmentWebpack`, `wasmJsBrowserDevelopmentRun`): the
-  Kotlin plugin's `KotlinWebpack` task holds a `Project` reference and an unserializable
-  `SoftReference`, so it cannot be stored in the configuration cache (upstream). Everything else,
-  including `compileKotlinWasmJs`, is cache-clean.
 - **Paparazzi tasks** (`recordPaparazzi`, `verifyPaparazzi`): under the configuration cache the R
   class is dropped from the test runtime classpath and every snapshot test dies with
   `ClassNotFoundException: <module>.R`.
 - **`allTests` on client modules**: a client module's `allTests` includes the snapshot host test, so
   it needs `--no-configuration-cache` too (same R-class failure as above).
+
+Every other task, including the web webpack and dev-server tasks, is cache-clean.
+
+## Compose HTML client
+
+When `ukpt.htmlWebClient` is true, also run, one at a time:
+```
+./gradlew -Pukpt.htmlWebClient=true :feature:core:client:jsTest
+./gradlew -Pukpt.htmlWebClient=true :app:client:web-html:check
+```
+`jsTest` runs the common tests on Kotlin/JS and the `[Name]HtmlScreenContent` tests in `src/jsTest/`.
+`check` builds the production bundle and runs `verifyHtmlBundle`. The `ukpt-html-web` skill covers
+the failure messages. With the property false, neither module has a JS target.
+
+`./gradlew :platform:client:design-html:jvmTest` runs whatever the property's value:
+`UkptDesignCssTest` fails when `ukpt-design.css` differs from the Compose design tokens.
 
 ## Testing
 

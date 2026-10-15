@@ -6,12 +6,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.enro.annotations.NavigationDestination
 import dev.isaacudy.udytils.state.AsyncState
 import dev.isaacudy.udytils.state.isLoading
-import org.jetbrains.compose.web.attributes.disabled
-import org.jetbrains.compose.web.dom.Button
 import org.jetbrains.compose.web.dom.H1
 import org.jetbrains.compose.web.dom.Main
 import org.jetbrains.compose.web.dom.P
 import org.jetbrains.compose.web.dom.Text
+import platform.design.html.UkptHtmlButton
+import platform.design.html.UkptHtmlColors
+import platform.design.html.UkptHtmlLayout
+import platform.design.html.UkptHtmlTypography
 
 @Composable
 @NavigationDestination.PlatformOverride(UkptDestination::class)
@@ -34,33 +36,37 @@ internal fun UkptHtmlScreenContent(
     onRetry: () -> Unit,
     onReset: () -> Unit,
 ) {
-    Main(attrs = { classes("ukpt-screen") }) {
+    Main(attrs = { classes(UkptHtmlLayout.screen) }) {
         when (val summary = state.greetingSummary) {
             is AsyncState.Idle,
             is AsyncState.Loading -> {
-                P(attrs = { attr("aria-busy", "true") }) { Text("Loading…") }
+                P(attrs = {
+                    classes(UkptHtmlTypography.body, UkptHtmlColors.onSurfaceVariant)
+                    attr("aria-busy", "true")
+                }) { Text("Loading…") }
             }
             is AsyncState.Error -> {
-                H1 { Text("Something went wrong") }
-                Button(attrs = { onClick { onRetry() } }) { Text("Retry") }
+                H1(attrs = { classes(UkptHtmlTypography.title) }) { Text("Something went wrong") }
+                UkptHtmlButton(label = "Retry", onClick = onRetry)
             }
             is AsyncState.Success -> {
-                H1 { Text(summary.data.latest?.text ?: "No greetings yet") }
-                P(attrs = { classes("caption") }) {
+                H1(attrs = { classes(UkptHtmlTypography.title) }) {
+                    Text(summary.data.latest?.text ?: "No greetings yet")
+                }
+                P(attrs = { classes(UkptHtmlTypography.caption, UkptHtmlColors.onSurfaceVariant) }) {
                     Text("${summary.data.greetings.size} greetings in history")
                 }
-                Button(
-                    attrs = {
-                        onClick { onGreet() }
-                        if (state.greetAction.isLoading()) disabled()
-                    },
-                ) {
-                    Text(if (state.greetAction.isLoading()) "Greeting…" else "Greet")
-                }
+                UkptHtmlButton(
+                    label = if (state.greetAction.isLoading()) "Greeting…" else "Greet",
+                    onClick = onGreet,
+                    enabled = !state.greetAction.isLoading(),
+                )
                 if (state.greetAction is AsyncState.Error) {
-                    P(attrs = { classes("error") }) { Text("Greet failed") }
+                    P(attrs = { classes(UkptHtmlTypography.caption, UkptHtmlColors.accent) }) {
+                        Text("Greet failed")
+                    }
                 }
-                Button(attrs = { onClick { onReset() } }) { Text("Reset") }
+                UkptHtmlButton(label = "Reset", onClick = onReset)
             }
         }
     }

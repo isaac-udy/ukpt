@@ -7,6 +7,7 @@ import architecture.definitions.isClientModule
 import architecture.definitions.isFeatureModule
 import architecture.definitions.isFeatureRootPackage
 import architecture.definitions.isServerModule
+import architecture.projectScope
 import com.lemonappdev.konsist.api.declaration.KoPropertyDeclaration
 import com.lemonappdev.konsist.api.provider.KoContainingFileProvider
 
@@ -17,9 +18,10 @@ import com.lemonappdev.konsist.api.provider.KoContainingFileProvider
       `[name]ServerDependencies` in `:server`. The Construct enforces the `Dependencies` suffix;
       the `Client`/`Server` infix is convention.
     * **Note:** The `:app` modules (application shells) are responsible for collecting the DI
-      modules provided by feature modules into the final dependency graph. When a new dependency
-      module is added, it must be registered in both `:app:client:common` and `:app:server`; when
-      a new Service is added, it must be registered in `:app:server`.
+      modules provided by feature modules into the final dependency graph. A `:client` dependency
+      module is registered in every client shell's `ClientDependencies.kt` (`:app:client:common`
+      and `:app:client:web-html`) and a `:server` one in `:app:server`; when a new Service is
+      added, it must be registered in `:app:server`.
     * **Note:** Every application class is bound by constructor reference — `singleOf`,
       `factoryOf`, `scopedOf`, or `viewModelOf`, whichever lifetime the class needs — so the graph
       supplies every constructor parameter, and a registered class gives no parameter a default
@@ -70,6 +72,31 @@ object DependencyModule : Construct<FeatureRules>(
         }
     }
 
+    @Describe("A `:client` Dependency Module must be listed in every client shell's `ClientDependencies.kt`")
+    val registeredInEveryClientShell by rule {
+        rationale(
+            """
+            `:app:client:common` and `:app:client:web-html` each keep their own `clientDependencies`
+            list, because the HTML client can't depend on the Compose UI shell. A module missing
+            from one list fails only when that client first resolves a ViewModel from it.
+            """.trimIndent(),
+        )
+        note("Reads every `app/client/*/src/**/ClientDependencies.kt`, including shells the current build doesn't include.")
+        constrain { decl, _ ->
+            val property = decl as? KoPropertyDeclaration ?: return@constrain emptyList()
+            if (!property.isClientModule()) return@constrain emptyList()
+            val reference = Regex("""\b${Regex.escape(property.name)}\b""")
+            clientShellDependencyFiles
+                .filterNot { file ->
+                    file.text.lines().any { line -> !line.trimStart().startsWith("import ") && reference.containsMatchIn(line) }
+                }
+                .map { file ->
+                    val shell = ":app:client:" + file.path.substringAfter("/app/client/").substringBefore("/src/")
+                    Violation(decl, "`${property.name}` is missing from `clientDependencies` in `$shell`")
+                }
+        }
+    }
+
     @Describe("A Dependency Module registers a service's generated `[Name]ServiceUrpcBinding` by chaining `.bindService(::[Name]ServiceUrpcBinding)` off the implementation's binding, inside the per-call `scope<UrpcCall> { }` block")
     val urpcServiceBinding by rule {
         note("`bindService` (from `dev.isaacudy.udytils.urpc.koin`) registers the binding under its own concrete type, bound to `UrpcService`, with the impl resolved lazily.")
@@ -84,4 +111,8 @@ object DependencyModule : Construct<FeatureRules>(
             }
         }
     }
+}
+
+private val clientShellDependencyFiles by lazy {
+    projectScope.files.filter { it.path.contains("/app/client/") && it.nameWithExtension == "ClientDependencies.kt" }
 }

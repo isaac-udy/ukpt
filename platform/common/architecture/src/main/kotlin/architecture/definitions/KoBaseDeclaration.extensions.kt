@@ -103,6 +103,9 @@ fun KoBaseDeclaration.isApiModule(): Boolean {
     return beforeSrc.endsWith("/api")
 }
 
+/** True for a declaration in a `src/jsMain/` source set, where the Compose HTML screens live. */
+fun KoBaseDeclaration.isHtmlSource(): Boolean = containingFilePath().contains("/src/jsMain/")
+
 /**
  * Returns the name of the feature associated with the KoBaseDeclaration, which will be the name
  * of the containing file/package's feature name unless the KoBaseDeclaration is an *import*,

@@ -78,7 +78,7 @@ Read more widely when the change is shaped by the rules — a new feature slice 
 
 ## Verification
 
-After changes, compile every platform (client + server), not just the touched module — the `ukpt-verify` skill has the full sweep and test commands. Paparazzi and `wasmJsBrowser*` tasks require `--no-configuration-cache`.
+After changes, compile every platform (client + server), not just the touched module — the `ukpt-verify` skill has the full sweep and test commands. Paparazzi tasks require `--no-configuration-cache`.
 
 ## Reference
 
@@ -86,6 +86,7 @@ After changes, compile every platform (client + server), not just the touched mo
 - `ukpt-drive-app` — drive the running desktop app through the Compose Hot Reload MCP server: semantic tree, clicks, screenshots, hot reload, runtime errors.
 - `ukpt-verify-web` — wasm bundle and runtime verification.
 - `ukpt-web-deploy` — serving the web client: brotli-compressed wasm, headers, cache policy, host recipes.
+- `ukpt-html-web` — the opt-in Compose HTML web client (`ukpt.htmlWebClient`): HTML screens, design tokens, gates.
 - `ukpt-ui-atlas` — `./gradlew generateUiAtlas`, manifest schema.
 - `ukpt-server-packaging` — fat jar build, service-file checks, smoke test.
 - `ukpt-feature-slice` — scaffold `:feature:<name>:{api,client,server}`.

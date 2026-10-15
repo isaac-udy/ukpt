@@ -1,0 +1,213 @@
+/* The design tokens of :platform:client:design as CSS custom properties, and the classes the
+   Compose HTML primitives use. UkptDesignCssTest fails when a token here differs from its Compose
+   value. */
+:root {
+    color-scheme: light dark;
+
+    --ukpt-background: #FFFFFF;
+    --ukpt-surface: #F4F4F5;
+    --ukpt-on-surface: #18181B;
+    --ukpt-on-surface-variant: #52525B;
+    --ukpt-accent: #3F3F46;
+    --ukpt-on-accent: #FAFAFA;
+    --ukpt-outline: #D4D4D8;
+    --ukpt-error: #B3261E;
+    --ukpt-on-error: #FFFFFF;
+
+    --ukpt-space-xs: 4px;
+    --ukpt-space-sm: 8px;
+    --ukpt-space-md: 16px;
+    --ukpt-space-lg: 24px;
+    --ukpt-space-xl: 32px;
+    --ukpt-space-xxl: 48px;
+
+    --ukpt-radius-small: 6px;
+    --ukpt-radius-medium: 10px;
+    --ukpt-radius-large: 16px;
+
+    --ukpt-font-display: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --ukpt-font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --ukpt-font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+    --ukpt-display-size: 32px;
+    --ukpt-display-line-height: 40px;
+    --ukpt-display-weight: 600;
+    --ukpt-title-size: 20px;
+    --ukpt-title-line-height: 28px;
+    --ukpt-title-weight: 600;
+    --ukpt-body-size: 16px;
+    --ukpt-body-line-height: 24px;
+    --ukpt-body-weight: 400;
+    --ukpt-label-size: 14px;
+    --ukpt-label-line-height: 20px;
+    --ukpt-label-weight: 500;
+    --ukpt-caption-size: 12px;
+    --ukpt-caption-line-height: 16px;
+    --ukpt-caption-weight: 400;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --ukpt-background: #09090B;
+        --ukpt-surface: #18181B;
+        --ukpt-on-surface: #FAFAFA;
+        --ukpt-on-surface-variant: #A1A1AA;
+        --ukpt-accent: #E4E4E7;
+        --ukpt-on-accent: #18181B;
+        --ukpt-outline: #3F3F46;
+        --ukpt-error: #F2B8B5;
+        --ukpt-on-error: #601410;
+    }
+}
+
+body {
+    margin: 0;
+    background: var(--ukpt-background);
+    color: var(--ukpt-on-surface);
+    font-family: var(--ukpt-font-body);
+    font-size: var(--ukpt-body-size);
+    line-height: var(--ukpt-body-line-height);
+    font-weight: var(--ukpt-body-weight);
+}
+
+h1, h2, h3, p {
+    margin: 0;
+}
+
+.ukpt-display {
+    font-family: var(--ukpt-font-display);
+    font-size: var(--ukpt-display-size);
+    line-height: var(--ukpt-display-line-height);
+    font-weight: var(--ukpt-display-weight);
+}
+
+.ukpt-title {
+    font-family: var(--ukpt-font-display);
+    font-size: var(--ukpt-title-size);
+    line-height: var(--ukpt-title-line-height);
+    font-weight: var(--ukpt-title-weight);
+}
+
+.ukpt-body {
+    font-family: var(--ukpt-font-body);
+    font-size: var(--ukpt-body-size);
+    line-height: var(--ukpt-body-line-height);
+    font-weight: var(--ukpt-body-weight);
+}
+
+.ukpt-label {
+    font-family: var(--ukpt-font-body);
+    font-size: var(--ukpt-label-size);
+    line-height: var(--ukpt-label-line-height);
+    font-weight: var(--ukpt-label-weight);
+}
+
+.ukpt-caption {
+    font-family: var(--ukpt-font-body);
+    font-size: var(--ukpt-caption-size);
+    line-height: var(--ukpt-caption-line-height);
+    font-weight: var(--ukpt-caption-weight);
+}
+
+.ukpt-on-surface {
+    color: var(--ukpt-on-surface);
+}
+
+.ukpt-on-surface-variant {
+    color: var(--ukpt-on-surface-variant);
+}
+
+.ukpt-accent {
+    color: var(--ukpt-accent);
+}
+
+.ukpt-error {
+    color: var(--ukpt-error);
+}
+
+.ukpt-screen {
+    box-sizing: border-box;
+    min-height: 100vh;
+    padding: var(--ukpt-space-md);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--ukpt-space-md);
+}
+
+.ukpt-button {
+    font-family: var(--ukpt-font-body);
+    font-size: var(--ukpt-label-size);
+    line-height: var(--ukpt-label-line-height);
+    font-weight: var(--ukpt-label-weight);
+    padding: var(--ukpt-space-sm) var(--ukpt-space-md);
+    border-radius: var(--ukpt-radius-small);
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+
+.ukpt-button-primary {
+    background: var(--ukpt-accent);
+    color: var(--ukpt-on-accent);
+}
+
+.ukpt-button-secondary {
+    background: var(--ukpt-surface);
+    color: var(--ukpt-on-surface);
+    border-color: var(--ukpt-outline);
+}
+
+.ukpt-button-ghost {
+    background: transparent;
+    color: var(--ukpt-on-surface-variant);
+}
+
+.ukpt-button:disabled {
+    background: var(--ukpt-surface);
+    color: var(--ukpt-on-surface-variant);
+    cursor: default;
+}
+
+.ukpt-button:focus-visible {
+    outline: 2px solid var(--ukpt-accent);
+    outline-offset: 2px;
+}
+
+dialog {
+    box-sizing: border-box;
+    border: none;
+    border-radius: var(--ukpt-radius-large);
+    padding: var(--ukpt-space-lg);
+    max-width: min(400px, calc(100vw - 2 * var(--ukpt-space-md)));
+    background: var(--ukpt-surface);
+    color: var(--ukpt-on-surface);
+    opacity: 1;
+    transition: opacity 150ms, overlay 150ms allow-discrete, display 150ms allow-discrete;
+}
+
+dialog:not([open]) {
+    opacity: 0;
+}
+
+@starting-style {
+    dialog[open] {
+        opacity: 0;
+    }
+}
+
+dialog::backdrop {
+    background: rgb(0 0 0 / 0.4);
+}
+
+.ukpt-dialog-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ukpt-space-md);
+}
+
+.ukpt-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--ukpt-space-sm);
+}

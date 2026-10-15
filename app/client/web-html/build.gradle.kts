@@ -50,8 +50,21 @@ kotlin {
     }
 }
 
+val htmlStylesheets = configurations.dependencyScope("htmlStylesheets")
+val htmlStylesheetFiles = configurations.resolvable("htmlStylesheetFiles") {
+    extendsFrom(htmlStylesheets.get())
+    attributes {
+        attribute(Usage.USAGE_ATTRIBUTE, objects.named("ukpt-html-stylesheet"))
+    }
+}
+
 dependencies {
     add("kspJs", libs.enro.processor)
+    add(htmlStylesheets.name, projects.platform.client.designHtml)
+}
+
+tasks.named<ProcessResources>("jsProcessResources") {
+    from(htmlStylesheetFiles)
 }
 
 val verifyHtmlBundle = tasks.register("verifyHtmlBundle") {

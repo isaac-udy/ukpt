@@ -30,9 +30,13 @@ git submodule update --init --recursive     # required, see Embedded libraries
 ./gradlew :app:client:desktop:run                          # Desktop
 ./gradlew :app:server:run                                  # Server, on :8080
 ./gradlew :app:client:android:installDebug                 # Android
-./gradlew :app:client:web:wasmJsBrowserDevelopmentRun --no-configuration-cache   # Web
+./gradlew :app:client:web:wasmJsBrowserDevelopmentRun     # Web
 open app/client/ios/iosApp.xcodeproj                       # iOS — then run (⌘R)
 ```
+
+A second web client, `:app:client:web-html`, renders the same screens with Compose HTML: DOM
+elements instead of a canvas. It is off by default; set `ukpt.htmlWebClient=true` in
+`gradle.properties` and see the [`ukpt-html-web`](.agents/skills/ukpt-html-web) skill.
 
 The iOS app has no Gradle command: an Xcode build phase invokes
 `:app:client:common:embedAndSignAppleFrameworkForXcode`, which builds `App.framework` from the shared
@@ -179,9 +183,9 @@ one is discovered and snapshotted. Goldens are grouped by package, for example
 ./gradlew :feature:core:client:verifyPaparazzi --no-configuration-cache
 ```
 
-The Gradle configuration cache is on. Two task families are incompatible with it and need
-`--no-configuration-cache`: the wasm browser and webpack tasks, and Paparazzi record/verify.
-Everything else, including the full compile sweep, is cache-clean.
+The Gradle configuration cache is on. Paparazzi record/verify is incompatible with it and needs
+`--no-configuration-cache`. Everything else, including the full compile sweep and the web tasks, is
+cache-clean.
 
 Template maintainers can validate the marker, migration documents, agent imports, shared skill
 metadata, and Claude compatibility links with:
