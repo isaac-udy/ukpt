@@ -6,7 +6,7 @@ android-targetSdk = "37"
 androidx-activity = "1.13.0"
 androidx-appcompat = "1.7.1"
 androidx-core = "1.19.0"
-androidx-lifecycle = "2.10.0"
+androidx-lifecycle = "2.11.0"
 composeMultiplatform = "1.12.0"
 kotlin = "2.4.0"
 kotlinx-coroutines = "1.11.0"
@@ -72,6 +72,10 @@ ktor-clientContentNegotiation = { module = "io.ktor:ktor-client-content-negotiat
 kotlinx-io = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version.ref = "kotlinx-io" }
 kotlinx-browser = { module = "org.jetbrains.kotlinx:kotlinx-browser", version.ref = "kotlinx-browser" }
 
+compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeMultiplatform" }
+compose-htmlCore = { module = "org.jetbrains.compose.html:html-core", version.ref = "composeMultiplatform" }
+compose-htmlTestUtils = { module = "org.jetbrains.compose.html:html-test-utils", version.ref = "composeMultiplatform" }
+
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
 koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin" }
 koin-composeViewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
@@ -83,11 +87,13 @@ konsist = { module = "com.lemonappdev:konsist", version.ref = "konsist" }
 
 enro-core = { module = "dev.enro:enro" }
 enro-common = { module = "dev.enro:enro-common" }
+enro-html = { module = "dev.enro:enro-html" }
 enro-test = { module = "dev.enro:enro-test" }
 enro-processor = { module = "dev.enro:enro-processor" }
 
 udytils-core = { module = "dev.isaacudy.udytils:core" }
 udytils-ui = { module = "dev.isaacudy.udytils:ui" }
+udytils-uiHtml = { module = "dev.isaacudy.udytils:ui-html" }
 udytils-snapshot = { module = "dev.isaacudy.udytils:snapshot" }
 udytils-htmx = { module = "dev.isaacudy.udytils:htmx" }
 udytils-htmlSnapshot = { module = "dev.isaacudy.udytils:html-snapshot" }
