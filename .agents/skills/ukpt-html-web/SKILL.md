@@ -28,7 +28,7 @@ applies it.
 |---|---|
 | HTML screens | `feature/<name>/client/src/jsMain/kotlin/feature/<name>/client/ui/` |
 | HTML screen tests | `feature/<name>/client/src/jsTest/kotlin/feature/<name>/client/ui/` |
-| Primitives and class names | `platform/client/design-html/src/jsMain/kotlin/platform/design/html/` |
+| Primitives, class names and `UkptHtmlTheme` | `platform/client/design-html/src/jsMain/kotlin/platform/design/html/` |
 | Tokens and component CSS | `platform/client/design-html/src/css/ukpt-design.css` |
 | App shell | `app/client/web-html` (`Main.kt`, `UkptHtmlNavigation.kt`, `ClientDependencies.kt`) |
 
@@ -55,7 +55,8 @@ The rules, all run by `verifyArchitecture`:
 
 - `ClientUi.Screen.htmlScreenIsPlatformOverride` — the annotation in step 1.
 - `ClientUi.htmlSourceUsesNoComposeUi` — no Compose UI, Compose resources, udytils `:ui` or
-  `platform.design` imports in `jsMain` (`platform.design.html` is allowed).
+  `platform.design` imports in `jsMain` (`platform.design.html` and udytils `:ui-html` are
+  allowed).
 - `ClientUi.htmlSourceDeclaresOnlyComposables` — State, ViewModels and value types stay in
   `commonMain`.
 - `ClientUi.Composable.htmlScreenContentTested` — step 4.
@@ -100,12 +101,19 @@ Deploying: `ukpt-web-deploy`, "Compose HTML client".
 | Browser console: `No binding found for <Key>` | The key's destination isn't on the HTML client's classpath. | Add the feature client to `web-html`'s `jsMain`, or add the HTML screen. |
 | Browser console: `Found multiple bindings for <Key>` | An HTML destination uses `@NavigationDestination` instead of `PlatformOverride`. | Change the annotation. |
 
-## Not supported yet
+## udytils dialogs
 
-udytils' `ConfirmationDestination` and the `ErrorDialogDestination` that `ErrorHandler` opens have
-no Compose HTML destinations, and their keys hold Compose resources text. A screen the HTML client
-reaches uses a feature dialog destination instead (`ConfirmResetDestination` is the example), and
-renders errors from its State.
+udytils `:ui-html`, a `web-html` dependency, holds the Compose HTML destinations for
+`ConfirmationDestination` and for the `ErrorDialogDestination` that `ErrorHandler` opens. A
+ViewModel opens either dialog from `commonMain`; neither needs an HTML twin.
+
+- **Classes:** `UkptHtmlTheme`, around the content in `Main.kt`, maps the dialogs' roles to
+  `ukpt-design.css` classes through `LocalUdytilsHtmlClasses`. A destructive confirmation uses
+  `.ukpt-button-destructive`.
+- **Text:** Compose HTML can't read Compose resources. A key or `PresentableException` built from a
+  `StringResource` needs its text from `LocalHtmlStringResolver`, provided beside
+  `UkptHtmlTheme`; without it the dialog throws, naming the key. Plain-string keys and the
+  `confirm`/`close` defaults need nothing.
 
 ## Removing the HTML client
 
@@ -119,5 +127,5 @@ A project that won't ship it deletes:
   builds.
 
 `build-logic` and the version catalog are template-owned: leave the `ukpt.html-web` plugin and the
-`compose-html*` entries in place. `registeredInEveryClientShell` then checks only
+`compose-html*` and `udytils-uiHtml` entries in place. `registeredInEveryClientShell` then checks only
 `:app:client:common`. Then run the `ukpt-verify` sweep without the Compose HTML client section.

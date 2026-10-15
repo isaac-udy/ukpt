@@ -78,6 +78,7 @@ includeBuild("embedded-udytils") {
         substitute(module("dev.isaacudy.udytils:core")).using(project(":core"))
         substitute(module("dev.isaacudy.udytils:viewmodel")).using(project(":viewmodel"))
         substitute(module("dev.isaacudy.udytils:ui")).using(project(":ui"))
+        substitute(module("dev.isaacudy.udytils:ui-html")).using(project(":ui-html"))
         substitute(module("dev.isaacudy.udytils:snapshot")).using(project(":snapshot"))
         substitute(module("dev.isaacudy.udytils:htmx")).using(project(":htmx"))
         substitute(module("dev.isaacudy.udytils:html-snapshot")).using(project(":html-snapshot"))

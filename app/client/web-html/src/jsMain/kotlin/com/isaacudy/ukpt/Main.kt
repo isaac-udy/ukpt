@@ -12,6 +12,7 @@ import feature.ukpt.client.ui.UkptDestination
 import kotlinx.browser.document
 import org.jetbrains.compose.web.renderComposable
 import org.koin.core.context.startKoin
+import platform.design.html.UkptHtmlTheme
 
 @OptIn(ExperimentalEnroApi::class)
 fun main() {
@@ -19,11 +20,13 @@ fun main() {
     UkptHtmlNavigation.installNavigationController(document)
     renderComposable(rootElementId = "root") {
         EnroHtmlContent {
-            val container = rememberNavigationContainer(
-                backstack = rememberInitialBackstackFromUrl { backstackOf(UkptDestination.asInstance()) },
-            )
-            InstallWebHistoryPlugin(container)
-            HtmlNavigationDisplay(container)
+            UkptHtmlTheme {
+                val container = rememberNavigationContainer(
+                    backstack = rememberInitialBackstackFromUrl { backstackOf(UkptDestination.asInstance()) },
+                )
+                InstallWebHistoryPlugin(container)
+                HtmlNavigationDisplay(container)
+            }
         }
     }
 }
