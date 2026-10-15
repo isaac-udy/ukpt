@@ -43,7 +43,7 @@ The layer rules below apply across the whole `feature.[name].client.ui` package.
     * **Why:** Resolving from Koin inside a Composable bypasses the ViewModel as the single dependency surface, makes the screen untestable in snapshot tests (there is no Koin runtime), and re-resolves on every recomposition.
 * A `client.ui` file in `src/jsMain/` must not import Compose UI: it renders with Compose HTML
     * **Why:** `src/jsMain/` holds the Compose HTML screens of `:app:client:web-html`. A Compose UI import there brings skiko into the HTML bundle, which `verifyHtmlBundle` rejects only after a production webpack build.
-    * **Note:** Compose UI here means `androidx.compose.ui`, `foundation`, `material`, `material3` and `animation`, Compose resources, udytils `:ui`, and the Compose design system. `androidx.compose.runtime` and `platform.design.html` are allowed.
+    * **Note:** Compose UI here means `androidx.compose.ui`, `foundation`, `material`, `material3` and `animation`, Compose resources, udytils `:ui`, and the Compose design system. `androidx.compose.runtime`, udytils `:ui-html` (`dev.isaacudy.udytils.ui.html`) and `platform.design.html` are allowed.
 * A `client.ui` file in `src/jsMain/` declares only Screens and composables: State, ViewModels and value types live in `commonMain`
     * **Why:** An HTML Screen renders the same ViewModel and State as its Compose UI Screen. A class declared beside it would give the HTML client behaviour the other clients don't share.
 * A `client.ui` package imports this layer only through its own package, its direct child subsystems, and its ancestors up to the layer root

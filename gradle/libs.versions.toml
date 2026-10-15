@@ -93,6 +93,7 @@ enro-processor = { module = "dev.enro:enro-processor" }
 
 udytils-core = { module = "dev.isaacudy.udytils:core" }
 udytils-ui = { module = "dev.isaacudy.udytils:ui" }
+udytils-uiHtml = { module = "dev.isaacudy.udytils:ui-html" }
 udytils-snapshot = { module = "dev.isaacudy.udytils:snapshot" }
 udytils-htmx = { module = "dev.isaacudy.udytils:htmx" }
 udytils-htmlSnapshot = { module = "dev.isaacudy.udytils:html-snapshot" }

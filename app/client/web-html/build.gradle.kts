@@ -38,9 +38,12 @@ kotlin {
     sourceSets {
         jsMain.dependencies {
             implementation(projects.feature.core.client)
+            implementation(projects.platform.client.designHtml)
 
             implementation(libs.compose.htmlCore)
             implementation(libs.enro.html)
+            // Compose HTML destinations for udytils' ConfirmationDestination and ErrorDialogDestination.
+            implementation(libs.udytils.uiHtml)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.koin.core)
             implementation(libs.ktor.clientJs)

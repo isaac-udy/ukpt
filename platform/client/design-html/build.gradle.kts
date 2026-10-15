@@ -26,6 +26,7 @@ kotlin {
         jsMain.dependencies {
             implementation(libs.compose.runtime)
             implementation(libs.compose.htmlCore)
+            implementation(libs.udytils.uiHtml)
         }
     }
 }

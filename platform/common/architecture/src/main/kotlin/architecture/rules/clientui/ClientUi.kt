@@ -146,7 +146,7 @@ object ClientUi : RuleGroup(
             after a production webpack build.
             """.trimIndent(),
         )
-        note("Compose UI here means `androidx.compose.ui`, `foundation`, `material`, `material3` and `animation`, Compose resources, udytils `:ui`, and the Compose design system. `androidx.compose.runtime` and `platform.design.html` are allowed.")
+        note("Compose UI here means `androidx.compose.ui`, `foundation`, `material`, `material3` and `animation`, Compose resources, udytils `:ui`, and the Compose design system. `androidx.compose.runtime`, udytils `:ui-html` (`dev.isaacudy.udytils.ui.html`) and `platform.design.html` are allowed.")
         scope { scope, exempt ->
             scope.files
                 .filter { it.isFeatureModule() && it.isHtmlSource() && it.packagee?.name?.contains(".client.ui") == true }
@@ -154,7 +154,7 @@ object ClientUi : RuleGroup(
                 .flatMap { file ->
                     file.imports
                         .filter { import -> composeUiImportPrefixes.any { import.name.startsWith(it) } }
-                        .filterNot { it.name.startsWith("platform.design.html.") }
+                        .filterNot { import -> composeHtmlImportPrefixes.any { import.name.startsWith(it) } }
                         .map { Violation(file.path, "Compose HTML file imports Compose UI `${it.name}`") }
                 }
         }
@@ -207,4 +207,9 @@ private val composeUiImportPrefixes = listOf(
     "org.jetbrains.compose.resources.",
     "dev.isaacudy.udytils.ui.",
     "platform.design.",
+)
+
+private val composeHtmlImportPrefixes = listOf(
+    "dev.isaacudy.udytils.ui.html.",
+    "platform.design.html.",
 )

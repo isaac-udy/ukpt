@@ -163,6 +163,12 @@ h1, h2, h3, p {
     color: var(--ukpt-on-surface-variant);
 }
 
+/* The confirm button of a destructive udytils ConfirmationDestination (UkptHtmlTheme). */
+.ukpt-button-destructive {
+    background: var(--ukpt-error);
+    color: var(--ukpt-on-error);
+}
+
 .ukpt-button:disabled {
     background: var(--ukpt-surface);
     color: var(--ukpt-on-surface-variant);
