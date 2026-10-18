@@ -150,7 +150,7 @@ in place, and you pin to whatever the libraries last released.
 | Kotlin | `2.4.0` | |
 | Gradle | `9.6.1` | wrapper |
 | AGP | `9.2.1` | Follows Compose: androidx Compose 1.12 requires AGP 9.1.0+. IntelliJ IDEA 2026.1 syncs only up to 9.0.0, so use Android Studio for Android work. Must match the pin in both submodules. |
-| Compose Multiplatform | `1.12.0` | |
+| Compose Multiplatform | `1.12.2` | |
 | JVM target | `11` | |
 | Android | minSdk 24, compileSdk 37 | |
 
