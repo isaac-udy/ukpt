@@ -74,6 +74,17 @@ failure messages. Skip this section if the project deleted `app/client/web-html`
 
 ## Testing
 
+### By category
+
+Every test class carries one category annotation (the `ukpt-testing` skill). A category task
+given without a module path runs in every module that has it:
+```
+./gradlew unitTest wiringTest checkTest adapterTest componentTest
+./gradlew snapshotTest --no-configuration-cache
+```
+`componentTest` also runs each `:client` module's `jsTest`, which includes its commonTest classes
+compiled to JS. The JVM `test`/`jvmTest` tasks still run every category.
+
 ### Template integrity
 
 `./gradlew validateTemplate` checks the marker and migration ordering/sections, shared agent
@@ -132,7 +143,7 @@ padded to the harness canvas.
 Record then verify goldens, per client module:
 ```
 ./gradlew :feature:core:client:recordPaparazzi --no-configuration-cache
-./gradlew :feature:core:client:verifyPaparazzi --no-configuration-cache
+./gradlew :feature:core:client:snapshotTest --no-configuration-cache
 ```
 
 Goldens are **directory-grouped** by the preview's declaring package and function name, so a preview

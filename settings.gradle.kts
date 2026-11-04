@@ -51,6 +51,7 @@ include(":platform:client:design")
 include(":platform:client:design-html")
 include(":platform:client:ui")
 include(":platform:common:architecture")
+include(":platform:common:testing")
 include(":platform:server:postgres")
 include(":platform:server:development")
 

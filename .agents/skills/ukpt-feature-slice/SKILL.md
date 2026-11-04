@@ -52,7 +52,7 @@ domain contract inventory to check the result.
    `<Name>ViewModel`, `<Name>State` in `:client`; `<name>ClientDependencies` at the feature root
    `feature.<name>` in `:client` (templates.md §5).
 4. **Snapshot tests (preview-driven)** — the harness is the `dev.isaacudy.udytils:snapshot` artifact, so
-   there is nothing to copy. Write the one `PreviewSnapshotTest` extending `PreviewSnapshotTestCase`
+   there is nothing to copy. Write the one `@SnapshotTest` `PreviewSnapshotTest` extending `PreviewSnapshotTestCase`
    in `RenderingMode.SHRINK`, scanning `feature.<name>` (templates.md §6). The Screen template's
    `@Preview` (§5) is what gets snapshotted — `ClientUi.Composable.screenContentPreview` requires
    every ScreenContent to be called from a `@Preview`, and the preview wraps it in

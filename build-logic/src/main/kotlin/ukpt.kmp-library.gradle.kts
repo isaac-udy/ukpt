@@ -9,7 +9,7 @@ import ukpt.ArchiveNaming
  * Applies: KotlinMultiplatform + the AGP 9 Android KMP library plugin
  * (`com.android.kotlin.multiplatform.library`).
  * Configures: archive naming, all KMP targets (Android, iOS, JVM, WasmJS), compiler options,
- * Android defaults.
+ * Android defaults, and the test category tasks (ukpt.test-categories).
  *
  * The Android target is configured via the `kotlin { androidLibrary { } }` accessor. Both
  * submodules use the same name, and it resolves on every AGP 9.x (the `android` alias only
@@ -21,6 +21,7 @@ plugins {
     id("org.jetbrains.kotlin.multiplatform")
     id("com.android.kotlin.multiplatform.library")
     id("org.jetbrains.kotlin.plugin.serialization")
+    id("ukpt.test-categories")
 }
 
 private val libs = versionCatalogs.named("libs")

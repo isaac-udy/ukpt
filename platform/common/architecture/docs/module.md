@@ -77,6 +77,9 @@ Kotlin source. Build-file exemptions use the `// architecture-exception:` commen
     * **Note:** To keep a deliberate edge, annotate the `:api` source file holding the import with `@file:ArchitectureException(ruleIds = ["ModuleRules.apiGraphAcyclic"], reason = "…")`; its edges are then excluded from the graph.
 * A `:platform` module must never depend on an `:app` module
 * A `:platform` module must never depend on a `:feature` module
+* A test-support module (`:platform:common:testing`, `:platform:common:subcutaneous`, a `:feature:[name]:tests` module) may only be a test dependency, or a dependency of another test-support module
+    * **Why:** Test-support code on a production classpath ships test categories, fakes, and an embedded database to users.
+    * **Note:** A test dependency is one declared in a test source set block (`commonTest.dependencies { }`) or with a test configuration (`testImplementation`).
 
 ##### Guidance
 

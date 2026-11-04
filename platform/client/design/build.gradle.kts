@@ -29,6 +29,10 @@ kotlin {
             // Bundled design-system assets (fonts, drawables) live in commonMain/composeResources.
             implementation(compose.components.resources)
         }
+        commonTest.dependencies {
+            implementation(projects.platform.common.testing)
+            implementation(libs.kotlin.test)
+        }
         getByName("androidHostTest").dependencies {
             implementation(libs.udytils.snapshot)
             // Unified @Preview for the doc surfaces — discovered by PreviewSnapshotTest and

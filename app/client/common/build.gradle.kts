@@ -54,6 +54,7 @@ kotlin {
             // per-platform when an HTTP/urpc client is actually added.
         }
         commonTest.dependencies {
+            implementation(projects.platform.common.testing)
             implementation(libs.kotlin.test)
         }
         jvmTest.dependencies {

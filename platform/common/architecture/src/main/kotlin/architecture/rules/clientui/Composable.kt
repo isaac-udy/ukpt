@@ -4,7 +4,9 @@ import dev.isaacudy.udytils.architecture.*
 
 import architecture.definitions.isFeatureModule
 import architecture.definitions.isHtmlSource
-import com.lemonappdev.konsist.api.Konsist
+import architecture.definitions.withoutStringsAndComments
+import architecture.rules.testing.ComponentTest
+import architecture.rules.testing.SnapshotTest
 
 @Describe("""
     A `@Composable` function defined in the `..ui..` package that is not a [Screen](#screen).
@@ -83,28 +85,29 @@ object Composable : Construct<ClientUi>(
         }
     }
 
-    @Describe("A `[Name]ScreenContent` composable in `src/jsMain/` must be called from a test in its module's `src/jsTest/`")
+    @Describe("A `[Name]ScreenContent` composable in `src/jsMain/` must be called from a Component Test in its module's `src/jsTest/`")
     val htmlScreenContentTested by rule {
         rationale(
             """
-            A Compose HTML ScreenContent has no `@Preview` and no snapshot. A `src/jsTest/` test
-            that composes it with `html-test-utils` and reads the DOM is its coverage.
+            A Compose HTML ScreenContent has no `@Preview` and no snapshot. A `src/jsTest/`
+            Component Test that composes it with `html-test-utils` and reads the DOM is its coverage.
             """.trimIndent(),
         )
-        note("Test sources are outside the governed scope; the rule reads `src/jsTest/` files directly.")
-        scope { scope, exempt ->
-            scope.functions()
+        scopes { scopes, exempt ->
+            val componentTests = scopes.tests.classes().filter { ComponentTest.test(it) }
+            scopes.production.functions()
                 .filter { it.name.endsWith("ScreenContent") }
                 .filter { it.resideInPackage("feature..client.ui..") }
                 .filter { it.isHtmlSource() }
                 .filterNot { exempt(it) }
                 .filterNot { fn ->
-                    val module = fn.containingFile.path.substringBefore("/src/")
-                    jsTestFiles.any { (path, text) ->
-                        path.startsWith("$module/src/jsTest/") && text.contains("${fn.name}(")
+                    val module = fn.containingFile.path.substringBeforeLast("/src/")
+                    componentTests.any { test ->
+                        test.containingFile.path.startsWith("$module/src/jsTest/") &&
+                            test.containingFile.text.withoutStringsAndComments().contains("${fn.name}(")
                     }
                 }
-                .map { Violation(it, "no test in `src/jsTest/` calls `${it.name}(`") }
+                .map { Violation(it, "no Component Test in `src/jsTest/` calls `${it.name}(`") }
         }
     }
 
@@ -139,7 +142,7 @@ object Composable : Construct<ClientUi>(
         }
     }
 
-    @Describe("A feature module that contains `@Preview` composables must have a `PreviewSnapshotTest` in its `androidHostTest` source set")
+    @Describe("A feature module that contains `@Preview` composables must have a Snapshot Test in its `androidHostTest` source set")
     val previewsAreSnapshotTested by rule {
         rationale(
             """
@@ -147,47 +150,20 @@ object Composable : Construct<ClientUi>(
             the IDE but nothing guards against visual regressions.
             """.trimIndent(),
         )
-        note("Snapshot tests live under `src/androidHostTest/`, which the governed scope excludes; the test reads those files directly.")
-        note("A module opts in by extending `PreviewSnapshotTestCase` from `dev.isaacudy.udytils:snapshot`, which supplies the preview scanning and the golden layout.")
-        scope { scope, exempt ->
-            scope.functions()
+        note("A module opts in with a `@SnapshotTest` `PreviewSnapshotTest` extending `PreviewSnapshotTestCase` from `dev.isaacudy.udytils:snapshot`, which supplies the preview scanning and the golden layout.")
+        scopes { scopes, exempt ->
+            val snapshotTests = scopes.tests.classes().filter { SnapshotTest.test(it) }
+            scopes.production.functions()
                 .filter { it.hasAnnotationWithName("Preview") }
                 .filter { it.resideInPackage("feature..") }
                 .filterNot { exempt(it) }
-                .groupBy { it.containingFile.path.substringBefore("/src/") }
+                .groupBy { it.containingFile.path.substringBeforeLast("/src/") }
                 .filterNot { (module, _) ->
-                    hostTestFiles.any { (path, text) ->
-                        path.startsWith("$module/src/androidHostTest/") &&
-                            // Match the harness base class, not the scanner it wraps: the scanner is an
-                            // implementation detail of `dev.isaacudy.udytils:snapshot` and no longer
-                            // appears in consumer code, while every preview-driven test must extend
-                            // this class regardless of whether it sources cases via `scan` or `of`.
-                            text.contains("PreviewSnapshotTestCase")
-                    }
+                    snapshotTests.any { it.containingFile.path.startsWith("$module/src/androidHostTest/") }
                 }
                 .map { (module, previews) ->
-                    Violation(previews.first(), "module `$module` has @Preview composables but no PreviewSnapshotTest in androidHostTest")
+                    Violation(previews.first(), "module `$module` has @Preview composables but no Snapshot Test in androidHostTest")
                 }
         }
     }
-}
-
-/**
- * Snapshot tests live under `src/androidHostTest/`, which `projectScope` deliberately excludes, so
- * `Composable.previewsAreSnapshotTested` reads those source files directly. Computed once, lazily.
- */
-private val hostTestFiles: List<Pair<String, String>> by lazy {
-    Konsist
-        .scopeFromProject()
-        .files
-        .filter { it.path.contains("/src/androidHostTest/") }
-        .map { it.path to it.text }
-}
-
-private val jsTestFiles: List<Pair<String, String>> by lazy {
-    Konsist
-        .scopeFromProject()
-        .files
-        .filter { it.path.contains("/src/jsTest/") }
-        .map { it.path to it.text }
 }

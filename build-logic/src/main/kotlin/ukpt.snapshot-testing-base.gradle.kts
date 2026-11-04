@@ -44,6 +44,13 @@ kotlin {
     }
 }
 
+// The Snapshot test category (see ukpt.test-categories): `./gradlew snapshotTest --no-configuration-cache`.
+tasks.register("snapshotTest") {
+    group = "verification"
+    description = "Verifies the Paparazzi snapshot goldens."
+    dependsOn("verifyPaparazzi")
+}
+
 // Paparazzi loads R classes (this module's + every dependency's: dev.enro.R, androidx.*.R, …)
 // reflectively at runtime. The KMP library plugin puts the aggregated host-test stub R jar on the
 // *compile* classpath only, so add it to the test runtime classpath via doFirst (which wins over

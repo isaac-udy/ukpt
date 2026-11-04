@@ -4,10 +4,11 @@ import dev.isaacudy.udytils.postgres.embedded.EmbeddedPostgresLifecycle
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
-import org.junit.AfterClass
-import org.junit.BeforeClass
-import org.junit.Test
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.BeforeAll
+import platform.testing.AdapterTest
 import java.sql.DriverManager
+import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
@@ -15,6 +16,7 @@ import kotlin.test.assertFailsWith
  * Checked against a real (Zonky-embedded) Postgres. The table is created here rather than by a
  * migration: this module ships no schema.
  */
+@AdapterTest
 class TransactionRunnerTest {
 
     @Test
@@ -64,7 +66,7 @@ class TransactionRunnerTest {
         private lateinit var database: Database
         private lateinit var runner: TransactionRunner
 
-        @BeforeClass
+        @BeforeAll
         @JvmStatic
         fun setUp() {
             embedded = EmbeddedPostgresLifecycle()
@@ -81,7 +83,7 @@ class TransactionRunnerTest {
             }
         }
 
-        @AfterClass
+        @AfterAll
         @JvmStatic
         fun tearDown() {
             embedded.close()

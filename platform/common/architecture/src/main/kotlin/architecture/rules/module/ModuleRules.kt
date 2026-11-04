@@ -463,6 +463,17 @@ object ModuleRules : RuleGroup() {
         }
     }
 
+    @Describe("A test-support module (`:platform:common:testing`, `:platform:common:subcutaneous`, a `:feature:[name]:tests` module) may only be a test dependency, or a dependency of another test-support module")
+    val testSupportOnlyFromTests by rule {
+        rationale("Test-support code on a production classpath ships test categories, fakes, and an embedded database to users.")
+        note("A test dependency is one declared in a test source set block (`commonTest.dependencies { }`) or with a test configuration (`testImplementation`).")
+        moduleGraph { graph, exempt ->
+            graph.edges
+                .filter { isTestSupport(it.to) && !it.isTest && !isTestSupport(it.from) && !exempt(it) }
+                .map { Violation(it.location, "test-support module used outside tests") }
+        }
+    }
+
     @Describe("A `:platform` module may depend on other `:platform` modules")
     val platformMayUsePlatform by guidance {
         note("`:platform` to `:platform` dependencies are allowed, but should be kept to a minimum.")
@@ -477,6 +488,8 @@ object ModuleRules : RuleGroup() {
 private fun isApp(path: String) = path.startsWith(":app:") || path == ":app"
 private fun isFeature(path: String) = path.startsWith(":feature:") || path == ":feature"
 private fun isPlatform(path: String) = path.startsWith(":platform:") || path == ":platform"
+private fun isTestSupport(path: String) =
+    path == ":platform:common:testing" || path == ":platform:common:subcutaneous" || Regex("^:feature:[^:]+:tests$").matches(path)
 
 /** `:feature:core:server` → "server"; null if [path] isn't a `:feature:…:{api,client,server}` module. */
 private fun featureSubmoduleType(path: String): String? {

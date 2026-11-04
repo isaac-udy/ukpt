@@ -30,6 +30,7 @@ kotlin {
             //   implementation(libs.udytils.ui)                    // shared udytils UI helpers
         }
         commonTest.dependencies {
+            implementation(projects.platform.common.testing)
             implementation(libs.kotlin.test)
         }
         getByName("androidHostTest").dependencies {

@@ -61,6 +61,21 @@ architecture.
   object.
 - A `<Group>.examples.md` beside the group's `.kt` file holds layer-level examples.
 
+### Test-scoped groups
+
+A group declared with `codeScope = CodeScope.Test` governs test sources: the definition's
+`testScope`, which shares no file with its `scope`.
+
+- Its Constructs classify only test declarations; production Constructs never classify them.
+- `ArchitectureDefinition.testMembership` names the test declarations that must each match
+  exactly one test Construct.
+- A rule relating test code to production code uses `scopes { scopes, exempt -> … }`, or
+  `constrainWithScopes { decl, scopes, exempt -> … }` on a Construct.
+  `scopes.productionReferences(file)` lists the production declarations a file refers to, with
+  the production Constructs each one matches.
+- A production group's rule may also use `scopes { }`, for example to require that a production
+  declaration has a test.
+
 ---
 
 ## Constructs

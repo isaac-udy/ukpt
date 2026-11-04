@@ -4,6 +4,7 @@ import dev.isaacudy.udytils.postgres.PostgresConfig
 import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.dsl.module
 import org.koin.test.verify.verify
+import platform.testing.WiringTest
 import kotlin.test.Test
 
 /**
@@ -14,6 +15,7 @@ import kotlin.test.Test
  * runtime; `ProjectRules.injectableConstructorsHaveNoDefaults` covers that. An entry point the
  * server resolves lazily (a job, a worker) also needs a test that resolves it from a running graph.
  */
+@WiringTest
 @OptIn(KoinExperimentalAPI::class)
 class ServerDependenciesTest {
 

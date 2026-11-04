@@ -1,8 +1,9 @@
 package platform.design
 
+import platform.testing.CheckTest
 import java.io.File
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertTrue
 
 /**
  * Every image a `design-system/` page links to must exist on disk.
@@ -15,13 +16,14 @@ import org.junit.Test
  * The one exception is the bootstrap case — before goldens have ever been recorded there is nothing
  * to point at, so a run with no goldens at all is skipped rather than failed.
  */
+@CheckTest
 class DesignSystemDocImagesTest {
 
     @Test
     fun everyReferencedImageExists() {
         val moduleRoot = findModuleRoot()
         val docsRoot = File(moduleRoot, "design-system")
-        assertTrue("expected a design-system/ folder at ${docsRoot.path}", docsRoot.isDirectory)
+        assertTrue(docsRoot.isDirectory, "expected a design-system/ folder at ${docsRoot.path}")
 
         val snapshotsRoot = File(moduleRoot, "src/androidHostTest/snapshots/images")
         if (!snapshotsRoot.isDirectory || snapshotsRoot.listFiles().isNullOrEmpty()) {
@@ -39,9 +41,9 @@ class DesignSystemDocImagesTest {
             .toList()
 
         assertTrue(
+            missing.isEmpty(),
             "design-system pages reference images that do not exist:\n" +
                 missing.joinToString("\n") { "  $it" },
-            missing.isEmpty(),
         )
     }
 
@@ -54,7 +56,7 @@ class DesignSystemDocImagesTest {
 
     /**
      * Walks up from the working directory to the module that owns `design-system/`. The working
-     * directory of a host test is not contractual, so this does not assume it.
+     * directory of a test task is not contractual, so this does not assume it.
      */
     private fun findModuleRoot(): File {
         var candidate: File? = File(".").absoluteFile.normalize()

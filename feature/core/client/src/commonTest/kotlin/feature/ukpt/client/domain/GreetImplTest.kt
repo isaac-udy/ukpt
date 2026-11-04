@@ -5,7 +5,9 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import platform.testing.UnitTest
 
+@UnitTest
 class GreetImplTest {
 
     private val updates = mutableListOf<UpdateGreetings.Update>()

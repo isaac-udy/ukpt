@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeCompiler)
     id("ukpt.html-web")
+    id("ukpt.test-categories")
 }
 
 val stylesheet = layout.projectDirectory.file("src/css/ukpt-design.css")
@@ -20,6 +21,7 @@ kotlin {
 
     sourceSets {
         jvmTest.dependencies {
+            implementation(projects.platform.common.testing)
             implementation(projects.platform.client.design)
             implementation(libs.kotlin.test)
         }

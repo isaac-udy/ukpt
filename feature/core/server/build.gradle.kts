@@ -25,5 +25,6 @@ dependencies {
 
     implementation(libs.ktor.server.auth)
 
-    testImplementation(libs.kotlin.testJunit)
+    testImplementation(projects.platform.common.testing)
+    testImplementation(libs.kotlin.test)
 }

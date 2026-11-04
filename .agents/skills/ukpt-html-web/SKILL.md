@@ -48,8 +48,8 @@ For each destination of a feature the HTML client includes:
    the same State branches as the Compose UI screen.
 3. Build from `UkptHtmlButton`, `UkptHtmlTypography`, `UkptHtmlColors` and `UkptHtmlLayout`, never
    from literal colours or sizes.
-4. In `src/jsTest/`, compose the ScreenContent with `runTest { composition { … } }` from
-   `html-test-utils`, then read `root` and click its buttons.
+4. In `src/jsTest/`, write a `@ComponentTest` class that composes the ScreenContent with
+   `runTest { composition { … } }` from `html-test-utils`, then reads `root` and clicks its buttons.
 
 The rules, all run by `verifyArchitecture`:
 

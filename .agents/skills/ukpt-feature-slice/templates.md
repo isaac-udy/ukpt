@@ -31,6 +31,7 @@ kotlin {
             api(libs.urpc.protocol)
         }
         commonTest.dependencies {
+            implementation(projects.platform.common.testing)
             implementation(libs.kotlin.test)
         }
     }
@@ -104,6 +105,7 @@ kotlin {
             // Engines get wired per-platform when an HTTP/urpc client is actually added.
         }
         commonTest.dependencies {
+            implementation(projects.platform.common.testing)
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutinesTest)
             implementation(libs.enro.test)
@@ -173,7 +175,8 @@ dependencies {
 
     implementation(libs.ktor.server.auth)
 
-    testImplementation(libs.kotlin.testJunit)
+    testImplementation(projects.platform.common.testing)
+    testImplementation(libs.kotlin.test)
 }
 ```
 
@@ -422,7 +425,9 @@ val <name>ClientDependencies = module {
    import dev.isaacudy.udytils.snapshot.PreviewSnapshotTestCase
    import dev.isaacudy.udytils.snapshot.PreviewSnapshots
    import org.junit.runners.Parameterized
+   import platform.testing.SnapshotTest
 
+   @SnapshotTest
    class PreviewSnapshotTest(
        case: PreviewSnapshotCase,
    ) : PreviewSnapshotTestCase(
@@ -444,15 +449,15 @@ val <name>ClientDependencies = module {
    default — SHRINK never changes goldens for unframed previews.
    `@RunWith(Parameterized::class)` is inherited from the base class; `@Parameterized.Parameters` must stay
    on the concrete class because JUnit 4 insists on reading it there. This discovers every `@Preview` in the
-   module and snapshots it (`ClientUi.Composable.previewsAreSnapshotTested`, which detects the harness by
-   looking for `PreviewSnapshotTestCase`); the `@Preview` on `<Name>ScreenPreview` (§5) satisfies
+   module and snapshots it (`ClientUi.Composable.previewsAreSnapshotTested` looks for a `@SnapshotTest`
+   class in `androidHostTest`); the `@Preview` on `<Name>ScreenPreview` (§5) satisfies
    `ClientUi.Composable.screenContentPreview`. No per-screen test files are needed.
 3. Record and verify the new module's goldens. **`--no-configuration-cache` is required** — under the
    configuration cache the R class is dropped from the test runtime classpath and every snapshot test dies with
    `ClassNotFoundException: <module>.R`:
    ```
    ./gradlew :feature:<name>:client:recordPaparazzi --no-configuration-cache
-   ./gradlew :feature:<name>:client:verifyPaparazzi --no-configuration-cache
+   ./gradlew :feature:<name>:client:snapshotTest --no-configuration-cache
    ```
    Goldens are grouped by the preview's declaring package and function name, e.g.
    `src/androidHostTest/snapshots/images/feature/<name>/client/ui/<Name>ScreenPreview.png`. Two previews resolving to
@@ -485,7 +490,9 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertIs
+import platform.testing.UnitTest
 
+@UnitTest
 class <Name>ViewModelTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()

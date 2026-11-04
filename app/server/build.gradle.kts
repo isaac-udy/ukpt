@@ -32,7 +32,8 @@ dependencies {
     implementation(libs.ktor.serverWebsockets)
     implementation(libs.ktor.server.auth)
 
+    testImplementation(projects.platform.common.testing)
     testImplementation(libs.ktor.serverTestHost)
-    testImplementation(libs.kotlin.testJunit)
+    testImplementation(libs.kotlin.test)
     testImplementation(libs.koin.test)
 }

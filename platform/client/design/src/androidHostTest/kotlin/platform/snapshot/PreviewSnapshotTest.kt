@@ -5,6 +5,7 @@ import dev.isaacudy.udytils.snapshot.PreviewSnapshotCase
 import dev.isaacudy.udytils.snapshot.PreviewSnapshotTestCase
 import dev.isaacudy.udytils.snapshot.PreviewSnapshots
 import org.junit.runners.Parameterized
+import platform.testing.SnapshotTest
 
 /**
  * Snapshot-tests every `@Preview` composable in this module — the design-system doc surfaces, and
@@ -15,6 +16,7 @@ import org.junit.runners.Parameterized
  * fixed-size root container, and SHRINK crops each golden to that container instead of padding it
  * out to the canvas.
  */
+@SnapshotTest
 class PreviewSnapshotTest(
     case: PreviewSnapshotCase,
 ) : PreviewSnapshotTestCase(
