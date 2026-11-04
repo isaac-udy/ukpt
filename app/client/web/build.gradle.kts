@@ -47,6 +47,12 @@ kotlin {
     }
 }
 
+// Both executables sync into the same build/wasm/packages/App directory, so the development bundle
+// has to be written before the production sync replaces that directory's contents.
+tasks.named("wasmJsProductionExecutableCompileSync") {
+    mustRunAfter("wasmJsBrowserDevelopmentWebpack")
+}
+
 // macOS Finder/Spotlight drops `.DS_Store` files into the Kotlin/Wasm incremental-compilation
 // cache directory; the IC scanner then treats each as a (now-missing) library and crashes with
 // "IC internal error: can not find removed library name". Purge them from this module's klib
