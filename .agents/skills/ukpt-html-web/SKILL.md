@@ -96,7 +96,8 @@ Deploying: `ukpt-web-deploy`, "Compose HTML client".
 |---|---|---|
 | KSP: `… renders with Compose HTML, but these destinations are Compose UI functions` | A `@Composable` screen the HTML client compiles has no `PlatformOverride` twin. | Add the HTML screen for each listed key. |
 | KSP warning: `… Enro can't check whether these destinations use Compose UI` | A property destination (`navigationDestination {}`) has no override, and Enro can't see its builder. | Add an HTML twin for each listed key that renders Compose UI. |
-| webpack: `Can't resolve './skiko.mjs'` | Compose UI reached the bundle. | As the next row. |
+| Production webpack: `Can't resolve './skiko.mjs'` | Compose UI reached the bundle. | As the next row. |
+| Development webpack: `Can't resolve './skiko.mjs'` | `webpack.config.d/skiko-development.js` is missing. | Restore it from the template. |
 | `Compose UI is in the Compose HTML bundle: …` (`verifyHtmlBundle`) | A Compose UI screen or dependency is reachable from `Main.kt`. | Add the missing HTML screens; remove Compose UI dependencies from `:app:client:web-html`. |
 | Browser console: `No binding found for <Key>` | The key's destination isn't on the HTML client's classpath. | Add the feature client to `web-html`'s `jsMain`, or add the HTML screen. |
 | Browser console: `Found multiple bindings for <Key>` | An HTML destination uses `@NavigationDestination` instead of `PlatformOverride`. | Change the annotation. |

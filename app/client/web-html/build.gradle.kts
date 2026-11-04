@@ -69,6 +69,12 @@ tasks.named<ProcessResources>("jsProcessResources") {
     from(htmlStylesheetFiles)
 }
 
+// Both executables sync into the same build/js/packages/App directory, so the development bundle
+// has to be written before the production sync replaces that directory's contents.
+tasks.named("jsProductionExecutableCompileSync") {
+    mustRunAfter("jsBrowserDevelopmentWebpack")
+}
+
 val verifyHtmlBundle = tasks.register("verifyHtmlBundle") {
     description = "Fails if skiko or Compose UI is in the production bundle."
     group = "verification"
