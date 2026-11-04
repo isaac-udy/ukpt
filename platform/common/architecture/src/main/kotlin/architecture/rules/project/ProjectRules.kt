@@ -423,7 +423,10 @@ object ProjectRules : RuleGroup() {
             scope.koinModuleFiles()
                 .filterNot { exempt(it) }
                 .flatMap { file ->
-                    val getStyleNames = getStyle.findAll(file.text).map { it.groupValues[1] }.toSet()
+                    val getStyleNames = getStyle.findAll(file.text)
+                        .map { it.groupValues[1] }
+                        .filter { file.resolveTypeToken(it) in classesByFqn }
+                        .toSet()
                     val constructedNames = file.koinRegistrations(classesByFqn)
                         .filterNot { it.byReference }
                         .map { it.cls.name }

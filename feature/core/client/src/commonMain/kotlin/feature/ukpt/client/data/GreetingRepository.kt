@@ -1,28 +1,27 @@
 package feature.ukpt.client.data
 
-import dev.isaacudy.udytils.state.RepositoryState
-import dev.isaacudy.udytils.state.repositoryState
-import feature.ukpt.Greeting
 import feature.ukpt.client.domain.FlowOfGreetingSummary
+import feature.ukpt.client.domain.Greet
 import feature.ukpt.client.domain.GreetingSummary
 import feature.ukpt.client.domain.UpdateGreetings
+import feature.ukpt.server.services.GreetingService
 import kotlinx.coroutines.flow.map
 
-internal class GreetingRepository {
-
-    private val greetings: RepositoryState<GreetingRepository, List<Greeting>> =
-        repositoryState(emptyList())
+internal class GreetingRepository(
+    private val greetingService: GreetingService,
+) {
 
     val flowOfGreetingSummary = FlowOfGreetingSummary {
-        greetings.map { GreetingSummary(greetings = it) }
+        greetingService.observeHistory().map { GreetingSummary(greetings = it.greetings) }
+    }
+
+    val greet = Greet {
+        greetingService.greet()
     }
 
     val updateGreetings = UpdateGreetings { update ->
-        greetings.update {
-            when (update) {
-                is UpdateGreetings.Update.Add -> this + Greeting(text = update.text)
-                UpdateGreetings.Update.Reset -> emptyList()
-            }
+        when (update) {
+            UpdateGreetings.Update.Reset -> greetingService.reset()
         }
     }
 }

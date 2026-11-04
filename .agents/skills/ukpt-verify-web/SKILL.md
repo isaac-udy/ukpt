@@ -26,7 +26,9 @@ Ergonomics: `bash .agents/skills/ukpt-verify-web/run-bundle-check.sh` runs this 
 ```
 ./gradlew :app:client:web:wasmJsBrowserDevelopmentRun
 ```
-Open the served URL, confirm the page actually renders (the `<body>` gets populated by `ComposeViewport`), open the browser console, and **navigate to the changed screen(s)** — mode 3 only fires when a `viewModel()` destination first composes.
+Start `./gradlew :app:server:run` first: the dev server proxies `/services` and `/urpc` to it
+(`app/client/web/webpack.config.d/dev-server-proxy.js`), and without it the greeting screen shows a
+load error. Open the served URL, confirm the page actually renders (the `<body>` gets populated by `ComposeViewport`), open the browser console, and **navigate to the changed screen(s)** — mode 3 only fires when a `viewModel()` destination first composes.
 
 **Done when:** webpack succeeds **and** the served page renders with no console errors on the affected screens.
 
@@ -38,7 +40,8 @@ These gates cover the canvas client, `:app:client:web`. The Compose HTML client,
 
 | Symptom | Gate | Cause | Fix |
 |---|---|---|---|
-| `UnhandledSchemeError` / `node:net` (or other `node:`) | bundle | A JVM/native-only dep reached the wasm classpath — classically `ktor-client-cio` → `ktor-network`. | Web uses **`ktor-client-js`** only; keep engine deps out of `commonMain`/`wasmJsMain`. See `app/client/web/build.gradle.kts` and the comments in `app/client/common/build.gradle.kts` / `feature/core/client/build.gradle.kts`. |
+| `UnhandledSchemeError` / `node:net` (or other `node:`) | bundle | A JVM/native-only dep reached the wasm classpath — classically `ktor-client-cio` → `ktor-network`. | Web uses **`ktor-client-js`** only; keep engine deps out of `commonMain`/`wasmJsMain`/`webMain`. The engines are chosen per source set in `platform/client/network/build.gradle.kts`. |
+| Console: `404` or `ECONNREFUSED` on `/services/…` or `/urpc` | runtime | The server is not running, or not on port 8080. | Start `./gradlew :app:server:run`; the proxy target is in `webpack.config.d/dev-server-proxy.js`. |
 | `IC internal error: can not find removed library name` | bundle | macOS wrote `.DS_Store` into the Kotlin/Wasm klib IC cache. | `find app/client/web/build -name .DS_Store -delete`, then re-run. A `doFirst` purge hook already guards `*WasmJs*` tasks in `app/client/web/build.gradle.kts`. |
 | Blank page / navigation & URLs don't work | runtime | The web entry point didn't install the nav controller or wrap content in `EnroBrowserContent`. | `Main.kt` must call `UkptNavigation.installNavigationController(document)` then `ComposeViewport(document.body!!) { EnroBrowserContent { App() } }`. |
 | Console: `Factory.create(...) is not implemented` | runtime | wasm has no reflection, so the default ViewModel factory can't construct the VM. | Register the ViewModel with `viewModelOf(::YourViewModel)` in a Koin module loaded by `KoinApplication` in `App()`. The Koin-backed factory lives in `UkptNavigation.kt`. |

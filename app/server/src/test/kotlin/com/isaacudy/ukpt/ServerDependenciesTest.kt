@@ -22,6 +22,7 @@ class ServerDependenciesTest {
     @Test
     fun `every registered constructor parameter has a definition`() {
         val postgresConfig = PostgresConfig(jdbcUrl = "jdbc:postgresql://localhost:5432/verify", username = "verify", password = "verify")
-        module { includes(serverDependencies(postgresConfig)) }.verify()
+        // A generated urpc binding takes its service as a `() -> Service` resolved per call.
+        module { includes(serverDependencies(postgresConfig)) }.verify(extraTypes = listOf(Function0::class))
     }
 }

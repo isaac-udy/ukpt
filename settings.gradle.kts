@@ -49,11 +49,13 @@ include(":feature:core:server")
 
 include(":platform:client:design")
 include(":platform:client:design-html")
+include(":platform:client:network")
 include(":platform:client:ui")
 include(":platform:common:architecture")
 include(":platform:common:testing")
 include(":platform:server:postgres")
 include(":platform:server:development")
+include(":platform:server:host")
 
 includeBuild("embedded-enro") {
     name = "embedded-enro"

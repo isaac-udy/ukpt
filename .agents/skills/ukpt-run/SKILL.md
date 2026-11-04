@@ -11,6 +11,19 @@ description: >-
 
 Identifiers here use the template's UKPT identity (`UKPT_DEV_DB`, `feature.ukpt`); projects rename these — the map is in `.ukpt/template.json`.
 
+Every client reads and writes through the server. Start `./gradlew :app:server:run` first; without
+it the greeting screen shows a load error with Retry.
+
+| Client | Server address |
+|---|---|
+| Desktop, iOS simulator | `http://localhost:8080` |
+| Android emulator | `http://10.0.2.2:8080` (the emulator's alias for the host; cleartext allowed in debug builds) |
+| Web, Compose HTML | the page's origin; the webpack dev server proxies `/services` and `/urpc` to `localhost:8080` |
+
+The addresses are in `app/client/common/src/*Main/.../ServerEndpointConfig.*.kt` and
+`app/client/web-html/.../ClientDependencies.kt`. A physical device needs the host machine's LAN
+address there.
+
 ## Desktop
 
 ```
@@ -65,7 +78,7 @@ target if you need Intel Macs.
 Server persistence uses the `dev.isaacudy.udytils.postgres` toolkit (Exposed + Flyway); conventions
 are in [docs/serverdata.md](../../../platform/common/architecture/docs/serverdata.md) (the
 `server.data.storage` section). `:platform:server:postgres` owns the Flyway migrations
-(`src/main/resources/db/migration/`, empty until the first schema) and the codegen that turns them
+(`src/main/resources/db/migration/`) and the codegen that turns them
 into Exposed `Table`/`Row` sources; `:platform:server:development` owns the dev-database scenarios.
 
 `./gradlew :app:server:run` needs no database of your own — it starts an embedded Postgres, migrates

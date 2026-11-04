@@ -568,4 +568,5 @@ dialog returns data that complete/close cannot represent. The destination carrie
       Compose HTML screen per destination (`ukpt-html-web`). Skip both if the project deleted `app/client/web-html`.
 - [ ] `app/server/build.gradle.kts` — `implementation(projects.feature.<name>.server)` (only if using the server).
 - [ ] Add a navigation entry to the new `<Name>Destination` from wherever the app should reach it.
-- [ ] (Server DI / urpc host: defer to the `ukpt-urpc-service` skill — done when the feature gets its first service.)
+- [ ] `app/server/src/main/kotlin/com/isaacudy/ukpt/ServerDependencies.kt` — add `<name>ServerDependencies` once
+      it binds something (`:app:server:test` verifies the list). A service is the `ukpt-urpc-service` skill.

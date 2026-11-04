@@ -29,6 +29,13 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 
+	<!-- Allows plain HTTP to localhost, where the dev server runs; other hosts still need HTTPS. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

@@ -4,14 +4,10 @@ import dev.isaacudy.udytils.postgres.PostgresConfig
 import dev.isaacudy.udytils.postgres.PostgresMigrator
 import dev.isaacudy.udytils.postgres.buildHikariDataSource
 import dev.isaacudy.udytils.postgres.embedded.DevServer
-import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
-import io.ktor.server.response.respondText
-import io.ktor.server.routing.get
-import io.ktor.server.routing.routing
-import org.koin.ktor.plugin.Koin
 import platform.server.development.UkptDevDatabase
+import platform.server.host.installServerHost
 
 fun main() {
     // Resolved before the server is built: the schema has to be migrated — and a dev database
@@ -19,14 +15,7 @@ fun main() {
     val postgresConfig = resolvePostgresConfig()
 
     embeddedServer(Netty, port = ServerConfiguration.serverPort, host = "0.0.0.0") {
-        install(Koin) {
-            modules(serverDependencies(postgresConfig))
-        }
-        routing {
-            get("/") {
-                call.respondText("Hello, ukpt server!")
-            }
-        }
+        installServerHost(serverDependencies(postgresConfig))
     }.start(wait = true)
 }
 

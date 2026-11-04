@@ -47,11 +47,10 @@ kotlin {
             implementation(libs.koin.compose)
             implementation(libs.koin.composeViewmodel)
 
-            implementation(libs.ktor.clientCore)
-            implementation(libs.ktor.clientWebsockets)
-            // ktor-client-cio is JVM/native-only (it pulls ktor-network -> `node:net`, which
-            // breaks the wasmJs/web bundle). Web uses ktor-client-js; other engines are wired
-            // per-platform when an HTTP/urpc client is actually added.
+            implementation(projects.platform.client.network)
+        }
+        wasmJsMain.dependencies {
+            implementation(libs.kotlinx.browser)
         }
         commonTest.dependencies {
             implementation(projects.platform.common.testing)
