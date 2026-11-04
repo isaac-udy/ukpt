@@ -16,7 +16,7 @@ Downstream projects update via the `ukpt-template-update` skill. When a change a
 
 Follow the rules in [`platform/common/architecture/README.md`](./platform/common/architecture/README.md), enforced by Konsist tests. Orientation:
 
-- **Module groups**: `:app` (executable shells + DI wiring), `:feature` (vertical slices — `:api` contract, `:client` UI/logic, `:server` implementation), `:platform` (reusable infrastructure).
+- **Module groups**: `:app` (executable shells + DI wiring), `:feature` (vertical slices — `:api` contract, `:client` UI/logic, `:server` implementation, `:tests` Subcutaneous Tests), `:platform` (reusable infrastructure).
 - **Feature packages are side-first**: `feature.<name>` holds the shared wire vocabulary; below it a side, then a layer — client: `client.ui`, `client.domain`, `client.data`; server: `server.services` (the `@Urpc` contract in `:api`, its `ServiceImpl` on `:server`), `server.domain`, `server.data`. Publication to `:api` is a module move that never changes the package.
 - **Domain interfaces name capabilities.** A `fun interface` in `client.domain` or `server.domain` is a capability a consumer asks for or a domain model it needs, never one storage call, one field, or one implementation step; facts a consumer needs together come back as one model from the Repository that owns the storage. Guidance: `ClientDomain.DomainInterface.namesACapability`, `.readProjections`, `.collapsedUpdateFamilies`, and their `ServerDomain` twins.
 - **No `_[name]` backing properties.** A read-only property whose stored type is narrower than its exposed type declares an explicit backing field (`val items: StateFlow<T>` over `field = MutableStateFlow(…)`; Stable in Kotlin 2.4, no flag); a value the class reassigns is a `var` with a `private set`. Rule: `ProjectRules.noBackingProperties`.
@@ -83,7 +83,7 @@ After changes, compile every platform (client + server), not just the touched mo
 ## Reference
 
 - `ukpt-run` — per-platform run commands, dev database setup and env switches.
-- `ukpt-testing` — test categories and their annotations, where each test lives, per-category tasks, `Testing.*` rule failures.
+- `ukpt-testing` — test categories and their annotations, where each test lives, per-category tasks, the Subcutaneous Test harness and coverage, `Testing.*` rule failures.
 - `ukpt-drive-app` — drive the running desktop app through the Compose Hot Reload MCP server: semantic tree, clicks, screenshots, hot reload, runtime errors.
 - `ukpt-verify-web` — wasm bundle and runtime verification.
 - `ukpt-web-deploy` — serving the web client: brotli-compressed wasm, headers, cache policy, host recipes.

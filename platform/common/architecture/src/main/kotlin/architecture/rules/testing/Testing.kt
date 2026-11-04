@@ -29,8 +29,8 @@ import dev.isaacudy.udytils.architecture.*
     `--no-configuration-cache`). kotlin.test has no tags on JS, wasm or iOS, so `componentTest`
     also runs the module's `jsTest`.
 
-    Test-support declarations (fakes, fixtures, snapshot surfaces) are Constructs too: every
-    top-level declaration in test sources matches exactly one.
+    Test-support declarations (fakes, fixtures, snapshot surfaces, scenarios, test graphs) are
+    Constructs too: every top-level declaration in test sources matches exactly one.
 """)
 object Testing : RuleGroup(
     constructs = listOf(
@@ -44,6 +44,8 @@ object Testing : RuleGroup(
         EndToEndTest,
         Fake,
         SnapshotSurface,
+        Scenario,
+        TestGraph,
         Fixture,
     ),
     codeScope = CodeScope.Test,

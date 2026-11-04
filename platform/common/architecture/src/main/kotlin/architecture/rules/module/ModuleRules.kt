@@ -474,6 +474,22 @@ object ModuleRules : RuleGroup() {
         }
     }
 
+    @Describe("A `:feature:[name]:tests` module must depend on its feature's `:client` and `:server` modules; it may depend on other `:feature` and `:platform` modules")
+    val testsModuleShape by rule {
+        rationale("The Subcutaneous Tests in a `:tests` module run the feature's client and server graphs together.")
+        note("A `:tests` module depends on another feature's `:tests` module to reuse its Scenarios. `ModuleRules.featureNotApp` keeps it off `:app`.")
+        moduleGraph { graph, _ ->
+            val modules = graph.edges.flatMap { listOf(it.from, it.to) }.toSet()
+            modules.filter { TESTS_MODULE.matches(it) }.sorted().flatMap { tests ->
+                val feature = tests.removeSuffix(":tests")
+                val edges = graph.edges.filter { it.from == tests }
+                listOf("$feature:client", "$feature:server")
+                    .filter { it in modules && edges.none { edge -> edge.to == it } }
+                    .map { Violation(edges.firstOrNull()?.file ?: tests, "$tests does not depend on $it") }
+            }
+        }
+    }
+
     @Describe("A `:platform` module may depend on other `:platform` modules")
     val platformMayUsePlatform by guidance {
         note("`:platform` to `:platform` dependencies are allowed, but should be kept to a minimum.")
@@ -488,8 +504,9 @@ object ModuleRules : RuleGroup() {
 private fun isApp(path: String) = path.startsWith(":app:") || path == ":app"
 private fun isFeature(path: String) = path.startsWith(":feature:") || path == ":feature"
 private fun isPlatform(path: String) = path.startsWith(":platform:") || path == ":platform"
+private val TESTS_MODULE = Regex("^:feature:[^:]+:tests$")
 private fun isTestSupport(path: String) =
-    path == ":platform:common:testing" || path == ":platform:common:subcutaneous" || Regex("^:feature:[^:]+:tests$").matches(path)
+    path == ":platform:common:testing" || path == ":platform:common:subcutaneous" || TESTS_MODULE.matches(path)
 
 /** `:feature:core:server` → "server"; null if [path] isn't a `:feature:…:{api,client,server}` module. */
 private fun featureSubmoduleType(path: String): String? {

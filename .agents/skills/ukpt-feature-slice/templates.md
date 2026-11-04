@@ -108,7 +108,6 @@ kotlin {
             implementation(projects.platform.common.testing)
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutinesTest)
-            implementation(libs.enro.test)
         }
         getByName("androidHostTest").dependencies {
             // The snapshot harness: preview discovery, directory-grouped goldens, the
@@ -186,6 +185,7 @@ dependencies {
 include(":feature:<name>:api")
 include(":feature:<name>:client")
 include(":feature:<name>:server")
+include(":feature:<name>:tests")
 ```
 
 ## §5 — Client source skeletons
@@ -465,79 +465,94 @@ val <name>ClientDependencies = module {
    A framed screen preview's golden is exactly the frame — the scaffold default is 390 x 844 dp, a
    tall phone at `<Prefix>Viewport.Default`'s width.
 
-## §7 — ViewModel unit tests
+## §7 — Subcutaneous tests → `feature/<name>/tests/`
 
-`:client` → `feature/<name>/client/src/commonTest/kotlin/feature/<name>/client/ui/<Name>ViewModelTest.kt`
+Every ViewModel is covered by a Subcutaneous Test (`ClientUi.ViewModel.subcutaneouslyTested`), and
+each of its public functions is called in one (`ClientUi.ViewModel.publicFunctionsExercised`). The
+tests open the ViewModel from the production client graph with the server running in-process
+against an embedded Postgres; the harness is `:platform:common:subcutaneous`. The `ukpt-testing`
+skill has the full API. `:feature:core:tests` is the worked example.
+
+Build file → `feature/<name>/tests/build.gradle.kts`
 ```kotlin
-@file:OptIn(ExperimentalCoroutinesApi::class)
+plugins {
+    id("ukpt.feature-tests")
+}
 
-package feature.<name>.client.ui
+dependencies {
+    api(projects.platform.common.subcutaneous)
+    implementation(projects.feature.<name>.client)
+    implementation(projects.feature.<name>.server)
+}
+```
+`ModuleRules.testsModuleShape` requires the `:client` and `:server` edges. A feature without a
+`:server` lists only its `:client`.
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import dev.enro.result.NavigationResultChannel
-import dev.enro.test.putNavigationHandleForViewModel
-import dev.enro.test.runEnroTest
-import dev.isaacudy.udytils.state.AsyncState
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
-import kotlinx.coroutines.test.resetMain
-import kotlinx.coroutines.test.setMain
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
+Test graph → `feature/<name>/tests/src/main/kotlin/feature/<name>/tests/<Name>TestGraph.kt`
+```kotlin
+package feature.<name>.tests
+
+import feature.<name>.<name>ClientDependencies
+import feature.<name>.<name>ServerDependencies
+import platform.testing.subcutaneous.SubcutaneousGraph
+import platform.testing.subcutaneous.featureClient
+import platform.testing.subcutaneous.featureServer
+
+val <name>TestGraph = SubcutaneousGraph(
+    client = featureClient(<name>ClientDependencies),
+    server = featureServer(<name>ServerDependencies),
+)
+```
+One per module, production modules only (`Testing.TestGraph.onePerTestsModule`,
+`.productionModulesOnly`). A feature whose `:server` binds nothing yet passes `featureServer()`.
+
+Scenarios → `feature/<name>/tests/src/main/kotlin/feature/<name>/tests/<Name>Scenarios.kt`
+```kotlin
+package feature.<name>.tests
+
+import feature.<name>.server.domain.FlowOf<Thing>s
+import feature.<name>.server.domain.Update<Thing>s
+import kotlinx.coroutines.flow.first
+import platform.testing.subcutaneous.Scenario
+
+suspend fun Scenario.<thing>s(vararg names: String): List</*domain model*/> {
+    val update<Thing>s = server<Update<Thing>s>()
+    names.forEach { update<Thing>s.add(it) }
+    return server<FlowOf<Thing>s>()().first()
+}
+```
+A scenario writes through server domain interfaces (`Testing.Scenario.seedsThroughServerDomain`) and
+returns what it created. Skip the file until the feature's server has a domain to write through.
+
+ViewModel test → `feature/<name>/tests/src/test/kotlin/feature/<name>/tests/<Name>ViewModelTest.kt`
+```kotlin
+package feature.<name>.tests
+
+import dev.isaacudy.udytils.state.getOrNull
+import feature.<name>.client.ui.<Name>Destination
+import feature.<name>.client.ui.<Name>ViewModel
+import platform.testing.SubcutaneousTest
+import platform.testing.subcutaneous.awaitMatching
+import platform.testing.subcutaneous.subcutaneous
 import kotlin.test.Test
-import kotlin.test.assertIs
-import platform.testing.UnitTest
+import kotlin.test.assertEquals
 
-@UnitTest
+@SubcutaneousTest
 class <Name>ViewModelTest {
 
-    private val testDispatcher = UnconfinedTestDispatcher()
-    private val createdViewModels = mutableListOf<ViewModel>()
-
-    private fun <T : ViewModel> T.track(): T {
-        createdViewModels += this
-        return this
-    }
-
-    @BeforeTest
-    fun setUp() {
-        Dispatchers.setMain(testDispatcher)
-    }
-
-    @AfterTest
-    fun tearDown() {
-        // Cancel each ViewModel's scope before resetting Main: a collector left subscribed
-        // to pendingResults dispatches to a Main dispatcher that no longer exists on targets
-        // without a default one, failing an unrelated test.
-        createdViewModels.forEach { it.viewModelScope.cancel() }
-        createdViewModels.clear()
-        NavigationResultChannel.pendingResults.value = emptyMap()
-        Dispatchers.resetMain()
-    }
-
     @Test
-    fun loadLifecycleReachesSuccess() = runEnroTest {
-        // val dataFlow = MutableStateFlow(/* domain projection */)
-        val handle = putNavigationHandleForViewModel<<Name>ViewModel, <Name>Destination>(<Name>Destination)
+    fun `an empty database loads`() = subcutaneous(<name>TestGraph) {
+        val screen = viewModel<<Name>ViewModel, <Name>Destination>(<Name>Destination)
 
-        val vm = <Name>ViewModel(
-            // flowOf<Name> = FlowOf<Name> { dataFlow },
-        ).track()
+        val state = screen.viewModel.state.awaitMatching { it.data.getOrNull() != null }
 
-        assertIs<AsyncState.Success<*>>(vm.state.value.data)
+        assertEquals(/* expected */, state.data.getOrNull())
     }
 }
 ```
-`putNavigationHandleForViewModel` must be called BEFORE the ViewModel is constructed — it pre-registers
-the `TestNavigationHandle` that `by navigationHandle()` resolves at init time. `UnconfinedTestDispatcher`
-ensures `viewModelScope` coroutines execute eagerly. The teardown ordering is load-bearing: scope
-cancellation before `resetMain` prevents a leaked collector from dispatching to a dead dispatcher.
-`:feature:core`'s `UkptViewModelTest` is the complete worked example covering load lifecycle, error +
-retry, actions, and dialog result channels.
+Run with `./gradlew :feature:<name>:tests:subcutaneousTest`. A test references only entry-point
+vocabulary (ViewModels, states, destinations, domain models, `@Urpc` service interfaces) and imports
+no Koin, Ktor, Exposed or `kotlinx.coroutines.test` (`Testing.SubcutaneousTest.*`).
 
 ## §8 — Dialogs (copy from `:feature:core`, don't template)
 
@@ -558,7 +573,7 @@ dialog returns data that complete/close cannot represent. The destination carrie
 `ClientUi.dialogsCommunicateViaResults`).
 
 ## §9 — Wiring checklist (edits to EXISTING files — the easy-to-forget step)
-- [ ] `settings.gradle.kts` — three `include(":feature:<name>:…")` (§4).
+- [ ] `settings.gradle.kts` — four `include(":feature:<name>:…")` (§4).
 - [ ] `app/client/common/build.gradle.kts` — `commonMain` → `implementation(projects.feature.<name>.client)`.
 - [ ] `app/client/common/src/commonMain/kotlin/com/isaacudy/ukpt/ClientDependencies.kt` — `import feature.<name>.<name>ClientDependencies`
       and add it to the `clientDependencies` list (`App()` installs that list; `:app:client:common:jvmTest` verifies it).

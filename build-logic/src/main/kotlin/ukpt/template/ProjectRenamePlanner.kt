@@ -135,6 +135,8 @@ object ProjectRenamePlanner {
     private val workedCoreIdentifiers = setOf(
         "UkptDestination",
         "ukptClientDependencies",
+        "ukptServerDependencies",
+        "ukptTestGraph",
     )
 
     /** Returns every validation error in [request], or an empty list when it is safe to plan. */
