@@ -47,6 +47,7 @@ Copy the nearest test of the same category:
 - Wiring: `app/server/src/test/kotlin/com/isaacudy/ukpt/ServerDependenciesTest.kt`
 - Adapter: `platform/server/postgres/src/test/kotlin/platform/server/postgres/TransactionRunnerTest.kt`
 - Check: `platform/client/design-html/src/jvmTest/kotlin/platform/design/html/UkptDesignCssTest.kt`
+- End-to-end: `app/client/desktop/src/test/kotlin/com/isaacudy/ukpt/GreetingJourneyTest.kt`
 
 The module's test source set needs `projects.platform.common.testing` (in `commonTest` for a
 multiplatform module, `testImplementation` for a JVM module) and `libs.kotlin.test`. JVM tests run
@@ -127,6 +128,49 @@ Tests alone to `build/reports/kover/html/index.html` and `build/reports/kover/re
 time with a 1 GB heap. The first test in a JVM takes about 3 s (Postgres start and migration), the
 rest under 1 s.
 
+## End-to-end tests
+
+An End To End Test drives the desktop app's root composable, `AppContent()`, with
+`runComposeUiTest`, against the server in-process. Write one per journey that crosses screens; the
+behaviour inside a screen belongs in a Subcutaneous Test.
+
+```kotlin
+@Test
+fun `a seeded greeting shows`() = inProcessServer(::serverDependencies) {
+    given { greetingHistory("Hi there") }
+    val rootContext = appRootContext()
+
+    runComposeUiTest {
+        setContent {
+            CompositionLocalProvider(LocalRootContext provides rootContext) {
+                KoinApplication(application = { modules(clientDependencies + clientEdges) }) {
+                    AppContent()
+                }
+            }
+        }
+        awaitText("Hi there")
+        onNodeWithText("Greet").performClick()
+        awaitText("Hello again")
+    }
+}
+```
+
+- `inProcessServer(server, edges)` — from the harness. Starts the server graph against a new
+  database and builds no client graph. `clientEdges` is the transport to that server plus the
+  client edges; load it after `clientDependencies`. `given { }` runs scenarios from any `:tests`
+  module the desktop test set depends on. Teardown stops the global Koin context that
+  `KoinApplication` starts.
+- `appRootContext()` — in the desktop test set. A root context on the app's navigation controller,
+  for `LocalRootContext`; no `RootWindow` exists in `runComposeUiTest`. The controller is installed
+  once per test JVM.
+- `runComposeUiTest` is `androidx.compose.ui.test.v2.runComposeUiTest`. Waits are real time:
+  `waitUntilExactlyOneExists(hasText(…), timeoutMillis)`. A dialog's button is
+  `onNode(hasText("Reset") and hasAnyAncestor(isDialog()))`.
+- The desktop test set depends on `:app:server` (for `serverDependencies`), the harness, the
+  feature's `:tests` and `:api` modules, and `libs.compose.uiTest`.
+
+Run them with `./gradlew endToEndTest`. The first test in a JVM takes about 5 s.
+
 ## Running a category
 
 A task name given without a module path runs in every module that has it:
@@ -167,3 +211,5 @@ failure names the rule; its statement and rationale are in
   scenario, `runTest` to `awaitMatching`.
 - `Testing.Scenario.seedsThroughServerDomain` — call a server domain interface instead of storage.
 - `ModuleRules.testsModuleShape` — add the feature's `:client`/`:server` to the `:tests` build file.
+- `Testing.EndToEndTest.drivesTheAppRoot` — run the test body in `inProcessServer(…)` and render
+  `AppContent()` inside `runComposeUiTest`.

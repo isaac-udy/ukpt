@@ -326,6 +326,7 @@ The complete catalog, one row per Construct or Rule. IDs are based on the object
 | `Testing.CheckTest.placement` | A Check Test must live in a JVM test source set: `jvmTest`, `desktopTest` or `src/test` | [tested](../src/main/kotlin/architecture/rules/testing/CheckTest.kt) |
 | `Testing.EndToEndTest` | is a class · is annotated `@EndToEndTest` | [construct](../src/main/kotlin/architecture/rules/testing/EndToEndTest.kt) |
 | `Testing.EndToEndTest.placement` | An End To End Test must live in `:app:client:desktop`'s `src/test` source set | [tested](../src/main/kotlin/architecture/rules/testing/EndToEndTest.kt) |
+| `Testing.EndToEndTest.drivesTheAppRoot` | Every `@Test` function of an End To End Test must call `inProcessServer(`, `runComposeUiTest` and `AppContent(` | [tested](../src/main/kotlin/architecture/rules/testing/EndToEndTest.kt) |
 | `Testing.Fake` | satisfies one of: {is a class, is an object} · is named `Fake[Name]` · declares no `@Test` function | [construct](../src/main/kotlin/architecture/rules/testing/Fake.kt) |
 | `Testing.Fake.subcutaneousEdgesOnly` | In a `:feature:[name]:tests` module, a Fake must implement only an interface an IntegrationClient provides, `kotlin.time.Clock`, or an interface declared under `platform` | [tested](../src/main/kotlin/architecture/rules/testing/Fake.kt) |
 | `Testing.SnapshotSurface` | is a function · is annotated `@Composable` · lives in `androidHostTest` | [construct](../src/main/kotlin/architecture/rules/testing/SnapshotSurface.kt) |

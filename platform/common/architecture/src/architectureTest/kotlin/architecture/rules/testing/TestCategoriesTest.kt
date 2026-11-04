@@ -17,7 +17,8 @@ import kotlin.test.assertTrue
 /**
  * The Testing rules over `src/architectureTest/fixtures/test-categories`: a `feature.sample` client
  * with two ViewModels, a Repository and two HTML ScreenContents, a `:tests` module, and tests that
- * break one rule each, beside `SampleRepositoryTest` and `SampleViewModelTest`, which break none.
+ * break one rule each, beside `SampleRepositoryTest`, `SampleViewModelTest` and the desktop
+ * `SampleJourneyTest`, which break none.
  */
 class TestCategoriesTest {
 
@@ -102,6 +103,13 @@ class TestCategoriesTest {
     @Test
     fun `a subcutaneous test importing koin is reported`() {
         assertEquals(listOf("ShortcutSubcutaneousTest.kt"), violations("Testing.SubcutaneousTest.noInfrastructureImports").files())
+    }
+
+    @Test
+    fun `an end-to-end test that renders one screen is reported, one hosting the app root is not`() {
+        val violations = violations("Testing.EndToEndTest.drivesTheAppRoot")
+        assertEquals(listOf("ScreenOnlyEndToEndTest.kt", "ScreenOnlyEndToEndTest.kt"), violations.files())
+        assertTrue(violations.any { "inProcessServer(" in it.message } && violations.any { "AppContent(" in it.message }, violations.toString())
     }
 
     @Test

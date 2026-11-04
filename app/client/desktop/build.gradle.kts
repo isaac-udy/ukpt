@@ -13,6 +13,21 @@ dependencies {
 
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutinesSwing)
+
+    testImplementation(projects.platform.common.testing)
+    testImplementation(projects.platform.common.subcutaneous)
+    testImplementation(projects.feature.core.tests)
+    testImplementation(projects.feature.core.api)
+    testImplementation(projects.app.server)
+    testImplementation(libs.compose.uiTest)
+    testImplementation(libs.koin.compose)
+    testImplementation(libs.kotlin.test)
+}
+
+// Each test JVM starts an embedded Postgres for the End To End Tests.
+tasks.withType<Test>().configureEach {
+    maxParallelForks = 1
+    maxHeapSize = "1g"
 }
 
 compose.desktop {
