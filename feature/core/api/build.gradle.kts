@@ -23,6 +23,7 @@ kotlin {
             api(libs.urpc.protocol)
         }
         commonTest.dependencies {
+            implementation(projects.platform.common.testing)
             implementation(libs.kotlin.test)
         }
     }

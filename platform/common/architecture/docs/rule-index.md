@@ -28,6 +28,7 @@ The complete catalog, one row per Construct or Rule. IDs are based on the object
 | `ModuleRules.featuresMayBeGrouped` | A `:feature` module may be grouped (`:feature:[group]:[name]:…`) | [guidance](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |
 | `ModuleRules.platformNotApp` | A `:platform` module must never depend on an `:app` module | [tested](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |
 | `ModuleRules.platformNotFeature` | A `:platform` module must never depend on a `:feature` module | [tested](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |
+| `ModuleRules.testSupportOnlyFromTests` | A test-support module (`:platform:common:testing`, `:platform:common:subcutaneous`, a `:feature:[name]:tests` module) may only be a test dependency, or a dependency of another test-support module | [tested](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |
 | `ModuleRules.platformMayUsePlatform` | A `:platform` module may depend on other `:platform` modules | [guidance](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |
 | `FeatureRules.SharedDomainModel` | resides in the feature root package `feature.[name]` · is declared in the feature's `:api` module · is a class or interface · satisfies one of: {is `sealed`, is a `data class`, is an `enum class`, is a `value class`} · is annotated with `@Serializable` | [construct](../src/main/kotlin/architecture/rules/feature/SharedDomainModel.kt) |
 | `FeatureRules.SharedDomainModel.immutable` | A shared domain model must be immutable (val properties only) | [tested](../src/main/kotlin/architecture/rules/feature/SharedDomainModel.kt) |
@@ -130,9 +131,9 @@ The complete catalog, one row per Construct or Rule. IDs are based on the object
 | `ClientUi.Screen.htmlScreenIsPlatformOverride` | A Screen in `src/jsMain/` must be annotated `@NavigationDestination.PlatformOverride` | [tested](../src/main/kotlin/architecture/rules/clientui/Screen.kt) |
 | `ClientUi.Composable` | resides in `feature..client.ui..` · is not a Screen · is annotated `@Composable` | [construct](../src/main/kotlin/architecture/rules/clientui/Composable.kt) |
 | `ClientUi.Composable.screenContentPreview` | A `[Name]ScreenContent` composable must be called from a `@Preview` composable in the same file | [tested](../src/main/kotlin/architecture/rules/clientui/Composable.kt) |
-| `ClientUi.Composable.htmlScreenContentTested` | A `[Name]ScreenContent` composable in `src/jsMain/` must be called from a test in its module's `src/jsTest/` | [tested](../src/main/kotlin/architecture/rules/clientui/Composable.kt) |
+| `ClientUi.Composable.htmlScreenContentTested` | A `[Name]ScreenContent` composable in `src/jsMain/` must be called from a Component Test in its module's `src/jsTest/` | [tested](../src/main/kotlin/architecture/rules/clientui/Composable.kt) |
 | `ClientUi.Composable.dialogPrimitivesOnlyInDialogDestinations` | Dialog primitives (`AlertDialog`, `BasicAlertDialog`, `DatePickerDialog`, `ModalBottomSheet`, `androidx.compose.ui.window.Dialog`) may only be invoked in a file that declares a dialog destination (one containing a `directOverlay` metadata marker) | [tested](../src/main/kotlin/architecture/rules/clientui/Composable.kt) |
-| `ClientUi.Composable.previewsAreSnapshotTested` | A feature module that contains `@Preview` composables must have a `PreviewSnapshotTest` in its `androidHostTest` source set | [tested](../src/main/kotlin/architecture/rules/clientui/Composable.kt) |
+| `ClientUi.Composable.previewsAreSnapshotTested` | A feature module that contains `@Preview` composables must have a Snapshot Test in its `androidHostTest` source set | [tested](../src/main/kotlin/architecture/rules/clientui/Composable.kt) |
 | `ClientUi.Destination` | resides in `feature..client.ui..` · is a class or object · implements `dev.enro.NavigationKey` or `NavigationKey.WithResult<T>` · is named `[Name]Destination` · is annotated `@Serializable` · is declared in a file matching its name | [construct](../src/main/kotlin/architecture/rules/clientui/Destination.kt) |
 | `ClientUi.Destination.minimalData` | A Destination should accept the minimal data required to initialise the associated Screen | [guidance](../src/main/kotlin/architecture/rules/clientui/Destination.kt) |
 | `ClientUi.Destination.presentationHints` | A NavigationKey may carry a small optional presentation hint (for example a title hint) so minimal chrome stays informative while required data loads | [guidance](../src/main/kotlin/architecture/rules/clientui/Destination.kt) |
@@ -296,7 +297,35 @@ The complete catalog, one row per Construct or Rule. IDs are based on the object
 | `ProjectRules.injectableConstructorsHaveNoDefaults` | A class a DI module registers must not give a constructor parameter a default value | [tested](../src/main/kotlin/architecture/rules/project/ProjectRules.kt) |
 | `ProjectRules.transactionRunnerInjectedByUseCaseOrRepository` | A `TransactionRunner` may only be injected by a UseCase or a Repository | [tested](../src/main/kotlin/architecture/rules/project/ProjectRules.kt) |
 | `ProjectRules.serviceExceptionSimpleNamesUnique` | Two features must not declare service exceptions with the same simple name | [tested](../src/main/kotlin/architecture/rules/project/ProjectRules.kt) |
+| `Testing.SubcutaneousTest` | is a class · is annotated `@SubcutaneousTest` | [construct](../src/main/kotlin/architecture/rules/testing/SubcutaneousTest.kt) |
+| `Testing.SubcutaneousTest.placement` | A Subcutaneous Test must live in the `src/test` source set of a `:feature:[name]:tests` module | [tested](../src/main/kotlin/architecture/rules/testing/SubcutaneousTest.kt) |
+| `Testing.UnitTest` | is a class · is annotated `@UnitTest` | [construct](../src/main/kotlin/architecture/rules/testing/UnitTest.kt) |
+| `Testing.UnitTest.placement` | A Unit Test must live in a test source set other than `androidHostTest`, outside a `:feature:[name]:tests` module | [tested](../src/main/kotlin/architecture/rules/testing/UnitTest.kt) |
+| `Testing.UnitTest.noInfrastructure` | A Unit Test must not import dependency injection, network, database, file-system, or UI-test APIs | [tested](../src/main/kotlin/architecture/rules/testing/UnitTest.kt) |
+| `Testing.UnitTest.oneProductionClass` | A Unit Test must construct at most one production class; constructing domain models, states and other value types is test data | [tested](../src/main/kotlin/architecture/rules/testing/UnitTest.kt) |
+| `Testing.ComponentTest` | is a class · is annotated `@ComponentTest` | [construct](../src/main/kotlin/architecture/rules/testing/ComponentTest.kt) |
+| `Testing.ComponentTest.placement` | A Component Test must live in a `:client` module's `jsTest`, `jvmTest` or `desktopTest` source set | [tested](../src/main/kotlin/architecture/rules/testing/ComponentTest.kt) |
+| `Testing.ComponentTest.rendersScreenContentOnly` | A Component Test must reference only composables, ViewModel states, and the value types they carry from production code, and must not import dependency injection | [tested](../src/main/kotlin/architecture/rules/testing/ComponentTest.kt) |
+| `Testing.SnapshotTest` | is a class · is annotated `@SnapshotTest` | [construct](../src/main/kotlin/architecture/rules/testing/SnapshotTest.kt) |
+| `Testing.SnapshotTest.placement` | A Snapshot Test must live in the `androidHostTest` source set | [tested](../src/main/kotlin/architecture/rules/testing/SnapshotTest.kt) |
+| `Testing.SnapshotTest.usesTheSnapshotHarness` | A Snapshot Test must extend `PreviewSnapshotTestCase` or use `SnapshotRule` | [tested](../src/main/kotlin/architecture/rules/testing/SnapshotTest.kt) |
+| `Testing.WiringTest` | is a class · is annotated `@WiringTest` | [construct](../src/main/kotlin/architecture/rules/testing/WiringTest.kt) |
+| `Testing.WiringTest.placement` | A Wiring Test must live in an `:app` module's test source set | [tested](../src/main/kotlin/architecture/rules/testing/WiringTest.kt) |
+| `Testing.WiringTest.resolvesTheGraph` | A Wiring Test must call Koin's `verify()` | [tested](../src/main/kotlin/architecture/rules/testing/WiringTest.kt) |
+| `Testing.AdapterTest` | is a class · is annotated `@AdapterTest` | [construct](../src/main/kotlin/architecture/rules/testing/AdapterTest.kt) |
+| `Testing.AdapterTest.placement` | An Adapter Test must live in the `src/test` source set of a `:platform:server:*` or `:feature:[name]:server` module | [tested](../src/main/kotlin/architecture/rules/testing/AdapterTest.kt) |
+| `Testing.AdapterTest.rare` | Prefer a Subcutaneous Test; an Adapter Test is for behaviour a Subcutaneous Test cannot reach | [guidance](../src/main/kotlin/architecture/rules/testing/AdapterTest.kt) |
+| `Testing.CheckTest` | is a class · is annotated `@CheckTest` | [construct](../src/main/kotlin/architecture/rules/testing/CheckTest.kt) |
+| `Testing.CheckTest.placement` | A Check Test must live in a JVM test source set: `jvmTest`, `desktopTest` or `src/test` | [tested](../src/main/kotlin/architecture/rules/testing/CheckTest.kt) |
+| `Testing.EndToEndTest` | is a class · is annotated `@EndToEndTest` | [construct](../src/main/kotlin/architecture/rules/testing/EndToEndTest.kt) |
+| `Testing.EndToEndTest.placement` | An End To End Test must live in `:app:client:desktop`'s `src/test` source set | [tested](../src/main/kotlin/architecture/rules/testing/EndToEndTest.kt) |
+| `Testing.Fake` | satisfies one of: {is a class, is an object} · is named `Fake[Name]` · declares no `@Test` function | [construct](../src/main/kotlin/architecture/rules/testing/Fake.kt) |
+| `Testing.SnapshotSurface` | is a function · is annotated `@Composable` · lives in `androidHostTest` | [construct](../src/main/kotlin/architecture/rules/testing/SnapshotSurface.kt) |
+| `Testing.Fixture` | satisfies one of: {is a function, is a property} · does not satisfy: is annotated `@Composable` | [construct](../src/main/kotlin/architecture/rules/testing/Fixture.kt) |
+| `Testing.oneCategoryPerTestClass` | Every test class (a class declaring a `@Test` function or extending `PreviewSnapshotTestCase`) must carry exactly one test category annotation | [tested](../src/main/kotlin/architecture/rules/testing/Testing.kt) |
+| `Testing.testFunctionsAssert` | Every `@Test` function must assert: call an `assert*`, `fail`, `verify`, `expect*` or `await*` function, directly or through a function declared in the same file | [tested](../src/main/kotlin/architecture/rules/testing/Testing.kt) |
 | `architecture.everyDeclarationBelongsToALayer` | Every declaration in governed code must match exactly one Construct across all RuleGroups | [tested](../src/main/kotlin/architecture/rules/UkptArchitecture.kt) |
+| `architecture.everyTestDeclarationBelongsToATestConstruct` | Every declaration in governed test code must match exactly one Construct across the test RuleGroups | [tested](../src/main/kotlin/architecture/rules/UkptArchitecture.kt) |
 
 ## Enforcement status
 

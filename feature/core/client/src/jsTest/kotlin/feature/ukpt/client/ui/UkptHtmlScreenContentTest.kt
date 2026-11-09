@@ -12,7 +12,9 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import platform.testing.ComponentTest
 
+@ComponentTest
 @OptIn(ComposeWebExperimentalTestsApi::class)
 class UkptHtmlScreenContentTest {
     private val populated = UkptState(

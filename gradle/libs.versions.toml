@@ -33,6 +33,9 @@ kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotl
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 kotlin-testJunit5 = { module = "org.jetbrains.kotlin:kotlin-test-junit5", version.ref = "kotlin" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit5" }
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit5" }
+junit-jupiterApi = { module = "org.junit.jupiter:junit-jupiter-api" }
+junit-platformLauncher = { module = "org.junit.platform:junit-platform-launcher" }
 composablePreviewScanner-android = { module = "io.github.sergio-sastre.ComposablePreviewScanner:android", version.ref = "composablePreviewScanner" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }

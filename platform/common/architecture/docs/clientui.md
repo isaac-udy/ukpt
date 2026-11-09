@@ -235,16 +235,14 @@ Snapshots are preview-driven: `PreviewSnapshotTest` (in `src/androidHostTest/`) 
 * A `[Name]ScreenContent` composable must be called from a `@Preview` composable in the same file
     * **Why:** Previews are the snapshot surface: `PreviewSnapshotTest` renders every `@Preview` in the module, so a ScreenContent without a preview has no snapshot coverage. The preview must live in the same file as the ScreenContent it renders — co-locating it keeps each screen's preview next to the screen, discoverable and maintained with it, instead of drifting into a single shared "screen previews" file.
     * **Note:** Compose HTML ScreenContents in `src/jsMain/` are tested in `src/jsTest/` instead (`ClientUi.Composable.htmlScreenContentTested`): Paparazzi renders Compose UI only.
-* A `[Name]ScreenContent` composable in `src/jsMain/` must be called from a test in its module's `src/jsTest/`
-    * **Why:** A Compose HTML ScreenContent has no `@Preview` and no snapshot. A `src/jsTest/` test that composes it with `html-test-utils` and reads the DOM is its coverage.
-    * **Note:** Test sources are outside the governed scope; the rule reads `src/jsTest/` files directly.
+* A `[Name]ScreenContent` composable in `src/jsMain/` must be called from a Component Test in its module's `src/jsTest/`
+    * **Why:** A Compose HTML ScreenContent has no `@Preview` and no snapshot. A `src/jsTest/` Component Test that composes it with `html-test-utils` and reads the DOM is its coverage.
 * Dialog primitives (`AlertDialog`, `BasicAlertDialog`, `DatePickerDialog`, `ModalBottomSheet`, `androidx.compose.ui.window.Dialog`) may only be invoked in a file that declares a dialog destination (one containing a `directOverlay` metadata marker)
     * **Why:** Dialogs are their own destinations: a `NavigationKey` rendered through Enro's overlay support, not an inline composable toggled by a boolean in screen state. Restricting dialog primitives to dialog-destination files makes embedded dialogs a build failure, not a review finding. Platform and design-system modules are exempt — they may define dialog primitives and wrappers.
     * **Note:** Detection is import-based: an import of any dialog primitive in a non-dialog-destination file is a violation, regardless of whether the call site is reached.
-* A feature module that contains `@Preview` composables must have a `PreviewSnapshotTest` in its `androidHostTest` source set
+* A feature module that contains `@Preview` composables must have a Snapshot Test in its `androidHostTest` source set
     * **Why:** The scanner test is what turns previews into snapshots; without it, previews render in the IDE but nothing guards against visual regressions.
-    * **Note:** Snapshot tests live under `src/androidHostTest/`, which the governed scope excludes; the test reads those files directly.
-    * **Note:** A module opts in by extending `PreviewSnapshotTestCase` from `dev.isaacudy.udytils:snapshot`, which supplies the preview scanning and the golden layout.
+    * **Note:** A module opts in with a `@SnapshotTest` `PreviewSnapshotTest` extending `PreviewSnapshotTestCase` from `dev.isaacudy.udytils:snapshot`, which supplies the preview scanning and the golden layout.
 
 ---
 

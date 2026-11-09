@@ -15,7 +15,9 @@ import kotlin.test.Test
 import kotlin.test.assertIs
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import platform.testing.UnitTest
 
+@UnitTest
 class AsyncStateLoadTest {
 
     @Test

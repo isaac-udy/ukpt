@@ -5,6 +5,7 @@ import dev.isaacudy.udytils.snapshot.PreviewSnapshotCase
 import dev.isaacudy.udytils.snapshot.PreviewSnapshotTestCase
 import dev.isaacudy.udytils.snapshot.PreviewSnapshots
 import org.junit.runners.Parameterized
+import platform.testing.SnapshotTest
 
 /**
  * Snapshot-tests every `@Preview` composable in this module.
@@ -12,6 +13,7 @@ import org.junit.runners.Parameterized
  * The harness lives in `dev.isaacudy.udytils:snapshot`; the scanned package tree below is the
  * only per-module fact — each feature's client module scans its own `feature.[name]` tree.
  */
+@SnapshotTest
 class PreviewSnapshotTest(
     case: PreviewSnapshotCase,
 ) : PreviewSnapshotTestCase(

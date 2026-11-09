@@ -1,0 +1,4 @@
+interface:
+  display_name: "Write UKPT Tests"
+  short_description: "Choose, write and run tests by category"
+  default_prompt: "Use $ukpt-testing to choose the test category and write the test."

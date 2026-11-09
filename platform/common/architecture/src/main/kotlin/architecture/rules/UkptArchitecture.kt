@@ -2,6 +2,8 @@ package architecture.rules
 
 import architecture.definitions.isFeatureModule
 import architecture.projectScope
+import architecture.projectTestScope
+import architecture.rules.testing.Testing
 import dev.isaacudy.udytils.architecture.*
 import architecture.rules.clientdata.ClientData
 import architecture.rules.clientdomain.ClientDomain
@@ -41,10 +43,11 @@ import architecture.rules.serverservices.ServerServices
     models. The client and server communicate only through the RPC contract, and `client.data` is
     the only client package that may import the RPC contract.
 
-    The rules govern the feature modules. The composite builds (`embedded-enro`,
-    `embedded-udytils`, and `build-logic`), test sources, and this rule module itself are not
-    tested. `:feature:core` is the worked example the rules describe: it keeps its feature code in
-    `feature.[name]` package namespaces so each slice stays liftable into its own module.
+    The rules govern the feature modules. The `Testing` rules govern test sources across the
+    project. The composite builds (`embedded-enro`, `embedded-udytils`, and `build-logic`) and this
+    rule module itself are not tested. `:feature:core` is the worked example the rules describe: it
+    keeps its feature code in `feature.[name]` package namespaces so each slice stays liftable into
+    its own module.
 
     Rules land enforced from their first commit, never as audits, and no declaration carries an
     `@ArchitectureException`. A rule that cannot be met is a design question, not a setting.
@@ -61,8 +64,11 @@ object UkptArchitecture : ArchitectureDefinition(
         ServerData,
         DesignSystemRules,
         ProjectRules,
+        Testing,
     ),
     scope = { projectScope },
     membership = { it.isFeatureModule() },
     docs = DocsConfig(module = "platform/common/architecture"),
+    testScope = { projectTestScope },
+    testMembership = { true },
 )

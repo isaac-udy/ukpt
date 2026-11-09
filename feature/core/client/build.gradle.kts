@@ -49,6 +49,7 @@ kotlin {
             // Engines get wired per-platform when an HTTP/urpc client is actually added.
         }
         commonTest.dependencies {
+            implementation(projects.platform.common.testing)
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutinesTest)
             implementation(libs.enro.test)

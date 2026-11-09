@@ -12,11 +12,13 @@ import platform.design.UkptFonts
 import platform.design.UkptShapes
 import platform.design.UkptSpacing
 import platform.design.UkptTypography
+import platform.testing.CheckTest
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.fail
 
+@CheckTest
 class UkptDesignCssTest {
     private val stylesheet = File(System.getProperty("ukpt.designStylesheet"))
     private val css = stylesheet.readText().replace(Regex("""/\*.*?\*/""", RegexOption.DOT_MATCHES_ALL), "")

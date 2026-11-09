@@ -24,10 +24,11 @@ and `server.data` define `Repository` classes that implement the interfaces and 
 models. The client and server communicate only through the RPC contract, and `client.data` is
 the only client package that may import the RPC contract.
 
-The rules govern the feature modules. The composite builds (`embedded-enro`,
-`embedded-udytils`, and `build-logic`), test sources, and this rule module itself are not
-tested. `:feature:core` is the worked example the rules describe: it keeps its feature code in
-`feature.[name]` package namespaces so each slice stays liftable into its own module.
+The rules govern the feature modules. The `Testing` rules govern test sources across the
+project. The composite builds (`embedded-enro`, `embedded-udytils`, and `build-logic`) and this
+rule module itself are not tested. `:feature:core` is the worked example the rules describe: it
+keeps its feature code in `feature.[name]` package namespaces so each slice stays liftable into
+its own module.
 
 Rules land enforced from their first commit, never as audits, and no declaration carries an
 `@ArchitectureException`. A rule that cannot be met is a design question, not a setting.
@@ -44,6 +45,7 @@ Rules land enforced from their first commit, never as audits, and no declaration
 - [Server Data](docs/serverdata.md)
 - [Design System Rules](docs/designsystem.md)
 - [Project Rules](docs/project.md)
+- [Testing](docs/testing.md)
 
 ## Reference
 
@@ -59,6 +61,7 @@ This project uses the [udytils architecture system](https://github.com/isaac-udy
 
 - **RuleGroup:** names and defines a set of Constructs, Rules, and Guidance.
   - A RuleGroup may be scoped to a particular package pattern. Scoping a RuleGroup to a package pattern will require all associated Constructs to be defined in a package matching that pattern.
+  - A RuleGroup governs production sources by default. A RuleGroup declared with `codeScope = CodeScope.Test` governs test sources instead: its Constructs classify only test declarations, and production Constructs never classify them.
 - **Construct:** names and defines the Rules and Guidance for a code-level construct (such as a class, interface, function or property).  
   - A Construct must be associated with a RuleGroup.
   - A Construct defines a set of requirements in its constructor. If a piece of code matches the requirements for a particular Construct, it will be required to meet the rules associated with that construct. 

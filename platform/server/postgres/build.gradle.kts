@@ -30,6 +30,7 @@ dependencies {
     // An embedded Postgres is the only place TransactionRunner's joining semantics are observable.
     testImplementation(libs.udytils.postgres.embedded)
     testImplementation(libs.kotlinx.coroutinesCore)
-    testImplementation(libs.kotlin.testJunit)
+    testImplementation(projects.platform.common.testing)
+    testImplementation(libs.kotlin.test)
     testRuntimeOnly(libs.logback)
 }

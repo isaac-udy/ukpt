@@ -3,6 +3,7 @@ package com.isaacudy.ukpt
 import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.dsl.module
 import org.koin.test.verify.verify
+import platform.testing.WiringTest
 import kotlin.test.Test
 
 /**
@@ -12,6 +13,7 @@ import kotlin.test.Test
  * missing. A parameter with a default value only warns here while `singleOf` still resolves it at
  * runtime; `ProjectRules.injectableConstructorsHaveNoDefaults` covers that.
  */
+@WiringTest
 @OptIn(KoinExperimentalAPI::class)
 class ClientDependenciesTest {
 

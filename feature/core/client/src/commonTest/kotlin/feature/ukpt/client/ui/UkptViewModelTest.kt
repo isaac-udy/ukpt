@@ -30,7 +30,9 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import platform.testing.UnitTest
 
+@UnitTest
 class UkptViewModelTest {
 
     private val testDispatcher = UnconfinedTestDispatcher()
