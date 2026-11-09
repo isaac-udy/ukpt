@@ -1,6 +1,7 @@
 // The Subcutaneous Test harness: a feature's production client and server Koin graphs, the
 // server in-process on Ktor's test engine, and an embedded Postgres cloned from a migrated template
-// for every test. Only `:feature:[name]:tests` modules depend on it.
+// for every test. `:feature:[name]:tests` modules depend on it, and `:app:client:desktop`'s tests
+// use `inProcessServer` for End To End Tests.
 plugins {
     id("ukpt.jvm-base")
 }

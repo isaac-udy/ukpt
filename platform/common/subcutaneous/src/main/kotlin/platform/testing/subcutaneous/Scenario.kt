@@ -8,11 +8,11 @@ import org.koin.core.Koin
  */
 class Scenario internal constructor(
     @PublishedApi internal val serverKoin: Koin,
-    @PublishedApi internal val clientKoin: Koin,
+    @PublishedApi internal val clientKoin: () -> Koin,
 ) {
     /** A binding from the running server's graph, such as a server domain interface. */
     inline fun <reified T : Any> server(): T = serverKoin.get()
 
     /** A binding from the client graph. */
-    inline fun <reified T : Any> client(): T = clientKoin.get()
+    inline fun <reified T : Any> client(): T = clientKoin().get()
 }

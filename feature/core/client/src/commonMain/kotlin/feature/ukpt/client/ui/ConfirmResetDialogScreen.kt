@@ -4,6 +4,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.enro.annotations.NavigationDestination
@@ -31,6 +33,7 @@ internal fun ConfirmResetDialogScreenContent(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier.testTag(ConfirmResetDialogTags.Dialog),
         title = {
             Text(
                 text = "Reset greeting count?",
@@ -45,7 +48,7 @@ internal fun ConfirmResetDialogScreenContent(
             )
         },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
+            TextButton(onClick = onConfirm, modifier = Modifier.testTag(ConfirmResetDialogTags.ResetButton)) {
                 Text(
                     text = "Reset",
                     color = UkptTheme.colors.accent,
@@ -53,7 +56,7 @@ internal fun ConfirmResetDialogScreenContent(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(onClick = onDismiss, modifier = Modifier.testTag(ConfirmResetDialogTags.CancelButton)) {
                 Text(text = "Cancel")
             }
         },

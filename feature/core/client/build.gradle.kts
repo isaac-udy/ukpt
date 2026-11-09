@@ -44,6 +44,10 @@ kotlin {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutinesTest)
         }
+        jvmTest.dependencies {
+            implementation(projects.feature.core.tests)
+            implementation(compose.desktop.currentOs)
+        }
         getByName("androidHostTest").dependencies {
             // The snapshot harness: preview discovery, directory-grouped goldens, the
             // golden-path collision guard and the device/rendering defaults. Brings

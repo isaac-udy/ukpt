@@ -14,17 +14,23 @@ fun App() {
     // Start Koin for the composition. The Enro ViewModel factory (in UkptNavigation)
     // resolves ViewModels from this Koin scope.
     KoinApplication(application = { modules(clientDependencies) }) {
-        // The design system is installed once, here, above navigation — so every destination
-        // renders inside it and no screen wraps a theme of its own. UkptTheme wraps a
-        // MaterialTheme derived from the tokens, so raw material internals inherit them too.
-        UkptTheme {
-            ProvideUkptViewport {
-                val rootContainer = rememberRootNavigationContainer(UkptDestination)
-                NavigationDisplay(
-                    state = rootContainer,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
+        AppContent()
+    }
+}
+
+/** The application below its Koin graph. End-to-end tests host it with their own `KoinApplication`. */
+@Composable
+fun AppContent() {
+    // The design system is installed once, here, above navigation — so every destination
+    // renders inside it and no screen wraps a theme of its own. UkptTheme wraps a
+    // MaterialTheme derived from the tokens, so raw material internals inherit them too.
+    UkptTheme {
+        ProvideUkptViewport {
+            val rootContainer = rememberRootNavigationContainer(UkptDestination)
+            NavigationDisplay(
+                state = rootContainer,
+                modifier = Modifier.fillMaxSize(),
+            )
         }
     }
 }

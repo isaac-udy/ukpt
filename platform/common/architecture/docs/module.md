@@ -43,6 +43,7 @@ Kotlin source. Build-file exemptions use the `// architecture-exception:` commen
 * A `:feature` module must never depend on an `:app` module
 * A `:feature:[name]:client` module must never depend on another `:client`/`:server` module
     * **Why:** A feature's client may only reach other features through their `:api` contract, or `:platform`.
+    * **Note:** A `:client` module's tests may depend on its own feature's `:tests` module, for its Robots.
 * A `:feature:[name]:client` module may depend on any `:feature:[name]:api` module
     * **Enforced by:** `ModuleRules.clientApiOnly`
 * A `:feature:[name]:server` module must never depend on another `:client`/`:server` module
@@ -77,7 +78,7 @@ Kotlin source. Build-file exemptions use the `// architecture-exception:` commen
     * **Note:** To keep a deliberate edge, annotate the `:api` source file holding the import with `@file:ArchitectureException(ruleIds = ["ModuleRules.apiGraphAcyclic"], reason = "…")`; its edges are then excluded from the graph.
 * A `:platform` module must never depend on an `:app` module
 * A `:platform` module must never depend on a `:feature` module
-* A test-support module (`:platform:common:testing`, `:platform:common:subcutaneous`, a `:feature:[name]:tests` module) may only be a test dependency, or a dependency of another test-support module
+* A test-support module (`:platform:common:testing`, `:platform:common:subcutaneous`, `:platform:common:robots`, a `:feature:[name]:tests` module) may only be a test dependency, or a dependency of another test-support module
     * **Why:** Test-support code on a production classpath ships test categories, fakes, and an embedded database to users.
     * **Note:** A test dependency is one declared in a test source set block (`commonTest.dependencies { }`) or with a test configuration (`testImplementation`).
 * A `:feature:[name]:tests` module must depend on its feature's `:client` and `:server` modules; it may depend on other `:feature` and `:platform` modules

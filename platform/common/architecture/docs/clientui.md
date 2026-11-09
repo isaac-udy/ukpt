@@ -27,6 +27,7 @@ The layer rules below apply across the whole `feature.[name].client.ui` package.
 * [View Model State](#view-model-state)
 * [Ui Value Type](#ui-value-type)
 * [Composition Local](#composition-local)
+* [Screen Tags](#screen-tags)
 
 ##### Rules
 
@@ -554,3 +555,24 @@ value is provided once near the composition root and read by leaf composables.
 * A composition local must be used as a dependency-access channel with an inert default (`null` / no-op), never as a back door for arbitrary mutable state
     * **Why:** An inert default lets a composable degrade gracefully when no provider is present, such as in snapshots and previews; using a composition local to smuggle mutable state around re-introduces the hidden coupling that threading dependencies through ViewModels avoids.
     * **Verification:** not automatically verifiable; enforced by review.
+
+---
+
+## [Screen Tags](../src/main/kotlin/architecture/rules/clientui/ScreenTags.kt)
+
+An `object` named `[Screen]Tags` whose members are `const val` test tags: the names a screen
+gives its nodes with `Modifier.testTag`, and the names its [Robot](testing.md#robot) finds them
+by. Each screen a robot drives has one, in the screen's package.
+
+```kotlin
+object UkptScreenTags {
+    const val Screen = "UkptScreen"
+    const val GreetButton = "UkptScreen.GreetButton"
+}
+```
+
+##### Requirements
+
+* A Screen Tags resides in `feature..client.ui..`
+* A Screen Tags is named `[Screen]Tags`
+* A Screen Tags is an `object` with only `const val` properties and no functions

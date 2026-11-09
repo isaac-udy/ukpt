@@ -29,8 +29,11 @@ import dev.isaacudy.udytils.architecture.*
     `--no-configuration-cache`). kotlin.test has no tags on JS, wasm or iOS, so `componentTest`
     also runs the module's `jsTest`.
 
-    Test-support declarations (fakes, fixtures, snapshot surfaces, scenarios, test graphs) are
-    Constructs too: every top-level declaration in test sources matches exactly one.
+    Component Tests and End To End Tests drive Compose UI screens through [Robots](#robot), one
+    per screen, named for what the user does: `clickGreetButton()`, `seeGreeting("Hi there")`.
+
+    Test-support declarations (fakes, fixtures, snapshot surfaces, scenarios, test graphs, robots)
+    are Constructs too: every top-level declaration in test sources matches exactly one.
 """)
 object Testing : RuleGroup(
     constructs = listOf(
@@ -46,6 +49,7 @@ object Testing : RuleGroup(
         SnapshotSurface,
         Scenario,
         TestGraph,
+        Robot,
         Fixture,
     ),
     codeScope = CodeScope.Test,
@@ -68,7 +72,7 @@ object Testing : RuleGroup(
         }
     }
 
-    @Describe("Every `@Test` function must assert: call an `assert*`, `fail`, `verify`, `expect*` or `await*` function, directly or through a function declared in the same file")
+    @Describe("Every `@Test` function must assert: call an `assert*`, `fail`, `verify`, `expect*` or `await*` function, or a Robot's `see*` function, directly or through a function declared in the same file")
     val testFunctionsAssert by rule {
         rationale(
             """
@@ -104,7 +108,7 @@ private val CATEGORY_ANNOTATIONS = listOf(
 
 private val TEST_BASES = setOf("PreviewSnapshotTestCase")
 
-private val ASSERTION =Regex("""\b(assert\w*|fail|verify|expect\w*|await\w*)\s*[(<{]""")
+private val ASSERTION = Regex("""\b(assert\w*|fail|verify|expect\w*|await\w*|see[A-Z]\w*)\s*[(<{]""")
 
 private fun KoFunctionDeclaration.asserts(assertingHelpers: Set<String>): Boolean =
     ASSERTION.containsMatchIn(text) || assertingHelpers.any { helper -> helper != name && Regex("""\b$helper\s*\(""").containsMatchIn(text) }

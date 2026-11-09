@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.enro.annotations.NavigationDestination
@@ -48,7 +49,8 @@ internal fun UkptScreenContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(UkptTheme.colors.background),
+            .background(UkptTheme.colors.background)
+            .testTag(UkptScreenTags.Screen),
         contentAlignment = Alignment.Center,
     ) {
         when (val summary = state.greetingSummary) {
@@ -69,6 +71,7 @@ internal fun UkptScreenContent(
                     UkptButton(
                         label = "Retry",
                         onClick = onRetry,
+                        modifier = Modifier.testTag(UkptScreenTags.RetryButton),
                     )
                 }
             }
@@ -81,16 +84,19 @@ internal fun UkptScreenContent(
                         text = summary.data.latest?.text ?: "No greetings yet",
                         style = UkptTheme.typography.title,
                         color = UkptTheme.colors.onSurface,
+                        modifier = Modifier.testTag(UkptScreenTags.LatestGreeting),
                     )
                     Text(
                         text = "${summary.data.greetings.size} greetings in history",
                         style = UkptTheme.typography.caption,
                         color = UkptTheme.colors.onSurfaceVariant,
+                        modifier = Modifier.testTag(UkptScreenTags.GreetingCount),
                     )
                     UkptButton(
                         label = if (state.greetAction.isLoading()) "Greeting…" else "Greet",
                         onClick = onGreet,
                         enabled = !state.greetAction.isLoading(),
+                        modifier = Modifier.testTag(UkptScreenTags.GreetButton),
                     )
                     if (state.greetAction is AsyncState.Error) {
                         Text(
@@ -102,6 +108,7 @@ internal fun UkptScreenContent(
                     UkptButton(
                         label = "Reset",
                         onClick = onReset,
+                        modifier = Modifier.testTag(UkptScreenTags.ResetButton),
                     )
                 }
             }

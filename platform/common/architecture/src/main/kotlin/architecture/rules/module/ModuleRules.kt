@@ -66,9 +66,11 @@ object ModuleRules : RuleGroup() {
     @Describe("A `:feature:[name]:client` module must never depend on another `:client`/`:server` module")
     val clientApiOnly by rule {
         rationale("A feature's client may only reach other features through their `:api` contract, or `:platform`.")
+        note("A `:client` module's tests may depend on its own feature's `:tests` module, for its Robots.")
         moduleGraph { graph, exempt ->
             graph.edges
                 .filter { featureSubmoduleType(it.from) == "client" }
+                .filterNot { it.isTest && it.to == it.from.removeSuffix(":client") + ":tests" }
                 .filter { isFeature(it.to) && featureSubmoduleType(it.to) != "api" && !exempt(it) }
                 .map { Violation(it.location, "feature :client may only depend on :api or :platform") }
         }
@@ -463,7 +465,7 @@ object ModuleRules : RuleGroup() {
         }
     }
 
-    @Describe("A test-support module (`:platform:common:testing`, `:platform:common:subcutaneous`, a `:feature:[name]:tests` module) may only be a test dependency, or a dependency of another test-support module")
+    @Describe("A test-support module (`:platform:common:testing`, `:platform:common:subcutaneous`, `:platform:common:robots`, a `:feature:[name]:tests` module) may only be a test dependency, or a dependency of another test-support module")
     val testSupportOnlyFromTests by rule {
         rationale("Test-support code on a production classpath ships test categories, fakes, and an embedded database to users.")
         note("A test dependency is one declared in a test source set block (`commonTest.dependencies { }`) or with a test configuration (`testImplementation`).")
@@ -505,8 +507,8 @@ private fun isApp(path: String) = path.startsWith(":app:") || path == ":app"
 private fun isFeature(path: String) = path.startsWith(":feature:") || path == ":feature"
 private fun isPlatform(path: String) = path.startsWith(":platform:") || path == ":platform"
 private val TESTS_MODULE = Regex("^:feature:[^:]+:tests$")
-private fun isTestSupport(path: String) =
-    path == ":platform:common:testing" || path == ":platform:common:subcutaneous" || TESTS_MODULE.matches(path)
+private val TEST_SUPPORT_MODULES = setOf(":platform:common:testing", ":platform:common:subcutaneous", ":platform:common:robots")
+private fun isTestSupport(path: String) = path in TEST_SUPPORT_MODULES || TESTS_MODULE.matches(path)
 
 /** `:feature:core:server` → "server"; null if [path] isn't a `:feature:…:{api,client,server}` module. */
 private fun featureSubmoduleType(path: String): String? {
