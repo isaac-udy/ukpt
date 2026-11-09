@@ -5,13 +5,31 @@ description: >-
   six-target compile sweep, architecture rule verification, validateTemplate and
   template integrity, Paparazzi snapshot golden recording/verification,
   per-module unit tests, iOS compile caveats, and --no-configuration-cache
-  requirements. Use after making changes to verify correctness across all
-  targets.
+  requirements, and the CI workflow that runs the same sweep. Use before opening a
+  pull request, to verify correctness across all targets.
 ---
 
 # ukpt-verify
 
 Identifiers here use the template's UKPT identity (`UkptPreviewFrame`, `feature.ukpt`); projects rename these — the map is in `.ukpt/template.json`.
+
+This is the sweep to run once, before a pull request. While iterating, run only the tests the
+change affects: the `ukpt-testing` skill, "Development loop".
+
+## CI
+
+`.github/workflows/ci.yml` runs the sweep on every pull request and every push to `main`, in four
+parallel jobs:
+
+| Job | Runs |
+| --- | --- |
+| Rules and tests | `validateTemplate`, `verifyArchitecture`, `-p build-logic test`, every test category except snapshots |
+| Snapshots | `snapshotTest --no-configuration-cache` |
+| Android, desktop, web and server builds | the Android AAR metadata check and compile, the desktop compile, the wasm development bundle, `:app:client:web-html:check`, `:app:server:smokeTestFatJar` |
+| iOS targets (macOS) | `:app:client:common` for the iOS simulator and device targets |
+
+A failed run uploads the test reports (`test-reports`) or the Paparazzi failure images
+(`snapshot-failures`) as artifacts. A project adds its own jobs and deploy steps to the same file.
 
 For web/wasm bundle and runtime verification, use the `ukpt-verify-web` skill — it covers the four
 wasm-only failure modes that compilation misses. The Compose HTML client is covered below and in

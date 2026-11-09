@@ -87,7 +87,8 @@ File classes:
   `AGENTS.md` points agents to `UKPT.md`, and `CLAUDE.md` still imports both files (`@AGENTS.md` and
   `@UKPT.md`).
 - **Mixed (expect conflicts; resolve semantically):** `settings.gradle.kts` (project feature
-  includes stay), app shells (`app/`), platform modules the project has extended.
+  includes stay), app shells (`app/`), platform modules the project has extended,
+  `.github/workflows/ci.yml` (project jobs and deploy steps stay).
 - **Example code (do not sync):** `:feature:core` and anything under `feature/` — template
   changes here are patterns, carried by migrations (§6), not file syncs.
 - **Identity-bearing (sync structure, never values):** `platform/client/design`. The module's *shape* is
