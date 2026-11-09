@@ -86,39 +86,44 @@ val <name>ServerDependencies = module {
 }
 ```
 
-## §4 — Host (`:app:server`, FIRST service only)
-Path: `app/server/src/main/kotlin/com/isaacudy/ukpt/Server.kt`
-
-`main()` already resolves the database config and installs Koin with `serverDependencies(postgresConfig)`
-(`app/server/src/main/kotlin/com/isaacudy/ukpt/ServerDependencies.kt`, the list
-`ServerDependenciesTest` verifies) — this is what a first service adds, not a replacement:
+## §4 — Host registration (`:app:server`)
+`Server.kt` calls `installServerHost(serverDependencies(postgresConfig))`
+(`platform/server/host/.../ServerHost.kt` installs `KoinIsolated`, `WebSockets` and
+`routing { urpcWithKoin() }`). A feature adds its module to the list `ServerDependenciesTest`
+verifies:
 
 ```kotlin
-// ServerDependencies.kt
+// app/server/src/main/kotlin/com/isaacudy/ukpt/ServerDependencies.kt
 import feature.<name>.<name>ServerDependencies
 
 internal fun serverDependencies(postgresConfig: PostgresConfig): List<Module> = listOf(
     postgresDependencies(postgresConfig),
     postgresPlatformDependencies,
-    <name>ServerDependencies,              // ← each feature adds its module here
+    ukptServerDependencies,
+    <name>ServerDependencies,
 )
-
-// Server.kt
-import dev.isaacudy.udytils.urpc.koin.urpcWithKoin
-import io.ktor.server.websocket.WebSockets
-
-    install(Koin) { modules(serverDependencies(postgresConfig)) }
-    install(WebSockets)                        // required even if every call is unary
-    routing { urpcWithKoin() }                 // replaces the placeholder `get("/")` route
 ```
 
-## §5 — `:app:server` build additions (FIRST service only)
-`koin-core`, `koin-ktor` and the Ktor WebSockets artifact are already there for the Koin host; urpc
-is not, and is not transitive from `:feature:*:server`.
-
-`app/server/build.gradle.kts` (add to `dependencies { }`):
+`app/server/build.gradle.kts`:
 ```kotlin
-implementation(libs.urpc.koin)   // urpcWithKoin() + the UrpcCall qualifier
+implementation(projects.feature.<name>.server)
+```
+
+## §5 — Client binding (`:client`)
+The generated `create()` extension sits in the contract's package. `UrpcClientFactory` is bound by
+`:platform:client:network`'s `networkDependencies`, which both client shells install.
+
+```kotlin
+// feature/<name>/client/src/commonMain/kotlin/feature/<name>/<Name>ClientDependencies.kt
+import dev.isaacudy.udytils.urpc.UrpcClientFactory
+import feature.<name>.server.services.<Name>Service
+import feature.<name>.server.services.create
+
+val <name>ClientDependencies = module {
+    single<<Name>Service> { get<UrpcClientFactory>().create() }
+    singleOf(::<Name>Repository)
+    // single<DomainInterface> { get<<Name>Repository>().domainInterface } for each property
+}
 ```
 
 ## §6 — Serializable service exception (`ProjectRules.serviceExceptionsSerializable`)

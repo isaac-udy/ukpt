@@ -39,6 +39,7 @@ kotlin {
         jsMain.dependencies {
             implementation(projects.feature.core.client)
             implementation(projects.platform.client.designHtml)
+            implementation(projects.platform.client.network)
 
             implementation(libs.compose.htmlCore)
             implementation(libs.enro.html)

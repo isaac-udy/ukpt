@@ -15,7 +15,7 @@ import kotlin.test.assertTrue
  * `ReportsClient` is constructed in a binding lambda and defaults a setting, whose
  * `InvoicesClient` constructs its own `OrdersConfig`, and whose `OrdersRepository` takes the
  * clock and the configuration as required parameters; plus a platform module binding
- * `MetricsClient` through a lambda.
+ * `MetricsClient` and a third-party `VendorHttpClient` through lambdas.
  */
 class ConstructorDiTest {
 
@@ -29,7 +29,7 @@ class ConstructorDiTest {
         run.violations(run.rules.first { it.id == ruleId })
 
     @Test
-    fun `a lambda constructing an application class is reported in feature and platform modules`() {
+    fun `a lambda constructing an application class is reported in feature and platform modules, a third-party class is not`() {
         val names = violations("ProjectRules.constructorReferenceBindings")
             .map { it.message.substringAfter('`').substringBefore('`') }
             .sorted()

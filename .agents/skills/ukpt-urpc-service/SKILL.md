@@ -2,8 +2,8 @@
 name: ukpt-urpc-service
 description: >-
   Add or change a urpc client/server service in UKPT end-to-end — the @Urpc
-  contract in :api, the ServiceImpl + Koin binding on :server, and (for the very
-  first service) the Ktor host. Use when adding an @Urpc service, wiring a
+  contract in :api, the ServiceImpl + Koin binding on :server, the host
+  registration, and the client binding. Use when adding an @Urpc service, wiring a
   client↔server call, or working with the `server.services` layer of a feature's
   :api/:server modules.
 ---
@@ -13,8 +13,8 @@ description: >-
 urpc is UKPT's typed client↔server contract. An `@Urpc` interface in `:feature:<name>:api` is
 processed by KSP into a **client** (consumed by `:client` Repositories) and a **server binding**
 (`<Name>ServiceUrpcBinding`); the `:server` module implements the interface and binds it into Koin;
-the Ktor host serves every binding. `:feature:core` ships **no service yet**, so the *first* service
-also stands up the host (Step 5). Copy-paste skeletons are in `templates.md`.
+the Ktor host serves every binding. `:feature:core`'s `GreetingService` is the worked example, end
+to end. Copy-paste skeletons are in `templates.md`.
 
 > **Package reality:** the module path is `:feature:core` but the Kotlin package is `feature.ukpt`.
 > Services live in `feature.ukpt.server.services`. For a new feature `<name>`, use
@@ -55,14 +55,15 @@ also stands up the host (Step 5). Copy-paste skeletons are in `templates.md`.
    `getAll<UrpcService>()` returns only one → **every other service 404s**. `bindService`/`urpcService` register
    each binding under its own concrete type and add `UrpcService` as a *secondary* type, so all coexist.
    (`ProjectRules.constructorReferenceBindings`: use constructor-reference binding style, not `single<T> { … }` lambdas.)
-5. **First service only — teach the host to serve urpc** (idempotent; skip if already wired):
-   - `Server.kt` already has a Koin host (it wires the postgres modules), so add
-     `<name>ServerDependencies` to the existing `modules(...)` list — that part is what every later
-     feature repeats. What a *first* service adds is `install(WebSockets)` (**required even for unary
-     calls**) and `routing { urpcWithKoin() }` in place of the placeholder route (templates.md §4).
-   - `:app:server` is missing `implementation(libs.urpc.koin)`, which is **not** transitive from
-     `:feature:*:server`; koin-core, koin-ktor and Ktor's WebSockets artifact are already there
-     (templates.md §5).
+5. **Register the module with the host.** `:platform:server:host`'s `installServerHost(modules)`
+   already installs Koin (`KoinIsolated`), `WebSockets` and `routing { urpcWithKoin() }`; `Server.kt`
+   calls it with `serverDependencies(postgresConfig)`. A new feature adds `<name>ServerDependencies`
+   to that list in `ServerDependencies.kt` and `implementation(projects.feature.<name>.server)` to
+   `app/server/build.gradle.kts` (templates.md §4).
+   - The client side: a `:client` Repository injects the service contract; the feature's client
+     module binds it with `single<<Name>Service> { get<UrpcClientFactory>().create() }`.
+     `UrpcClientFactory` comes from `:platform:client:network`'s `networkDependencies`, which every
+     client shell already installs (templates.md §5).
 6. **Errors** — service exceptions must be `@Serializable` (`ProjectRules.serviceExceptionsSerializable`) so urpc carries type + message to the
    client; prefer subclassing `PresentableException` with a deliberate `retryable` flag (templates.md §6). Never
    `catch (Exception)` — deserialized urpc errors may not extend `Exception`; use `catch (t: Throwable)` or a
@@ -83,6 +84,8 @@ also stands up the host (Step 5). Copy-paste skeletons are in `templates.md`.
 - Contract shape + the 3 function forms — `embedded-udytils/urpc/sample/src/main/kotlin/dev/isaacudy/udytils/urpc/sample/ExampleService.kt`
 - Binding API + the 404-trap rationale (KDoc) — `embedded-udytils/urpc/koin/src/main/kotlin/dev/isaacudy/udytils/urpc/koin/UrpcServiceBinding.kt`
 - Host dispatch — `urpcWithKoin` + the `UrpcCall` scope — `embedded-udytils/urpc/koin/src/main/kotlin/dev/isaacudy/udytils/urpc/koin/UrpcKoin.kt`
+- This project's host — `platform/server/host/src/main/kotlin/platform/server/host/ServerHost.kt`
+- A full-stack service — `GreetingService` in `feature/core/api`, its server slice in `feature/core/server`, and the client `GreetingRepository` in `feature/core/client`
 - End-to-end host + binding, incl. the multi-service regression guard — `embedded-udytils/urpc/sample/src/test/kotlin/dev/isaacudy/udytils/urpc/sample/ExampleServiceWithKoinTest.kt`
 - `@Urpc` / `@UrpcWireName` — `embedded-udytils/urpc/protocol/src/commonMain/kotlin/dev/isaacudy/udytils/urpc/Urpc.kt`
 - Copy-paste skeletons — `templates.md` (this skill).

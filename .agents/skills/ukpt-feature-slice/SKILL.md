@@ -67,10 +67,9 @@ domain contract inventory to check the result.
      Skip this, and the `jsMain`/`jsTest` blocks in templates.md §2, if the project deleted
      `app/client/web-html`.
    - `app/server/build.gradle.kts` → `implementation(projects.feature.<name>.server)` (if using the server).
-   - Server DI: `Server.kt` has a Koin host already (it wires the postgres modules), so add
-     `<name>ServerDependencies` to its `modules(...)` list once the feature has something to bind.
-     Teaching that host to *serve* urpc is the `ukpt-urpc-service` skill's job — do it when the
-     feature gets its first service, not at scaffold time.
+   - Server DI: add `<name>ServerDependencies` to the list in `app/server/.../ServerDependencies.kt`
+     once the feature has something to bind. The host already serves urpc; a service itself is the
+     `ukpt-urpc-service` skill's job.
 6. **Verify** — the six-target compile sweep (see the `ukpt-verify` skill), record + verify Paparazzi for the new client
    module, and `./gradlew :platform:common:architecture:verifyArchitecture`. If the feature has web UI, run
    the `ukpt-verify-web` skill — a forgotten `viewModelOf` only crashes at runtime on wasm, invisible to compile.

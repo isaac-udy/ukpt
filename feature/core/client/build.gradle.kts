@@ -35,18 +35,9 @@ kotlin {
 
             implementation(libs.enro.core)
             implementation(libs.udytils.ui)
-            // urpc-client runtime for the KSP-generated service clients consumed by Repositories.
-            implementation(libs.urpc.client)
             api(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.composeViewmodel)
-
-            implementation(libs.ktor.clientCore)
-            implementation(libs.ktor.clientWebsockets)
-            // NOTE: the ktor-client-cio engine is intentionally NOT in commonMain — it pulls
-            // ktor-network, which imports `node:net` and breaks the wasmJs/web bundle. CIO lives
-            // in the JVM/native source sets; web uses ktor-client-js (see :app:client:web).
-            // Engines get wired per-platform when an HTTP/urpc client is actually added.
         }
         commonTest.dependencies {
             implementation(projects.platform.common.testing)
@@ -59,12 +50,6 @@ kotlin {
             // golden-path collision guard and the device/rendering defaults. Brings
             // ComposablePreviewScanner + JUnit4 with it; Paparazzi itself comes from the plugin.
             implementation(libs.udytils.snapshot)
-        }
-        jvmMain.dependencies {
-            implementation(libs.ktor.serverCore)
-            implementation(libs.ktor.serverNetty)
-            implementation(libs.ktor.clientCore)
-            implementation(libs.ktor.clientCio)
         }
         wasmJsMain.dependencies {
             implementation(libs.kotlinx.browser)
