@@ -36,6 +36,7 @@ object ClientUi : RuleGroup(
         ViewModelState,
         UiValueType,
         CompositionLocal,
+        ScreenTags,
     ),
 ) {
 

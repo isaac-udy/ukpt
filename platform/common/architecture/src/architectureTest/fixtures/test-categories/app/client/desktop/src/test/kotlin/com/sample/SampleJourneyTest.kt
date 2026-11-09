@@ -1,11 +1,10 @@
 package com.sample
 
-import androidx.compose.ui.test.ComposeUiTest
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.v2.runComposeUiTest
-import androidx.compose.ui.test.waitUntilExactlyOneExists
+import feature.sample.tests.onSampleScreen
 import org.koin.compose.KoinApplication
 import platform.testing.EndToEndTest
+import platform.testing.robots.asUser
 import platform.testing.subcutaneous.inProcessServer
 import kotlin.test.Test
 
@@ -20,9 +19,9 @@ class SampleJourneyTest {
                     AppContent()
                 }
             }
-            awaitText("Seeded")
+            asUser(rootContext) {
+                onSampleScreen { seeLabel("Seeded") }
+            }
         }
     }
 }
-
-private fun ComposeUiTest.awaitText(text: String) = waitUntilExactlyOneExists(hasText(text))

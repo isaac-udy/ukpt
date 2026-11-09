@@ -32,8 +32,11 @@ unit tests of every module; each category has its task (`subcutaneousTest`, `com
 `--no-configuration-cache`). kotlin.test has no tags on JS, wasm or iOS, so `componentTest`
 also runs the module's `jsTest`.
 
-Test-support declarations (fakes, fixtures, snapshot surfaces, scenarios, test graphs) are
-Constructs too: every top-level declaration in test sources matches exactly one.
+Component Tests and End To End Tests drive Compose UI screens through [Robots](#robot), one
+per screen, named for what the user does: `clickGreetButton()`, `seeGreeting("Hi there")`.
+
+Test-support declarations (fakes, fixtures, snapshot surfaces, scenarios, test graphs, robots)
+are Constructs too: every top-level declaration in test sources matches exactly one.
 
 ##### Constructs
 
@@ -49,13 +52,14 @@ Constructs too: every top-level declaration in test sources matches exactly one.
 * [Snapshot Surface](#snapshot-surface)
 * [Scenario](#scenario)
 * [Test Graph](#test-graph)
+* [Robot](#robot)
 * [Fixture](#fixture)
 
 ##### Rules
 
 * Every test class (a class declaring a `@Test` function or extending `PreviewSnapshotTestCase`) must carry exactly one test category annotation
     * **Why:** The category decides which task runs the test and which rules check it.
-* Every `@Test` function must assert: call an `assert*`, `fail`, `verify`, `expect*` or `await*` function, directly or through a function declared in the same file
+* Every `@Test` function must assert: call an `assert*`, `fail`, `verify`, `expect*` or `await*` function, or a Robot's `see*` function, directly or through a function declared in the same file
     * **Why:** A test without an assertion passes whatever the code does. It reports coverage that does not exist.
     * **Note:** Detection is by name in the source text, so an assertion helper declared in another file needs a name that matches.
 
@@ -144,8 +148,20 @@ not change when the layers between the ViewModel and the database are restructur
 ## [Component Test](../src/main/kotlin/architecture/rules/testing/ComponentTest.kt)
 
 A `@ComponentTest` class: renders one screen's `[Name]ScreenContent` with fixed state, then
-reads and drives the rendered output. The Compose HTML screens are tested this way in
-`src/jsTest/` with `html-test-utils`.
+reads and drives the rendered output through the screen's [Robot](#robot).
+
+```kotlin
+@Test
+fun `a summary shows the latest greeting`() = runComposeUiTest {
+    setContent { UkptTheme { UkptScreenContent(state = summaryState, onGreet = {}, onRetry = {}, onReset = {}) } }
+    asUser {
+        onUkptScreen { seeGreeting("Hi there") }
+    }
+}
+```
+
+The Compose HTML screens are tested in `src/jsTest/` with `html-test-utils`, which reads the
+DOM; robots drive Compose UI only.
 
 ##### Requirements
 
@@ -158,6 +174,9 @@ reads and drives the rendered output. The Compose HTML screens are tested this w
     * **Why:** `[Name]ScreenContent` is `internal` to its `:client` module.
 * A Component Test must reference only composables, ViewModel states, and the value types they carry from production code, and must not import dependency injection
     * **Why:** The test fixes the state and reads what renders. A ViewModel, a repository, or the DI graph in the test makes it a Subcutaneous Test.
+* A Compose UI Component Test must find and act on nodes only through Robots: no `onNode…`, `onAllNodes…`, `onRoot`, `perform…` or node `waitUntil…` calls
+    * **Why:** The robot owns the screen's tags, so the Component Test checks the same steps the End To End Tests take.
+    * **Note:** A Component Test in `jsTest` renders Compose HTML and is not checked.
 
 ---
 
@@ -269,14 +288,19 @@ fun `a seeded greeting shows`() = inProcessServer(::serverDependencies) {
                 }
             }
         }
-        awaitText("Hi there")
+        asUser(rootContext) {
+            onUkptScreen {
+                seeGreeting("Hi there")
+            }
+        }
     }
 }
 ```
 
 `inProcessServer(server)` starts the server graph on Ktor's test engine over a new database and
 builds no client graph; `clientEdges` points the application's own graph at it. Teardown stops
-the Koin context `KoinApplication` started.
+the Koin context `KoinApplication` started. Each step goes through a screen's
+[Robot](#robot), in one `on[Screen] { }` block per screen visit.
 
 ##### Requirements
 
@@ -289,6 +313,8 @@ the Koin context `KoinApplication` started.
     * **Why:** The desktop shell is the one application that runs the UI and the server in one JVM.
 * Every `@Test` function of an End To End Test must call `inProcessServer(`, `runComposeUiTest` and `AppContent(`
     * **Why:** The test covers the application as it starts: its root composable and its own client graph, against the real server. A test that renders one screen, or builds the client graph itself, is a Component or Subcutaneous Test.
+* An End To End Test must find and act on nodes only through Robots: no `onNode…`, `onAllNodes…`, `onRoot`, `perform…` or node `waitUntil…` calls
+    * **Why:** A journey reads as one block of user steps per screen, and a screen's tags change in one place, its robot.
 
 ---
 
@@ -383,6 +409,59 @@ replaces a binding at the system's edges (a backend the project does not own, a 
     * **Why:** The graph repeats the module list the `:app` shells install for the feature. A second graph is a second list to keep in step with them.
 * A Test Graph must list production Koin modules only: each feature's `[name]ClientDependencies` and `[name]ServerDependencies`, and `:platform` modules
     * **Why:** A binding declared in the graph replaces production code for every test. Replacements at the system's edges go in `subcutaneous(graph, edges = { … })`.
+
+---
+
+## [Robot](../src/main/kotlin/architecture/rules/testing/Robot.kt)
+
+A class extending `ScreenRobot` (`:platform:common:robots`): one screen's user actions and what
+the user sees on it. Component Tests and End To End Tests drive screens only through robots.
+
+```kotlin
+fun User.onUkptScreen(block: UkptScreenRobot.() -> Unit) =
+    on(UkptDestination::class, UkptScreenTags.Screen, ::UkptScreenRobot, block)
+
+class UkptScreenRobot internal constructor(context: RobotContext) : ScreenRobot(context) {
+    fun clickGreetButton() = click(UkptScreenTags.GreetButton)
+    fun seeGreeting(text: String) = seeText(UkptScreenTags.LatestGreeting, text)
+}
+```
+
+A test reads as the steps a user takes, one block per screen:
+
+```kotlin
+asUser(rootContext) {
+    onUkptScreen {
+        clickResetButton()
+    }
+    onConfirmResetDialog {
+        clickResetButton()
+    }
+    onUkptScreen {
+        seeNoGreetings()
+    }
+}
+```
+
+`on[Screen] { }` waits until the screen's tag is shown. Given the application's `RootContext`,
+as in an End To End Test, it also waits until the screen's destination is the active one, so a
+step can't act on a screen behind a dialog.
+
+##### Requirements
+
+* A Robot is a class
+* A Robot extends `ScreenRobot`
+
+##### Rules
+
+* A Robot must live in a `:feature:[name]:tests` module's `src/main` source set
+    * **Why:** The feature's Component Tests and the application's End To End Tests both depend on its `:tests` module.
+* A Robot must reference exactly one Screen Tags object
+    * **Why:** A robot drives one screen. A step on another screen belongs in that screen's robot, in its own `on[Screen] { }` block.
+* Every public function of a Robot must be named for a user action (`click…`, `enter…`, `clear…`, `select…`, `toggle…`, `scroll…`) or for what the user sees (`see…`)
+    * **Why:** A test reads as what a user would report: "I click Greet, then I see Hello again". A name such as `greet()` hides which control the step uses.
+* A Robot's file must declare its entry point, a `User.on[Screen]` function
+    * **Why:** Tests reach a robot only through `on[Screen] { }`, which waits for the screen before the first step.
 
 ---
 

@@ -22,7 +22,7 @@ the test may use besides the code under test; the `Testing` rules check it
 | --- | --- | --- |
 | `@SubcutaneousTest` | Behaviour a user reaches through a screen, or a `@Urpc` service no screen calls. **The default.** | `:feature:<name>:tests`, `src/test/` |
 | `@UnitTest` | Logic with many inputs: parsing, validation, formatting, a branching UseCase | the module's `commonTest` (or a platform test set) |
-| `@ComponentTest` | A Compose HTML `[Name]HtmlScreenContent`, with fixed state | the `:client` module's `src/jsTest/` |
+| `@ComponentTest` | A `[Name]ScreenContent` with fixed state, driven through its robot; or a Compose HTML `[Name]HtmlScreenContent` | the `:client` module's `src/jvmTest/` (Compose UI) or `src/jsTest/` (HTML) |
 | `@SnapshotTest` | The module's one `PreviewSnapshotTest` | `src/androidHostTest/` |
 | `@WiringTest` | An app shell's Koin graph (`verify()`) | the `:app` module's test set |
 | `@AdapterTest` | One server adapter against real infrastructure, where a Subcutaneous Test reaches poorly | a server module's `src/test/` |
@@ -42,7 +42,10 @@ Copy the nearest test of the same category:
 - Subcutaneous: `feature/core/tests/src/test/kotlin/feature/ukpt/tests/UkptViewModelTest.kt`
   (ViewModel entry), `GreetingServiceTest.kt` beside it (server entry)
 - Unit: `feature/core/client/src/commonTest/kotlin/feature/ukpt/client/ui/AsyncStateLoadTest.kt`
-- Component: `feature/core/client/src/jsTest/kotlin/feature/ukpt/client/ui/UkptHtmlScreenContentTest.kt`
+- Component: `feature/core/client/src/jvmTest/kotlin/feature/ukpt/client/ui/UkptScreenContentTest.kt`
+  (Compose UI), `feature/core/client/src/jsTest/kotlin/feature/ukpt/client/ui/UkptHtmlScreenContentTest.kt`
+  (HTML)
+- Robot: `feature/core/tests/src/main/kotlin/feature/ukpt/tests/UkptScreenRobot.kt`
 - Snapshot: `feature/core/client/src/androidHostTest/kotlin/platform/snapshot/PreviewSnapshotTest.kt`
 - Wiring: `app/server/src/test/kotlin/com/isaacudy/ukpt/ServerDependenciesTest.kt`
 - Adapter: `platform/server/postgres/src/test/kotlin/platform/server/postgres/TransactionRunnerTest.kt`
@@ -55,9 +58,55 @@ on JUnit 5; use `kotlin.test` assertions and `org.junit.jupiter.api` lifecycle a
 `org.junit.Test`. Only `androidHostTest` runs JUnit 4, for Paparazzi.
 
 Every `@Test` function asserts (`Testing.testFunctionsAssert`): an `assert*`, `fail`, `verify`,
-`expect*` or `await*` call, directly or through a helper declared in the same file. Every other
-top-level declaration in test sources is a `Fake[Name]` class or object, a top-level fixture
-function or property, or a `@Composable` snapshot surface in `androidHostTest`.
+`expect*` or `await*` call, or a robot's `see*` call, directly or through a helper declared in the
+same file. Every other top-level declaration in test sources is a `Fake[Name]` class or object, a
+robot, a top-level fixture function or property, or a `@Composable` snapshot surface in
+`androidHostTest`.
+
+## Robots
+
+Compose UI Component Tests and End To End Tests find and act on nodes only through robots
+(`Testing.ComponentTest.drivesThroughRobots`, `Testing.EndToEndTest.drivesThroughRobots`). A
+robot covers one screen and lives in the feature's `:tests` module, `src/main`, from
+`:platform:common:robots` (package `platform.testing.robots`).
+
+1. **Tags.** Beside the screen, in `client.ui`, declare `object [Screen]Tags` with `const val`
+   tags. Apply one to the screen's root and one to each node a robot uses:
+   `Modifier.testTag(UkptScreenTags.GreetButton)`.
+2. **Robot.** One class per screen, with its entry point in the same file:
+
+   ```kotlin
+   fun User.onUkptScreen(block: UkptScreenRobot.() -> Unit) =
+       on(UkptDestination::class, UkptScreenTags.Screen, ::UkptScreenRobot, block)
+
+   class UkptScreenRobot internal constructor(context: RobotContext) : ScreenRobot(context) {
+       fun clickGreetButton() = click(UkptScreenTags.GreetButton)
+       fun seeGreeting(text: String) = seeText(UkptScreenTags.LatestGreeting, text)
+   }
+   ```
+
+   Name each function for what a user does or sees: `click…`, `enter…`, `clear…`, `select…`,
+   `toggle…`, `scroll…`, `see…` (`Testing.Robot.userActionNames`). A robot uses one `[Screen]Tags`
+   object (`Testing.Robot.oneScreen`). Add a `ScreenRobot` helper when a robot needs a new kind of
+   step.
+3. **Use.** One `on[Screen] { }` block per screen visit, inside `asUser { }`:
+
+   ```kotlin
+   asUser(rootContext) {
+       onUkptScreen { clickResetButton() }
+       onConfirmResetDialog { clickResetButton() }
+       onUkptScreen { seeNoGreetings() }
+   }
+   ```
+
+   `on[Screen]` waits for Compose to go idle and for the screen's root tag. Given the app's
+   `RootContext` (End To End Tests), it also waits until the screen's destination is Enro's active
+   destination, and fails naming the active one. A Component Test calls `asUser { }` without it.
+   Each step waits up to 10 s; a `see…` failure names the tag, the expected text and the text
+   shown.
+
+A `:client` module's `jvmTest` depends on its own `:tests` module for the robots, and on
+`compose.desktop.currentOs`.
 
 ## Subcutaneous tests
 
@@ -148,9 +197,13 @@ fun `a seeded greeting shows`() = inProcessServer(::serverDependencies) {
                 }
             }
         }
-        awaitText("Hi there")
-        onNodeWithText("Greet").performClick()
-        awaitText("Hello again")
+        asUser(rootContext) {
+            onUkptScreen {
+                seeGreeting("Hi there")
+                clickGreetButton()
+                seeGreeting("Hello again")
+            }
+        }
     }
 }
 ```
@@ -163,9 +216,8 @@ fun `a seeded greeting shows`() = inProcessServer(::serverDependencies) {
 - `appRootContext()` — in the desktop test set. A root context on the app's navigation controller,
   for `LocalRootContext`; no `RootWindow` exists in `runComposeUiTest`. The controller is installed
   once per test JVM.
-- `runComposeUiTest` is `androidx.compose.ui.test.v2.runComposeUiTest`. Waits are real time:
-  `waitUntilExactlyOneExists(hasText(…), timeoutMillis)`. A dialog's button is
-  `onNode(hasText("Reset") and hasAnyAncestor(isDialog()))`.
+- `runComposeUiTest` is `androidx.compose.ui.test.v2.runComposeUiTest`. Pass `rootContext` to
+  `asUser`, so each `on[Screen]` checks the active destination.
 - The desktop test set depends on `:app:server` (for `serverDependencies`), the harness, the
   feature's `:tests` and `:api` modules, and `libs.compose.uiTest`.
 
@@ -213,3 +265,9 @@ failure names the rule; its statement and rationale are in
 - `ModuleRules.testsModuleShape` — add the feature's `:client`/`:server` to the `:tests` build file.
 - `Testing.EndToEndTest.drivesTheAppRoot` — run the test body in `inProcessServer(…)` and render
   `AppContent()` inside `runComposeUiTest`.
+- `Testing.ComponentTest.drivesThroughRobots`, `Testing.EndToEndTest.drivesThroughRobots` — move
+  the node lookup into the screen's robot and call it from an `on[Screen] { }` block.
+- `Testing.Robot.oneScreen` — move the steps for the second screen to that screen's robot.
+- `Testing.Robot.userActionNames` — rename for the control and the action: `greet()` →
+  `clickGreetButton()`.
+- `Testing.Robot.hasEntryPoint` — add `fun User.on[Screen](block: [Screen]Robot.() -> Unit)`.

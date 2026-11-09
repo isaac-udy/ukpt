@@ -4,8 +4,20 @@ import dev.isaacudy.udytils.architecture.*
 
 @Describe("""
     A `@ComponentTest` class: renders one screen's `[Name]ScreenContent` with fixed state, then
-    reads and drives the rendered output. The Compose HTML screens are tested this way in
-    `src/jsTest/` with `html-test-utils`.
+    reads and drives the rendered output through the screen's [Robot](#robot).
+
+    ```kotlin
+    @Test
+    fun `a summary shows the latest greeting`() = runComposeUiTest {
+        setContent { UkptTheme { UkptScreenContent(state = summaryState, onGreet = {}, onRetry = {}, onReset = {}) } }
+        asUser {
+            onUkptScreen { seeGreeting("Hi there") }
+        }
+    }
+    ```
+
+    The Compose HTML screens are tested in `src/jsTest/` with `html-test-utils`, which reads the
+    DOM; robots drive Compose UI only.
 """)
 object ComponentTest : Construct<Testing>(
     requirements = listOf(isClass, isAnnotatedWith("ComponentTest")),
@@ -32,6 +44,13 @@ object ComponentTest : Construct<Testing>(
             scopes.referencesOutside(decl, COMPONENT_CONSTRUCTS).map { Violation(decl, "references `${it.name}` (${it.constructs.joinToString { c -> c.id }})") } +
                 decl.file.imports.filter { it.name.startsWith("org.koin.") }.map { Violation(decl, "imports `${it.name}`") }
         }
+    }
+
+    @Describe("A Compose UI Component Test must find and act on nodes only through Robots: no `onNode…`, `onAllNodes…`, `onRoot`, `perform…` or node `waitUntil…` calls")
+    val drivesThroughRobots by rule {
+        rationale("The robot owns the screen's tags, so the Component Test checks the same steps the End To End Tests take.")
+        note("A Component Test in `jsTest` renders Compose HTML and is not checked.")
+        constrain { decl, exempt -> if (decl.sourceSet() == "jsTest") emptyList() else nodesOnlyThroughRobots.run(decl, exempt) }
     }
 }
 

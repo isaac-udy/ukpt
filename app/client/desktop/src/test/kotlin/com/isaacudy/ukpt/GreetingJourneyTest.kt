@@ -1,19 +1,15 @@
 package com.isaacudy.ukpt
 
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.hasAnyAncestor
-import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.isDialog
-import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
-import androidx.compose.ui.test.waitUntilExactlyOneExists
 import dev.enro.ui.LocalRootContext
 import feature.ukpt.tests.greetingHistory
+import feature.ukpt.tests.onConfirmResetDialog
+import feature.ukpt.tests.onUkptScreen
 import org.koin.compose.KoinApplication
 import platform.testing.EndToEndTest
+import platform.testing.robots.asUser
 import platform.testing.subcutaneous.inProcessServer
 import kotlin.test.Test
 
@@ -34,19 +30,22 @@ class GreetingJourneyTest {
                     }
                 }
             }
-            awaitText("Hi there")
 
-            onNodeWithText("Greet").performClick()
-            awaitText("Hello again")
-
-            onNodeWithText("Reset").performClick()
-            awaitText("Reset greeting count?")
-            onNode(hasText("Reset") and hasAnyAncestor(isDialog())).performClick()
-
-            awaitText("No greetings yet")
+            asUser(rootContext) {
+                onUkptScreen {
+                    seeGreeting("Hi there")
+                    clickGreetButton()
+                    seeGreeting("Hello again")
+                    seeGreetingCount(2)
+                    clickResetButton()
+                }
+                onConfirmResetDialog {
+                    clickResetButton()
+                }
+                onUkptScreen {
+                    seeNoGreetings()
+                }
+            }
         }
     }
 }
-
-@OptIn(ExperimentalTestApi::class)
-private fun ComposeUiTest.awaitText(text: String) = waitUntilExactlyOneExists(hasText(text), timeoutMillis = 10_000)

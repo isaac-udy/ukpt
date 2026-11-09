@@ -23,14 +23,19 @@ import dev.isaacudy.udytils.architecture.*
                     }
                 }
             }
-            awaitText("Hi there")
+            asUser(rootContext) {
+                onUkptScreen {
+                    seeGreeting("Hi there")
+                }
+            }
         }
     }
     ```
 
     `inProcessServer(server)` starts the server graph on Ktor's test engine over a new database and
     builds no client graph; `clientEdges` points the application's own graph at it. Teardown stops
-    the Koin context `KoinApplication` started.
+    the Koin context `KoinApplication` started. Each step goes through a screen's
+    [Robot](#robot), in one `on[Screen] { }` block per screen visit.
 """)
 object EndToEndTest : Construct<Testing>(
     requirements = listOf(isClass, isAnnotatedWith("EndToEndTest")),
@@ -59,6 +64,12 @@ object EndToEndTest : Construct<Testing>(
                         .map { (name, _) -> Violation(test, "`${test.name}` does not call `$name`") }
                 }
         }
+    }
+
+    @Describe("An End To End Test must find and act on nodes only through Robots: no `onNode…`, `onAllNodes…`, `onRoot`, `perform…` or node `waitUntil…` calls")
+    val drivesThroughRobots by rule {
+        rationale("A journey reads as one block of user steps per screen, and a screen's tags change in one place, its robot.")
+        constrain(nodesOnlyThroughRobots)
     }
 }
 

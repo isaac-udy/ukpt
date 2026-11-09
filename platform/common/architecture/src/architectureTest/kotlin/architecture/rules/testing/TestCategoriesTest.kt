@@ -168,7 +168,49 @@ class TestCategoriesTest {
         assertEquals(listOf(":feature:sample:tests does not depend on :feature:sample:server"), check.run(graph) { false }.map { it.message })
     }
 
-    private fun edge(from: String, to: String) = ModuleEdge(from = from, to = to, file = "build.gradle.kts", line = 1, exemptRuleIds = emptySet())
+    private fun edge(from: String, to: String, sourceSet: String? = null) =
+        ModuleEdge(from = from, to = to, file = "build.gradle.kts", line = 1, exemptRuleIds = emptySet(), sourceSet = sourceSet)
+
+    @Test
+    fun `a client test edge to its own tests module is allowed, a production edge or another feature's tests module is not`() {
+        val check = (ModuleRules.clientApiOnly.enforcement as ModuleGraphConstraint).check
+        val graph = ModuleGraph(
+            listOf(
+                edge(":feature:sample:client", ":feature:sample:tests", sourceSet = "jvmTest"),
+                edge(":feature:sample:client", ":feature:other:tests", sourceSet = "jvmTest"),
+                edge(":feature:other:client", ":feature:other:tests"),
+            ),
+        )
+        assertEquals(
+            listOf(":feature:sample:client -> :feature:other:tests", ":feature:other:client -> :feature:other:tests"),
+            check.run(graph) { false }.map { it.where.substringBefore(" (") },
+        )
+    }
+
+    @Test
+    fun `a robot driving two screens, with an unnamed action and no entry point, is reported`() {
+        assertEquals(listOf("TwoScreenRobot.kt"), violations("Testing.Robot.oneScreen").files())
+        val names = violations("Testing.Robot.userActionNames")
+        assertEquals(listOf("TwoScreenRobot.kt"), names.files())
+        assertTrue("`save`" in names.single().message, names.single().message)
+        assertEquals(listOf("TwoScreenRobot.kt"), violations("Testing.Robot.hasEntryPoint").files())
+    }
+
+    @Test
+    fun `robots and screen tags match their constructs`() {
+        assertTrue(violations("architecture.everyTestDeclarationBelongsToATestConstruct").none { "Robot" in it.where })
+        assertTrue(violations("architecture.everyDeclarationBelongsToALayer").none { "Tags" in it.where })
+    }
+
+    @Test
+    fun `a component test finding nodes itself is reported, one using a robot is not`() {
+        assertEquals(listOf("NodeFindingComponentTest.kt", "NodeFindingComponentTest.kt"), violations("Testing.ComponentTest.drivesThroughRobots").files())
+    }
+
+    @Test
+    fun `an end-to-end test finding nodes itself is reported, one using a robot is not`() {
+        assertEquals(listOf("ScreenOnlyEndToEndTest.kt"), violations("Testing.EndToEndTest.drivesThroughRobots").files())
+    }
 
     @Test
     fun `an HTML ScreenContent named only in a test comment is reported as untested`() {
