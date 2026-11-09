@@ -3,7 +3,8 @@ name: ukpt-testing
 description: >-
   Write, place, and run UKPT tests by category — Subcutaneous, Unit, Component,
   Snapshot, Wiring, Adapter, Check, End-to-end — with the category annotations
-  from :platform:common:testing, the per-category Gradle tasks, and the Testing
+  from :platform:common:testing, the per-category Gradle tasks, the Subcutaneous
+  harness (test graph, scenarios, edges, coverage), and the Testing
   architecture rules that check a test behaves as its category claims. Use when
   adding or changing a test, choosing what kind of test to write, running one
   category, or fixing a Testing.* rule failure.
@@ -38,6 +39,8 @@ does not count.
 
 Copy the nearest test of the same category:
 
+- Subcutaneous: `feature/core/tests/src/test/kotlin/feature/ukpt/tests/UkptViewModelTest.kt`
+  (ViewModel entry), `GreetingServiceTest.kt` beside it (server entry)
 - Unit: `feature/core/client/src/commonTest/kotlin/feature/ukpt/client/ui/AsyncStateLoadTest.kt`
 - Component: `feature/core/client/src/jsTest/kotlin/feature/ukpt/client/ui/UkptHtmlScreenContentTest.kt`
 - Snapshot: `feature/core/client/src/androidHostTest/kotlin/platform/snapshot/PreviewSnapshotTest.kt`
@@ -54,6 +57,75 @@ Every `@Test` function asserts (`Testing.testFunctionsAssert`): an `assert*`, `f
 `expect*` or `await*` call, directly or through a helper declared in the same file. Every other
 top-level declaration in test sources is a `Fake[Name]` class or object, a top-level fixture
 function or property, or a `@Composable` snapshot surface in `androidHostTest`.
+
+## Subcutaneous tests
+
+The harness is `:platform:common:subcutaneous` (package `platform.testing.subcutaneous`). A
+feature's `:feature:<name>:tests` module applies `ukpt.feature-tests` and depends on the harness
+and the feature's `:client` and `:server` (`ukpt-feature-slice` scaffolds it). Its `src/main` holds
+the test graph and the scenarios; its `src/test` holds the tests.
+
+**Graph.** One `SubcutaneousGraph` per `:tests` module, production modules only:
+
+```kotlin
+val ukptTestGraph = SubcutaneousGraph(
+    client = featureClient(ukptClientDependencies),   // + networkDependencies
+    server = featureServer(ukptServerDependencies),   // + the Postgres modules
+)
+```
+
+**A test.** `subcutaneous(graph) { … }` is the whole body of each `@Test`. Per test it clones an
+empty database from a template migrated once per JVM (`classpath:db/migration`), starts the server
+graph on Ktor's test engine, builds the client graph against it, and installs enro-test. It tears
+all of it down when the block returns or throws. The block runs on `Dispatchers.Main`, a dedicated
+thread; waits are real time.
+
+```kotlin
+@Test
+fun `confirming the reset dialog clears the history`() = subcutaneous(ukptTestGraph) {
+    given { greetingHistory("Hello", "Hello again") }
+    val screen = viewModel<UkptViewModel, UkptDestination>(UkptDestination)
+    screen.viewModel.state.awaitMatching { it.greetingTexts()?.size == 2 }
+
+    screen.viewModel.onResetRequested()
+    screen.navigation.assertOpened<ConfirmResetDestination>().sendCompletedForTest()
+
+    screen.viewModel.state.awaitMatching { it.greetingTexts() == emptyList<String>() }
+}
+```
+
+- `viewModel<VM, K>(key)` — the ViewModel from the client graph, with a `TestNavigationHandle` for
+  `key` (`screen.navigation`; use the enro-test assertions on it).
+- `state.awaitMatching(timeout = 10.seconds) { … }` — suspends until the state matches; fails with
+  the last state.
+- `service<S>()` — the `@Urpc` service's generated client, calling the in-process server. For
+  server behaviour no screen reaches.
+- `given { … }` — runs scenarios, before a ViewModel opens or while it is open. A change made
+  mid-test reaches an open ViewModel through the server's notifications, as in the app.
+
+**Scenarios.** `suspend fun Scenario.<name>(…)` in the `:tests` module's `src/main`. Inside,
+`server<T>()` and `client<T>()` resolve from the running graphs. A scenario writes through server
+domain interfaces only and returns what it created (`Testing.Scenario.*`). Another feature's
+`:tests` module depends on this one to reuse them.
+
+**Edges.** A binding the project does not own (a third-party backend, the clock) is replaced per
+test, loaded after the graph so it overrides:
+
+```kotlin
+subcutaneous(ukptTestGraph, edges = { server { single<Clock> { FakeClock } } }) { … }
+```
+
+A Fake in a `:tests` module implements only an IntegrationClient's interface, `kotlin.time.Clock`
+or a `platform` interface (`Testing.Fake.subcutaneousEdgesOnly`). Ktor's `MockEngine` is for
+backends the project does not own; the project's own server always runs for real.
+
+**Coverage.** `./gradlew subcutaneousCoverage` writes the feature modules' coverage by Subcutaneous
+Tests alone to `build/reports/kover/html/index.html` and `build/reports/kover/report.xml`. Only the
+`:tests` modules' `subcutaneousTest` tasks are instrumented. It is advisory: there are no bounds.
+
+**Memory.** Each test JVM starts one embedded Postgres; `ukpt.feature-tests` runs one test JVM at a
+time with a 1 GB heap. The first test in a JVM takes about 3 s (Postgres start and migration), the
+rest under 1 s.
 
 ## Running a category
 
@@ -85,3 +157,13 @@ failure names the rule; its statement and rationale are in
 - `Testing.*.placement` — move the file to the source set the table above names.
 - `Testing.ComponentTest.rendersScreenContentOnly` — a ViewModel or repository in a Component Test
   makes it a Subcutaneous Test.
+- `ClientUi.ViewModel.subcutaneouslyTested` — add a Subcutaneous Test that opens the ViewModel.
+- `ClientUi.ViewModel.publicFunctionsExercised` — call the named function in a Subcutaneous Test of
+  that ViewModel.
+- `Testing.SubcutaneousTest.entryPointVocabularyOnly` — replace the repository or use case with the
+  ViewModel or service that reaches it, and seed through a scenario.
+- `Testing.SubcutaneousTest.viewModelsFromTheGraph` — open the ViewModel with `viewModel<VM, K>(key)`.
+- `Testing.SubcutaneousTest.noInfrastructureImports` — move the binding to `edges`, the setup to a
+  scenario, `runTest` to `awaitMatching`.
+- `Testing.Scenario.seedsThroughServerDomain` — call a server domain interface instead of storage.
+- `ModuleRules.testsModuleShape` — add the feature's `:client`/`:server` to the `:tests` build file.

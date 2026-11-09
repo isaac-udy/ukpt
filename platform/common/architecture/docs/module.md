@@ -80,6 +80,9 @@ Kotlin source. Build-file exemptions use the `// architecture-exception:` commen
 * A test-support module (`:platform:common:testing`, `:platform:common:subcutaneous`, a `:feature:[name]:tests` module) may only be a test dependency, or a dependency of another test-support module
     * **Why:** Test-support code on a production classpath ships test categories, fakes, and an embedded database to users.
     * **Note:** A test dependency is one declared in a test source set block (`commonTest.dependencies { }`) or with a test configuration (`testImplementation`).
+* A `:feature:[name]:tests` module must depend on its feature's `:client` and `:server` modules; it may depend on other `:feature` and `:platform` modules
+    * **Why:** The Subcutaneous Tests in a `:tests` module run the feature's client and server graphs together.
+    * **Note:** A `:tests` module depends on another feature's `:tests` module to reuse its Scenarios. `ModuleRules.featureNotApp` keeps it off `:app`.
 
 ##### Guidance
 

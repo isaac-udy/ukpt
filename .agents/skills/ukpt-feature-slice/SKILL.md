@@ -1,24 +1,25 @@
 ---
 name: ukpt-feature-slice
 description: >-
-  Scaffold a new feature vertical slice :feature:<name>:{api,client,server} in
-  UKPT — the three build files, the Compose/Enro client (destination, screen,
-  viewmodel, state, snapshot test), the server stub, the settings include, and
-  the Koin DI + app wiring — modeled on :feature:core. Use when adding a new
-  feature module to the project.
+  Scaffold a new feature vertical slice :feature:<name>:{api,client,server,tests}
+  in UKPT — the build files, the Compose/Enro client (destination, screen,
+  viewmodel, state, snapshot test), the server stub, the Subcutaneous Test module,
+  the settings includes, and the Koin DI + app wiring — modeled on :feature:core.
+  Use when adding a new feature module to the project.
 ---
 
 # ukpt-feature-slice
 
-Scaffold `:feature:<name>:{api,client,server}` modeled on the canonical `:feature:core`.
+Scaffold `:feature:<name>:{api,client,server,tests}` modeled on the canonical `:feature:core`.
 `templates.md` carries the build files + source skeletons; `:feature:core` is the living reference
 to read when in doubt.
 
 ## Naming (read first — `:feature:core` has a deliberate mismatch)
 `:feature:core` uses Gradle path segment `core` but Kotlin package `feature.ukpt` and type prefix
 `Ukpt`. For a NEW feature, be **internally consistent** and use `<name>` everywhere:
-- path `:feature:<name>:{api,client,server}`; Android namespaces `feature.<name>.{api,client,server}`;
+- path `:feature:<name>:{api,client,server,tests}`; Android namespaces `feature.<name>.{api,client,server}`;
 - Kotlin package `feature.<name>`; DI vals `<name>ClientDependencies` / `<name>ServerDependencies`;
+  test graph `<name>TestGraph` in `feature.<name>.tests`;
 - types `<Name>Destination`, `<Name>Screen`, `<Name>ViewModel`, `<Name>State` (`<Name>` = PascalCase).
 
 Do **not** copy the literal `ukpt`/`Ukpt` from core — substitute `<name>`/`<Name>`.
@@ -43,7 +44,7 @@ domain contract inventory to check the result.
 ## Steps
 1. **Module dirs + three `build.gradle.kts`** (templates.md §1–3). Substitute the namespace strings and
    the `projects.feature.<name>.*` accessors; keep everything else verbatim. Heed the gotchas below.
-2. **`settings.gradle.kts`** — add three `include(...)` after the `:feature:core` block (templates.md §4).
+2. **`settings.gradle.kts`** — add four `include(...)` after the `:feature:core` block (templates.md §4).
 3. **Client sources** (`feature.<name>.client.ui`): `<Name>Destination` in `:client` — the default
    home; move the file to `:api` (same package, no import churn) only when a **second feature**
    navigates to it, per `ClientUi.Destination.definedInApiOrClient` — an app-shell reference never
@@ -58,7 +59,11 @@ domain contract inventory to check the result.
    every ScreenContent to be called from a `@Preview`, and the preview wraps it in
    `<Prefix>PreviewFrame` so the golden reads as a device screenshot rather than a render on the
    harness canvas.
-5. **Wire it up** — the easy-to-forget edits to existing files (templates.md §9 checklist):
+5. **Subcutaneous tests** (`:feature:<name>:tests`, templates.md §7) — the build file, the
+   `<name>TestGraph`, a scenarios file once the server has a domain, and a `@SubcutaneousTest` per
+   ViewModel calling each of its public functions. `ClientUi.ViewModel.subcutaneouslyTested` fails
+   until every ViewModel has one. ViewModel tests live here, not in `:client`'s `commonTest`.
+6. **Wire it up** — the easy-to-forget edits to existing files (templates.md §9 checklist):
    - `app/client/common/build.gradle.kts` → `implementation(projects.feature.<name>.client)`.
    - `app/client/common/.../ClientDependencies.kt` → add `<name>ClientDependencies` to the `clientDependencies`
      list + its import; `./gradlew :app:client:common:jvmTest` then verifies every registered constructor.
@@ -70,8 +75,8 @@ domain contract inventory to check the result.
    - Server DI: add `<name>ServerDependencies` to the list in `app/server/.../ServerDependencies.kt`
      once the feature has something to bind. The host already serves urpc; a service itself is the
      `ukpt-urpc-service` skill's job.
-6. **Verify** — the six-target compile sweep (see the `ukpt-verify` skill), record + verify Paparazzi for the new client
-   module, and `./gradlew :platform:common:architecture:verifyArchitecture`. If the feature has web UI, run
+7. **Verify** — the six-target compile sweep (see the `ukpt-verify` skill), record + verify Paparazzi for the new client
+   module, `./gradlew :feature:<name>:tests:subcutaneousTest`, and `./gradlew :platform:common:architecture:verifyArchitecture`. If the feature has web UI, run
    the `ukpt-verify-web` skill — a forgotten `viewModelOf` only crashes at runtime on wasm, invisible to compile.
    Run the Compose HTML gates in `ukpt-verify` unless the project deleted `app/client/web-html`.
 
@@ -140,6 +145,6 @@ Rules: `ClientUi.ViewModelState.usesAsyncState`, `ClientUi.ViewModelState.noManu
 - **`ServerServices.ServiceImpl`** (construct) — server-side services follow the `ukpt-urpc-service` skill.
 
 ## Reference
-- The living template: `feature/core/{api,client,server}` (build files + `src/.../feature/ukpt/...`).
+- The living template: `feature/core/{api,client,server,tests}` (build files + `src/.../feature/ukpt/...`).
 - App wiring: `app/client/common/src/commonMain/kotlin/com/isaacudy/ukpt/{App.kt,UkptNavigation.kt}` and `settings.gradle.kts`.
 - Skeletons + the wiring checklist: `templates.md` (this skill). For server services: the `ukpt-urpc-service` skill.

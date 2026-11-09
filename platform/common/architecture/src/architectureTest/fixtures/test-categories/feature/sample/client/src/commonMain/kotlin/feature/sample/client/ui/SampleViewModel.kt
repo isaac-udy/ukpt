@@ -8,4 +8,8 @@ class SampleViewModel : ViewModel() {
     private val navigation by navigationHandle<SampleDestination>()
 
     val state = viewModelState(SampleState())
+
+    fun onRefresh() {}
+
+    fun onDelete() {}
 }

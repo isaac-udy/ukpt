@@ -4,6 +4,8 @@ import dev.isaacudy.udytils.postgres.PgNotificationBus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onSubscription
 import org.jetbrains.exposed.v1.core.SortOrder
@@ -27,9 +29,12 @@ internal class GreetingStorage(
             .map(::GreetingRow)
     }
 
-    // The initial read runs after the subscription is live, so a change between the two is not lost.
-    fun observe(): Flow<List<GreetingRow>> = notificationBus.listen(CHANNEL)
-        .onSubscription { emit(INITIAL_READ) }
+    // The initial read runs after LISTEN is active and the subscription is live, so a change
+    // between the read and the first notification is not lost.
+    fun observe(): Flow<List<GreetingRow>> = flow {
+        notificationBus.awaitListening(CHANNEL)
+        emitAll(notificationBus.listen(CHANNEL).onSubscription { emit(INITIAL_READ) })
+    }
         .conflate()
         .map { list() }
         .distinctUntilChanged()

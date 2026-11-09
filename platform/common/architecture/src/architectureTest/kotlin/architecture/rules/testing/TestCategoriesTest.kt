@@ -3,7 +3,11 @@ package architecture.rules.testing
 import architecture.isTestSource
 import architecture.rules.UkptArchitecture
 import com.lemonappdev.konsist.api.Konsist
+import architecture.rules.module.ModuleRules
 import dev.isaacudy.udytils.architecture.ArchitectureRun
+import dev.isaacudy.udytils.architecture.ModuleEdge
+import dev.isaacudy.udytils.architecture.ModuleGraph
+import dev.isaacudy.udytils.architecture.ModuleGraphConstraint
 import dev.isaacudy.udytils.architecture.Violation
 import java.io.File
 import kotlin.test.Test
@@ -12,8 +16,8 @@ import kotlin.test.assertTrue
 
 /**
  * The Testing rules over `src/architectureTest/fixtures/test-categories`: a `feature.sample` client
- * with a ViewModel, a Repository and two HTML ScreenContents, and tests that break one rule each,
- * beside `SampleRepositoryTest`, which breaks none.
+ * with two ViewModels, a Repository and two HTML ScreenContents, a `:tests` module, and tests that
+ * break one rule each, beside `SampleRepositoryTest` and `SampleViewModelTest`, which break none.
  */
 class TestCategoriesTest {
 
@@ -75,6 +79,88 @@ class TestCategoriesTest {
         assertEquals(listOf("SampleHtmlScreenContentTest.kt"), violations.files())
         assertTrue("SampleViewModel" in violations.single().message, violations.single().message)
     }
+
+    @Test
+    fun `a subcutaneous test referencing a repository is reported, one using entry-point vocabulary is not`() {
+        val violations = violations("Testing.SubcutaneousTest.entryPointVocabularyOnly")
+        assertEquals(listOf("ShortcutSubcutaneousTest.kt"), violations.files())
+        assertTrue("SampleRepository" in violations.single().message, violations.single().message)
+    }
+
+    @Test
+    fun `a subcutaneous test constructing its ViewModel is reported`() {
+        val violations = violations("Testing.SubcutaneousTest.viewModelsFromTheGraph")
+        assertEquals(listOf("ShortcutSubcutaneousTest.kt"), violations.files())
+        assertTrue("SampleViewModel" in violations.single().message)
+    }
+
+    @Test
+    fun `a subcutaneous test function outside the harness is reported, a call named only in a comment does not count`() {
+        assertEquals(listOf("ShortcutSubcutaneousTest.kt"), violations("Testing.SubcutaneousTest.runsInTheHarness").files())
+    }
+
+    @Test
+    fun `a subcutaneous test importing koin is reported`() {
+        assertEquals(listOf("ShortcutSubcutaneousTest.kt"), violations("Testing.SubcutaneousTest.noInfrastructureImports").files())
+    }
+
+    @Test
+    fun `a scenario using Exposed and SQL is reported, one using a domain interface is not`() {
+        val violations = violations("Testing.Scenario.seedsThroughServerDomain")
+        assertEquals(listOf("StorageScenarios.kt", "StorageScenarios.kt"), violations.files())
+        assertTrue(violations.any { "SQL" in it.message } && violations.any { "org.jetbrains.exposed" in it.message })
+    }
+
+    @Test
+    fun `scenarios and test graphs are not fixtures`() {
+        assertTrue(violations("architecture.everyTestDeclarationBelongsToATestConstruct").none { "Scenarios" in it.where || "TestGraph" in it.where })
+    }
+
+    @Test
+    fun `a tests module with two test graphs is reported`() {
+        val violations = violations("Testing.TestGraph.onePerTestsModule")
+        assertEquals(1, violations.size, violations.toString())
+        assertTrue("2 Test Graphs" in violations.single().message)
+    }
+
+    @Test
+    fun `a test graph declaring a module inline is reported, one listing dependency modules is not`() {
+        assertEquals(listOf("InlineTestGraph.kt"), violations("Testing.TestGraph.productionModulesOnly").files())
+    }
+
+    @Test
+    fun `a fake of a domain interface in a tests module is reported, a fake clock is not`() {
+        assertEquals(listOf("FakeSampleSource.kt"), violations("Testing.Fake.subcutaneousEdgesOnly").files())
+    }
+
+    @Test
+    fun `a ViewModel no subcutaneous test references is reported`() {
+        val violations = violations("ClientUi.ViewModel.subcutaneouslyTested")
+        assertEquals(listOf("UntestedViewModel.kt"), violations.files())
+    }
+
+    @Test
+    fun `a ViewModel function no subcutaneous test calls is reported, a name in a comment does not count`() {
+        val violations = violations("ClientUi.ViewModel.publicFunctionsExercised")
+        assertEquals(listOf("SampleViewModel.kt"), violations.files())
+        assertTrue("onDelete" in violations.single().message)
+    }
+
+    @Test
+    fun `a tests module missing its feature's server is reported`() {
+        val check = (ModuleRules.testsModuleShape.enforcement as ModuleGraphConstraint).check
+        val graph = ModuleGraph(
+            listOf(
+                edge(":feature:sample:tests", ":feature:sample:client"),
+                edge(":feature:sample:server", ":feature:sample:api"),
+                edge(":feature:other:tests", ":feature:other:client"),
+                edge(":feature:other:tests", ":feature:sample:tests"),
+            ),
+        )
+        assertEquals(listOf(":feature:sample:tests does not depend on :feature:sample:server"), check.run(graph) { false }.map { it.message })
+    }
+
+    private fun edge(from: String, to: String) = ModuleEdge(from = from, to = to, file = "build.gradle.kts", line = 1, exemptRuleIds = emptySet())
 
     @Test
     fun `an HTML ScreenContent named only in a test comment is reported as untested`() {

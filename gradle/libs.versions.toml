@@ -27,6 +27,7 @@ jsoup = "1.23.2"
 paparazzi = "2.0.0-alpha05"
 composablePreviewScanner = "0.9.0"
 junit5 = "5.11.4"
+kover = "0.9.11"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -96,6 +97,7 @@ enro-processor = { module = "dev.enro:enro-processor" }
 
 udytils-core = { module = "dev.isaacudy.udytils:core" }
 udytils-ui = { module = "dev.isaacudy.udytils:ui" }
+udytils-viewmodel = { module = "dev.isaacudy.udytils:viewmodel" }
 udytils-uiHtml = { module = "dev.isaacudy.udytils:ui-html" }
 udytils-snapshot = { module = "dev.isaacudy.udytils:snapshot" }
 udytils-htmx = { module = "dev.isaacudy.udytils:htmx" }
@@ -144,6 +146,7 @@ ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
 kotlinKsp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 paparazzi = { id = "app.cash.paparazzi", version.ref = "paparazzi" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 # Version-less: resolved from the root buildscript classpath (composite-substituted), not a repository.
 udytilsArchitecture = { id = "dev.isaacudy.udytils.architecture" }

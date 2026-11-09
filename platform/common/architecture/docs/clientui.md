@@ -311,6 +311,12 @@ to load data and perform side effects based on user actions.
     * **Why:** A mutable private field is a side channel around `state` (the source of truth) and is lost on process death — for example a `pendingX` captured across a navigation round-trip. Carry per-open context on the navigation itself (key fields, or `instance.metadata` via a `NavigationKey.MetadataKey`) so the result handler recovers it process-death-safe; put genuine UI state in `state`.
 * A ViewModel must use `JobManager` to manage coroutines, never a `var job: Job?` reference
     * **Why:** `dev.isaacudy.udytils.coroutines.JobManager` provides cancel-then-replace semantics and ties every job to `viewModelScope`; manual `var job: Job?` tracking leaks the previous job and skips lifecycle cancellation.
+* Every ViewModel must be referenced by a Subcutaneous Test
+    * **Why:** A Subcutaneous Test is a ViewModel's coverage: it opens the ViewModel from the client graph against the server running in-process.
+    * **Note:** Tests live in the feature's `:tests` module (`Testing.SubcutaneousTest.placement`).
+* Every public function of a ViewModel must be called in a Subcutaneous Test that references the ViewModel
+    * **Why:** A ViewModel's public functions are the actions its Screen calls. A function no test calls is an action no test covers.
+    * **Note:** Called means `.[name](` in the code of a Subcutaneous Test file that references the ViewModel. A ViewModel no test references is reported by `ClientUi.ViewModel.subcutaneouslyTested` instead.
 
 ##### Guidance
 

@@ -3,7 +3,7 @@ name: ukpt-urpc-service
 description: >-
   Add or change a urpc client/server service in UKPT end-to-end — the @Urpc
   contract in :api, the ServiceImpl + Koin binding on :server, the host
-  registration, and the client binding. Use when adding an @Urpc service, wiring a
+  registration, the client binding, and its Subcutaneous test. Use when adding an @Urpc service, wiring a
   client↔server call, or working with the `server.services` layer of a feature's
   :api/:server modules.
 ---
@@ -68,8 +68,25 @@ to end. Copy-paste skeletons are in `templates.md`.
    client; prefer subclassing `PresentableException` with a deliberate `retryable` flag (templates.md §6). Never
    `catch (Exception)` — deserialized urpc errors may not extend `Exception`; use `catch (t: Throwable)` or a
    specific type (`ProjectRules.noCatchException`).
-7. **Verify** — the full compile sweep (all 6 targets) + `./gradlew :platform:common:architecture:verifyArchitecture`.
-   If a web client consumes the service, also run the `ukpt-verify-web` skill.
+7. **Test** — a `@SubcutaneousTest` in `:feature:<name>:tests` (the `ukpt-testing` skill) covers the
+   service. When a screen calls it, the ViewModel's test does. A function no screen calls gets a
+   server-entry test: `service<<Name>Service>()` returns the generated urpc client, which calls the
+   in-process server through the client transport. Seed with the feature's scenarios in `given { }`.
+   Copy `feature/core/tests/src/test/kotlin/feature/ukpt/tests/GreetingServiceTest.kt`:
+   ```kotlin
+   @Test
+   fun `reset empties the history`() = subcutaneous(ukptTestGraph) {
+       given { greetingHistory("Hello", "Hello again") }
+       val greetingService = service<GreetingService>()
+
+       greetingService.reset()
+
+       assertEquals(emptyList(), greetingService.observeHistory().first().greetings)
+   }
+   ```
+8. **Verify** — the full compile sweep (all 6 targets), `./gradlew :feature:<name>:tests:subcutaneousTest`
+   and `./gradlew :platform:common:architecture:verifyArchitecture`. If a web client consumes the
+   service, also run the `ukpt-verify-web` skill.
 
 ## Rule cheat-sheet (canonical text lives in `platform/common/architecture/docs/` — search the ID)
 - **`ServerServices.ServiceImpl`** (construct) + **`ServerServices.ServiceImpl.internalVisibility`** — impl is `<Name>ServiceImpl`, `internal`, in `feature.<name>.server.services` on `:server`.

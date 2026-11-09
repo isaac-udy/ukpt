@@ -2,8 +2,11 @@ package architecture.rules.clientui
 
 import dev.isaacudy.udytils.architecture.*
 
+import architecture.definitions.withoutStringsAndComments
+import architecture.rules.testing.SubcutaneousTest
 import com.lemonappdev.konsist.api.KoModifier
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
+import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
 
 @Describe("""
     A class that manages the UI state for a Screen and orchestrates calls to domain interfaces
@@ -148,4 +151,50 @@ object ViewModel : Construct<ClientUi>(
                 .map { Violation(it, "ViewModel holds a `Job` reference — use `JobManager` instead") }
         }
     }
+
+    @Describe("Every ViewModel must be referenced by a Subcutaneous Test")
+    val subcutaneouslyTested by rule {
+        rationale("A Subcutaneous Test is a ViewModel's coverage: it opens the ViewModel from the client graph against the server running in-process.")
+        note("Tests live in the feature's `:tests` module (`Testing.SubcutaneousTest.placement`).")
+        scopes { scopes, exempt ->
+            val tested = subcutaneousTestCode(scopes)
+            scopes.production.classes()
+                .filter { ViewModel.test(it) }
+                .filterNot { exempt(it) }
+                .filterNot { it.fullyQualifiedName in tested }
+                .map { Violation(it, "no Subcutaneous Test references `${it.name}`") }
+        }
+    }
+
+    @Describe("Every public function of a ViewModel must be called in a Subcutaneous Test that references the ViewModel")
+    val publicFunctionsExercised by rule {
+        rationale("A ViewModel's public functions are the actions its Screen calls. A function no test calls is an action no test covers.")
+        note("Called means `.[name](` in the code of a Subcutaneous Test file that references the ViewModel. A ViewModel no test references is reported by `ClientUi.ViewModel.subcutaneouslyTested` instead.")
+        scopes { scopes, exempt ->
+            val tested = subcutaneousTestCode(scopes)
+            scopes.production.classes()
+                .filter { ViewModel.test(it) }
+                .filterNot { exempt(it) }
+                .flatMap { viewModel ->
+                    val code = tested[viewModel.fullyQualifiedName] ?: return@flatMap emptyList()
+                    viewModel.functions(includeNested = false)
+                        .filter { (it.hasPublicOrDefaultModifier || it.hasInternalModifier) && !it.hasOverrideModifier }
+                        .filterNot { exempt(it) }
+                        .filterNot { function -> code.any { Regex("""\.${function.name}\s*\(""").containsMatchIn(it) } }
+                        .map { Violation(it, "no Subcutaneous Test of `${viewModel.name}` calls `${it.name}(`") }
+                }
+        }
+    }
 }
+
+/** The code of each Subcutaneous Test file, by the fully-qualified name of every production declaration it references. */
+private fun subcutaneousTestCode(scopes: ArchitectureScopes): Map<String?, List<String>> =
+    scopes.tests.classes()
+        .filter { SubcutaneousTest.test(it) }
+        .map { it.containingFile }
+        .distinctBy { it.path }
+        .flatMap { file ->
+            val code = file.text.withoutStringsAndComments()
+            scopes.productionReferences(file).map { (it.declaration as? KoFullyQualifiedNameProvider)?.fullyQualifiedName to code }
+        }
+        .groupBy({ it.first }, { it.second })

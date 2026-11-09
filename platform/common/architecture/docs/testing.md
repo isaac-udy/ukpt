@@ -32,8 +32,8 @@ unit tests of every module; each category has its task (`subcutaneousTest`, `com
 `--no-configuration-cache`). kotlin.test has no tags on JS, wasm or iOS, so `componentTest`
 also runs the module's `jsTest`.
 
-Test-support declarations (fakes, fixtures, snapshot surfaces) are Constructs too: every
-top-level declaration in test sources matches exactly one.
+Test-support declarations (fakes, fixtures, snapshot surfaces, scenarios, test graphs) are
+Constructs too: every top-level declaration in test sources matches exactly one.
 
 ##### Constructs
 
@@ -47,6 +47,8 @@ top-level declaration in test sources matches exactly one.
 * [End To End Test](#end-to-end-test)
 * [Fake](#fake)
 * [Snapshot Surface](#snapshot-surface)
+* [Scenario](#scenario)
+* [Test Graph](#test-graph)
 * [Fixture](#fixture)
 
 ##### Rules
@@ -69,6 +71,28 @@ exposes: ViewModel state, navigation results, service responses.
 Subcutaneous tests are the main suite. They exercise the code a user reaches through a screen,
 and do not change when the domain and data layers below the ViewModel are restructured.
 
+```kotlin
+@SubcutaneousTest
+class UkptViewModelTest {
+    @Test
+    fun `a greeting added while the screen is open appears`() = subcutaneous(ukptTestGraph) {
+        val screen = viewModel<UkptViewModel, UkptDestination>(UkptDestination)
+        screen.viewModel.state.awaitMatching { it.greetingTexts() == emptyList<String>() }
+
+        given { greetingHistory("Kia ora") }
+
+        screen.viewModel.state.awaitMatching { it.greetingTexts() == listOf("Kia ora") }
+    }
+}
+```
+
+`subcutaneous(graph)` gives each test a new database cloned from the migrated template, runs
+the [Test Graph](#test-graph)'s server modules in-process on Ktor's test engine, and builds
+the client graph against it. `viewModel<VM, K>(key)` opens a ViewModel from the client graph
+with an enro-test navigation handle; `service<S>()` calls a `@Urpc` service through the client
+transport. `given { }` runs [Scenarios](#scenario), before or after a ViewModel opens.
+`awaitMatching` waits up to 10 seconds of real time for the state to match.
+
 ##### Requirements
 
 * A Subcutaneous Test is a class
@@ -78,6 +102,15 @@ and do not change when the domain and data layers below the ViewModel are restru
 
 * A Subcutaneous Test must live in the `src/test` source set of a `:feature:[name]:tests` module
     * **Why:** The `:tests` module depends on the feature's `:client` and `:server`, which no other module may combine.
+* A Subcutaneous Test must reference only entry-point vocabulary from production code: ViewModels, their states, Destinations, UI value types, client domain models and their extensions, domain exceptions and constants, shared wire types, and `@Urpc` service interfaces
+    * **Why:** The test drives the entry point and reads what it exposes. A reference to a repository, a use case or a storage class fixes that class in place, and the test changes when the layers below the entry point are restructured.
+    * **Note:** Test data comes from Scenarios (`given { }`), which may use the server domain.
+* A Subcutaneous Test must not construct a ViewModel; it opens one from the client graph with `viewModel<[Name]ViewModel, [Name]Destination>(key)`
+    * **Why:** A ViewModel built by hand takes collaborators the test chose, not the ones the application binds.
+* Every `@Test` function of a Subcutaneous Test must run its body in `subcutaneous(graph) { … }`
+    * **Why:** The harness starts the server and the client graph against a new database, and tears them down after the test.
+* A Subcutaneous Test must not import Koin, Ktor, Exposed, JDBC or `kotlinx.coroutines.test`
+    * **Why:** The harness owns the graph, the server, the database and the dispatchers. Virtual time from `kotlinx.coroutines.test` does not advance real I/O; `awaitMatching` waits in real time.
 
 ---
 
@@ -246,6 +279,11 @@ declaration.
 * A Fake is named `Fake[Name]`
 * A Fake declares no `@Test` function
 
+##### Rules
+
+* In a `:feature:[name]:tests` module, a Fake must implement only an interface an IntegrationClient provides, `kotlin.time.Clock`, or an interface declared under `platform`
+    * **Why:** A Subcutaneous Test runs the production graph. A fake replaces a binding only at the system's edges: a backend the project does not own, the clock, a platform service. It is bound in `subcutaneous(graph, edges = { server { … } })`.
+
 ---
 
 ## [Snapshot Surface](../src/main/kotlin/architecture/rules/testing/SnapshotSurface.kt)
@@ -261,12 +299,77 @@ such as a design-system doc surface, and the frame it renders in.
 
 ---
 
+## [Scenario](../src/main/kotlin/architecture/rules/testing/Scenario.kt)
+
+A function with a `Scenario` receiver, in a `:feature:[name]:tests` module's `src/main`: puts
+the test database into a state through the feature's server domain interfaces. A test calls it
+inside `given { }`, before it opens a ViewModel or while one is open; it returns what it created.
+
+```kotlin
+suspend fun Scenario.greetingHistory(vararg texts: String): List<Greeting> {
+    val updateGreetingHistory = server<UpdateGreetingHistory>()
+    texts.forEach { updateGreetingHistory.add(it) }
+    return server<FlowOfGreetingHistory>()().first()
+}
+```
+
+Another feature's `:tests` module depends on this one to reuse its scenarios.
+
+##### Requirements
+
+* A Scenario has a `Scenario` receiver
+
+##### Rules
+
+* A Scenario must write through server domain interfaces: no server data classes, generated tables, Exposed, JDBC or SQL
+    * **Why:** A row written past the domain skips the invariants the server enforces, and the test then covers a state the application cannot reach. A Scenario that calls the domain also stays valid when the storage below it changes.
+
+##### Guidance
+
+* A Scenario should return what it created, such as the seeded domain models
+    * **Why:** The test refers to seeded records by the returned values instead of reading them back through the screen.
+    * **Audited:** a test reports non-conforming code without ever failing.
+
+---
+
+## [Test Graph](../src/main/kotlin/architecture/rules/testing/TestGraph.kt)
+
+A top-level `SubcutaneousGraph` in a `:feature:[name]:tests` module's `src/main`: the production
+Koin modules the feature's Subcutaneous Tests run, `[name]TestGraph`.
+
+```kotlin
+val ukptTestGraph = SubcutaneousGraph(
+    client = featureClient(ukptClientDependencies),
+    server = featureServer(ukptServerDependencies),
+)
+```
+
+`featureClient` adds the network modules and `featureServer` the Postgres modules. A test
+replaces a binding at the system's edges (a backend the project does not own, a clock) with
+`subcutaneous(graph, edges = { server { … } })`, not in the graph.
+
+##### Requirements
+
+* A Test Graph is a top-level property initialised with `SubcutaneousGraph(`
+
+##### Rules
+
+* A `:feature:[name]:tests` module must declare exactly one Test Graph, and a Test Graph must live in one
+    * **Why:** The graph repeats the module list the `:app` shells install for the feature. A second graph is a second list to keep in step with them.
+* A Test Graph must list production Koin modules only: each feature's `[name]ClientDependencies` and `[name]ServerDependencies`, and `:platform` modules
+    * **Why:** A binding declared in the graph replaces production code for every test. Replacements at the system's edges go in `subcutaneous(graph, edges = { … })`.
+
+---
+
 ## [Fixture](../src/main/kotlin/architecture/rules/testing/Fixture.kt)
 
 A top-level function or property in test sources that builds test data or performs a shared
-test step, such as a builder for a domain model used by several tests.
+test step, such as a builder for a domain model used by several tests. Scenarios and Test
+Graphs are their own Constructs.
 
 ##### Requirements
 
 * A Fixture satisfies one of: {is a function, is a property}
 * A Fixture does not satisfy: is annotated `@Composable`
+* A Fixture does not satisfy: has a `Scenario` receiver
+* A Fixture does not satisfy: is a top-level property initialised with `SubcutaneousGraph(`
