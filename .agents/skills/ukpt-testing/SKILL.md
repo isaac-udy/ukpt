@@ -5,9 +5,11 @@ description: >-
   Snapshot, Wiring, Adapter, Check, End-to-end — with the category annotations
   from :platform:common:testing, the per-category Gradle tasks, the Subcutaneous
   harness (test graph, scenarios, edges, coverage), and the Testing
-  architecture rules that check a test behaves as its category claims. Use when
-  adding or changing a test, choosing what kind of test to write, running one
-  category, or fixing a Testing.* rule failure.
+  architecture rules that check a test behaves as its category claims, and which
+  tests to run while iterating. Use when adding or changing a test, choosing what
+  kind of test to write, choosing which tests to run after a change, deciding
+  whether to keep an end-to-end test, running one category, or fixing a
+  Testing.* rule failure.
 ---
 
 # ukpt-testing
@@ -240,6 +242,77 @@ JUnit 5 tags and timeouts (10 s unit; 30 s component, wiring, check; 60 s adapte
 120 s end-to-end). kotlin.test has no tags on JS, wasm or iOS, so those targets run through their
 own tasks (`jsTest`, `wasmJsTest`, `iosSimulatorArm64Test`). `test`/`jvmTest` still run every
 category.
+
+## Development loop
+
+Run the narrowest tests that cover the change while iterating, the feature's categories before
+handing back, and the full sweep once, before a pull request. CI runs the full sweep on every pull
+request (`ukpt-verify`, "CI"). Run builds one at a time.
+
+**After each edit:**
+
+- The test class for the code that changed, with a filter:
+  `./gradlew :feature:<name>:tests:subcutaneousTest --tests '*<Name>ViewModelTest'`. Gradle
+  compiles only what that test needs.
+- `./gradlew verifyArchitecture` after adding, moving or renaming a declaration.
+- Not `test`, `jvmTest`, `allTests`, `check` or a category task without a module path: each runs
+  every module.
+
+**Before handing back**, the categories of the modules that changed:
+
+| Changed | Run |
+| --- | --- |
+| A ViewModel, its State, or what it calls in `client.domain`/`client.data` | `:feature:<name>:tests:subcutaneousTest` |
+| A `@Urpc` service, `server.domain` or `server.data` | `:feature:<name>:tests:subcutaneousTest`; `adapterTest` in the module whose storage changed |
+| A `[Name]ScreenContent`, its tags, or a robot | `:feature:<name>:client:componentTest` and `:feature:<name>:client:snapshotTest --no-configuration-cache` |
+| A Compose HTML screen | `:feature:<name>:client:jsTest` |
+| Logic with a Unit Test | that module's `unitTest` |
+| A Koin module or a constructor | `wiringTest` |
+| Design tokens or `ukpt-design.css` | `checkTest` and `:platform:client:design:snapshotTest --no-configuration-cache` |
+| Navigation between screens, `App.kt`, or a screen in a journey | `:app:client:desktop:endToEndTest` |
+| `commonMain` code that iOS compiles | `:app:client:common:compileKotlinIosSimulatorArm64` |
+
+Then `verifyArchitecture` and `validateTemplate`.
+
+**Snapshots.** Verify only the modules whose previews changed. Record
+(`recordPaparazzi --no-configuration-cache`) only after an intended visual change, in that module,
+and open the changed golden images before committing them.
+
+**Timings** on a 16 GB M1 Pro, with the Gradle daemon running and the code compiled, the test task
+forced to run (`--rerun`), in seconds:
+
+| Run | s |
+| --- | --- |
+| `validateTemplate` | 3 |
+| `verifyArchitecture` | 15 |
+| `:feature:core:tests:subcutaneousTest`, one class or all 11 tests | 15–18 |
+| `:feature:core:client:componentTest -x jsTest` | 7 |
+| `:feature:core:client:jsTest` | 5 |
+| `:feature:core:client:unitTest` | 5 |
+| `:feature:core:client:snapshotTest --no-configuration-cache` | 13–32 |
+| `:app:client:desktop:endToEndTest` | 10 |
+| `wiringTest`, every module | 9 |
+| every category except snapshots, every module, one invocation | 30 |
+| recompiling `:feature:core:client` for the JVM | 5 |
+| recompiling `:app:client:common` for the iOS simulator | 13 |
+
+Most of a Subcutaneous run is starting the test JVM and Postgres, so a `--tests` filter saves time
+only in a module with many tests. A snapshot run that configures without the configuration cache
+takes the longer time. A long sweep comes from compiling the changed modules and their dependents
+for every target, and from separate invocations: name several tasks in one `./gradlew` call
+rather than running them one after another.
+
+### Checking a feature: by hand, a throwaway test, or a kept test
+
+- **By hand** (`ukpt-drive-app`): layout, spacing, how a screen looks and responds. Nothing re-runs
+  it, so it is not a test of behaviour.
+- **A throwaway End To End Test:** a journey across several screens that would take many steps to
+  repeat by hand after each change. Write it in `:app:client:desktop`'s `src/test` with the
+  feature's robots, run it while iterating, and delete it before committing unless it meets the
+  next point.
+- **A kept End To End Test:** one per main journey of the app, for what a Subcutaneous Test can't
+  reach: screens bound to their ViewModels, navigation between screens, the shell starting. A
+  behaviour inside one screen, even one an End To End Test found, gets a Subcutaneous Test.
 
 ## Rule failures
 

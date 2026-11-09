@@ -78,12 +78,12 @@ Read more widely when the change is shaped by the rules — a new feature slice 
 
 ## Verification
 
-After changes, compile every platform (client + server), not just the touched module — the `ukpt-verify` skill has the full sweep and test commands. Paparazzi tasks require `--no-configuration-cache`.
+While iterating, run only the tests the change affects: `ukpt-testing`, "Development loop", maps each kind of change to its tasks. Before handing back a feature, run the feature's own categories. Before opening a pull request, compile every platform (client + server) and run every category: the `ukpt-verify` sweep. CI (`.github/workflows/ci.yml`) runs the same sweep on every pull request. Paparazzi tasks require `--no-configuration-cache`.
 
 ## Reference
 
 - `ukpt-run` — per-platform run commands, dev database setup and env switches.
-- `ukpt-testing` — test categories and their annotations, where each test lives, per-category tasks, the Subcutaneous Test harness and coverage, `Testing.*` rule failures.
+- `ukpt-testing` — test categories and their annotations, where each test lives, per-category tasks, which tests to run while iterating, the Subcutaneous Test harness and coverage, robots, `Testing.*` rule failures.
 - `ukpt-drive-app` — drive the running desktop app through the Compose Hot Reload MCP server: semantic tree, clicks, screenshots, hot reload, runtime errors.
 - `ukpt-verify-web` — wasm bundle and runtime verification.
 - `ukpt-web-deploy` — serving the web client: brotli-compressed wasm, headers, cache policy, host recipes.

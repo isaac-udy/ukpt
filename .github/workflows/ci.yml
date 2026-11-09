@@ -1,0 +1,121 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Rules and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: 21
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          validate-wrappers: true
+      - name: Template and architecture rules
+        run: ./gradlew validateTemplate verifyArchitecture --continue
+      - name: Build-logic tests
+        run: ./gradlew -p build-logic test
+      # componentTest also runs each :client module's jsTest, in headless Chrome.
+      - name: Tests by category
+        run: ./gradlew unitTest checkTest wiringTest adapterTest componentTest subcutaneousTest endToEndTest --continue
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: '**/build/reports/tests/'
+
+  snapshots:
+    name: Snapshots
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: 21
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+      # Paparazzi drops the R class from the test classpath under the configuration cache.
+      - name: Verify snapshots
+        run: ./gradlew snapshotTest --no-configuration-cache --continue
+      - name: Upload snapshot failures
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapshot-failures
+          path: '**/build/paparazzi/failures/'
+
+  builds:
+    name: Android, desktop, web and server builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: 21
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+      # checkDebugAarMetadata is where minimum AGP and compileSdk are enforced; web-html:check builds
+      # the production bundle and runs verifyHtmlBundle.
+      - name: Build
+        run: >-
+          ./gradlew
+          :app:client:android:checkDebugAarMetadata
+          :app:client:android:compileDebugKotlin
+          :app:client:desktop:compileKotlin
+          :app:client:web:wasmJsBrowserDevelopmentWebpack
+          :app:client:web-html:check
+          :app:server:smokeTestFatJar
+          --continue
+
+  ios:
+    name: iOS targets
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: 21
+      - name: Cache Kotlin/Native toolchain
+        uses: actions/cache@v4
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Compile iOS targets
+        run: ./gradlew :app:client:common:compileKotlinIosSimulatorArm64 :app:client:common:compileKotlinIosArm64 --continue
