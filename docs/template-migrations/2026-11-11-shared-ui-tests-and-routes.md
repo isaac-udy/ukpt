@@ -21,8 +21,7 @@ New Construct: `ServerServices.Route`, a top-level `Route.[name]` extension in
 `feature.[name].server.services` of `:server`, for a plain-HTTP caller such as a webhook. New rule:
 `ServerServices.Route.takesDomainInterfaces`.
 
-Template-owned files that arrive with the file sync: `installServerHost` passes a
-`ServiceErrorMapper` bound in the server graph to `urpcWithKoin`; `ScreenRobot` has step helpers
+Template-owned files that arrive with the file sync: `ScreenRobot` has step helpers
 for absence, enabled state, text entry, scrolling, semantics, and text or descriptions inside a
 tagged ancestor; `:platform:common:subcutaneous` has `awaitAsserted`. `ukpt-testing` says client
 file storage is an edge.
@@ -38,7 +37,9 @@ grep -rn 'Testing.ComponentTest\|Testing.AdapterTest\|Testing.Robot.oneScreen\|T
 # Plain-HTTP routes outside a feature
 grep -rln 'fun Route\.' --include='*.kt' app/server
 # Local copies of the new helpers
-grep -rn 'fun <T> awaitAsserted\|ServiceErrorMapper' --include='*.kt' feature platform app
+grep -rn 'fun <T> awaitAsserted' --include='*.kt' feature platform app
+# A server host edited to pass its own error mapper
+grep -n 'getOrNull<ServiceErrorMapper>' platform/server/host/src/main/kotlin/platform/server/host/ServerHost.kt
 ```
 
 ## Migration
@@ -51,8 +52,8 @@ grep -rn 'fun <T> awaitAsserted\|ServiceErrorMapper' --include='*.kt' feature pl
    `Route.[name]` extension in `feature.[name].server.services`. It takes domain interfaces and
    configuration, never a Repository, Storage or ServiceImpl. `:app:server` installs it after
    `installServerHost`.
-4. If the project edited `installServerHost` to pass an error mapper, take the template's version
-   and bind the `ServiceErrorMapper` in the server graph.
+4. If the project edited `installServerHost` to read a bound `ServiceErrorMapper`, take the
+   template's version and bind a `ServerHostConfig` with that `errorMapper` in the server graph.
 5. Replace local copies of `awaitAsserted` with `platform.testing.subcutaneous.awaitAsserted`, and
    local robot helpers that duplicate the new `ScreenRobot` steps with those steps.
 
