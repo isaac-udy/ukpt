@@ -83,11 +83,11 @@ answers requests, and the domain contract guidance. Enforced rules and compilati
 
 6. When several required sources form one concept, recommend a read projection (a `FlowOf...` or
    `Get...` domain interface returning an immutable data class) provided by the Repository that
-   owns the storage, or by a UseCase when the inputs are independent capabilities. `:feature:core`'s
-   `GreetingSummary`/`FlowOfGreetingSummary` is the worked example.
+   owns the storage, or by a UseCase when the inputs are independent capabilities.
 
 7. Verify that each page has HTML snapshots for its empty, populated and invalid-input states, and
-   route tests for both the htmx and the non-JavaScript answer of each handler.
+   Subcutaneous Tests through its robot for both the htmx answer and the `scripts = false` answer of
+   each form.
 
 8. **Findings vs authorization:** a review request reports; only a change request implements
    and verifies.
@@ -98,7 +98,7 @@ answers requests, and the domain contract guidance. Enforced rules and compilati
 - [ ] Every handler whose body depends on `HX-Request` calls `varyOnHtmx()`.
 - [ ] A page and its fragments are rendered by the same Components from the same View State.
 - [ ] Live lists send the whole list first and render items with the page's item Component.
-- [ ] Snapshots and route tests cover the states and both answers above.
+- [ ] Snapshots and Subcutaneous Tests cover the states and both answers above.
 - [ ] Every domain interface in the inventory has a consumer that uses it alone, or a stated
       boundary that keeps it separate.
 - [ ] No family of reads exists only to feed one aggregate.

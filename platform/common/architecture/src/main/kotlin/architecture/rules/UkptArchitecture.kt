@@ -2,6 +2,8 @@ package architecture.rules
 
 import architecture.definitions.isFeatureModule
 import architecture.projectScope
+import architecture.projectTestScope
+import architecture.rules.testing.Testing
 import dev.isaacudy.udytils.architecture.*
 import architecture.rules.feature.FeatureRules
 import architecture.rules.module.ModuleRules
@@ -41,10 +43,10 @@ import architecture.rules.serverweb.ServerWeb
     server. The shared layer pages below still name them in places; this branch has neither, and
     links to their pages render as plain text.
 
-    The rules govern the feature modules. The composite build (`embedded-udytils`), `build-logic`,
-    test sources, and this rule module itself are not tested. `:feature:core` is the worked example
-    the rules describe: it keeps its feature code in `feature.[name]` package namespaces so each
-    slice stays liftable into its own module.
+    The rules govern the feature modules. The `Testing` rules govern test sources across the
+    project. The composite build (`embedded-udytils`), `build-logic`, and this rule module itself
+    are not tested. `:feature:core` is the worked example the rules describe: it keeps its feature
+    code in `feature.[name]` package namespaces so each slice stays liftable into its own module.
 
     Rules land enforced from their first commit, never as audits, and no declaration carries an
     `@ArchitectureException`. A rule that cannot be met is a design question, not a setting.
@@ -57,6 +59,7 @@ object UkptArchitecture : ArchitectureDefinition(
         ServerDomain,
         ServerData,
         ProjectRules,
+        Testing,
     ),
     scope = { projectScope },
     membership = { it.isFeatureModule() },
@@ -64,4 +67,6 @@ object UkptArchitecture : ArchitectureDefinition(
         module = "platform/common/architecture",
         omittedDocs = setOf("clientui.md", "clientdomain.md", "clientdata.md", "serverservices.md", "designsystem.md"),
     ),
+    testScope = { projectTestScope },
+    testMembership = { true },
 )

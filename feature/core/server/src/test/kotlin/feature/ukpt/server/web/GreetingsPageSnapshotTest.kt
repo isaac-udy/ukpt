@@ -4,8 +4,10 @@ import dev.isaacudy.udytils.htmlsnapshot.HtmlSnapshots
 import feature.ukpt.Greeting
 import kotlinx.html.html
 import kotlinx.html.stream.createHTML
+import platform.testing.SnapshotTest
 import kotlin.test.Test
 
+@SnapshotTest
 class GreetingsPageSnapshotTest {
 
     private val snapshots = HtmlSnapshots()
@@ -17,7 +19,7 @@ class GreetingsPageSnapshotTest {
 
     @Test
     fun withGreetings() {
-        val greetings = listOf(Greeting(id = 1, text = "Hello, Ada"), Greeting(id = 2, text = "Hello again, Ada"))
+        val greetings = listOf(Greeting(id = "1", text = "Hello, Ada"), Greeting(id = "2", text = "Hello again, Ada"))
         snapshots.assertMatches("GreetingsPage/withGreetings", render(GreetingsPageState(greetings, GreetingForm.Empty, errors = null)))
     }
 

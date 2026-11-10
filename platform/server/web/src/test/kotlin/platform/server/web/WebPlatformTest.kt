@@ -19,10 +19,12 @@ import io.ktor.server.testing.testApplication
 import kotlinx.html.h1
 import kotlinx.html.nav
 import org.jsoup.Jsoup
+import platform.testing.AdapterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+@AdapterTest
 class WebPlatformTest {
 
     private val routes = object : WebRoutes {

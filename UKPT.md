@@ -18,7 +18,7 @@ This branch follows `main` by merging it. [`.ukpt/flavour.json`](./.ukpt/flavour
 
 Follow the rules in [`platform/common/architecture/README.md`](./platform/common/architecture/README.md), enforced by Konsist tests. Orientation:
 
-- **Module groups**: `:app` (the `:app:server` shell + DI wiring), `:feature` (vertical slices — `:api` for what other features may use, `:server` for everything else), `:platform` (reusable infrastructure; `:platform:server:web` holds the page layout, `WebRoutes`, and the static assets).
+- **Module groups**: `:app` (the `:app:server` shell + DI wiring), `:feature` (vertical slices — `:api` for what other features may use, `:server` for everything else, `:tests` Subcutaneous Tests), `:platform` (reusable infrastructure; `:platform:server:web` holds the page layout, `WebRoutes`, and the static assets).
 - **Feature packages**: `feature.<name>` holds the shared vocabulary; below it `server`, then a layer — `server.web` (routes, pages, components, forms, event streams), `server.domain`, `server.data`. Publication to `:api` is a module move that never changes the package.
 - **Markup is typed and script-free.** `hx-*`, `sse-*` and Alpine attributes come from the `dev.isaacudy.udytils.htmx` builders; JavaScript lives in files under a module's `static/` resources, loaded from this origin under a `script-src 'self'` content security policy. Every form also works without JavaScript. Rules: the `ServerWeb` group in the rule catalog.
 - **Domain interfaces name capabilities.** A `fun interface` in `server.domain` is a capability a consumer asks for or a domain model it needs, never one storage call, one field, or one implementation step; facts a consumer needs together come back as one model from the Repository that owns the storage. Guidance: `ServerDomain.DomainInterface.namesACapability`, `.readProjections`, `.collapsedUpdateFamilies`.
@@ -55,7 +55,7 @@ New code may rely on APIs that only exist in a newer submodule commit. For a new
 
 Agents often run several at a time — subagents in one session, plus other sessions and other projects on the same machine. Nothing coordinates them, so each build has to be a good citizen on its own. The failure mode isn't a slow build, it's a machine that stops being usable: once memory is oversubscribed the box swaps, and swapping stalls everything, not just Gradle.
 
-**Memory is the binding constraint, not CPU.** Each concurrent build needs its own daemon pair — the Gradle daemon (`org.gradle.jvmargs`) and the *separate* Kotlin compile daemon (`kotlin.daemon.jvmargs`), both 3 GB in [`gradle.properties`](./gradle.properties) — plus a test JVM, and an embedded Postgres for the schema codegen and dev database. A daemon serves one build at a time, so a second concurrent build forks a second pair instead of sharing the first. At roughly 6 GB a build, a 16 GB machine tops out near two.
+**Memory is the binding constraint, not CPU.** Each concurrent build needs its own daemon pair — the Gradle daemon (`org.gradle.jvmargs`) and the *separate* Kotlin compile daemon (`kotlin.daemon.jvmargs`), both 3 GB in [`gradle.properties`](./gradle.properties) — plus a test JVM, an embedded Postgres for the schema codegen, the dev database and each test JVM, and headless Chromium for the End To End Tests. A daemon serves one build at a time, so a second concurrent build forks a second pair instead of sharing the first. At roughly 6 GB a build, a 16 GB machine tops out near two.
 
 In order of leverage:
 
@@ -81,10 +81,11 @@ Read more widely when the change is shaped by the rules — a new feature slice 
 
 ## Verification
 
-After changes, run the `ukpt-verify` sweep, not just the touched module's tests — it has the compile, test, HTML snapshot and architecture commands.
+While iterating, run only the tests the change affects: `ukpt-testing`, "Development loop", maps each kind of change to its tasks. Before handing back a feature, run the feature's own categories. Before opening a pull request, run the `ukpt-verify` sweep. CI (`.github/workflows/ci.yml`) runs the same sweep on every pull request.
 
 ## Reference
 
 - `ukpt-run` — run the server, dev database setup and env switches.
+- `ukpt-testing` — test categories and their annotations, where each test lives, per-category tasks, which tests to run while iterating, the Subcutaneous Test harness and coverage, page robots, the browser End To End Tests, `Testing.*` rule failures.
 - `ukpt-server-packaging` — fat jar build, service-file checks, smoke test.
-- `ukpt-feature-slice` — scaffold `:feature:<name>:{api,server}` with a web layer.
+- `ukpt-feature-slice` — scaffold `:feature:<name>:{api,server,tests}` with a web layer and page robots.

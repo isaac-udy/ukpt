@@ -2,6 +2,7 @@ plugins {
     id("ukpt.jvm-server")
     id("ukpt.dev-database")
     id("ukpt.server-packaging")
+    id("ukpt.end-to-end-tests")
     alias(libs.plugins.ktor)
 }
 
@@ -20,18 +21,20 @@ application {
 dependencies {
     implementation(projects.feature.core.server)
 
-    implementation(projects.platform.server.web)
+    implementation(projects.platform.server.host)
     implementation(projects.platform.server.postgres)
     // The only module allowed to depend on this: it carries Zonky's embedded Postgres binaries.
     implementation(projects.platform.server.development)
 
     implementation(libs.logback)
     implementation(libs.koin.core)
-    implementation(libs.koin.ktor)
     implementation(libs.ktor.serverCore)
     implementation(libs.ktor.serverNetty)
 
+    testImplementation(projects.platform.common.testing)
+    testImplementation(projects.platform.common.browser)
+    testImplementation(projects.feature.core.tests)
     testImplementation(libs.ktor.serverTestHost)
-    testImplementation(libs.kotlin.testJunit)
+    testImplementation(libs.kotlin.test)
     testImplementation(libs.koin.test)
 }

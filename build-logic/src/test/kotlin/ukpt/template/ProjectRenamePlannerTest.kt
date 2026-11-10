@@ -99,6 +99,20 @@ class ProjectRenamePlannerTest {
     }
 
     @Test
+    fun reviewsTheWorkedServerDependenciesInTheServerShell() {
+        write(
+            "app/server/src/main/kotlin/com/isaacudy/ukpt/ServerDependencies.kt",
+            "val modules = listOf(ukptServerDependencies)",
+        )
+
+        val occurrences = ProjectRenamePlanner.plan(repository, request).occurrences
+            .filter { it.path.endsWith("ServerDependencies.kt") && it.line == 1 }
+
+        assertTrue(occurrences.isNotEmpty())
+        assertTrue(occurrences.all { it.disposition == RenameDisposition.REVIEW }, occurrences.toString())
+    }
+
+    @Test
     fun renamesTheEnvironmentVariablePrefixInApplicationAndConventionCode() {
         write(
             "app/server/src/main/kotlin/com/isaacudy/ukpt/Server.kt",

@@ -12,11 +12,17 @@
     "feature/*/api/src/wasmJsMain/**",
     "feature/*/api/src/commonTest/**",
     "feature/*/server/src/main/kotlin/feature/*/server/services/**",
+    "feature/core/tests/src/main/kotlin/feature/ukpt/tests/{UkptScreenRobot,ConfirmResetDialogRobot}.kt",
+    "feature/core/tests/src/test/kotlin/feature/ukpt/tests/{UkptViewModelTest,ConfirmResetViewModelTest,GreetingServiceTest}.kt",
+    "platform/common/testing/src/{commonMain,androidMain,iosMain,jvmMain,webMain}/**",
+    "platform/common/robots/src/main/kotlin/platform/testing/robots/ScreenRobot.kt",
+    "platform/common/subcutaneous/src/main/kotlin/platform/testing/subcutaneous/{Screen,awaitMatching}.kt",
     "embedded-enro",
     "kotlin-js-store/**",
     ".mcp.json",
     "build-logic/src/main/kotlin/ukpt.{compose-library,kmp-library,snapshot-testing,snapshot-testing-base,html-web}.gradle.kts",
     "platform/common/architecture/src/main/kotlin/architecture/rules/{clientui,clientdomain,clientdata,serverservices,designsystem}/**",
+    "platform/common/architecture/src/main/kotlin/architecture/rules/testing/SnapshotSurface.kt",
     "platform/common/architecture/docs/{clientui,clientdomain,clientdata,serverservices,designsystem}.md",
     "platform/common/architecture/src/architectureTest/fixtures/{ui-audits,domain-audits,usecase-files}/**",
     "platform/common/architecture/src/architectureTest/kotlin/architecture/rules/clientui/**",
@@ -28,26 +34,45 @@
     "README.md": "Describes the htmx template. Read main's change for anything that also applies here.",
     ".agents/skills/ukpt-verify/**": "The server-only sweep. Carry over changes to the server, architecture and template checks.",
     ".agents/skills/ukpt-run/**": "Server and dev database only. Carry over changes to the server and dev database sections.",
-    ".agents/skills/ukpt-feature-slice/**": "Scaffolds :api and :server with the web layer. Carry over changes to the server, DI and settings steps.",
-    ".agents/skills/ukpt-architecture-review/**": "Reviews the web layer instead of ViewModels. Carry over changes to the domain and server reviews."
+    ".agents/skills/ukpt-feature-slice/**": "Scaffolds :api, :server and :tests with the web layer and page robots. Carry over changes to the server, DI, settings and :tests steps.",
+    ".agents/skills/ukpt-architecture-review/**": "Reviews the web layer instead of ViewModels. Carry over changes to the domain and server reviews.",
+    ".agents/skills/ukpt-testing/**": "Page robots, the htmx tab and browser End To End Tests instead of ViewModels and Compose UI tests. Carry over changes to categories, scenarios, edges, coverage, the development loop and the shared rule failures.",
+    ".github/workflows/ci.yml": "One job: rules, every test category and the fat jar. Carry over changes to the rules, test and server steps.",
+    "platform/common/robots/**": "Page robots over a PageDriver, not Compose UI test nodes. Carry over changes to step naming and waiting.",
+    "platform/common/subcutaneous/**": "The server graph and the htmx tab, with no client graph or ViewModels; inProcessServer serves on a real port. Carry over changes to the database, teardown, edges and scenarios.",
+    "platform/server/host/**": "Installs the web platform instead of urpc and WebSockets. Carry over changes to Koin and the notification bus.",
+    "platform/common/architecture/src/main/kotlin/architecture/rules/testing/**": "Rules for pages, robots, the htmx tab and the browser. Carry over changes to the category, assertion, Unit, Scenario, TestGraph, Fake, Fixture, Wiring, Adapter and Check rules.",
+    "platform/common/architecture/src/architectureTest/fixtures/test-categories/**": "Server-web fixtures for this branch's Testing rules.",
+    "platform/common/architecture/src/architectureTest/kotlin/architecture/rules/testing/TestCategoriesTest.kt": "Tests this branch's Testing rules over its own fixtures."
   },
   "diverged": {
     "UKPT.md": "The introduction, Architecture orientation, Toolchain, Submodules, Verification and Reference sections describe this branch. Take main's changes elsewhere.",
     "AGENTS.md": "Names only the embedded-udytils submodule.",
-    "app/server/src/main/kotlin/com/isaacudy/ukpt/ServerDependencies.kt": "Lists ukptServerDependencies.",
-    "settings.gradle.kts": "No client or Enro includes; includes :platform:server:web.",
+    "settings.gradle.kts": "No client or Enro includes; includes :platform:server:web and :platform:common:browser.",
     "build.gradle.kts": "No Android, Compose, KSP or atlas plugins.",
     "build-logic/build.gradle.kts": "No Android, Compose or Paparazzi plugins on the convention classpath.",
+    "build-logic/src/main/kotlin/ukpt.test-categories.gradle.kts": "Registers snapshotTest for the HTML goldens; main's comes from the Paparazzi convention.",
+    "build-logic/src/main/kotlin/ukpt.feature-tests.gradle.kts": "Adds udytils htmx for the ElementIds robots locate by; :tests depends on :server only.",
     "gradle.properties": "No Android, wasm or native properties; no wasm or Paparazzi configuration-cache notes.",
+    "gradle/libs.versions.toml": "Adds Playwright.",
     ".claude/settings.json": "No hot-reload MCP or web bundle-check permissions.",
     ".ukpt/template.json": "templateBranch is htmx; templateVersion is the later of both branches.",
     ".agents/skills/ukpt-new-project/SKILL.md": "No iOS, Compose snapshot or design-system steps.",
     ".agents/skills/ukpt-template-update/SKILL.md": "The identity-bearing file class names the web platform's tokens.css, not the Compose design module.",
     "platform/common/architecture/src/main/kotlin/architecture/rules/UkptArchitecture.kt": "Group list, omittedDocs and introduction.",
+    "platform/common/architecture/src/main/kotlin/architecture/rules/module/ModuleRules.kt": "testSupportOnlyFromTests lists :platform:common:browser; testsModuleShape names :server only.",
+    "platform/common/testing/build.gradle.kts": "A JVM module; the annotations are in src/main with their JUnit tags.",
     "feature/core/api/build.gradle.kts": "A JVM library with no KSP or Enro.",
     "feature/core/server/build.gradle.kts": "Web dependencies; no Enro, urpc or WebSockets.",
-    "app/server/build.gradle.kts": "Web dependencies; no WebSockets or auth.",
-    "app/server/src/main/kotlin/com/isaacudy/ukpt/Server.kt": "Installs the web platform and every WebRoutes binding."
+    "feature/core/server/src/main/kotlin/feature/ukpt/UkptServerDependencies.kt": "Binds UkptRoutes as WebRoutes instead of the urpc service.",
+    "feature/core/server/src/main/kotlin/feature/ukpt/server/domain/Greet.kt": "Greets a name.",
+    "feature/core/server/src/main/kotlin/feature/ukpt/server/domain/UpdateGreetingHistory.kt": "Adds Remove.",
+    "feature/core/server/src/main/kotlin/feature/ukpt/server/data/GreetingRepository.kt": "Handles Remove.",
+    "feature/core/server/src/main/kotlin/feature/ukpt/server/data/GreetingMappers.kt": "Maps the row's id.",
+    "feature/core/server/src/main/kotlin/feature/ukpt/server/data/storage/GreetingStorage.kt": "Adds delete(id).",
+    "feature/core/tests/build.gradle.kts": "Depends on :server only.",
+    "feature/core/tests/src/main/kotlin/feature/ukpt/tests/UkptTestGraph.kt": "A server graph only.",
+    "app/server/build.gradle.kts": "Web dependencies; no WebSockets or auth; the End To End Test convention and dependencies."
   },
   "generated": {
     "paths": [
@@ -60,8 +85,16 @@
     "skipped": {
       "2026-10-15-compose-html-web-client.md": "Adds the Compose HTML web client, which this branch does not have.",
       "2026-10-16-both-web-clients-by-default.md": "Changes how the Compose HTML web client is included.",
-      "2026-10-16.1-udytils-html-dialogs.md": "Adds udytils dialogs to the Compose HTML web client. The udytils bump arrives with the merge."
+      "2026-10-16.1-udytils-html-dialogs.md": "Adds udytils dialogs to the Compose HTML web client. The udytils bump arrives with the merge.",
+      "2026-10-19-compose-1-12-2-focus-fixes.md": "Removes Compose text-field focus workarounds; this branch has no Compose.",
+      "2026-11-04-web-development-bundle-fixes.md": "Fixes the wasm and Compose HTML web bundles, which this branch does not have."
     },
-    "adapted": {}
+    "adapted": {
+      "2026-11-04.1-test-categories.md": "JVM-only annotations, HTML snapshots on snapshotTest, and the Component and Snapshot categories for server.web; no commonTest, Paparazzi or androidHostTest.",
+      "2026-11-04.2-client-network-and-urpc-host.md": "Only the server host, which installs the web platform, and the Postgres-backed greetings; no client network module or urpc.",
+      "2026-11-04.3-subcutaneous-tests.md": "Pages through robots and the htmx tab instead of ViewModels; ServerWeb.Page.hasARobot and the Robot rules instead of the ClientUi.ViewModel rules.",
+      "2026-11-04.4-desktop-end-to-end.md": "Browser End To End Tests in :app:server through Playwright instead of desktop Compose UI tests.",
+      "2026-11-10-ci-and-development-loop.md": "One CI job with no client or iOS builds; push trigger on htmx."
+    }
   }
 }

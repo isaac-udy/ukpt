@@ -2,6 +2,7 @@ package architecture.rules.serverweb
 
 import dev.isaacudy.udytils.architecture.*
 
+import architecture.rules.testing.Robot
 import com.lemonappdev.konsist.api.declaration.KoFunctionDeclaration
 
 @Describe("""
@@ -39,6 +40,27 @@ object Page : Construct<ServerWeb>(
         constrain { decl, _ ->
             val fn = decl as? KoFunctionDeclaration ?: return@constrain emptyList()
             if (layoutCall.containsMatchIn(fn.text)) emptyList() else listOf(Violation(fn, "`${fn.name}` does not render through a `…Layout(…)` function"))
+        }
+    }
+
+    @Describe("Every Page must have a Robot, `[Name]PageRobot`, in a `:feature:[name]:tests` module")
+    val hasARobot by rule {
+        rationale(
+            """
+            The robot is how a Subcutaneous Test uses the page, and `Testing.Robot.usedBySubcutaneousTests`
+            requires one to. A page without a robot is a page no test opens.
+            """.trimIndent(),
+        )
+        note("Matched by name: `greetingsPage` needs `GreetingsPageRobot`.")
+        scopes { scopes, exempt ->
+            val robots = scopes.tests.classes().filter { Robot.test(it) }.map { it.name }.toSet()
+            scopes.production.functions()
+                .filter { Page.test(it) }
+                .filterNot { exempt(it) }
+                .mapNotNull { page ->
+                    val robot = page.name.replaceFirstChar(Char::uppercaseChar) + "Robot"
+                    if (robot in robots) null else Violation(page, "no Robot `$robot` drives `${page.name}`")
+                }
         }
     }
 }

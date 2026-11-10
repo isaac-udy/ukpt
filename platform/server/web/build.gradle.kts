@@ -11,7 +11,8 @@ dependencies {
     implementation(libs.ktor.serverStatusPages)
     implementation(libs.kotlinx.serialization)
 
-    testImplementation(libs.kotlin.testJunit)
+    testImplementation(projects.platform.common.testing)
+    testImplementation(libs.kotlin.test)
     testImplementation(libs.ktor.serverTestHost)
     testImplementation(libs.jsoup)
 }

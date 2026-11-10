@@ -31,7 +31,7 @@ to `app/server/build/install/server/`; start it with `bin/server` and the same e
 Server persistence uses the `dev.isaacudy.udytils.postgres` toolkit (Exposed + Flyway); conventions
 are in [docs/serverdata.md](../../../platform/common/architecture/docs/serverdata.md) (the
 `server.data.storage` section). `:platform:server:postgres` owns the Flyway migrations
-(`src/main/resources/db/migration/`, empty until the first schema) and the codegen that turns them
+(`src/main/resources/db/migration/`) and the codegen that turns them
 into Exposed `Table`/`Row` sources; `:platform:server:development` owns the dev-database scenarios.
 
 `./gradlew :app:server:run` needs no database of your own — it starts an embedded Postgres, migrates

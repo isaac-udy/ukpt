@@ -28,6 +28,8 @@ The complete catalog, one row per Construct or Rule. IDs are based on the object
 | `ModuleRules.featuresMayBeGrouped` | A `:feature` module may be grouped (`:feature:[group]:[name]:…`) | [guidance](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |
 | `ModuleRules.platformNotApp` | A `:platform` module must never depend on an `:app` module | [tested](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |
 | `ModuleRules.platformNotFeature` | A `:platform` module must never depend on a `:feature` module | [tested](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |
+| `ModuleRules.testSupportOnlyFromTests` | A test-support module (`:platform:common:testing`, `:platform:common:subcutaneous`, `:platform:common:robots`, `:platform:common:browser`, a `:feature:[name]:tests` module) may only be a test dependency, or a dependency of another test-support module | [tested](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |
+| `ModuleRules.testsModuleShape` | A `:feature:[name]:tests` module must depend on its feature's `:server` module; it may depend on other `:feature` and `:platform` modules | [tested](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |
 | `ModuleRules.platformMayUsePlatform` | A `:platform` module may depend on other `:platform` modules | [guidance](../src/main/kotlin/architecture/rules/module/ModuleRules.kt) |
 | `FeatureRules.SharedDomainModel` | resides in the feature root package `feature.[name]` · is declared in the feature's `:api` module · is a class or interface · satisfies one of: {is `sealed`, is a `data class`, is an `enum class`, is a `value class`} · is annotated with `@Serializable` | [construct](../src/main/kotlin/architecture/rules/feature/SharedDomainModel.kt) |
 | `FeatureRules.SharedDomainModel.immutable` | A shared domain model must be immutable (val properties only) | [tested](../src/main/kotlin/architecture/rules/feature/SharedDomainModel.kt) |
@@ -58,6 +60,7 @@ The complete catalog, one row per Construct or Rule. IDs are based on the object
 | `ServerWeb.Page` | resides in `feature..server.web..` · has an `HTML` receiver and is named `[name]Page` | [construct](../src/main/kotlin/architecture/rules/serverweb/Page.kt) |
 | `ServerWeb.Page.takesItsViewState` | A Page must take exactly one parameter, its View State | [tested](../src/main/kotlin/architecture/rules/serverweb/Page.kt) |
 | `ServerWeb.Page.rendersThroughLayout` | A Page must render through a Layout | [tested](../src/main/kotlin/architecture/rules/serverweb/Page.kt) |
+| `ServerWeb.Page.hasARobot` | Every Page must have a Robot, `[Name]PageRobot`, in a `:feature:[name]:tests` module | [tested](../src/main/kotlin/architecture/rules/serverweb/Page.kt) |
 | `ServerWeb.Layout` | resides in `feature..server.web..` · has an `HTML` receiver and is named `[name]Layout` | [construct](../src/main/kotlin/architecture/rules/serverweb/Layout.kt) |
 | `ServerWeb.Layout.takesItsViewStateAndContent` | A Layout must take exactly two parameters: its View State, then the content it renders around | [tested](../src/main/kotlin/architecture/rules/serverweb/Layout.kt) |
 | `ServerWeb.Layout.rendersThroughThePlatform` | A Layout must render through another Layout or the platform's document | [tested](../src/main/kotlin/architecture/rules/serverweb/Layout.kt) |
@@ -189,7 +192,51 @@ The complete catalog, one row per Construct or Rule. IDs are based on the object
 | `ProjectRules.injectableConstructorsHaveNoDefaults` | A class a DI module registers must not give a constructor parameter a default value | [tested](../src/main/kotlin/architecture/rules/project/ProjectRules.kt) |
 | `ProjectRules.transactionRunnerInjectedByUseCaseOrRepository` | A `TransactionRunner` may only be injected by a UseCase or a Repository | [tested](../src/main/kotlin/architecture/rules/project/ProjectRules.kt) |
 | `ProjectRules.serviceExceptionSimpleNamesUnique` | Two features must not declare service exceptions with the same simple name | [tested](../src/main/kotlin/architecture/rules/project/ProjectRules.kt) |
+| `Testing.SubcutaneousTest` | is a class · is annotated `@SubcutaneousTest` | [construct](../src/main/kotlin/architecture/rules/testing/SubcutaneousTest.kt) |
+| `Testing.SubcutaneousTest.placement` | A Subcutaneous Test must live in the `src/test` source set of a `:feature:[name]:tests` module | [tested](../src/main/kotlin/architecture/rules/testing/SubcutaneousTest.kt) |
+| `Testing.SubcutaneousTest.entryPointVocabularyOnly` | A Subcutaneous Test must reference only entry-point vocabulary from production code: Web Constants (the paths a user opens), shared domain models and their extensions, domain models, exceptions and constants | [tested](../src/main/kotlin/architecture/rules/testing/SubcutaneousTest.kt) |
+| `Testing.SubcutaneousTest.runsInTheHarness` | Every `@Test` function of a Subcutaneous Test must run its body in `subcutaneous(graph) { … }` and use a page through `asUser(` | [tested](../src/main/kotlin/architecture/rules/testing/SubcutaneousTest.kt) |
+| `Testing.SubcutaneousTest.noInfrastructureImports` | A Subcutaneous Test must not import Koin, Ktor, Exposed, JDBC, jsoup, Playwright or `kotlinx.coroutines.test` | [tested](../src/main/kotlin/architecture/rules/testing/SubcutaneousTest.kt) |
+| `Testing.UnitTest` | is a class · is annotated `@UnitTest` | [construct](../src/main/kotlin/architecture/rules/testing/UnitTest.kt) |
+| `Testing.UnitTest.placement` | A Unit Test must live in a `src/test` source set outside a `:feature:[name]:tests` module | [tested](../src/main/kotlin/architecture/rules/testing/UnitTest.kt) |
+| `Testing.UnitTest.noInfrastructure` | A Unit Test must not import dependency injection, network, database, file-system, HTML-parsing or browser APIs | [tested](../src/main/kotlin/architecture/rules/testing/UnitTest.kt) |
+| `Testing.UnitTest.oneProductionClass` | A Unit Test must construct at most one production class; constructing domain models, states and other value types is test data | [tested](../src/main/kotlin/architecture/rules/testing/UnitTest.kt) |
+| `Testing.ComponentTest` | is a class · is annotated `@ComponentTest` | [construct](../src/main/kotlin/architecture/rules/testing/ComponentTest.kt) |
+| `Testing.ComponentTest.placement` | A Component Test must live in the `src/test` source set of a `:feature:[name]:server` module or `:platform:server:web` | [tested](../src/main/kotlin/architecture/rules/testing/ComponentTest.kt) |
+| `Testing.ComponentTest.rendersMarkupOnly` | A Component Test must reference only the web layer's markup, its View States and Forms, domain interfaces (as lambdas), and the value types they carry, and must not import dependency injection or Ktor's test engine | [tested](../src/main/kotlin/architecture/rules/testing/ComponentTest.kt) |
+| `Testing.SnapshotTest` | is a class · is annotated `@SnapshotTest` | [construct](../src/main/kotlin/architecture/rules/testing/SnapshotTest.kt) |
+| `Testing.SnapshotTest.placement` | A Snapshot Test must live in the `src/test` source set of a `:feature:[name]:server` module or `:platform:server:web` | [tested](../src/main/kotlin/architecture/rules/testing/SnapshotTest.kt) |
+| `Testing.SnapshotTest.usesTheSnapshotHarness` | A Snapshot Test must compare through `HtmlSnapshots` | [tested](../src/main/kotlin/architecture/rules/testing/SnapshotTest.kt) |
+| `Testing.WiringTest` | is a class · is annotated `@WiringTest` | [construct](../src/main/kotlin/architecture/rules/testing/WiringTest.kt) |
+| `Testing.WiringTest.placement` | A Wiring Test must live in an `:app` module's test source set | [tested](../src/main/kotlin/architecture/rules/testing/WiringTest.kt) |
+| `Testing.WiringTest.resolvesTheGraph` | A Wiring Test must call Koin's `verify()` | [tested](../src/main/kotlin/architecture/rules/testing/WiringTest.kt) |
+| `Testing.AdapterTest` | is a class · is annotated `@AdapterTest` | [construct](../src/main/kotlin/architecture/rules/testing/AdapterTest.kt) |
+| `Testing.AdapterTest.placement` | An Adapter Test must live in the `src/test` source set of a `:platform:server:*` or `:feature:[name]:server` module | [tested](../src/main/kotlin/architecture/rules/testing/AdapterTest.kt) |
+| `Testing.AdapterTest.rare` | Prefer a Subcutaneous Test; an Adapter Test is for behaviour a Subcutaneous Test cannot reach | [guidance](../src/main/kotlin/architecture/rules/testing/AdapterTest.kt) |
+| `Testing.CheckTest` | is a class · is annotated `@CheckTest` | [construct](../src/main/kotlin/architecture/rules/testing/CheckTest.kt) |
+| `Testing.CheckTest.placement` | A Check Test must live in a `src/test` source set | [tested](../src/main/kotlin/architecture/rules/testing/CheckTest.kt) |
+| `Testing.EndToEndTest` | is a class · is annotated `@EndToEndTest` | [construct](../src/main/kotlin/architecture/rules/testing/EndToEndTest.kt) |
+| `Testing.EndToEndTest.placement` | An End To End Test must live in `:app:server`'s `src/test` source set | [tested](../src/main/kotlin/architecture/rules/testing/EndToEndTest.kt) |
+| `Testing.EndToEndTest.drivesTheServerInABrowser` | Every `@Test` function of an End To End Test must call `inProcessServer(` and `asUserInBrowser(` | [tested](../src/main/kotlin/architecture/rules/testing/EndToEndTest.kt) |
+| `Testing.EndToEndTest.drivesThroughRobots` | An End To End Test must find and act on elements only through Robots: no Playwright, jsoup or Ktor client imports | [tested](../src/main/kotlin/architecture/rules/testing/EndToEndTest.kt) |
+| `Testing.Fake` | satisfies one of: {is a class, is an object} · is named `Fake[Name]` · declares no `@Test` function | [construct](../src/main/kotlin/architecture/rules/testing/Fake.kt) |
+| `Testing.Fake.subcutaneousEdgesOnly` | In a `:feature:[name]:tests` module, a Fake must implement only an interface an IntegrationClient provides, `kotlin.time.Clock`, or an interface declared under `platform` | [tested](../src/main/kotlin/architecture/rules/testing/Fake.kt) |
+| `Testing.Scenario` | has a `Scenario` receiver | [construct](../src/main/kotlin/architecture/rules/testing/Scenario.kt) |
+| `Testing.Scenario.seedsThroughServerDomain` | A Scenario must write through server domain interfaces: no server data classes, generated tables, Exposed, JDBC or SQL | [tested](../src/main/kotlin/architecture/rules/testing/Scenario.kt) |
+| `Testing.Scenario.returnsHandles` | A Scenario should return what it created, such as the seeded domain models | [guidance](../src/main/kotlin/architecture/rules/testing/Scenario.kt) |
+| `Testing.TestGraph` | is a top-level property initialised with `SubcutaneousGraph(` | [construct](../src/main/kotlin/architecture/rules/testing/TestGraph.kt) |
+| `Testing.TestGraph.onePerTestsModule` | A `:feature:[name]:tests` module must declare exactly one Test Graph, and a Test Graph must live in one | [tested](../src/main/kotlin/architecture/rules/testing/TestGraph.kt) |
+| `Testing.TestGraph.productionModulesOnly` | A Test Graph must list production Koin modules only: each feature's `[name]ServerDependencies`, and `:platform` modules | [tested](../src/main/kotlin/architecture/rules/testing/TestGraph.kt) |
+| `Testing.Robot` | is a class · extends `PageRobot` | [construct](../src/main/kotlin/architecture/rules/testing/Robot.kt) |
+| `Testing.Robot.placement` | A Robot must live in a `:feature:[name]:tests` module's `src/main` source set | [tested](../src/main/kotlin/architecture/rules/testing/Robot.kt) |
+| `Testing.Robot.onePageEntryPoint` | A Robot's file must declare exactly one entry point, `fun User.on[Name]Page(block: [Name]PageRobot.() -> Unit)`, named for the robot | [tested](../src/main/kotlin/architecture/rules/testing/Robot.kt) |
+| `Testing.Robot.userActionNames` | Every public function of a Robot must be named for a user action (`click…`, `enter…`, `clear…`, `select…`, `toggle…`, `scroll…`) or for what the user sees (`see…`) | [tested](../src/main/kotlin/architecture/rules/testing/Robot.kt) |
+| `Testing.Robot.usedBySubcutaneousTests` | A Robot's entry point must be called by a Subcutaneous Test | [tested](../src/main/kotlin/architecture/rules/testing/Robot.kt) |
+| `Testing.Fixture` | satisfies one of: {is a function, is a property} · does not satisfy: is annotated `@Composable` · does not satisfy: has a `Scenario` receiver · does not satisfy: is a top-level property initialised with `SubcutaneousGraph(` | [construct](../src/main/kotlin/architecture/rules/testing/Fixture.kt) |
+| `Testing.oneCategoryPerTestClass` | Every test class (a class declaring a `@Test` function) must carry exactly one test category annotation | [tested](../src/main/kotlin/architecture/rules/testing/Testing.kt) |
+| `Testing.testFunctionsAssert` | Every `@Test` function must assert: call an `assert*`, `fail`, `verify`, `expect*` or `await*` function, or a Robot's `see*` function, directly or through a function declared in the same file | [tested](../src/main/kotlin/architecture/rules/testing/Testing.kt) |
 | `architecture.everyDeclarationBelongsToALayer` | Every declaration in governed code must match exactly one Construct across all RuleGroups | [tested](../src/main/kotlin/architecture/rules/UkptArchitecture.kt) |
+| `architecture.everyTestDeclarationBelongsToATestConstruct` | Every declaration in governed test code must match exactly one Construct across the test RuleGroups | [tested](../src/main/kotlin/architecture/rules/UkptArchitecture.kt) |
 
 ## Enforcement status
 
