@@ -24,7 +24,7 @@ don't need.
 | Dependency injection | [Koin](https://insert-koin.io/) |
 | Persistence | Postgres, [Exposed](https://github.com/JetBrains/Exposed) and [Flyway](https://flywaydb.org/), with an embedded dev database |
 | Architecture rules | [Konsist](https://docs.konsist.lemonappdev.com/), via the udytils architecture system |
-| Tests | Ktor `testApplication` with [Jsoup](https://jsoup.org/) selectors; HTML golden snapshots |
+| Tests | Page robots, run against the server in-process by a tab that does what htmx does, and in headless Chromium through [Playwright](https://playwright.dev/java/); embedded Postgres per test; HTML golden snapshots |
 
 ## Quick start
 
@@ -87,12 +87,16 @@ git submodule update --init --recursive
 
 ```bash
 ./gradlew test verifyArchitecture validateTemplate     # the whole sweep
-./gradlew :feature:core:server:test -PrecordHtmlSnapshots   # re-record HTML goldens
+./gradlew subcutaneousTest                             # pages through robots, against the real server and database
+./gradlew endToEndTest                                 # the same robots in headless Chromium
+./gradlew :feature:core:server:snapshotTest -PrecordHtmlSnapshots   # re-record HTML goldens
 ./gradlew :app:server:smokeTestFatJar                  # build and boot the fat jar
 ```
 
-HTML goldens live in each module's `src/test/snapshots/html/`, normalised so a golden changes only
-when the markup does.
+Every test class carries a category annotation; the
+[`ukpt-testing`](.agents/skills/ukpt-testing) skill says which to write and which to run. HTML
+goldens live in each module's `src/test/snapshots/html/`, normalised so a golden changes only when
+the markup does. The first End To End run downloads the Chromium headless shell.
 
 ## Template updates
 
@@ -115,8 +119,9 @@ both for Claude Code. Skills live in `.agents/skills/`, with links in `.claude/s
 | Skill | Use it to |
 | --- | --- |
 | [`ukpt-new-project`](.agents/skills/ukpt-new-project) | Turn a fresh copy of the template into a renamed, real project |
-| [`ukpt-feature-slice`](.agents/skills/ukpt-feature-slice) | Scaffold `:feature:<name>:{api,server}` with a web layer and wire it up |
-| [`ukpt-verify`](.agents/skills/ukpt-verify) | Run the tests, snapshots and checks |
+| [`ukpt-feature-slice`](.agents/skills/ukpt-feature-slice) | Scaffold `:feature:<name>:{api,server,tests}` with a web layer and wire it up |
+| [`ukpt-testing`](.agents/skills/ukpt-testing) | Choose, write and run tests by category; page robots |
+| [`ukpt-verify`](.agents/skills/ukpt-verify) | Run the sweep before a pull request |
 | [`ukpt-run`](.agents/skills/ukpt-run) | Run the server and manage the dev database |
 | [`ukpt-architecture-review`](.agents/skills/ukpt-architecture-review) | Review request flows and domain contracts |
 | [`ukpt-template-update`](.agents/skills/ukpt-template-update) | Pull the latest template version into a project |

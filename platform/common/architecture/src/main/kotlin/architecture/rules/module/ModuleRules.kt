@@ -66,9 +66,11 @@ object ModuleRules : RuleGroup() {
     @Describe("A `:feature:[name]:client` module must never depend on another `:client`/`:server` module")
     val clientApiOnly by rule {
         rationale("A feature's client may only reach other features through their `:api` contract, or `:platform`.")
+        note("A `:client` module's tests may depend on its own feature's `:tests` module, for its Robots.")
         moduleGraph { graph, exempt ->
             graph.edges
                 .filter { featureSubmoduleType(it.from) == "client" }
+                .filterNot { it.isTest && it.to == it.from.removeSuffix(":client") + ":tests" }
                 .filter { isFeature(it.to) && featureSubmoduleType(it.to) != "api" && !exempt(it) }
                 .map { Violation(it.location, "feature :client may only depend on :api or :platform") }
         }
@@ -463,6 +465,33 @@ object ModuleRules : RuleGroup() {
         }
     }
 
+    @Describe("A test-support module (`:platform:common:testing`, `:platform:common:subcutaneous`, `:platform:common:robots`, `:platform:common:browser`, a `:feature:[name]:tests` module) may only be a test dependency, or a dependency of another test-support module")
+    val testSupportOnlyFromTests by rule {
+        rationale("Test-support code on a production classpath ships test categories, fakes, and an embedded database to users.")
+        note("A test dependency is one declared in a test source set block (`commonTest.dependencies { }`) or with a test configuration (`testImplementation`).")
+        moduleGraph { graph, exempt ->
+            graph.edges
+                .filter { isTestSupport(it.to) && !it.isTest && !isTestSupport(it.from) && !exempt(it) }
+                .map { Violation(it.location, "test-support module used outside tests") }
+        }
+    }
+
+    @Describe("A `:feature:[name]:tests` module must depend on its feature's `:server` module; it may depend on other `:feature` and `:platform` modules")
+    val testsModuleShape by rule {
+        rationale("The Subcutaneous Tests in a `:tests` module run the feature's server graph.")
+        note("A `:tests` module depends on another feature's `:tests` module to reuse its Scenarios. `ModuleRules.featureNotApp` keeps it off `:app`.")
+        moduleGraph { graph, _ ->
+            val modules = graph.edges.flatMap { listOf(it.from, it.to) }.toSet()
+            modules.filter { TESTS_MODULE.matches(it) }.sorted().flatMap { tests ->
+                val feature = tests.removeSuffix(":tests")
+                val edges = graph.edges.filter { it.from == tests }
+                listOf("$feature:client", "$feature:server")
+                    .filter { it in modules && edges.none { edge -> edge.to == it } }
+                    .map { Violation(edges.firstOrNull()?.file ?: tests, "$tests does not depend on $it") }
+            }
+        }
+    }
+
     @Describe("A `:platform` module may depend on other `:platform` modules")
     val platformMayUsePlatform by guidance {
         note("`:platform` to `:platform` dependencies are allowed, but should be kept to a minimum.")
@@ -477,6 +506,9 @@ object ModuleRules : RuleGroup() {
 private fun isApp(path: String) = path.startsWith(":app:") || path == ":app"
 private fun isFeature(path: String) = path.startsWith(":feature:") || path == ":feature"
 private fun isPlatform(path: String) = path.startsWith(":platform:") || path == ":platform"
+private val TESTS_MODULE = Regex("^:feature:[^:]+:tests$")
+private val TEST_SUPPORT_MODULES = setOf(":platform:common:testing", ":platform:common:subcutaneous", ":platform:common:robots", ":platform:common:browser")
+private fun isTestSupport(path: String) = path in TEST_SUPPORT_MODULES || TESTS_MODULE.matches(path)
 
 /** `:feature:core:server` → "server"; null if [path] isn't a `:feature:…:{api,client,server}` module. */
 private fun featureSubmoduleType(path: String): String? {

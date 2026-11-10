@@ -1,26 +1,28 @@
 ---
 name: ukpt-feature-slice
 description: >-
-  Scaffold a new feature vertical slice :feature:<name>:{api,server} in UKPT —
-  the two build files, the server domain and data, the web layer (Routes, Page,
-  Components, Form, event stream), the tests and HTML snapshots, the settings
-  include, and the Koin DI + app wiring — modeled on :feature:core. Use when
-  adding a new feature module to the project.
+  Scaffold a new feature vertical slice :feature:<name>:{api,server,tests} in
+  UKPT — the build files, the server domain and data, the web layer (Routes,
+  Page, Components, Form, event stream), the Subcutaneous Test module with its
+  page robots, the HTML snapshots, the settings includes, and the Koin DI + app
+  wiring — modeled on :feature:core. Use when adding a new feature module to
+  the project.
 ---
 
 # ukpt-feature-slice
 
-Scaffold `:feature:<name>:{api,server}` modeled on the canonical `:feature:core`.
+Scaffold `:feature:<name>:{api,server,tests}` modeled on the canonical `:feature:core`.
 `templates.md` carries the build files and source skeletons; `:feature:core` is the living
 reference to read when in doubt.
 
 ## Naming (read first — `:feature:core` has a deliberate mismatch)
 `:feature:core` uses Gradle path segment `core` but Kotlin package `feature.ukpt` and type prefix
 `Ukpt`. For a NEW feature, be **internally consistent** and use `<name>` everywhere:
-- path `:feature:<name>:{api,server}`; Kotlin package `feature.<name>`;
-- DI val `<name>ServerDependencies`; static files under `src/main/resources/static/<name>/`;
-- types `<Name>Routes`, `<Name>Paths`, `<Name>Ids`, and `<Page>Page`/`<Page>PageState` per page
-  (`<Name>` = PascalCase).
+- path `:feature:<name>:{api,server,tests}`; Kotlin package `feature.<name>`;
+- DI val `<name>ServerDependencies`; test graph `<name>TestGraph` in `feature.<name>.tests`;
+  static files under `src/main/resources/static/<name>/`;
+- types `<Name>Routes`, `<Name>Paths`, `<Name>Ids`, and `<Page>Page`/`<Page>PageState`/`<Page>PageRobot`
+  per page (`<Name>` = PascalCase).
 
 Do **not** copy the literal `ukpt`/`Ukpt` from core — substitute `<name>`/`<Name>`.
 `ukptLayout` is the project's layout function in `:platform:server:web`; it carries the project's
@@ -40,23 +42,28 @@ Guidance: `ServerDomain.DomainInterface.namesACapability`, `.readProjections`,
 the result.
 
 ## Steps
-1. **Module dirs + two `build.gradle.kts`** (templates.md §1–2).
-2. **`settings.gradle.kts`** — add two `include(...)` after the `:feature:core` block (templates.md §3).
+1. **Module dirs + three `build.gradle.kts`** (templates.md §1–2).
+2. **`settings.gradle.kts`** — add three `include(...)` after the `:feature:core` block (templates.md §3).
 3. **Domain and data** (`feature.<name>.server.domain`, `feature.<name>.server.data`) — templates.md §4.
 4. **Web layer** (`feature.<name>.server.web`) — templates.md §5: `<Name>Paths` and `<Name>Ids`, a
    `<Page>PageState`, the Page and its Components, a `<Thing>Form` for each form, an event stream
    for each live list, and the `<Name>Routes` class.
 5. **DI** — `<name>ServerDependencies` at the feature root `feature.<name>`, binding the Routes class
    with `bind WebRoutes::class` (templates.md §6).
-6. **Tests** — a route test, an HTML snapshot test, and a test for each UseCase and event stream
-   (templates.md §7).
+6. **Tests** (templates.md §7, `ukpt-testing`) — in `:feature:<name>:tests`: the `<name>TestGraph`,
+   scenarios written through the server domain, a `<Page>PageRobot` per Page, and the
+   `@SubcutaneousTest`s that use each page through its robot, with one `scripts = false` test per
+   form. In `:server`: an HTML `@SnapshotTest` per Page, and a `@UnitTest` or `@ComponentTest` only
+   for logic or markup with many inputs. `ServerWeb.Page.hasARobot` and
+   `Testing.Robot.usedBySubcutaneousTests` fail until every Page is covered.
 7. **Wire it up** (templates.md §8 checklist):
    - `app/server/build.gradle.kts` → `implementation(projects.feature.<name>.server)`.
    - `app/server/.../ServerDependencies.kt` → add `<name>ServerDependencies` to the list + its import.
      The server installs every `WebRoutes` binding, so nothing else registers the routes.
-8. **Verify** — record the HTML goldens (`./gradlew :feature:<name>:server:test -PrecordHtmlSnapshots`),
-   review them, then run the `ukpt-verify` sweep. Open the page in a browser once (`ukpt-run`) and
-   check the console for content security policy violations.
+8. **Verify** — record the HTML goldens (`./gradlew :feature:<name>:server:snapshotTest -PrecordHtmlSnapshots`),
+   review them, then run `./gradlew :feature:<name>:tests:subcutaneousTest verifyArchitecture`. A
+   page with scripts of its own (Alpine, a static file) needs a step in the app's End To End Test,
+   which also fails on content security policy violations.
 
 ## Web-layer conventions
 - **One handler, two answers.** A handler answers an htmx request (`call.isHtmx`) with a fragment
@@ -92,7 +99,7 @@ the result.
   **`ProjectRules.constructorReferenceBindings`** — constructor-reference bindings.
 
 ## Reference
-- The living template: `feature/core/{api,server}` (build files + `src/.../feature/ukpt/...`), and
+- The living template: `feature/core/{api,server,tests}` (build files + `src/.../feature/ukpt/...`), and
   `feature/core/server/src/main/resources/static/ukpt/`.
 - The web platform: `platform/server/web` (`WebRoutes`, `ukptLayout`, `ukptDocument`, `textField`, `FormResult`,
   `respondSeeOther`, `installWebPlatform`).

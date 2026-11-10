@@ -3,9 +3,9 @@ package feature.ukpt.server.web
 import dev.isaacudy.udytils.htmx.isHtmx
 import dev.isaacudy.udytils.htmx.respondHtmlFragment
 import dev.isaacudy.udytils.htmx.varyOnHtmx
-import feature.ukpt.server.domain.FlowOfGreetingSummary
+import feature.ukpt.server.domain.FlowOfGreetingHistory
 import feature.ukpt.server.domain.Greet
-import feature.ukpt.server.domain.UpdateGreetings
+import feature.ukpt.server.domain.UpdateGreetingHistory
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.html.respondHtml
 import io.ktor.server.request.receiveParameters
@@ -20,14 +20,14 @@ import platform.server.web.WebRoutes
 import platform.server.web.respondSeeOther
 
 internal class UkptRoutes(
-    private val flowOfGreetingSummary: FlowOfGreetingSummary,
+    private val flowOfGreetingHistory: FlowOfGreetingHistory,
     private val greet: Greet,
-    private val updateGreetings: UpdateGreetings,
+    private val updateGreetingHistory: UpdateGreetingHistory,
 ) : WebRoutes {
 
     override fun Route.install() {
         get(UkptPaths.HOME) {
-            val greetings = flowOfGreetingSummary().first().greetings
+            val greetings = flowOfGreetingHistory().first()
             call.respondHtml { greetingsPage(GreetingsPageState(greetings, GreetingForm.Empty, errors = null)) }
         }
 
@@ -38,7 +38,7 @@ internal class UkptRoutes(
                 is FormResult.Invalid -> if (call.isHtmx) {
                     call.respondHtmlFragment(HttpStatusCode.UnprocessableEntity) { greetingForm(form, result.errors) }
                 } else {
-                    val greetings = flowOfGreetingSummary().first().greetings
+                    val greetings = flowOfGreetingHistory().first()
                     call.respondHtml(HttpStatusCode.UnprocessableEntity) {
                         greetingsPage(GreetingsPageState(greetings, form, result.errors))
                     }
@@ -55,17 +55,17 @@ internal class UkptRoutes(
         }
 
         post(UkptPaths.DELETE_GREETING) {
-            val id = call.parameters["id"]?.toLongOrNull()
+            val id = call.parameters["id"]
             if (id == null) {
                 call.respond(HttpStatusCode.NotFound)
                 return@post
             }
-            updateGreetings.remove(id)
+            updateGreetingHistory.remove(id)
             if (call.isHtmx) call.respond(HttpStatusCode.NoContent) else call.respondSeeOther(UkptPaths.HOME)
         }
 
         sse(UkptPaths.GREETING_EVENTS) {
-            greetingEvents(flowOfGreetingSummary).collect { send(it) }
+            greetingEvents(flowOfGreetingHistory).collect { send(it) }
         }
     }
 }

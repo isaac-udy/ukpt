@@ -164,6 +164,9 @@ Component it replaces, not the Page.
 * A Page must render through a Layout
     * **Why:** Every Layout ends at the platform's document, which carries the htmx configuration, the scripts in the order Alpine needs, and the error region the platform script fills.
     * **Note:** Tested on the function body: a call to a function whose name ends in `Layout`.
+* Every Page must have a Robot, `[Name]PageRobot`, in a `:feature:[name]:tests` module
+    * **Why:** The robot is how a Subcutaneous Test uses the page, and `Testing.Robot.usedBySubcutaneousTests` requires one to. A page without a robot is a page no test opens.
+    * **Note:** Matched by name: `greetingsPage` needs `GreetingsPageRobot`.
 
 ##### Examples
 

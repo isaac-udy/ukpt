@@ -7,12 +7,11 @@ fun interface Greet {
 }
 
 internal class GreetImpl(
-    private val flowOfGreetingSummary: FlowOfGreetingSummary,
-    private val updateGreetings: UpdateGreetings,
+    private val flowOfGreetingHistory: FlowOfGreetingHistory,
+    private val updateGreetingHistory: UpdateGreetingHistory,
 ) : Greet {
     override suspend fun invoke(name: String) {
-        val summary = flowOfGreetingSummary().first()
-        val greeted = summary.greetings.any { it.text.endsWith(", $name") }
-        updateGreetings.add(if (greeted) "Hello again, $name" else "Hello, $name")
+        val greeted = flowOfGreetingHistory().first().any { it.text.endsWith(", $name") }
+        updateGreetingHistory.add(if (greeted) "Hello again, $name" else "Hello, $name")
     }
 }

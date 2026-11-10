@@ -1,31 +1,53 @@
 ---
 name: ukpt-verify
 description: >-
-  Compile and test the server and run every check — the compile and test
-  sweep, HTML golden snapshot recording/verification, architecture rule
-  verification, validateTemplate and template integrity, the dependency graph
-  test, and the fat jar smoke test. Use after making changes to verify
-  correctness.
+  Compile and test the server and run every check before a pull request — the
+  sweep, every test category including the browser End To End Tests, HTML
+  golden snapshot recording/verification, architecture rule verification,
+  validateTemplate and template integrity, the dependency graph test, the fat
+  jar smoke test, and the CI workflow that runs the same sweep.
 ---
 
 # ukpt-verify
 
 Identifiers here use the template's UKPT identity (`ukptLayout`, `feature.ukpt`); projects rename these — the map is in `.ukpt/template.json`.
 
+This is the sweep to run once, before a pull request. While iterating, run only the tests the
+change affects: the `ukpt-testing` skill, "Development loop".
+
 ## The sweep
 
 ```
-./gradlew test verifyArchitecture validateTemplate
+./gradlew validateTemplate verifyArchitecture test
+./gradlew :app:server:smokeTestFatJar
 ```
 
-`test` compiles every module and runs every module's tests: the feature modules (domain, routes,
-event streams, HTML snapshots), `:platform:server:web`, and `:app:server`
-(`ServerDependenciesTest`). A change scoped to one feature can run that feature's tests alone
-(`./gradlew :feature:core:server:test`); run the whole sweep before handing the change off.
+`test` compiles every module and runs every module's tests, every category: the feature modules'
+Unit, Component and Snapshot Tests, each `:feature:<name>:tests` module's Subcutaneous Tests,
+`:platform:server:web`'s and `:platform:server:postgres`'s Adapter Tests, and `:app:server`'s
+Wiring and End To End Tests. `:app:server:test` installs the Chromium headless shell first
+(`installEndToEndBrowser`); the first run downloads it.
+
+## CI
+
+`.github/workflows/ci.yml` runs the sweep on every pull request and every push to `htmx`, in one
+job: `validateTemplate` and `verifyArchitecture`, `-p build-logic test`, every test category by
+task, and `:app:server:smokeTestFatJar`. On CI, `installEndToEndBrowser` also installs Chromium's
+system libraries. A failed run uploads the test reports (`test-reports`) as an artifact. A project
+adds its own jobs and deploy steps to the same file.
+
+## By category
+
+Every test class carries one category annotation (the `ukpt-testing` skill). A category task
+given without a module path runs in every module that has it:
+```
+./gradlew unitTest componentTest snapshotTest wiringTest checkTest adapterTest
+./gradlew subcutaneousTest endToEndTest
+```
 
 ## HTML snapshots
 
-Pages and Components are snapshotted as HTML: a test renders them with `createHTML()` and calls
+Pages are snapshotted as HTML: a `@SnapshotTest` renders them with `createHTML()` and calls
 `HtmlSnapshots().assertMatches("<Page>/<case>", html)` from `dev.isaacudy.udytils:html-snapshot`.
 Goldens are normalised (one element per line, attributes sorted) and live in the module's
 `src/test/snapshots/html/`. A module opts in with the `ukpt.html-snapshot` plugin, which makes the
@@ -33,21 +55,12 @@ goldens a test input.
 
 Record, review the diff, then verify:
 ```
-./gradlew :feature:core:server:test -PrecordHtmlSnapshots
+./gradlew :feature:core:server:snapshotTest -PrecordHtmlSnapshots
 git diff -- '*/src/test/snapshots/html/*'
-./gradlew :feature:core:server:test
+./gradlew :feature:core:server:snapshotTest
 ```
 A missing golden fails verification. A golden changes only when the markup does, so read its diff
 as a review of the rendered page.
-
-## Route tests
-
-Route tests boot the feature's routes with the platform: `testApplication { application {
-installWebPlatform(listOf(routes)) } }`, with the Routes class constructed from fakes or the
-feature's in-memory Repository. Parse responses with Jsoup and assert with CSS selectors. Send
-`HX-Request: true` to exercise the htmx branch of a handler, and create the client with
-`followRedirects = false` to assert a post/redirect/get `303`. An event stream is tested either as
-a `Flow<ServerSentEvent>` (`greetingEvents(...)`) or through the client `SSE` plugin.
 
 ## Architecture rules
 
@@ -70,21 +83,14 @@ path, markdown link and architecture rule ID a skill cites still resolves.
 
 ## Dependency graph
 
-`ServerDependenciesTest` (in `:app:server:test`) runs koin-test's `verify()` over one module
-including the list the server installs (`serverDependencies(...)` in `ServerDependencies.kt`):
-every registered constructor parameter must have a definition, checked without instantiating
-anything or opening a database. A Routes class is part of that graph, so a domain interface it
-takes without a binding fails here.
+`ServerDependenciesTest` (`@WiringTest`, in `:app:server`) runs koin-test's `verify()` over one
+module including the list the server installs (`serverDependencies(...)` in
+`ServerDependencies.kt`): every registered constructor parameter must have a definition, checked
+without instantiating anything or opening a database. A Routes class is part of that graph, so a
+domain interface it takes without a binding fails here.
 
 ## Packaging
 
 `./gradlew :app:server:smokeTestFatJar` builds the fat jar and boots it against an embedded
 Postgres; run it after a dependency, resource or packaging change. The `ukpt-server-packaging`
 skill covers it.
-
-## In a browser
-
-The tests do not run htmx, the `sse` extension, or Alpine. After a change to markup attributes,
-scripts or the event stream, run the server (`ukpt-run`), open the page, and check the browser
-console: a content security policy violation there means a script or style is inline or comes from
-another origin.

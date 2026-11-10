@@ -1,29 +1,25 @@
 package feature.ukpt.server.web
 
 import feature.ukpt.Greeting
-import feature.ukpt.server.domain.FlowOfGreetingSummary
-import feature.ukpt.server.domain.GreetingSummary
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.jsoup.Jsoup
+import platform.testing.ComponentTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
+@ComponentTest
 class GreetingEventsTest {
 
-    private val ada = Greeting(id = 1, text = "Hello, Ada")
-    private val grace = Greeting(id = 2, text = "Hello, Grace")
+    private val ada = Greeting(id = "1", text = "Hello, Ada")
+    private val grace = Greeting(id = "2", text = "Hello, Grace")
 
     @Test
     fun `the first event replaces the list, later events append and remove`() = runTest {
-        val summaries = flowOf(
-            GreetingSummary(listOf(ada)),
-            GreetingSummary(listOf(ada, grace)),
-            GreetingSummary(listOf(grace)),
-        )
+        val histories = flowOf(listOf(ada), listOf(ada, grace), listOf(grace))
 
-        val events = greetingEvents(FlowOfGreetingSummary { summaries }).toList()
+        val events = greetingEvents { histories }.toList()
 
         assertEquals(listOf(UkptIds.GREETINGS_EVENT), events.map { it.event }.distinct())
         val swaps = events.map { event ->

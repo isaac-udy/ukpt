@@ -40,10 +40,16 @@ include(":app:server")
 
 include(":feature:core:api")
 include(":feature:core:server")
+include(":feature:core:tests")
 
 include(":platform:common:architecture")
+include(":platform:common:browser")
+include(":platform:common:robots")
+include(":platform:common:subcutaneous")
+include(":platform:common:testing")
 include(":platform:server:postgres")
 include(":platform:server:development")
+include(":platform:server:host")
 include(":platform:server:web")
 
 includeBuild("embedded-udytils") {

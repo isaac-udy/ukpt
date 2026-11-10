@@ -8,5 +8,6 @@ dependencies {
     api(libs.kotlinx.datetime)
     api(libs.udytils.core)
 
-    testImplementation(libs.kotlin.testJunit)
+    testImplementation(projects.platform.common.testing)
+    testImplementation(libs.kotlin.test)
 }

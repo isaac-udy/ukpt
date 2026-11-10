@@ -21,4 +21,28 @@ plugins {
     alias(libs.plugins.kotlinJvm) apply false
     alias(libs.plugins.ktor) apply false
     alias(libs.plugins.kotlinSerialization) apply false
+    alias(libs.plugins.kover)
+}
+
+// Advisory coverage of the feature modules by the Subcutaneous Tests alone: only each
+// `:feature:[name]:tests` module's `subcutaneousTest` task is instrumented. No verification bounds.
+kover {
+    merge {
+        subprojects { it.path.startsWith(":feature:") && it.name in setOf("client", "server", "tests") }
+        instrumentation {
+            disabledForAll.set(!project.path.endsWith(":tests"))
+            disabledForTestTasks.addAll("test", "unitTest", "componentTest", "wiringTest", "adapterTest", "checkTest", "endToEndTest")
+        }
+    }
+    reports {
+        filters {
+            excludes { packages("feature.*.tests", "enro_generated_bindings", "*.generated.resources") }
+        }
+    }
+}
+
+tasks.register("subcutaneousCoverage") {
+    group = "verification"
+    description = "Writes the feature modules' coverage by Subcutaneous Tests to build/reports/kover (HTML and XML)."
+    dependsOn("koverHtmlReport", "koverXmlReport")
 }

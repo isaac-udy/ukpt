@@ -3,8 +3,18 @@ plugins {
     id("ukpt.html-snapshot")
 }
 
+kotlin {
+    compilerOptions {
+        // The generated Exposed tables type UUID id columns as kotlin.uuid.Uuid.
+        freeCompilerArgs.add("-opt-in=kotlin.uuid.ExperimentalUuidApi")
+    }
+}
+
 dependencies {
     api(projects.feature.core.api)
+
+    // The generated tables, Exposed, and the PgNotificationBus (docs/serverdata.md).
+    implementation(projects.platform.server.postgres)
 
     // Makes the `@ArchitectureException` annotation importable so server declarations can
     // declare rule-scoped exemptions (a tiny artifact — no Konsist or test machinery).
@@ -20,9 +30,9 @@ dependencies {
     implementation(libs.udytils.core)
     implementation(libs.koin.core)
 
-    testImplementation(libs.kotlin.testJunit)
+    testImplementation(projects.platform.common.testing)
+    testImplementation(libs.kotlin.test)
     testImplementation(libs.kotlinx.coroutinesTest)
-    testImplementation(libs.ktor.serverTestHost)
     testImplementation(libs.jsoup)
     testImplementation(libs.udytils.htmlSnapshot)
 }

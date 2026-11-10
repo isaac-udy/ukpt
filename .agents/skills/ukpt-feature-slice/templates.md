@@ -17,7 +17,8 @@ dependencies {
     api(libs.kotlinx.datetime)
     api(libs.udytils.core)
 
-    testImplementation(libs.kotlin.testJunit)
+    testImplementation(projects.platform.common.testing)
+    testImplementation(libs.kotlin.test)
 }
 ```
 
@@ -42,9 +43,9 @@ dependencies {
     implementation(libs.udytils.core)
     implementation(libs.koin.core)
 
-    testImplementation(libs.kotlin.testJunit)
+    testImplementation(projects.platform.common.testing)
+    testImplementation(libs.kotlin.test)
     testImplementation(libs.kotlinx.coroutinesTest)
-    testImplementation(libs.ktor.serverTestHost)
     testImplementation(libs.jsoup)
     testImplementation(libs.udytils.htmlSnapshot)
 }
@@ -52,11 +53,25 @@ dependencies {
 
 Add `projects.platform.server.postgres` when the feature gets its first table.
 
+`:tests` build → `feature/<name>/tests/build.gradle.kts`:
+```kotlin
+plugins {
+    id("ukpt.feature-tests")
+}
+
+dependencies {
+    api(projects.platform.common.subcutaneous)
+    api(projects.platform.common.robots)
+    implementation(projects.feature.<name>.server)
+}
+```
+
 ## §3 — `settings.gradle.kts`
 
 ```kotlin
 include(":feature:<name>:api")
 include(":feature:<name>:server")
+include(":feature:<name>:tests")
 ```
 
 ## §4 — Domain and data
@@ -107,14 +122,14 @@ internal class <Thing>Repository {
 
 ## §5 — Web layer (`feature/<name>/server/src/main/kotlin/feature/<name>/server/web/`)
 
-`<Name>Paths.kt` and `<Name>Ids.kt`:
+`<Name>Paths.kt` and `<Name>Ids.kt`, public for the `:tests` module's robots:
 ```kotlin
-internal object <Name>Paths {
+object <Name>Paths {
     const val <THINGS> = "/<name>"
     const val <THING>_EVENTS = "/<name>/events"
 }
 
-internal object <Name>Ids {
+object <Name>Ids {
     val <thing>s = ElementId("<name>-<thing>s")
 
     const val <THING>S_EVENT = "<thing>s"
@@ -207,28 +222,60 @@ val <name>ServerDependencies = module {
 }
 ```
 
-## §7 — Tests (`feature/<name>/server/src/test/kotlin/feature/<name>/server/web/`)
+## §7 — Tests
 
-`<Name>RoutesTest.kt`:
+`:feature:<name>:tests`, `src/main/kotlin/feature/<name>/tests/`:
+
+`<Name>TestGraph.kt`:
 ```kotlin
-class <Name>RoutesTest {
+package feature.<name>.tests
 
-    private val repository = <Thing>Repository()
-    private val routes = <Name>Routes(flowOf<Thing>s = repository.flowOf<Thing>s)
+val <name>TestGraph = SubcutaneousGraph(
+    server = featureServer(<name>ServerDependencies),
+)
+```
+
+`<Thing>Scenarios.kt`, written through the server domain:
+```kotlin
+suspend fun Scenario.<thing>s(vararg names: String): List<<Thing>> {
+    val update<Thing>s = server<Update<Thing>s>()
+    names.forEach { update<Thing>s.add(it) }
+    return server<FlowOf<Thing>s>()().first()
+}
+```
+
+`<Thing>sPageRobot.kt`, one per Page; the entry point lists every path the page renders at:
+```kotlin
+fun User.on<Thing>sPage(block: <Thing>sPageRobot.() -> Unit) = on(<Name>Paths.<THINGS>, ::<Thing>sPageRobot, block)
+
+class <Thing>sPageRobot internal constructor(driver: PageDriver) : PageRobot(driver) {
+    private val list = Locator.css("${<Name>Ids.<thing>s.selector} > li")
+
+    fun see<Thing>s(vararg names: String) = seeTexts(list, names.toList())
+}
+```
+
+`src/test/kotlin/feature/<name>/tests/<Thing>sPageTest.kt`:
+```kotlin
+@SubcutaneousTest
+class <Thing>sPageTest {
 
     @Test
-    fun `the page lists every <thing>`() = testApplication {
-        application { installWebPlatform(listOf(routes)) }
+    fun `the page lists every <thing>`() = subcutaneous(<name>TestGraph) {
+        given { <thing>s("First", "Second") }
 
-        val page = Jsoup.parse(client.get(<Name>Paths.<THINGS>).bodyAsText())
-
-        assertEquals("<Things>", page.select("h1").text())
+        asUser(<Name>Paths.<THINGS>) {
+            on<Thing>sPage { see<Thing>s("First", "Second") }
+        }
     }
 }
 ```
 
+`:feature:<name>:server`, `src/test/kotlin/feature/<name>/server/web/`:
+
 `<Thing>sPageSnapshotTest.kt`:
 ```kotlin
+@SnapshotTest
 class <Thing>sPageSnapshotTest {
 
     private val snapshots = HtmlSnapshots()
@@ -244,9 +291,10 @@ class <Thing>sPageSnapshotTest {
 
 ## §8 — Wiring checklist
 
-- [ ] `settings.gradle.kts` includes `:feature:<name>:api` and `:feature:<name>:server`.
-- [ ] `app/server/build.gradle.kts` has `implementation(projects.feature.<name>.server)`.
-- [ ] `ServerDependencies.kt` lists `<name>ServerDependencies`; `./gradlew :app:server:test` passes.
+- [ ] `settings.gradle.kts` includes `:feature:<name>:api`, `:feature:<name>:server` and `:feature:<name>:tests`.
+- [ ] `app/server/build.gradle.kts` has `implementation(projects.feature.<name>.server)`, and
+      `testImplementation(projects.feature.<name>.tests)` when an End To End Test drives its pages.
+- [ ] `ServerDependencies.kt` lists `<name>ServerDependencies`; `./gradlew :app:server:wiringTest` passes.
+- [ ] Every Page has a `<Page>PageRobot` that a Subcutaneous Test uses; `./gradlew :feature:<name>:tests:subcutaneousTest` passes.
 - [ ] Goldens recorded with `-PrecordHtmlSnapshots` and reviewed.
 - [ ] `./gradlew verifyArchitecture` passes.
-- [ ] The page loads in a browser with no console errors.

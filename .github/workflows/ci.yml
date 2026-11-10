@@ -1,0 +1,44 @@
+name: CI
+on:
+  push:
+    branches: [htmx]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Rules, tests and server build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: 21
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          validate-wrappers: true
+      - name: Template and architecture rules
+        run: ./gradlew validateTemplate verifyArchitecture --continue
+      - name: Build-logic tests
+        run: ./gradlew -p build-logic test
+      # endToEndTest installs the Chromium headless shell and its system libraries first.
+      - name: Tests by category
+        run: ./gradlew unitTest componentTest snapshotTest checkTest wiringTest adapterTest subcutaneousTest endToEndTest --continue
+      - name: Server fat jar
+        run: ./gradlew :app:server:smokeTestFatJar
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: '**/build/reports/tests/'
