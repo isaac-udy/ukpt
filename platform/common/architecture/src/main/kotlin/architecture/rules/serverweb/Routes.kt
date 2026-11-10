@@ -9,8 +9,8 @@ import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
 
 @Describe("""
     The class that registers a feature's HTTP routes: an `internal class [Name]Routes` implementing
-    `platform.server.web.WebRoutes`, whose `Route.install()` declares the `get`, `post` and `sse`
-    handlers. Its constructor takes the `server.domain` interfaces the handlers call, and the
+    `platform.server.web.WebRoutes`, whose `Route.install()` declares the `get`, `post`, `sse` and
+    `webSocket` handlers. Its constructor takes the `server.domain` interfaces the handlers call, and the
     feature's dependency module binds it with `singleOf(::[Name]Routes) bind WebRoutes::class`.
 
     A handler reads what it needs from the domain, builds a [View State](#view-state), and responds
@@ -63,7 +63,7 @@ object Routes : Construct<ServerWeb>(
     val mayInjectDomainInterfaces by guidance
 }
 
-private fun KoParameterDeclaration.namesPersistence(): Boolean {
+internal fun KoParameterDeclaration.namesPersistence(): Boolean {
     val head = type.name.substringBefore('<').trimEnd('?').substringAfterLast('.')
     if (head.endsWith("Repository") || head.endsWith("Storage") || head.endsWith("Store")) return true
     val source = type.sourceDeclaration as? KoFullyQualifiedNameProvider ?: return false

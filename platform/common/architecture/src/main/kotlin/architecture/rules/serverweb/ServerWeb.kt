@@ -9,7 +9,9 @@ import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
 @Describe("""
     `feature.[name].server.web` answers HTTP requests. It renders pages and fragments with
     kotlinx.html, streams server-sent events, and registers its routes through a
-    [Routes](#routes) class that the feature's dependency module binds as a `WebRoutes`.
+    [Routes](#routes) class that the feature's dependency module binds as a `WebRoutes`. A Ktor
+    plugin the routes rely on, such as authentication, is installed by a [Plugin](#plugin) class
+    bound as a `ServerPlugin`.
 
     The layer consumes [`server.domain` interfaces](serverdomain.md#domain-interface) and never
     imports [`server.data`](serverdata.md). A route handler reads what a page needs from the domain,
@@ -31,6 +33,7 @@ object ServerWeb : RuleGroup(
     inPackage = "feature..server.web..",
     constructs = listOf(
         Routes,
+        Plugin,
         Page,
         Layout,
         Component,

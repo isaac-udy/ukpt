@@ -10,6 +10,7 @@ import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.createApplicationPlugin
 import io.ktor.server.application.install
 import io.ktor.server.application.log
+import io.ktor.server.application.pluginOrNull
 import io.ktor.server.html.respondHtml
 import io.ktor.server.http.content.HttpStatusCodeContent
 import io.ktor.server.http.content.staticResources
@@ -19,13 +20,15 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.routing
 import io.ktor.server.sse.SSE
+import io.ktor.server.websocket.WebSockets
 import kotlinx.html.a
 import kotlinx.html.h1
 import kotlinx.html.p
 
 /**
- * Installs what every page relies on: the security headers, server-sent events, HTML error pages,
- * the static assets, and the routes of every feature.
+ * Installs what every page relies on: the security headers, server-sent events, websockets, HTML
+ * error pages, the static assets, and the routes of every feature. Websockets keep the
+ * configuration of a [ServerPlugin] that installed them first.
  */
 fun Application.installWebPlatform(
     routes: List<WebRoutes>,
@@ -33,6 +36,7 @@ fun Application.installWebPlatform(
 ) {
     install(SecurityHeaders) { policy = contentSecurityPolicy }
     install(SSE)
+    if (pluginOrNull(WebSockets) == null) install(WebSockets)
     install(StatusPages) {
         status(HttpStatusCode.NotFound) { status ->
             // A route that answers 404 with its own body keeps it; only a bare status gets the page.

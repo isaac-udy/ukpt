@@ -57,6 +57,10 @@ The complete catalog, one row per Construct or Rule. IDs are based on the object
 | `ServerWeb.Routes.implementsWebRoutes` | A Routes class must implement `WebRoutes` | [tested](../src/main/kotlin/architecture/rules/serverweb/Routes.kt) |
 | `ServerWeb.Routes.noPersistenceInjection` | A Routes class must not inject persistence: neither a Repository nor a StorageClass | [tested](../src/main/kotlin/architecture/rules/serverweb/Routes.kt) |
 | `ServerWeb.Routes.mayInjectDomainInterfaces` | A Routes class may inject its feature's `server.domain` interfaces, and other features' `server.domain` interfaces published to `:api` | [guidance](../src/main/kotlin/architecture/rules/serverweb/Routes.kt) |
+| `ServerWeb.Plugin` | resides in `feature..server.web..` · is named `[Name]Plugin` · is declared in a `:server` module | [construct](../src/main/kotlin/architecture/rules/serverweb/Plugin.kt) |
+| `ServerWeb.Plugin.internalVisibility` | A Plugin class must be `internal` | [tested](../src/main/kotlin/architecture/rules/serverweb/Plugin.kt) |
+| `ServerWeb.Plugin.implementsServerPlugin` | A Plugin class must implement `ServerPlugin` | [tested](../src/main/kotlin/architecture/rules/serverweb/Plugin.kt) |
+| `ServerWeb.Plugin.noPersistenceInjection` | A Plugin class must not inject persistence: neither a Repository nor a StorageClass | [tested](../src/main/kotlin/architecture/rules/serverweb/Plugin.kt) |
 | `ServerWeb.Page` | resides in `feature..server.web..` · has an `HTML` receiver and is named `[name]Page` | [construct](../src/main/kotlin/architecture/rules/serverweb/Page.kt) |
 | `ServerWeb.Page.takesItsViewState` | A Page must take exactly one parameter, its View State | [tested](../src/main/kotlin/architecture/rules/serverweb/Page.kt) |
 | `ServerWeb.Page.rendersThroughLayout` | A Page must render through a Layout | [tested](../src/main/kotlin/architecture/rules/serverweb/Page.kt) |
@@ -211,7 +215,7 @@ The complete catalog, one row per Construct or Rule. IDs are based on the object
 | `Testing.WiringTest.placement` | A Wiring Test must live in an `:app` module's test source set | [tested](../src/main/kotlin/architecture/rules/testing/WiringTest.kt) |
 | `Testing.WiringTest.resolvesTheGraph` | A Wiring Test must call Koin's `verify()` | [tested](../src/main/kotlin/architecture/rules/testing/WiringTest.kt) |
 | `Testing.AdapterTest` | is a class · is annotated `@AdapterTest` | [construct](../src/main/kotlin/architecture/rules/testing/AdapterTest.kt) |
-| `Testing.AdapterTest.placement` | An Adapter Test must live in the `src/test` source set of a `:platform:server:*` or `:feature:[name]:server` module | [tested](../src/main/kotlin/architecture/rules/testing/AdapterTest.kt) |
+| `Testing.AdapterTest.placement` | An Adapter Test must live in the `src/test` source set of a `:platform:server:*` or `:feature:[name]:server` module, or of `:platform:common:subcutaneous` | [tested](../src/main/kotlin/architecture/rules/testing/AdapterTest.kt) |
 | `Testing.AdapterTest.rare` | Prefer a Subcutaneous Test; an Adapter Test is for behaviour a Subcutaneous Test cannot reach | [guidance](../src/main/kotlin/architecture/rules/testing/AdapterTest.kt) |
 | `Testing.CheckTest` | is a class · is annotated `@CheckTest` | [construct](../src/main/kotlin/architecture/rules/testing/CheckTest.kt) |
 | `Testing.CheckTest.placement` | A Check Test must live in a `src/test` source set | [tested](../src/main/kotlin/architecture/rules/testing/CheckTest.kt) |

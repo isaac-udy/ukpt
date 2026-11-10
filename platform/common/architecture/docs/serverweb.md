@@ -7,7 +7,9 @@
 
 `feature.[name].server.web` answers HTTP requests. It renders pages and fragments with
 kotlinx.html, streams server-sent events, and registers its routes through a
-[Routes](#routes) class that the feature's dependency module binds as a `WebRoutes`.
+[Routes](#routes) class that the feature's dependency module binds as a `WebRoutes`. A Ktor
+plugin the routes rely on, such as authentication, is installed by a [Plugin](#plugin) class
+bound as a `ServerPlugin`.
 
 The layer consumes [`server.domain` interfaces](serverdomain.md#domain-interface) and never
 imports [`server.data`](serverdata.md). A route handler reads what a page needs from the domain,
@@ -28,6 +30,7 @@ any other script. A feature keeps its scripts and styles in `static/[name]/`.
 ##### Constructs
 
 * [Routes](#routes)
+* [Plugin](#plugin)
 * [Page](#page)
 * [Layout](#layout)
 * [Component](#component)
@@ -67,8 +70,8 @@ any other script. A feature keeps its scripts and styles in `static/[name]/`.
 ## [Routes](../src/main/kotlin/architecture/rules/serverweb/Routes.kt)
 
 The class that registers a feature's HTTP routes: an `internal class [Name]Routes` implementing
-`platform.server.web.WebRoutes`, whose `Route.install()` declares the `get`, `post` and `sse`
-handlers. Its constructor takes the `server.domain` interfaces the handlers call, and the
+`platform.server.web.WebRoutes`, whose `Route.install()` declares the `get`, `post`, `sse` and
+`webSocket` handlers. Its constructor takes the `server.domain` interfaces the handlers call, and the
 feature's dependency module binds it with `singleOf(::[Name]Routes) bind WebRoutes::class`.
 
 A handler reads what it needs from the domain, builds a [View State](#view-state), and responds
@@ -138,6 +141,60 @@ The dependency module binds it:
 
 ```kotlin
 singleOf(::OrdersRoutes) bind WebRoutes::class
+```
+
+---
+
+## [Plugin](../src/main/kotlin/architecture/rules/serverweb/Plugin.kt)
+
+A class that installs the Ktor plugins a feature's routes rely on, such as an authentication
+provider: an `internal class [Name]Plugin` implementing `platform.server.web.ServerPlugin`,
+whose `Application.install()` installs them. Its constructor takes what the plugins need, and
+the feature's dependency module binds it with `singleOf(::[Name]Plugin) bind ServerPlugin::class`.
+
+The server installs every bound plugin before the web platform and the routes, so a route can
+use `authenticate { … }`. The web platform installs server-sent events and websockets itself;
+a plugin that installs `WebSockets` first sets its configuration.
+
+##### Requirements
+
+* A Plugin resides in `feature..server.web..`
+* A Plugin is named `[Name]Plugin`
+* A Plugin is declared in a `:server` module
+
+##### Rules
+
+* A Plugin class must be `internal`
+* A Plugin class must implement `ServerPlugin`
+    * **Why:** The server installs every `ServerPlugin` binding; a Plugin class that does not implement it is never installed.
+* A Plugin class must not inject persistence: neither a Repository nor a StorageClass
+    * **Why:** A plugin that checks a credential or a session asks the feature's `server.domain` interfaces, as a Routes class does. Injecting a Repository or the StorageClass under it states the table it reads instead of the contract it needs.
+    * **Note:** Tested on the primary constructor, as `ServerWeb.Routes.noPersistenceInjection` is.
+
+##### Examples
+
+A Plugin installing session authentication that a domain interface checks:
+
+```kotlin
+internal class SessionPlugin(
+    private val findSession: FindSession,
+) : ServerPlugin {
+
+    override fun Application.install() {
+        install(Authentication) {
+            session<AccountSession>(OrdersAuth.SESSION) {
+                validate { session -> findSession(session.id)?.let(::AccountPrincipal) }
+                challenge { call.respondRedirect(AccountPaths.SIGN_IN) }
+            }
+        }
+    }
+}
+```
+
+The dependency module binds it:
+
+```kotlin
+singleOf(::SessionPlugin) bind ServerPlugin::class
 ```
 
 ---
