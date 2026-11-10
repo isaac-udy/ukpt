@@ -1,7 +1,9 @@
 package platform.server.host
 
 import dev.isaacudy.udytils.postgres.PgNotificationBus
+import dev.isaacudy.udytils.urpc.UrpcLogger
 import dev.isaacudy.udytils.urpc.koin.urpcWithKoin
+import dev.isaacudy.udytils.urpc.server.ServiceErrorMapper
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.response.respondText
@@ -22,7 +24,14 @@ fun Application.installServerHost(modules: List<Module>) {
     install(KoinIsolated) {
         modules(modules)
     }
-    val config = getKoin().getOrNull<ServerHostConfig>() ?: ServerHostConfig()
+    val config = getKoin().getOrNull<ServerHostConfig>() ?: ServerHostConfig(
+        urpcRootPath = "",
+        errorMapper = ServiceErrorMapper.Default,
+        logger = UrpcLogger.NoOp,
+        idleTimeout = null,
+        serverInterceptors = emptyList(),
+        webSockets = {},
+    )
     install(WebSockets, config.webSockets)
     monitor.subscribe(KoinApplicationStopPreparing) { koinApplication ->
         koinApplication.koin.getOrNull<PgNotificationBus>()?.close()

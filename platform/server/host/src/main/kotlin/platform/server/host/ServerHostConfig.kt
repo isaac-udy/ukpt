@@ -8,14 +8,14 @@ import kotlin.time.Duration
 
 /**
  * How [installServerHost] mounts urpc and configures WebSockets. Bind one in the server graph to
- * change them; without a binding the host uses these defaults. The Subcutaneous harness reads the
- * same binding, so a test reaches the services where the app does.
+ * change them; without a binding the host mounts urpc at the root with urpc's defaults. The
+ * Subcutaneous harness reads the same binding, so a test reaches the services where the app does.
  */
-class ServerHostConfig(
-    val urpcRootPath: String = "",
-    val errorMapper: ServiceErrorMapper = ServiceErrorMapper.Default,
-    val logger: UrpcLogger = UrpcLogger.NoOp,
-    val idleTimeout: Duration? = null,
-    val serverInterceptors: List<UrpcServerInterceptor> = emptyList(),
-    val webSockets: WebSockets.WebSocketOptions.() -> Unit = {},
+data class ServerHostConfig(
+    val urpcRootPath: String,
+    val errorMapper: ServiceErrorMapper,
+    val logger: UrpcLogger,
+    val idleTimeout: Duration?,
+    val serverInterceptors: List<UrpcServerInterceptor>,
+    val webSockets: WebSockets.WebSocketOptions.() -> Unit,
 )
