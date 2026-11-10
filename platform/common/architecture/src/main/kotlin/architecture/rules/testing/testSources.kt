@@ -31,7 +31,7 @@ internal val KoBaseDeclaration.file: KoFileDeclaration
 internal fun KoBaseDeclaration.fileCode(): String = file.text.withoutStringsAndComments()
 
 private val SOURCE_SET = Regex("/src/([^/]+)/")
-private val FEATURE_TESTS_MODULE = Regex("/feature/[^/]+/tests/src/")
+private val FEATURE_TESTS_MODULE = Regex("/feature/(?:[^/]+/)+tests/src/")
 
 /** A placement check: the declaration's module and source set must satisfy [allowed]. */
 internal fun placement(where: String, allowed: (KoBaseDeclaration) -> Boolean) = ConstructCheck { decl, _ ->

@@ -11,8 +11,10 @@ assembled by thin application shells (`:app`). Module-graph rules keep the slice
 
 A declaration's **package** says what it is; the Gradle **module** it lives in says who may see
 it. A feature is rooted at `feature.[name]`, which holds its shared vocabulary — the domain
-models that both the client and server use. One level down is `client` or `server`; two levels
-down is a layer within that. The deeper the package, the more private the code.
+models that both the client and server use. Below the whole name is `client` or `server`, and
+below that a layer within the side. The deeper the package, the more private the code. A feature
+may be grouped (`:feature:capture:insta`), in which case the group is part of the name and the
+packages nest with it: `feature.capture.insta.client.ui` is one such layer.
 
 ```
 client.ui → client.domain ← client.data → [ contract ] ← server.services → server.domain ← server.data

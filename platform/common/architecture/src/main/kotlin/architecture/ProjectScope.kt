@@ -30,8 +30,11 @@ private val nestedWorktrees = "$buildRoot/.claude/"
  */
 private val testSourceSet = Regex("/src/[^/]*[Tt]est/")
 
-/** A `:feature:[name]:tests` module is test code in every source set, including its `src/main`. */
-private val featureTestsModule = Regex("/feature/[^/]+/tests/src/")
+/**
+ * A `:feature:[name]:tests` module is test code in every source set, including its `src/main`. A
+ * grouped feature's name spans several directories (`/feature/capture/insta/tests/src/`).
+ */
+private val featureTestsModule = Regex("/feature/(?:[^/]+/)+tests/src/")
 
 fun isTestSource(path: String) = testSourceSet.containsMatchIn(path) || featureTestsModule.containsMatchIn(path)
 
