@@ -15,7 +15,7 @@ dependencies {
     implementation(libs.kotlinx.coroutinesSwing)
 
     testImplementation(projects.platform.common.testing)
-    testImplementation(projects.platform.common.subcutaneous)
+    testImplementation(projects.platform.common.subcutaneousServer)
     testImplementation(projects.feature.core.tests)
     testImplementation(projects.feature.core.api)
     testImplementation(projects.app.server)

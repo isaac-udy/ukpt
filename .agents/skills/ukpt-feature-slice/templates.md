@@ -470,8 +470,8 @@ val <name>ClientDependencies = module {
 Every ViewModel is covered by a Subcutaneous Test (`ClientUi.ViewModel.subcutaneouslyTested`), and
 each of its public functions is called in one (`ClientUi.ViewModel.publicFunctionsExercised`). The
 tests open the ViewModel from the production client graph with the server running in-process
-against an embedded Postgres; the harness is `:platform:common:subcutaneous`. The `ukpt-testing`
-skill has the full API. `:feature:core:tests` is the worked example.
+against an embedded Postgres; the harness is `:platform:common:subcutaneous-server`. The
+`ukpt-testing` skill has the full API. `:feature:core:tests` is the worked example.
 
 Build file → `feature/<name>/tests/build.gradle.kts`
 ```kotlin
@@ -480,13 +480,15 @@ plugins {
 }
 
 dependencies {
-    api(projects.platform.common.subcutaneous)
+    api(projects.platform.common.subcutaneousServer)
     implementation(projects.feature.<name>.client)
     implementation(projects.feature.<name>.server)
 }
 ```
 `ModuleRules.testsModuleShape` requires the `:client` and `:server` edges. A feature without a
-`:server` lists only its `:client`.
+`:server` lists only its `:client`. In a project without a server of its own, the module depends on
+`projects.platform.common.subcutaneous` instead, and the graph and scenarios follow `ukpt-testing`,
+"Without a server".
 
 Test graph → `feature/<name>/tests/src/main/kotlin/feature/<name>/tests/<Name>TestGraph.kt`
 ```kotlin
