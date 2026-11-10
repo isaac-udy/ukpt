@@ -142,6 +142,7 @@ not change when the layers between the ViewModel and the database are restructur
 * A Unit Test must construct at most one production class; constructing domain models, states and other value types is test data
     * **Why:** A test that assembles several production classes is testing their combination, which is what a Subcutaneous Test covers with the real dependency graph.
     * **Note:** Constructed means the class name followed by `(` in the test file's code.
+    * **Note:** A value type wherever it lives — a `data class`, a `value class`, or a class whose only members are `val`s declared in its primary constructor — is test data.
 
 ---
 
@@ -163,6 +164,10 @@ fun `a summary shows the latest greeting`() = runComposeUiTest {
 The Compose HTML screens are tested in `src/jsTest/` with `html-test-utils`, which reads the
 DOM; robots drive Compose UI only.
 
+Shared UI — the design primitives, the navigation containers and the app shell — is tested the
+same way in its own `:platform:client:*` or `:app:client:common` module, rendering the
+primitive directly: there is no screen, so there is no robot.
+
 ##### Requirements
 
 * A Component Test is a class
@@ -170,13 +175,14 @@ DOM; robots drive Compose UI only.
 
 ##### Rules
 
-* A Component Test must live in a `:client` module's `jsTest`, `jvmTest` or `desktopTest` source set
-    * **Why:** `[Name]ScreenContent` is `internal` to its `:client` module.
-* A Component Test must reference only composables, ViewModel states, and the value types they carry from production code, and must not import dependency injection
+* A Component Test must live in the `jsTest`, `jvmTest` or `desktopTest` source set of a `:client`, `:platform:client:*` or `:app:client:common` module
+    * **Why:** `[Name]ScreenContent` is `internal` to its `:client` module, and a shared primitive's internals to its own.
+* A feature's Component Test must reference only composables, ViewModel states, and the value types they carry from production code, and must not import dependency injection
     * **Why:** The test fixes the state and reads what renders. A ViewModel, a repository, or the DI graph in the test makes it a Subcutaneous Test.
-* A Compose UI Component Test must find and act on nodes only through Robots: no `onNode…`, `onAllNodes…`, `onRoot`, `perform…` or node `waitUntil…` calls
+    * **Note:** Shared UI tests are not checked: a navigation container or the app shell is tested with the destinations it hosts.
+* A feature's Compose UI Component Test must find and act on nodes only through Robots: no `onNode…`, `onAllNodes…`, `onRoot`, `perform…` or node `waitUntil…` calls
     * **Why:** The robot owns the screen's tags, so the Component Test checks the same steps the End To End Tests take.
-    * **Note:** A Component Test in `jsTest` renders Compose HTML and is not checked.
+    * **Note:** A Component Test in `jsTest` renders Compose HTML and is not checked, nor is a shared UI test, which has no screen to give a robot.
 
 ---
 
@@ -231,6 +237,9 @@ An `@AdapterTest` class: one infrastructure adapter checked against the real inf
 for behaviour a Subcutaneous Test reaches poorly: transaction semantics, concurrency, a query's
 edge cases. `TransactionRunnerTest` runs against an embedded Postgres.
 
+A client's adapters are the device's files, audio, sensors and document renderers, checked from
+a platform test source set (`jvmTest`, `iosSimulatorArm64Test`, …) of the module that owns them.
+
 ##### Requirements
 
 * An Adapter Test is a class
@@ -238,8 +247,8 @@ edge cases. `TransactionRunnerTest` runs against an embedded Postgres.
 
 ##### Rules
 
-* An Adapter Test must live in the `src/test` source set of a `:platform:server:*` or `:feature:[name]:server` module
-    * **Why:** The adapters an Adapter Test checks are server infrastructure.
+* An Adapter Test must live in the `src/test` source set of a `:platform:server:*` or `:feature:[name]:server` module, or a platform test source set of a `:platform:client:*` or `:feature:[name]:client` module
+    * **Why:** Server adapters run on the JVM; a client adapter runs only on the platform it adapts, so its test can't live in `commonTest`.
 
 ##### Guidance
 
@@ -456,8 +465,9 @@ step can't act on a screen behind a dialog.
 
 * A Robot must live in a `:feature:[name]:tests` module's `src/main` source set
     * **Why:** The feature's Component Tests and the application's End To End Tests both depend on its `:tests` module.
-* A Robot must reference exactly one Screen Tags object
+* A Robot must reference exactly one Screen Tags object, or one `object [Name]Tags` of a screen in a shared UI module
     * **Why:** A robot drives one screen. A step on another screen belongs in that screen's robot, in its own `on[Screen] { }` block.
+    * **Note:** A screen in a shared UI module (`:platform:client:*` or `:app:client:common`), such as a confirmation sheet every feature opens, keeps its tags beside it in an `object [Name]Tags` holding only `const val`s. Those modules have no Constructs, so its robot's tags count by that shape.
 * Every public function of a Robot must be named for a user action (`click…`, `enter…`, `clear…`, `select…`, `toggle…`, `scroll…`) or for what the user sees (`see…`)
     * **Why:** A test reads as what a user would report: "I click Greet, then I see Hello again". A name such as `greet()` hides which control the step uses.
 * A Robot's file must declare its entry point, a `User.on[Screen]` function

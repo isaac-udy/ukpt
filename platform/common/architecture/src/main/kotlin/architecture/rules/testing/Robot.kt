@@ -1,6 +1,8 @@
 package architecture.rules.testing
 
+import com.lemonappdev.konsist.api.declaration.KoBaseDeclaration
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
+import com.lemonappdev.konsist.api.declaration.KoObjectDeclaration
 import com.lemonappdev.konsist.api.provider.KoParentProvider
 import dev.isaacudy.udytils.architecture.*
 
@@ -50,12 +52,20 @@ object Robot : Construct<Testing>(
         constrain(placement("a `:feature:[name]:tests` module's `src/main/`") { it.isInFeatureTestsModule() && it.sourceSet() == "main" })
     }
 
-    @Describe("A Robot must reference exactly one Screen Tags object")
+    @Describe("A Robot must reference exactly one Screen Tags object, or one `object [Name]Tags` of a screen in a shared UI module")
     val oneScreen by rule {
         rationale("A robot drives one screen. A step on another screen belongs in that screen's robot, in its own `on[Screen] { }` block.")
+        note(
+            """
+            A screen in a shared UI module (`:platform:client:*` or `:app:client:common`), such as a
+            confirmation sheet every feature opens, keeps its tags beside it in an `object [Name]Tags`
+            holding only `const val`s. Those modules have no Constructs, so its robot's tags count by
+            that shape.
+            """.trimIndent(),
+        )
         constrainWithScopes { decl, scopes, _ ->
             val tags = scopes.productionReferences(decl.file)
-                .filter { reference -> reference.constructs.any { it.id == "ClientUi.ScreenTags" } }
+                .filter { reference -> reference.constructs.any { it.id == "ClientUi.ScreenTags" } || reference.declaration.isSharedUiTags() }
                 .map { it.name }
                 .distinct()
             when (tags.size) {
@@ -91,6 +101,9 @@ object Robot : Construct<Testing>(
         }
     }
 }
+
+private fun KoBaseDeclaration.isSharedUiTags(): Boolean =
+    this is KoObjectDeclaration && name.endsWith("Tags") && functions().isEmpty() && properties().all { it.hasConstModifier } && isInSharedUiModule()
 
 private val USER_ACTION = Regex("""(click|enter|clear|select|toggle|scroll|see)[A-Z]\w*""")
 private val ENTRY_POINT = Regex("""\bfun\s+User\.on[A-Z]\w*\s*\(""")

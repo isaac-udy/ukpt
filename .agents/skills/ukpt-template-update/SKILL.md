@@ -76,6 +76,20 @@ into the project:
 git merge-file <project-file> <translated-base> <translated-new>
 ```
 
+Translate only what `ukpt-new-project` renames (its rename table's `Where` column). Never
+translate:
+
+- Convention plugin IDs and file names (`id("ukpt.…")`, `build-logic/src/main/kotlin/ukpt.*.gradle.kts`).
+  A project that renamed its older plugins keeps those names; a plugin new to the project keeps
+  the `ukpt.` prefix.
+- `build-logic/src/main/kotlin/ukpt/template/`. `validateTemplate` checks the template's own
+  names there.
+- Version-catalog aliases, `.agents/`, `.claude/`, `.ukpt/`, `UKPT.md` and
+  `docs/template-migrations/`.
+
+The `UKPT_` environment-variable prefix in `build-logic/` is translated, as `ukpt-new-project`
+renames it.
+
 File classes:
 
 - **Template-owned (expect clean merges):** `UKPT.md`, `gradle/wrapper/`, `build-logic/`,
@@ -105,7 +119,9 @@ File classes:
   (`ukpt-new-project`, "Choose the web clients"). If `app/client/web` is absent, skip template
   changes to it. If `app/client/web-html` is absent, skip changes to it, to
   `platform/client/design-html`, and to features' `src/jsMain/` and `src/jsTest/`. Skip the steps
-  migrations give for that client.
+  migrations give for that client. If the project removed a client's `libs.versions.toml` entries,
+  remove them from the merge result too: `compose-html*`, `enro-html` and `udytils-uiHtml` for
+  Compose HTML; `udytils-htmx`, `udytils-htmlSnapshot` and `ktor-serverHtmlBuilder` for htmx.
 - **Generated (do not merge by hand):** `platform/common/architecture/README.md` and `docs/` —
   regenerated in §5.
 
@@ -138,7 +154,9 @@ Projects tweak and extend their rule catalogs. Never treat the catalog as templa
 ## 6. Submodules and migrations
 
 1. Bump each submodule in the clone's `.gitmodules` to the template's pin at `<new>`
-   (`git -C <clone> ls-tree <new> <path>`), checkout, and record the SHAs for the marker. A
+   (`git -C <clone> ls-tree <new> <path>`), checkout, and record the SHAs for the marker. Run
+   `git add <path>` for each submodule straight after its checkout: until the new pin is staged,
+   `git submodule update --init --recursive` puts the old pin back. A
    submodule the template added or removed is added or removed here too, through the migration
    that introduced the change. API breaks surface in §7; fix them as part of the update.
 2. Apply the migrations listed in §3, in order. Each entry carries its own detection, steps, and
