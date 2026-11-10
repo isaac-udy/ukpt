@@ -9,9 +9,9 @@
 server's entry points. The contract lives in `:api`, so both the client and server see it; the implementation
 lives in `:server` under the same package name.
 
-Everything else in the layer is an **entry point** — a class something outside the process
-triggers. The template ships one kind: a [ServiceImpl](#service-impl) answering a network
-request. The work an entry point triggers is not declared here — it is stated as
+Everything else in the layer is an **entry point** — a declaration something outside the
+process triggers. The template ships two kinds: a [ServiceImpl](#service-impl) answering a urpc
+request, and a [Route](#route) answering a plain HTTP caller. The work an entry point triggers is not declared here — it is stated as
 [`server.domain` interfaces](serverdomain.md#domain-interface) and done by
 [UseCases](serverdomain.md#use-case).
 
@@ -67,6 +67,7 @@ documented on [`server.data`](serverdata.md).
 
 * [Service Interface](#service-interface)
 * [Service Impl](#service-impl)
+* [Route](#route)
 
 ##### Rules
 
@@ -174,3 +175,30 @@ contract, so it belongs to this layer, not the top-level feature group.
 
 * A Service implementation may inject its feature's `server.domain` interfaces, and other features' `server.domain` interfaces published to `:api`
     * **Note:** Another feature's Service contract is not on that list: it is the client's door, and injecting it is `ServerServices.noForeignServiceContractInjection`.
+
+---
+
+## [Route](../src/main/kotlin/architecture/rules/serverservices/Route.kt)
+
+An entry point for a caller that speaks plain HTTP rather than urpc, such as a payment
+provider's webhook: a `Route.[name]` extension function in `feature.[name].server.services` of
+`:server`. The application installs it after the server host. Like a ServiceImpl, it decodes
+the request, calls domain interfaces, and answers; the work is a UseCase's.
+
+```kotlin
+fun Route.paymentWebhook(configuration: PaymentWebhookConfiguration, applyPaymentEvent: ApplyPaymentEvent) {
+    post("/webhooks/payments") { … }
+}
+```
+
+##### Requirements
+
+* A Route resides in `feature..server.services..`
+* A Route is a top-level extension of Ktor's `Route`
+* A Route resides in `feature.[name].server.services` itself, not in a sub-package
+* A Route is declared in a `:server` module
+
+##### Rules
+
+* A Route's parameters must be domain interfaces and configuration, never storage or another entry point
+    * **Why:** The application passes what the route needs from its graph; a Repository or ServiceImpl parameter would skip the domain layer.

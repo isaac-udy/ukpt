@@ -128,5 +128,9 @@ A project that won't ship it deletes:
   builds.
 
 `build-logic` and the version catalog are template-owned: leave the `ukpt.html-web` plugin and the
-`compose-html*` and `udytils-uiHtml` entries in place. `registeredInEveryClientShell` then checks only
-`:app:client:common`. Then run the `ukpt-verify` sweep without the Compose HTML client section.
+`compose-html*`, `enro-html` and `udytils-uiHtml` entries in place.
+`FeatureRules.DependencyModule.registeredInEveryClientShell` then checks nothing:
+`ClientDependenciesTest` covers the one shell. Delete the Compose HTML paragraph from
+`ComponentTest`'s `@Describe` in `rules/testing/ComponentTest.kt` and run
+`./gradlew :platform:common:architecture:updateArchitectureDocumentation`. Then run the
+`ukpt-verify` sweep without the Compose HTML client section.

@@ -7,6 +7,7 @@ import architecture.definitions.isClientModule
 import architecture.definitions.isFeatureModule
 import architecture.definitions.isFeatureRootPackage
 import architecture.definitions.isServerModule
+import architecture.definitions.withoutStringsAndComments
 import architecture.projectScope
 import com.lemonappdev.konsist.api.declaration.KoPropertyDeclaration
 import com.lemonappdev.konsist.api.provider.KoContainingFileProvider
@@ -81,10 +82,12 @@ object DependencyModule : Construct<FeatureRules>(
             from one list fails only when that client first resolves a ViewModel from it.
             """.trimIndent(),
         )
-        note("Reads every `app/client/*/src/**/ClientDependencies.kt`, including shells the current build doesn't include.")
+        note("Reads every `app/client/*/src/**/ClientDependencies.kt`, including shells the current build doesn't include. With one shell, `ClientDependenciesTest` covers the list and the rule checks nothing.")
+        note("A module another `:client` module installs through `includes(…)` is registered through that module.")
         constrain { decl, _ ->
             val property = decl as? KoPropertyDeclaration ?: return@constrain emptyList()
-            if (!property.isClientModule()) return@constrain emptyList()
+            if (!property.isClientModule() || clientShellDependencyFiles.size < 2) return@constrain emptyList()
+            if (property.name in includedClientModules) return@constrain emptyList()
             val reference = Regex("""\b${Regex.escape(property.name)}\b""")
             clientShellDependencyFiles
                 .filterNot { file ->
@@ -116,3 +119,29 @@ object DependencyModule : Construct<FeatureRules>(
 private val clientShellDependencyFiles by lazy {
     projectScope.files.filter { it.path.contains("/app/client/") && it.nameWithExtension == "ClientDependencies.kt" }
 }
+
+/** Every identifier passed to an `includes(…)` call in a feature's `:client` module. */
+private val includedClientModules by lazy {
+    projectScope.files
+        .filter { "/feature/" in it.path && "/client/src/" in it.path }
+        .flatMap { file -> includesArguments(file.text.withoutStringsAndComments()) }
+        .flatMap { arguments -> IDENTIFIER.findAll(arguments).map { it.value } }
+        .toSet()
+}
+
+private fun includesArguments(code: String): List<String> =
+    INCLUDES_CALL.findAll(code).map { call ->
+        var depth = 1
+        var end = call.range.last + 1
+        while (end < code.length && depth > 0) {
+            when (code[end]) {
+                '(' -> depth++
+                ')' -> depth--
+            }
+            end++
+        }
+        code.substring(call.range.last + 1, end - 1)
+    }.toList()
+
+private val INCLUDES_CALL = Regex("""\bincludes\s*\(""")
+private val IDENTIFIER = Regex("""\b[A-Za-z_]\w*\b""")

@@ -321,7 +321,8 @@ The configuration for Dependency Injection (DI) that wires the feature together.
     * **Why:** If feature A binds an implementation of feature B's domain interface, feature B's DI graph silently depends on feature A, and removing or refactoring A breaks B's wiring at runtime rather than at compile time. Each feature owns its own bindings; cross-feature consumption goes through `:api` interfaces only.
 * A `:client` Dependency Module must be listed in every client shell's `ClientDependencies.kt`
     * **Why:** `:app:client:common` and `:app:client:web-html` each keep their own `clientDependencies` list, because the HTML client can't depend on the Compose UI shell. A module missing from one list fails only when that client first resolves a ViewModel from it.
-    * **Note:** Reads every `app/client/*/src/**/ClientDependencies.kt`, including shells the current build doesn't include.
+    * **Note:** Reads every `app/client/*/src/**/ClientDependencies.kt`, including shells the current build doesn't include. With one shell, `ClientDependenciesTest` covers the list and the rule checks nothing.
+    * **Note:** A module another `:client` module installs through `includes(…)` is registered through that module.
 * A Dependency Module registers a service's generated `[Name]ServiceUrpcBinding` by chaining `.bindService(::[Name]ServiceUrpcBinding)` off the implementation's binding, inside the per-call `scope<UrpcCall> { }` block
     * **Note:** `bindService` (from `dev.isaacudy.udytils.urpc.koin`) registers the binding under its own concrete type, bound to `UrpcService`, with the impl resolved lazily.
     * **Note:** Never use `scoped<UrpcService> { [Name]ServiceUrpcBinding { get() } }`: every such binding shares the `UrpcService` definition key, so co-registered services override each other and `getAll<UrpcService>()` returns only one. The test catches this form.

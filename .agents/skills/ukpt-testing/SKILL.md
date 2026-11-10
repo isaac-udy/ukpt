@@ -24,18 +24,18 @@ the test may use besides the code under test; the `Testing` rules check it
 | --- | --- | --- |
 | `@SubcutaneousTest` | Behaviour a user reaches through a screen, or a `@Urpc` service no screen calls. **The default.** | `:feature:<name>:tests`, `src/test/` |
 | `@UnitTest` | Logic with many inputs: parsing, validation, formatting, a branching UseCase | the module's `commonTest` (or a platform test set) |
-| `@ComponentTest` | A `[Name]ScreenContent` with fixed state, driven through its robot; or a Compose HTML `[Name]HtmlScreenContent` | the `:client` module's `src/jvmTest/` (Compose UI) or `src/jsTest/` (HTML) |
+| `@ComponentTest` | A `[Name]ScreenContent` with fixed state, driven through its robot; a Compose HTML `[Name]HtmlScreenContent`; or a shared primitive, navigation container or app-shell composable | the `:client` module's `src/jvmTest/` (Compose UI) or `src/jsTest/` (HTML); shared UI in its own `:platform:client:*` or `:app:client:common` module |
 | `@SnapshotTest` | The module's one `PreviewSnapshotTest` | `src/androidHostTest/` |
 | `@WiringTest` | An app shell's Koin graph (`verify()`) | the `:app` module's test set |
-| `@AdapterTest` | One server adapter against real infrastructure, where a Subcutaneous Test reaches poorly | a server module's `src/test/` |
+| `@AdapterTest` | One adapter against real infrastructure, where a Subcutaneous Test reaches poorly: a server adapter, or a client's device files, sensors or renderers | a server module's `src/test/`; a client module's platform test set (`jvmTest`, `iosSimulatorArm64Test`, …) |
 | `@CheckTest` | Two committed files that must agree (CSS tokens, doc images) | a JVM test set |
 | `@EndToEndTest` | A journey through the desktop app's UI | `:app:client:desktop`, `src/test/` |
 
 Ask first whether a Subcutaneous Test covers the behaviour. A Unit Test constructs one production
 class (`Testing.UnitTest.oneProductionClass`) and imports no DI, network, database, file or UI-test
 API (`Testing.UnitTest.noInfrastructure`); collaborators are lambdas for `fun interface`s or
-`Fake[Name]` classes. Constructing domain models, states and other value types is test data and
-does not count.
+`Fake[Name]` classes. Constructing domain models, states and other value types (a `data class`, a
+`value class`, or a class of constructor `val`s only) is test data and does not count.
 
 ## Writing one
 
@@ -89,8 +89,15 @@ robot covers one screen and lives in the feature's `:tests` module, `src/main`, 
 
    Name each function for what a user does or sees: `click…`, `enter…`, `clear…`, `select…`,
    `toggle…`, `scroll…`, `see…` (`Testing.Robot.userActionNames`). A robot uses one `[Screen]Tags`
-   object (`Testing.Robot.oneScreen`). Add a `ScreenRobot` helper when a robot needs a new kind of
-   step.
+   object (`Testing.Robot.oneScreen`). A screen in a shared UI module, such as a confirmation
+   sheet every feature opens, keeps an `object [Name]Tags` of `const val`s beside it in that
+   module; its robot uses that object.
+
+   `ScreenRobot`'s steps: `click`, `see`, `seeNo`, `seeText`, `seeTextPart`, `seeEnabled`,
+   `seeDisabled`, `enterText`, `clearText`, `scrollTo`, `clickCentre`, `seeContentDescription`,
+   `seeProgress`, `seeSizeAtLeast`, `boundsOf`. For a node a design primitive draws without a tag
+   of its own, the `…Within(tag, text)` and `…Described(tag, description)` steps find it inside a
+   tagged ancestor. Add a `ScreenRobot` helper when a robot needs a new kind of step.
 3. **Use.** One `on[Screen] { }` block per screen visit, inside `asUser { }`:
 
    ```kotlin
@@ -150,6 +157,9 @@ fun `confirming the reset dialog clears the history`() = subcutaneous(ukptTestGr
   `key` (`screen.navigation`; use the enro-test assertions on it).
 - `state.awaitMatching(timeout = 10.seconds) { … }` — suspends until the state matches; fails with
   the last state.
+- `awaitAsserted(timeout = 10.seconds) { … }` — retries an assertion until it passes; fails with
+  its last failure. For navigation a ViewModel reaches after a state change:
+  `awaitAsserted { screen.navigation.assertClosed() }`.
 - `service<S>()` — the `@Urpc` service's generated client, calling the in-process server. For
   server behaviour no screen reaches.
 - `given { … }` — runs scenarios, before a ViewModel opens or while it is open. A change made
@@ -170,6 +180,20 @@ subcutaneous(ukptTestGraph, edges = { server { single<Clock> { FakeClock } } }) 
 A Fake in a `:tests` module implements only an IntegrationClient's interface, `kotlin.time.Clock`
 or a `platform` interface (`Testing.Fake.subcutaneousEdgesOnly`). Ktor's `MockEngine` is for
 backends the project does not own; the project's own server always runs for real.
+
+Client file storage is an edge. Without one, Subcutaneous Tests write into the developer's real
+app data. Put the storage root in a value type in a `:platform:client:*` module, bind it in the
+shell, and override it in an edge with a per-test directory:
+
+```kotlin
+fun Edges.temporaryAppFiles() {
+    client {
+        single { AppFilesDirectory(createTempDirectory("subcutaneous").toString()) } onClose { directory ->
+            directory?.let { File(it.path).deleteRecursively() }
+        }
+    }
+}
+```
 
 **Coverage.** `./gradlew subcutaneousCoverage` writes the feature modules' coverage by Subcutaneous
 Tests alone to `build/reports/kover/html/index.html` and `build/reports/kover/report.xml`. Only the

@@ -45,11 +45,13 @@ object UnitTest : Construct<Testing>(
             """.trimIndent(),
         )
         note("Constructed means the class name followed by `(` in the test file's code.")
+        note("A value type wherever it lives — a `data class`, a `value class`, or a class whose only members are `val`s declared in its primary constructor — is test data.")
         constrainWithScopes { decl, scopes, _ ->
             val code = decl.fileCode()
             val constructed = scopes.productionReferences(decl.file)
                 .filter { it.declaration is KoClassDeclaration }
                 .filterNot { reference -> reference.constructs.any { it.id in VALUE_CONSTRUCTS } }
+                .filterNot { reference -> (reference.declaration as KoClassDeclaration).isValueType() }
                 .filter { Regex("""\b${it.name}\s*\(""").containsMatchIn(code) }
                 .map { it.name }
                 .distinct()
@@ -60,6 +62,13 @@ object UnitTest : Construct<Testing>(
             }
         }
     }
+}
+
+private fun KoClassDeclaration.isValueType(): Boolean {
+    if (hasDataModifier || hasValueModifier) return true
+    val constructorNames = primaryConstructor?.parameters.orEmpty().map { it.name }.toSet()
+    return functions().isEmpty() && properties().isNotEmpty() &&
+        properties().all { it.isVal && it.name in constructorNames }
 }
 
 internal val INFRASTRUCTURE_IMPORTS = listOf(

@@ -18,9 +18,9 @@ import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
     server's entry points. The contract lives in `:api`, so both the client and server see it; the implementation
     lives in `:server` under the same package name.
 
-    Everything else in the layer is an **entry point** — a class something outside the process
-    triggers. The template ships one kind: a [ServiceImpl](#service-impl) answering a network
-    request. The work an entry point triggers is not declared here — it is stated as
+    Everything else in the layer is an **entry point** — a declaration something outside the
+    process triggers. The template ships two kinds: a [ServiceImpl](#service-impl) answering a urpc
+    request, and a [Route](#route) answering a plain HTTP caller. The work an entry point triggers is not declared here — it is stated as
     [`server.domain` interfaces](serverdomain.md#domain-interface) and done by
     [UseCases](serverdomain.md#use-case).
 
@@ -77,6 +77,7 @@ object ServerServices : RuleGroup(
     constructs = listOf(
         ServiceInterface,
         ServiceImpl,
+        Route,
     ),
 ) {
 

@@ -18,6 +18,12 @@ internal fun KoBaseDeclaration.moduleDirectory(): String = containingFilePath().
 
 internal fun KoBaseDeclaration.isInFeatureTestsModule(): Boolean = FEATURE_TESTS_MODULE.containsMatchIn(containingFilePath())
 
+/** The design primitives, navigation containers and app shell: UI shared by every feature. */
+internal fun KoBaseDeclaration.isInSharedUiModule(): Boolean {
+    val module = moduleDirectory()
+    return "/platform/client/" in module || module.endsWith("/app/client/common")
+}
+
 internal val KoBaseDeclaration.file: KoFileDeclaration
     get() = (this as KoContainingFileProvider).containingFile
 
