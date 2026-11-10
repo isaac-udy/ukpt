@@ -13,6 +13,7 @@ import org.koin.dsl.module
 import org.koin.ktor.ext.getKoin
 import org.koin.mp.KoinPlatform
 import platform.network.ServerEndpointConfig
+import platform.server.host.ServerHostConfig
 import platform.server.host.installServerHost
 import javax.sql.DataSource
 
@@ -70,9 +71,10 @@ internal suspend fun withRunningServer(
             (dataSource as? AutoCloseable)?.close()
         }
 
+        val urpcRootPath = serverKoin.getOrNull<ServerHostConfig>()?.urpcRootPath.orEmpty()
         val transport = module {
             single<HttpClientEngine> { application.client.engine }
-            single { ServerEndpointConfig(baseUrl = "http://localhost") }
+            single { ServerEndpointConfig(baseUrl = "http://localhost$urpcRootPath") }
         }
         block(RunningServer(serverKoin, listOf(transport, edges.clientModule())), teardown)
     } catch (failure: Throwable) {

@@ -60,6 +60,9 @@ to end. Copy-paste skeletons are in `templates.md`.
    calls it with `serverDependencies(postgresConfig)`. A new feature adds `<name>ServerDependencies`
    to that list in `ServerDependencies.kt` and `implementation(projects.feature.<name>.server)` to
    `app/server/build.gradle.kts` (templates.md §4).
+   - To mount urpc under a path, map errors, log, or add server interceptors, bind a
+     `ServerHostConfig` in the server graph. The client's `ServerEndpointConfig.baseUrl` then ends
+     in its `urpcRootPath`; the Subcutaneous harness reads the binding itself.
    - The client side: a `:client` Repository injects the service contract; the feature's client
      module binds it with `single<<Name>Service> { get<UrpcClientFactory>().create() }`.
      `UrpcClientFactory` comes from `:platform:client:network`'s `networkDependencies`, which every
