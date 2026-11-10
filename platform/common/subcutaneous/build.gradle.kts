@@ -23,4 +23,6 @@ dependencies {
     implementation(libs.koin.ktor)
     implementation(libs.jsoup)
     implementation(libs.kotlinx.serialization)
+
+    testImplementation(libs.kotlin.test)
 }

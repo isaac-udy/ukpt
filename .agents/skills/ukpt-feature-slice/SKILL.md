@@ -101,6 +101,7 @@ the result.
 ## Reference
 - The living template: `feature/core/{api,server,tests}` (build files + `src/.../feature/ukpt/...`), and
   `feature/core/server/src/main/resources/static/ukpt/`.
-- The web platform: `platform/server/web` (`WebRoutes`, `ukptLayout`, `ukptDocument`, `textField`, `FormResult`,
-  `respondSeeOther`, `installWebPlatform`).
+- The web platform: `platform/server/web` (`WebRoutes`, `ServerPlugin`, `ukptLayout`, `ukptDocument`, `textField`,
+  `FormResult`, `respondSeeOther`, `installWebPlatform`). A feature that needs a Ktor plugin, such as authentication,
+  binds a `[Name]Plugin` (`ServerWeb.Plugin`).
 - Skeletons + the wiring checklist: `templates.md` (this skill).

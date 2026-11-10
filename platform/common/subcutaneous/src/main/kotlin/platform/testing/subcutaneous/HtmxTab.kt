@@ -5,6 +5,8 @@ import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.plugins.cookies.HttpCookies
 import io.ktor.client.plugins.sse.SSE
 import io.ktor.client.plugins.sse.sse
+import io.ktor.client.plugins.websocket.WebSockets
+import io.ktor.client.plugins.websocket.webSocket
 import io.ktor.client.request.forms.FormDataContent
 import io.ktor.client.request.header
 import io.ktor.client.request.request
@@ -16,12 +18,17 @@ import io.ktor.http.HttpMethod
 import io.ktor.http.Parameters
 import io.ktor.http.ParametersBuilder
 import io.ktor.http.URLBuilder
+import io.ktor.http.URLProtocol
 import io.ktor.http.Url
 import io.ktor.http.isSuccess
 import io.ktor.sse.ServerSentEvent
+import io.ktor.websocket.CloseReason
+import io.ktor.websocket.Frame
+import io.ktor.websocket.readText
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
@@ -38,17 +45,19 @@ import platform.server.web.APP_ERROR_ID
 import platform.testing.robots.Locator
 import platform.testing.robots.PageDriver
 import java.net.URI
+import java.util.IdentityHashMap
 
 /**
  * A browser tab over the server's HTML. With [scripts], it sends the requests htmx sends for
  * `hx-get`/`hx-post`/…, swaps the responses as `hx-target` and `hx-swap` say, applies
- * out-of-band swaps, follows `sse-connect`/`sse-swap` streams, and shows a failed request's text in
- * the platform's error region as the platform's `app.js` does. Without [scripts], forms and links
- * work as plain HTML. It runs no JavaScript: Alpine and the project's own scripts need an End To
- * End Test.
+ * out-of-band swaps, follows `sse-connect`/`sse-swap` streams and `ws-connect` websockets, and
+ * shows a failed request's text in the platform's error region as the platform's `app.js` does.
+ * Without [scripts], forms and links work as plain HTML. It runs no JavaScript: Alpine and the
+ * project's own scripts need an End To End Test.
  *
- * An attribute that changes what htmx sends or swaps and that this tab does not implement fails the
- * step that reaches it, naming the attribute.
+ * A stream or socket opens when its element enters the document under the `sse` or `ws` extension,
+ * and closes when the element leaves it. An attribute that changes what htmx sends or swaps and
+ * that this tab does not implement fails the step that reaches it, naming the attribute.
  */
 internal class HtmxTab(engine: HttpClientEngine, private val scripts: Boolean) : PageDriver, AutoCloseable {
 
@@ -57,12 +66,13 @@ internal class HtmxTab(engine: HttpClientEngine, private val scripts: Boolean) :
         expectSuccess = false
         install(HttpCookies)
         install(SSE)
+        install(WebSockets)
     }
     private val streams = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val lock = Any()
     private var location = Url(ORIGIN)
     private var document: Document = Document.createShell(ORIGIN)
-    private var generation = 0
+    private val connections = IdentityHashMap<Element, List<Job>>()
     private var streamFailure: String? = null
 
     override val path: String get() = synchronized(lock) { location.encodedPath.ifEmpty { "/" } }
@@ -147,6 +157,7 @@ internal class HtmxTab(engine: HttpClientEngine, private val scripts: Boolean) :
     ) : Action
 
     private fun clickAction(element: Element): Action {
+        rejectWebSocketSend(element)
         if (scripts && element.tagName() != "form") htmxRequest(element)?.let { return it }
         val form = if (isSubmitButton(element)) element.closest("form") else null
         if (form != null) return submitAction(form, submitter = element)
@@ -157,6 +168,7 @@ internal class HtmxTab(engine: HttpClientEngine, private val scripts: Boolean) :
     }
 
     private fun submitAction(form: Element, submitter: Element): Action {
+        rejectWebSocketSend(form)
         val parameters = formParameters(form, submitter)
         if (scripts) htmxRequest(form, parameters)?.let { return it }
         val method = HttpMethod.parse(submitter.attr("formmethod").ifBlank { form.attr("method") }.ifBlank { "get" }.uppercase())
@@ -165,7 +177,16 @@ internal class HtmxTab(engine: HttpClientEngine, private val scripts: Boolean) :
     }
 
     /** The request htmx sends when [element] changes, if it carries an `hx-` verb. */
-    private fun changeAction(element: Element): Action? = if (scripts) htmxRequest(element) else null
+    private fun changeAction(element: Element): Action? {
+        rejectWebSocketSend(element)
+        return if (scripts) htmxRequest(element) else null
+    }
+
+    private fun rejectWebSocketSend(element: Element) {
+        if (scripts && element.hasAttr("ws-send")) {
+            throw AssertionError("ws-send on <${element.tagName()}> is not implemented by the Subcutaneous tab; test this page in an End To End Test")
+        }
+    }
 
     private fun htmxRequest(source: Element, parameters: Parameters? = null): HtmxRequest? {
         val (method, url) = HX_VERBS.firstNotNullOfOrNull { (attribute, method) ->
@@ -326,29 +347,59 @@ internal class HtmxTab(engine: HttpClientEngine, private val scripts: Boolean) :
     private fun load(url: Url, html: String) = synchronized(lock) {
         location = url
         document = Jsoup.parse(html, url.toString())
-        generation++
-        if (scripts) connectStreams(generation)
+        connectStreams()
     }
 
-    private fun connectStreams(loaded: Int) {
-        document.select("[sse-connect]").forEach { source ->
-            val url = resolve(source.attr("sse-connect")).toString()
-            streams.launch {
-                try {
-                    http.sse(url) {
-                        incoming.collect { event -> onEvent(loaded, source, event) }
-                    }
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (failure: Throwable) {
-                    synchronized(lock) { streamFailure = "the event stream $url failed: $failure" }
+    /** Closes the streams and sockets of elements that left the document, and opens those of elements that entered it. */
+    private fun connectStreams() {
+        if (!scripts) return
+        val iterator = connections.entries.iterator()
+        while (iterator.hasNext()) {
+            val (element, jobs) = iterator.next()
+            if (!isInDocument(element)) {
+                jobs.forEach { it.cancel() }
+                iterator.remove()
+            }
+        }
+        document.select("[sse-connect], [ws-connect]")
+            .filter { isInDocument(it) && !connections.containsKey(it) }
+            .forEach { source ->
+                connections[source] = listOfNotNull(
+                    source.attr("sse-connect").takeIf { it.isNotBlank() && extensionEnabled(source, "sse") }?.let { openEventStream(source, it) },
+                    source.attr("ws-connect").takeIf { it.isNotBlank() && extensionEnabled(source, "ws") }?.let { openWebSocket(source, it) },
+                )
+            }
+    }
+
+    private fun isInDocument(element: Element): Boolean =
+        element.ownerDocument() === document && element.parents().none { it.tagName() == "template" }
+
+    /** Whether `hx-ext` on [element] or an ancestor enables [extension]; htmx ignores the extension's attributes otherwise. */
+    private fun extensionEnabled(element: Element, extension: String): Boolean {
+        val names = element.parents().plus(element).flatMap { it.attr("hx-ext").split(',').map(String::trim) }
+        if ("ignore:$extension" in names) return false
+        if (extension in names) return true
+        streamFailure = "${extension}-connect on <${element.tagName()}> has no hx-ext=\"$extension\" on it or above it, so htmx ignores it"
+        return false
+    }
+
+    private fun openEventStream(source: Element, href: String): Job {
+        val url = resolve(href).toString()
+        return streams.launch {
+            try {
+                http.sse(url) {
+                    incoming.collect { event -> onEvent(source, event) }
                 }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Throwable) {
+                synchronized(lock) { streamFailure = "the event stream $url failed: $failure" }
             }
         }
     }
 
-    private fun onEvent(loaded: Int, source: Element, event: ServerSentEvent) = synchronized(lock) {
-        if (loaded != generation) return@synchronized
+    private fun onEvent(source: Element, event: ServerSentEvent) = synchronized(lock) {
+        if (!isInDocument(source)) return@synchronized
         val name = event.event ?: "message"
         source.select("[sse-swap]")
             .filter { element -> element.attr("sse-swap").split(',').map(String::trim).contains(name) }
@@ -357,8 +408,56 @@ internal class HtmxTab(engine: HttpClientEngine, private val scripts: Boolean) :
             }
     }
 
+    private fun openWebSocket(source: Element, href: String): Job {
+        val url = URLBuilder(resolve(href)).apply {
+            protocol = if (protocol == URLProtocol.HTTPS || protocol == URLProtocol.WSS) URLProtocol.WSS else URLProtocol.WS
+        }.buildString()
+        return streams.launch {
+            try {
+                http.webSocket(url) {
+                    for (frame in incoming) {
+                        if (frame is Frame.Text) onFrame(source, url, frame.readText())
+                    }
+                    val reason = closeReason.await()
+                    if (reason != null && reason.code !in NORMAL_CLOSURES) {
+                        synchronized(lock) { streamFailure = "the websocket $url closed: $reason" }
+                    }
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Throwable) {
+                synchronized(lock) { streamFailure = "the websocket $url failed: $failure" }
+            }
+        }
+    }
+
+    /** As the htmx `ws` extension does: each top-level element of the frame is swapped out of band, by its id unless `hx-swap-oob` says otherwise. */
+    private fun onFrame(source: Element, url: String, html: String) = synchronized(lock) {
+        if (!isInDocument(source)) return@synchronized
+        val fragment = Jsoup.parseBodyFragment("<template>$html</template>").body().child(0)
+        fragment.children().toList().forEach { element ->
+            if (element.attr("hx-swap-oob").isEmpty()) element.attr("hx-swap-oob", "true")
+            val oob = element.attr("hx-swap-oob")
+            if (':' !in oob && element.id().isEmpty()) {
+                streamFailure = "a frame from the websocket $url has a top-level <${element.tagName()}> with no id to swap by"
+                return@forEach
+            }
+            try {
+                swapOutOfBand(element)
+            } catch (failure: Throwable) {
+                streamFailure = "a frame from the websocket $url swaps <${element.tagName()} hx-swap-oob=\"$oob\">: ${failure.message}"
+            }
+        }
+        connectStreams()
+    }
+
     /** Swaps [html] into [target] as `hx-swap` [style] does, after applying its out-of-band swaps. */
     private fun swap(target: Element, style: String, html: String) {
+        swapContent(target, style, html)
+        connectStreams()
+    }
+
+    private fun swapContent(target: Element, style: String, html: String) {
         val fragment = Jsoup.parseBodyFragment("<template>$html</template>").body().child(0)
         applyOutOfBand(fragment)
         val nodes = fragment.childNodes().toList()
@@ -450,6 +549,8 @@ internal class HtmxTab(engine: HttpClientEngine, private val scripts: Boolean) :
     private companion object {
         const val ORIGIN = "http://localhost/"
         const val MAX_REDIRECTS = 10
+
+        val NORMAL_CLOSURES = setOf(CloseReason.Codes.NORMAL.code, CloseReason.Codes.GOING_AWAY.code)
 
         val HX_VERBS = listOf(
             "hx-get" to HttpMethod.Get,

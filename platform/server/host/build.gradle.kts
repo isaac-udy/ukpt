@@ -9,4 +9,9 @@ dependencies {
 
     implementation(projects.platform.server.postgres)
     implementation(libs.koin.ktor)
+
+    testImplementation(projects.platform.common.testing)
+    testImplementation(libs.kotlin.test)
+    testImplementation(libs.ktor.serverTestHost)
+    testImplementation(libs.ktor.server.auth)
 }

@@ -222,7 +222,8 @@ module list in `ServerDependencies.kt` so one test covers it.
 
 An `@AdapterTest` class: one infrastructure adapter checked against the real infrastructure,
 for behaviour a Subcutaneous Test reaches poorly: transaction semantics, concurrency, a query's
-edge cases. `TransactionRunnerTest` runs against an embedded Postgres.
+edge cases. `TransactionRunnerTest` runs against an embedded Postgres. The Subcutaneous
+harness's tab is checked the same way, against a server on Ktor's test engine.
 
 ##### Requirements
 
@@ -231,8 +232,8 @@ edge cases. `TransactionRunnerTest` runs against an embedded Postgres.
 
 ##### Rules
 
-* An Adapter Test must live in the `src/test` source set of a `:platform:server:*` or `:feature:[name]:server` module
-    * **Why:** The adapters an Adapter Test checks are server infrastructure.
+* An Adapter Test must live in the `src/test` source set of a `:platform:server:*` or `:feature:[name]:server` module, or of `:platform:common:subcutaneous`
+    * **Why:** The adapters an Adapter Test checks are server infrastructure, and the tab the Subcutaneous harness drives it through.
 
 ##### Guidance
 

@@ -27,7 +27,7 @@ the test may use besides the code under test; the `Testing` rules check it
 | `@ComponentTest` | Markup with many states, rendered with fixed state: a Component, an event stream's swaps | a `:feature:<name>:server` module's `src/test/` |
 | `@SnapshotTest` | A Page's golden HTML | a `:feature:<name>:server` module's `src/test/` |
 | `@WiringTest` | The server's Koin graph (`verify()`) | `:app:server`, `src/test/` |
-| `@AdapterTest` | One server adapter against real infrastructure, where a Subcutaneous Test reaches poorly | a server module's `src/test/` |
+| `@AdapterTest` | One server adapter against real infrastructure, where a Subcutaneous Test reaches poorly | a server module's `src/test/`, or `:platform:common:subcutaneous`'s for the tab |
 | `@CheckTest` | Two committed files that must agree | a `src/test/` |
 | `@EndToEndTest` | A journey in a real browser: scripts, Alpine, the content security policy | `:app:server`, `src/test/` |
 
@@ -48,7 +48,9 @@ Copy the nearest test of the same category:
 - Snapshot: `feature/core/server/src/test/kotlin/feature/ukpt/server/web/GreetingsPageSnapshotTest.kt`
 - Wiring: `app/server/src/test/kotlin/com/isaacudy/ukpt/ServerDependenciesTest.kt`
 - Adapter: `platform/server/postgres/src/test/kotlin/platform/server/postgres/TransactionRunnerTest.kt`,
-  `platform/server/web/src/test/kotlin/platform/server/web/WebPlatformTest.kt`
+  `platform/server/web/src/test/kotlin/platform/server/web/WebPlatformTest.kt`,
+  `platform/server/host/src/test/kotlin/platform/server/host/ServerHostTest.kt`,
+  `platform/common/subcutaneous/src/test/kotlin/platform/testing/subcutaneous/HtmxTabWebSocketTest.kt`
 - End-to-end: `app/server/src/test/kotlin/com/isaacudy/ukpt/GreetingJourneyTest.kt`
 
 The module's test source set needs `testImplementation(projects.platform.common.testing)` and
@@ -123,7 +125,9 @@ val ukptTestGraph = SubcutaneousGraph(
 **A test.** `subcutaneous(graph) { … }` is the whole body of each `@Test`. Per test it clones an
 empty database from a template migrated once per JVM (`classpath:db/migration`) and starts the
 server graph with `installServerHost` on Ktor's test engine. It tears all of it down when the block
-returns or throws.
+returns or throws. `installServerHost` installs the graph's `ServerPlugin` bindings (authentication,
+call logging) and its bound `ContentSecurityPolicy`, so the tests run them as production does; a
+plugin installed in `Server.kt` instead never reaches the tests.
 
 ```kotlin
 @Test
@@ -144,15 +148,20 @@ fun `a name greeted before is greeted again`() = subcutaneous(ukptTestGraph) {
   `hx-post` and the other verbs (with `HX-Request`, `HX-Target`, `HX-Current-URL`), swaps the
   response into the inherited `hx-target` as `hx-swap` says, applies out-of-band swaps, follows
   `HX-Redirect`, `HX-Location`, `HX-Retarget`, `HX-Reswap` and `hx-push-url`, and keeps each
-  `sse-connect` stream open, swapping its events into the `sse-swap` elements. A failed request's
-  text goes into the platform's error region, as `app.js` does. Plain forms and links navigate and
-  follow redirects.
+  `sse-connect` stream open, swapping its events into the `sse-swap` elements. It opens a websocket
+  for each `ws-connect` element, with the tab's cookies, and swaps each text frame as the htmx `ws`
+  extension does: every top-level element out of band, by its id unless `hx-swap-oob` names a style
+  or a target. A stream or socket opens when its element enters the page under `hx-ext="sse"` or
+  `hx-ext="ws"`, and closes when the element leaves it. A robot's `see…` waits for what a frame or
+  an event brings. A failed request's text goes into the platform's error region, as `app.js` does;
+  a failed stream, socket or frame shows in a robot's failure message. Plain forms and links
+  navigate and follow redirects.
 - `asUser(path, scripts = false) { }` — the same tab with JavaScript off: forms post, `303`s
   redirect. One such test per form keeps the page working without htmx.
 - The tab runs no JavaScript: Alpine and the project's scripts need an End To End Test. An
   attribute that changes what htmx sends or swaps and that the tab does not implement
-  (`hx-include`, `hx-select`, `hx-select-oob`, `hx-params`, `hx-encoding`, `hx-prompt`) fails the
-  step that reaches it.
+  (`hx-include`, `hx-select`, `hx-select-oob`, `hx-params`, `hx-encoding`, `hx-prompt`, `ws-send`)
+  fails the step that reaches it.
 - `given { … }` — runs scenarios, before a page opens or while one is open. A change made mid-test
   reaches an open page through the server's event stream, as in a browser.
 
@@ -256,6 +265,7 @@ request (`ukpt-verify`, "CI"). Run builds one at a time.
 | Logic with a Unit Test | that module's `unitTest` |
 | A Koin module or a constructor | `:app:server:wiringTest` |
 | A script, an Alpine component, `:platform:server:web`'s document or security headers | `:app:server:endToEndTest`; `:platform:server:web:adapterTest` |
+| The Subcutaneous tab or `installServerHost` | `:platform:common:subcutaneous:adapterTest`, `:platform:server:host:adapterTest`, and the `:tests` modules' `subcutaneousTest` |
 
 Then `verifyArchitecture` and `validateTemplate`.
 

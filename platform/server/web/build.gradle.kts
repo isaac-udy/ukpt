@@ -8,6 +8,7 @@ dependencies {
     api(libs.ktor.serverCore)
     api(libs.ktor.serverHtmlBuilder)
     api(libs.ktor.serverSse)
+    api(libs.ktor.serverWebsockets)
     implementation(libs.ktor.serverStatusPages)
     implementation(libs.kotlinx.serialization)
 

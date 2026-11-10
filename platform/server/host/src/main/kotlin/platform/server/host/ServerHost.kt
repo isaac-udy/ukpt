@@ -8,22 +8,23 @@ import org.koin.ktor.ext.getKoin
 import org.koin.ktor.plugin.KoinApplicationStopPreparing
 import org.koin.ktor.plugin.KoinIsolated
 import platform.server.web.ContentSecurityPolicy
+import platform.server.web.ServerPlugin
 import platform.server.web.WebRoutes
 import platform.server.web.installWebPlatform
 
 /**
  * Serves every [WebRoutes] bound in [modules] from a Koin context owned by this [Application], so
- * several hosts can run in one process.
+ * several hosts can run in one process. Every bound [ServerPlugin] is installed first. The pages
+ * carry the bound [ContentSecurityPolicy], or the platform's default when none is bound.
  */
-fun Application.installServerHost(
-    modules: List<Module>,
-    contentSecurityPolicy: ContentSecurityPolicy = ContentSecurityPolicy(),
-) {
+fun Application.installServerHost(modules: List<Module>) {
     install(KoinIsolated) {
         modules(modules)
     }
     monitor.subscribe(KoinApplicationStopPreparing) { koinApplication ->
         koinApplication.koin.getOrNull<PgNotificationBus>()?.close()
     }
-    installWebPlatform(getKoin().getAll(), contentSecurityPolicy)
+    val koin = getKoin()
+    koin.getAll<ServerPlugin>().forEach { plugin -> with(plugin) { install() } }
+    installWebPlatform(koin.getAll(), koin.getOrNull<ContentSecurityPolicy>() ?: ContentSecurityPolicy())
 }
