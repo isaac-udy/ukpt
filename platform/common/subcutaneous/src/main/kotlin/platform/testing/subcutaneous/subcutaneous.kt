@@ -9,13 +9,14 @@ import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
+import org.koin.core.module.Module
 import org.koin.dsl.koinApplication
 import java.util.concurrent.Executors
 
 /**
- * Runs [block] against [graph]: the server graph in-process on Ktor's test engine over a fresh
- * clone of the migrated database, and the client graph calling it. [edges] replace bindings at
- * the system's edges. Everything is torn down when [block] returns or throws.
+ * Runs [block] against [graph]: the client graph, calling the graph's server when it has one,
+ * in-process over a fresh clone of the migrated database. [edges] replace bindings at the system's
+ * edges. Everything is torn down when [block] returns or throws.
  *
  * [block] runs on `Dispatchers.Main`, a dedicated thread, as ViewModel code does in the app.
  * Waits use real time: the server, the database and the transport do real I/O.
@@ -37,19 +38,34 @@ fun subcutaneous(
     }
 }
 
-private suspend fun run(graph: SubcutaneousGraph, edges: Edges, block: suspend SubcutaneousScope.() -> Unit) =
-    withRunningServer(graph.server, edges) { server, teardown ->
-        val clientKoin = koinApplication { modules(graph.client + server.clientEdges) }.koin
-        teardown { clientKoin.close() }
-
-        EnroTest.installNavigationController()
-        teardown {
-            NavigationResultChannel.pendingResults.value = emptyMap()
-            EnroTest.uninstallNavigationController()
+private suspend fun run(graph: SubcutaneousGraph, edges: Edges, block: suspend SubcutaneousScope.() -> Unit) {
+    val server = graph.server
+    if (server == null) {
+        require(!edges.hasServerBindings) { "edges = { server { … } } needs a test graph with a server. Bind a backend the project does not own with client { … }." }
+        withClient(graph.client + edges.clientModule(), running = null, block)
+    } else {
+        server.run(edges.serverModule()) { running ->
+            withClient(graph.client + running.clientModules + edges.clientModule(), running, block)
         }
-
-        val viewModels = ViewModelStore()
-        teardown { viewModels.clear() }
-
-        SubcutaneousScope(Scenario(server.koin) { clientKoin }, clientKoin, viewModels).block()
     }
+}
+
+private suspend fun withClient(
+    modules: List<Module>,
+    running: RunningServer?,
+    block: suspend SubcutaneousScope.() -> Unit,
+) = withTeardown { teardown ->
+    val clientKoin = koinApplication { modules(modules) }.koin
+    teardown { clientKoin.close() }
+
+    EnroTest.installNavigationController()
+    teardown {
+        NavigationResultChannel.pendingResults.value = emptyMap()
+        EnroTest.uninstallNavigationController()
+    }
+
+    val viewModels = ViewModelStore()
+    teardown { viewModels.clear() }
+
+    SubcutaneousScope(Scenario(running?.koin) { clientKoin }, clientKoin, viewModels, running?.services).block()
+}

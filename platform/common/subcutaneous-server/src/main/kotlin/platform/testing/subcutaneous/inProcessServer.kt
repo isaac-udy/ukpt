@@ -1,6 +1,7 @@
 package platform.testing.subcutaneous
 
 import dev.isaacudy.udytils.postgres.PostgresConfig
+import dev.isaacudy.udytils.urpc.UrpcClientFactory
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.server.testing.TestApplication
 import kotlinx.coroutines.runBlocking
@@ -16,6 +17,7 @@ import platform.network.ServerEndpointConfig
 import platform.server.host.ServerHostConfig
 import platform.server.host.installServerHost
 import javax.sql.DataSource
+import kotlin.reflect.KClass
 
 /**
  * Runs [block] with [server]'s graph in-process on Ktor's test engine over a fresh clone of the
@@ -30,35 +32,31 @@ fun inProcessServer(
     edges: Edges.() -> Unit = {},
     block: suspend InProcessServerScope.() -> Unit,
 ) = runBlocking {
-    withRunningServer(server, Edges().apply(edges)) { running, teardown ->
-        teardown { stopKoin() }
-        val clientKoin = {
-            KoinPlatform.getKoinOrNull() ?: error("client<T>() needs the client graph. Start the application's KoinApplication first.")
+    val applied = Edges().apply(edges)
+    InProcessServer(server).run(applied.serverModule()) { running ->
+        withTeardown { teardown ->
+            teardown { stopKoin() }
+            val clientKoin = {
+                KoinPlatform.getKoinOrNull() ?: error("client<T>() needs the client graph. Start the application's KoinApplication first.")
+            }
+            InProcessServerScope(Scenario(running.koin, clientKoin), running.clientModules + applied.clientModule()).block()
         }
-        InProcessServerScope(Scenario(running.koin, clientKoin), running.clientEdges).block()
     }
 }
 
-internal class RunningServer(
-    val koin: Koin,
-    val clientEdges: List<Module>,
-)
+/** [modules] installed in Ktor's test engine against a fresh clone of the migrated database. */
+internal class InProcessServer(
+    private val modules: (PostgresConfig) -> List<Module>,
+) : SubcutaneousServer {
 
-/** Starts [server] against a cloned database, runs [block], then runs every teardown step. */
-internal suspend fun withRunningServer(
-    server: (PostgresConfig) -> List<Module>,
-    edges: Edges,
-    block: suspend (RunningServer, Teardown) -> Unit,
-) {
-    val teardown = Teardown()
-    try {
+    override suspend fun run(edges: Module, block: suspend (RunningServer) -> Unit) = withTeardown { teardown ->
         val database = TestDatabases.clone()
         teardown { database.close() }
 
         lateinit var serverKoin: Koin
         val application = TestApplication {
             application {
-                installServerHost(server(database.config) + edges.serverModule())
+                installServerHost(modules(database.config) + edges)
                 serverKoin = getKoin()
             }
         }
@@ -76,31 +74,15 @@ internal suspend fun withRunningServer(
             single<HttpClientEngine> { application.client.engine }
             single { ServerEndpointConfig(baseUrl = "http://localhost$urpcRootPath") }
         }
-        block(RunningServer(serverKoin, listOf(transport, edges.clientModule())), teardown)
-    } catch (failure: Throwable) {
-        teardown.runAll(failure)
-        throw failure
+        block(RunningServer(serverKoin, listOf(transport), ::urpcClient))
     }
-    teardown.runAll(null)
 }
 
-/** Runs the registered steps in reverse; a step's failure never skips the steps after it. */
-internal class Teardown {
-    private val steps = ArrayDeque<suspend () -> Unit>()
-
-    operator fun invoke(step: suspend () -> Unit) {
-        steps.addFirst(step)
+/** The generated urpc client of [service], built from the client graph's [UrpcClientFactory]. */
+private fun urpcClient(clientKoin: Koin, service: KClass<*>): Any {
+    val clientClass = runCatching { Class.forName("${service.java.name}UrpcClient") }.getOrElse {
+        throw IllegalArgumentException("${service.qualifiedName} has no generated urpc client. Annotate the interface with @Urpc.", it)
     }
-
-    suspend fun runAll(primary: Throwable?) {
-        var failure = primary
-        while (steps.isNotEmpty()) {
-            try {
-                steps.removeFirst().invoke()
-            } catch (error: Throwable) {
-                if (failure == null) failure = error else failure.addSuppressed(error)
-            }
-        }
-        if (primary == null && failure != null) throw failure
-    }
+    val constructor = clientClass.getDeclaredConstructor(UrpcClientFactory::class.java).apply { isAccessible = true }
+    return constructor.newInstance(clientKoin.get<UrpcClientFactory>())
 }

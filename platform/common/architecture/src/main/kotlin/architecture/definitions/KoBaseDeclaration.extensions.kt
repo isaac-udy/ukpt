@@ -131,14 +131,33 @@ fun KoBaseDeclaration.featureName(): String {
     return fromFile.takeIf { it == fromPackage }.orEmpty()
 }
 
+/**
+ * The feature a module path names: the directory segments between `/feature/` and the
+ * `api`/`client`/`server`/`tests` submodule directory, dot-joined. `feature/camera/client` names `camera`;
+ * a **grouped** feature carries its group, so `feature/capture/insta/client` names `capture.insta`
+ * — `:feature:capture:insta` and `:feature:capture:device-camera` are two features, not two halves
+ * of one.
+ *
+ * Dashes are dropped so the result reads as the package it corresponds to: a directory may be
+ * kebab-case where a package segment may not, so `feature/capture/device-camera` names
+ * `capture.devicecamera`, which is what `feature.capture.devicecamera.**` declares.
+ */
 fun KoBaseDeclaration.featureNameFromContainingFile(): String {
     val path = containingFilePath()
     val beforeSrc = path.substringBeforeLast("/src/")
-    val feature = beforeSrc.substringAfterLast("/feature/")
-    return feature.substringBefore("/")
-        .takeIf { it.isNotBlank() }
-        .orEmpty()
+    if (!beforeSrc.contains("/feature/")) return ""
+    val segments = beforeSrc.substringAfterLast("/feature/")
+        .split("/")
+        .filter { it.isNotBlank() }
+    val nameSegments = when (segments.lastOrNull().orEmpty()) {
+        in featureSubmoduleDirectories -> segments.dropLast(1)
+        else -> segments
+    }
+    return nameSegments.joinToString(".") { it.replace("-", "") }
 }
+
+/** The submodule directories that terminate a feature's own name in a module path. */
+private val featureSubmoduleDirectories = setOf("api", "client", "server", "tests")
 
 fun KoBaseDeclaration.featureNameFromContainingPackage(): String {
     if (!isFeatureModule()) return "<not a feature module>"
@@ -149,14 +168,33 @@ fun KoImportDeclaration.featureNameFromImportName(): String {
     return featureNameFromRawPackage(name)
 }
 
+/** The taxonomy's two sides. A feature's name is whatever precedes one of these. */
+internal val featureSideSegments = setOf("client", "server")
+
 /**
- * The feature a package belongs to: the first segment after `feature.`. Everything deeper — a side,
- * a layer, a sub-package — is internal structure of that same feature, so
- * `feature.entities` and `feature.entities.client.data` both name the feature `entities`.
+ * The feature a package — or an imported name — belongs to: the segments between `feature.` and the
+ * first side segment or type name. Everything deeper — a side, a layer, a sub-package — is internal
+ * structure of that same feature, so `feature.entities` and `feature.entities.client.data` both name
+ * the feature `entities`.
+ *
+ * The name is however many segments precede the side rather than exactly one, because a **grouped**
+ * feature nests its packages under the group: `feature.capture.insta.client.ui` names the feature
+ * `capture.insta`, not `capture`. Two slices of one group are two features, and every cross-feature
+ * rule compares them as such.
+ *
+ * A type segment ends the name as a side does, so an import of a root declaration
+ * (`feature.projects.Project`) names the same feature as the package that declares it.
  */
-private fun featureNameFromRawPackage(
+internal fun featureNameFromRawPackage(
     pkg: String
-): String = pkg.substringAfter("feature.").substringBefore(".")
+): String {
+    if (!pkg.startsWith("feature.")) return pkg.substringBefore(".")
+    val segments = pkg.removePrefix("feature.").split(".")
+    return segments
+        .takeWhile { it !in featureSideSegments && it.firstOrNull()?.isUpperCase() != true }
+        .joinToString(".")
+        .ifEmpty { segments.first() }
+}
 
 fun KoBaseDeclaration.isKotlinxSerializable(): Boolean {
     return when (this) {
@@ -280,20 +318,44 @@ fun KoBaseDeclaration.isMutable(): Boolean {
 
 
 // ---- the feature taxonomy (see platform/common/architecture/README.md) --------------------------
-// A feature package is `feature.<name>[.<side>.<layer>[.<sub>]]`. The feature root is the two-segment
-// form and holds the shared wire vocabulary; everything deeper is side-private.
+// A feature package is `feature.<name>[.<side>.<layer>[.<sub>]]`, where `<name>` spans as many
+// segments as the feature's module path does — one for `:feature:camera`, two for the grouped
+// `:feature:capture:insta`. The feature root is the name itself and holds the shared wire
+// vocabulary; everything deeper is side-private.
 
-/** `feature.campaigns` → true; `feature.campaigns.client.ui` → false. */
+/**
+ * The feature name this declaration's package begins with, bounded by the module path wherever the
+ * two agree.
+ *
+ * The package alone cannot say how many segments a name spans — `feature.capture.insta` is either
+ * the grouped feature `capture.insta` or an `insta` sub-package of `capture` — and the module path
+ * can: `:feature:capture:insta` names two segments and `:feature:capture` one. Where the package
+ * doesn't sit under the module's own feature at all, which is what several features staged in one
+ * `:feature:core` look like, the name is read off the package.
+ */
+fun KoBaseDeclaration.featureNameOfPackage(): String {
+    val pkg = containingFilePackage()
+    val moduleFeature = featureNameFromContainingFile()
+    return moduleFeature
+        .takeIf { it.isNotBlank() && (pkg == "feature.$it" || pkg.startsWith("feature.$it.")) }
+        ?: featureNameFromRawPackage(pkg)
+}
+
+/** `feature.campaigns` → true; `feature.campaigns.client.ui` → false; `feature.capture.insta` → true. */
 fun KoBaseDeclaration.isFeatureRootPackage(): Boolean {
     val pkg = containingFilePackage()
     if (!pkg.startsWith("feature.")) return false
-    return !pkg.removePrefix("feature.").contains('.')
+    return pkg == "feature.${featureNameOfPackage()}"
 }
 
 /** "client" / "server" for a side package; null for the feature root. */
 fun KoBaseDeclaration.featureSide(): String? {
-    val segments = containingFilePackage().removePrefix("feature.").split('.')
-    return segments.getOrNull(1)?.takeIf { it == "client" || it == "server" }
+    val pkg = containingFilePackage()
+    if (!pkg.startsWith("feature.")) return null
+    val nameDepth = featureNameOfPackage().split(".").size
+    return pkg.removePrefix("feature.").split('.')
+        .getOrNull(nameDepth)
+        ?.takeIf { it in featureSideSegments }
 }
 
 /** True once this declaration's package carries a `client.`/`server.` segment. */
@@ -336,7 +398,10 @@ fun KoBaseDeclaration.isInServerDataStoragePackage(): Boolean =
 // Exactly the flat package, no descendants: one flat surface is what gives a table one owning
 // StorageClass, so a declaration in a package nested under `storage` classifies as nothing and
 // the exhaustiveness rule reports it.
-private val serverDataStoragePackageRegex = Regex("""^feature\.[^.]+\.server\.data\.storage$""")
+// The feature name is lazy so it stops at the feature's own `server` segment however many segments
+// it spans — `feature.capture.insta.server.data.storage` is one flat surface, same as a flat
+// feature's.
+private val serverDataStoragePackageRegex = Regex("""^feature\..+?\.server\.data\.storage$""")
 
 /**
  * True when a `@Serializable` declaration's discriminator is written into a payload — i.e. it is

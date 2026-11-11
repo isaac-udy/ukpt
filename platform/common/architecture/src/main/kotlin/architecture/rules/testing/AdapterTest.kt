@@ -8,7 +8,10 @@ import dev.isaacudy.udytils.architecture.*
     edge cases. `TransactionRunnerTest` runs against an embedded Postgres.
 
     A client's adapters are the device's files, audio, sensors and document renderers, checked from
-    a platform test source set (`jvmTest`, `iosSimulatorArm64Test`, …) of the module that owns them.
+    a platform test source set (`jvmTest`, `iosSimulatorArm64Test`, `androidHostTest`, …) of the
+    module that owns them. An Android adapter in `androidMain` is checked from `androidHostTest`,
+    the only host test set that compiles against it; it runs with that source set's test task, so
+    `snapshotTest` runs it, not `adapterTest`.
 """)
 object AdapterTest : Construct<Testing>(
     requirements = listOf(isClass, isAnnotatedWith("AdapterTest")),
@@ -20,10 +23,10 @@ object AdapterTest : Construct<Testing>(
             placement("a server module's `src/test/`, or a client module's platform test source set") { decl ->
                 val module = decl.moduleDirectory()
                 val sourceSet = decl.sourceSet()
-                val serverModule = "/platform/server/" in module || Regex("/feature/[^/]+/server$").containsMatchIn(module)
-                val clientModule = "/platform/client/" in module || Regex("/feature/[^/]+/client$").containsMatchIn(module)
+                val serverModule = "/platform/server/" in module || FEATURE_SERVER_MODULE.containsMatchIn(module)
+                val clientModule = "/platform/client/" in module || FEATURE_CLIENT_MODULE.containsMatchIn(module)
                 (serverModule && sourceSet == "test") ||
-                    (clientModule && sourceSet.endsWith("Test") && sourceSet !in setOf("commonTest", "androidHostTest"))
+                    (clientModule && sourceSet.endsWith("Test") && sourceSet != "commonTest")
             },
         )
     }
@@ -34,3 +37,6 @@ object AdapterTest : Construct<Testing>(
         audit { decl, _ -> listOf(Violation(decl, "Adapter Test: confirm a Subcutaneous Test cannot cover this behaviour")) }
     }
 }
+
+private val FEATURE_SERVER_MODULE = Regex("/feature/(?:[^/]+/)+server$")
+private val FEATURE_CLIENT_MODULE = Regex("/feature/(?:[^/]+/)+client$")

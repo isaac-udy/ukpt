@@ -6,6 +6,7 @@ import architecture.definitions.containingFilePackage
 import architecture.definitions.containingFilePath
 import architecture.definitions.featureLayerPath
 import architecture.definitions.featureName
+import architecture.definitions.featureNameOfPackage
 import architecture.definitions.isApiModule
 import architecture.definitions.isClientModule
 import architecture.definitions.isFeatureModule
@@ -163,8 +164,9 @@ object ModuleRules : RuleGroup() {
             code, so the module-graph rules and the package rules stop describing the same boundary.
             """.trimIndent(),
         )
-        note("The feature root — `feature.[name]`, two segments — is allowed in every module: it is the shared vocabulary in `:api` and the feature's DI module in `:client`/`:server`.")
+        note("The feature root — `feature.[name]`, the package the name itself ends at — is allowed in every module: it is the shared vocabulary in `:api` and the feature's DI module in `:client`/`:server`.")
         note("`:api` may declare both client and server packages, because publishing a client or server type is what the module is for.")
+        note("A grouped feature's name spans its group, so the side is the segment after the whole name: `:feature:capture:insta:client` declares `feature.capture.insta.client.**`. A package segment can't be kebab-case, so a hyphenated directory drops its dashes — `:feature:capture:device-camera` declares `feature.capture.devicecamera.**`.")
         note("`platform.**` packages inside a feature module are platform code that has not been lifted into its own module yet; the platform rules govern them, so they are out of scope here.")
         scope { scope, exempt ->
             scope.files
@@ -173,7 +175,11 @@ object ModuleRules : RuleGroup() {
                 .mapNotNull { file ->
                     val pkg = file.packagee?.name.orEmpty()
                     if (!pkg.startsWith("feature.")) return@mapNotNull null
-                    val withinFeature = pkg.removePrefix("feature.").substringAfter('.', missingDelimiterValue = "")
+                    // The side is the segment right after the feature's whole name, and the module
+                    // path is what settles how many segments that name spans.
+                    val withinFeature = pkg
+                        .removePrefix("feature.${file.featureNameOfPackage()}")
+                        .removePrefix(".")
                     if (withinFeature.isEmpty()) return@mapNotNull null // the feature root, allowed everywhere
                     val declaredSide = withinFeature.substringBefore('.')
                     val (module, allowedSides) = when {
@@ -435,6 +441,8 @@ object ModuleRules : RuleGroup() {
     @Describe("A `:feature` module may be grouped (`:feature:[group]:[name]:…`)")
     val featuresMayBeGrouped by guidance {
         note("A module that serves as a group should exist only as a group, and should not itself contain `:api`, `:server` or `:client` modules.")
+        note("The group is part of every nested feature's name, and its packages nest with it: `:feature:capture:insta:client` declares `feature.capture.insta.client.**`, and `:feature:capture:device-camera:client` declares `feature.capture.devicecamera.client.**` — a package segment can't be kebab-case, so the directory's dashes are dropped.")
+        note("Grouping is naming, not kinship: two features in one group are two features, reaching each other through `:api` like any other pair (`ModuleRules.crossFeatureCodeViaApi`), and each edge between them counts towards `ModuleRules.apiGraphAcyclic`.")
         auditModuleGraph { graph, _ ->
             val featureParents = graph.edges
                 .flatMap { listOf(it.from, it.to) }
@@ -465,7 +473,7 @@ object ModuleRules : RuleGroup() {
         }
     }
 
-    @Describe("A test-support module (`:platform:common:testing`, `:platform:common:subcutaneous`, `:platform:common:robots`, a `:feature:[name]:tests` module) may only be a test dependency, or a dependency of another test-support module")
+    @Describe("A test-support module (`:platform:common:testing`, `:platform:common:subcutaneous`, `:platform:common:subcutaneous-server`, `:platform:common:robots`, a `:feature:[name]:tests` module) may only be a test dependency, or a dependency of another test-support module")
     val testSupportOnlyFromTests by rule {
         rationale("Test-support code on a production classpath ships test categories, fakes, and an embedded database to users.")
         note("A test dependency is one declared in a test source set block (`commonTest.dependencies { }`) or with a test configuration (`testImplementation`).")
@@ -506,8 +514,13 @@ object ModuleRules : RuleGroup() {
 private fun isApp(path: String) = path.startsWith(":app:") || path == ":app"
 private fun isFeature(path: String) = path.startsWith(":feature:") || path == ":feature"
 private fun isPlatform(path: String) = path.startsWith(":platform:") || path == ":platform"
-private val TESTS_MODULE = Regex("^:feature:[^:]+:tests$")
-private val TEST_SUPPORT_MODULES = setOf(":platform:common:testing", ":platform:common:subcutaneous", ":platform:common:robots")
+private val TESTS_MODULE = Regex("^:feature:(?:[^:]+:)+tests$")
+private val TEST_SUPPORT_MODULES = setOf(
+    ":platform:common:testing",
+    ":platform:common:subcutaneous",
+    ":platform:common:subcutaneous-server",
+    ":platform:common:robots",
+)
 private fun isTestSupport(path: String) = path in TEST_SUPPORT_MODULES || TESTS_MODULE.matches(path)
 
 /** `:feature:core:server` → "server"; null if [path] isn't a `:feature:…:{api,client,server}` module. */

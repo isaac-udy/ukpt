@@ -17,7 +17,13 @@ data class FeatureLayerPath(
         feature == other.feature && side == other.side
 }
 
-private val sideFirstPackageRegex = Regex("""^feature\.([^.]+)\.(client|server)\.([^.]+)(?:\.(.+))?$""")
+/**
+ * The feature group is lazy — `(.+?)` rather than `([^.]+)` — so it spans a grouped feature's whole
+ * name and stops at the first side segment: `feature.capture.insta.client.ui` reads as the feature
+ * `capture.insta`, side `client`, layer `ui`. A single-segment name matches the shortest expansion
+ * and is unaffected.
+ */
+private val sideFirstPackageRegex = Regex("""^feature\.(.+?)\.(client|server)\.([^.]+)(?:\.(.+))?$""")
 
 /**
  * The coordinates of [packageName], or null when it names no side-first feature layer: a feature

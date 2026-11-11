@@ -292,7 +292,9 @@ The configuration for Dependency Injection (DI) that wires the feature together.
 
 * **Note:** The naming convention is `[name]ClientDependencies` in `:client` and
   `[name]ServerDependencies` in `:server`. The Construct enforces the `Dependencies` suffix;
-  the `Client`/`Server` infix is convention.
+  the `Client`/`Server` infix is convention. `[name]` is the feature's whole name, so a grouped
+  feature carries its group: `:feature:capture:device-camera:client` names
+  `captureDeviceCameraClientDependencies`.
 * **Note:** The `:app` modules (application shells) are responsible for collecting the DI
   modules provided by feature modules into the final dependency graph. A `:client` dependency
   module is registered in every client shell's `ClientDependencies.kt` (`:app:client:common`
