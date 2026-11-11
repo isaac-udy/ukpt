@@ -6,7 +6,6 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.viewmodel.CreationExtras
 import dev.enro.NavigationKey
 import dev.enro.test.putNavigationHandleForViewModel
-import dev.isaacudy.udytils.urpc.UrpcClientFactory
 import org.koin.core.Koin
 import kotlin.reflect.KClass
 
@@ -15,10 +14,11 @@ class SubcutaneousScope internal constructor(
     private val scenario: Scenario,
     @PublishedApi internal val clientKoin: Koin,
     private val viewModels: ViewModelStore,
+    private val services: ((Koin, KClass<*>) -> Any)?,
 ) {
     private var opened = 0
 
-    /** Runs a scenario against the running server; before the first ViewModel opens or mid-test. */
+    /** Runs a scenario: before the first ViewModel opens or mid-test. */
     suspend fun <T> given(block: suspend Scenario.() -> T): T = scenario.block()
 
     /** Opens [key]'s ViewModel from the client graph, with a test navigation handle for [key]. */
@@ -34,7 +34,7 @@ class SubcutaneousScope internal constructor(
         return Screen(createViewModel(VM::class), navigation)
     }
 
-    /** The `@Urpc` service [S], called through the client transport against the in-process server. */
+    /** The server's service [S], called through the client transport against the in-process server. */
     inline fun <reified S : Any> service(): S = service(S::class)
 
     @PublishedApi
@@ -47,10 +47,7 @@ class SubcutaneousScope internal constructor(
 
     @PublishedApi
     internal fun <S : Any> service(type: KClass<S>): S {
-        val clientClass = runCatching { Class.forName("${type.java.name}UrpcClient") }.getOrElse {
-            throw IllegalArgumentException("${type.qualifiedName} has no generated urpc client. Annotate the interface with @Urpc.", it)
-        }
-        val constructor = clientClass.getDeclaredConstructor(UrpcClientFactory::class.java).apply { isAccessible = true }
-        return type.java.cast(constructor.newInstance(clientKoin.get<UrpcClientFactory>()))
+        val build = services ?: error("service<${type.simpleName}>() needs a test graph with a server.")
+        return type.java.cast(build(clientKoin, type))
     }
 }

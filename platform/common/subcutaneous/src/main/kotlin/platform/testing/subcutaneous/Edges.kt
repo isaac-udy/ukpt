@@ -7,7 +7,7 @@ import org.koin.dsl.module
  * Bindings that replace production ones at the edges of the system: a backend the project does
  * not own, a clock. Loaded after the graph, so a binding here overrides the production one.
  */
-class Edges internal constructor() {
+class Edges {
     private val serverBlocks = mutableListOf<Module.() -> Unit>()
     private val clientBlocks = mutableListOf<Module.() -> Unit>()
 
@@ -19,7 +19,9 @@ class Edges internal constructor() {
         clientBlocks += block
     }
 
-    internal fun serverModule(): Module = module { serverBlocks.forEach { it() } }
+    val hasServerBindings: Boolean get() = serverBlocks.isNotEmpty()
 
-    internal fun clientModule(): Module = module { clientBlocks.forEach { it() } }
+    fun serverModule(): Module = module { serverBlocks.forEach { it() } }
+
+    fun clientModule(): Module = module { clientBlocks.forEach { it() } }
 }

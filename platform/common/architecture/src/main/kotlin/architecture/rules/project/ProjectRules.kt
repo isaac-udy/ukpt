@@ -579,8 +579,11 @@ private fun packageResolver(scope: KoScope): (String) -> String? {
     }
 }
 
-/** A side-first name as it appears in a file body, where there is no import to inspect. */
-private val sideFirstReferenceRegex = Regex("""feature\.\w+\.(?:client|server)\.[\w.]+""")
+/**
+ * A side-first name as it appears in a file body, where there is no import to inspect. The feature
+ * name matches lazily across segments so a grouped feature's whole name is consumed before the side.
+ */
+private val sideFirstReferenceRegex = Regex("""feature\.\w+(?:\.\w+)*?\.(?:client|server)\.[\w.]+""")
 
 /** Every project declaration a file names — import or fully-qualified body reference — and its package. */
 private fun KoFileDeclaration.namedPackages(resolve: (String) -> String?): List<Pair<String, String>> {

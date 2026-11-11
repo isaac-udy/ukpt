@@ -21,6 +21,15 @@ internal val isSubcutaneousGraph = isPropertyWhere("is a top-level property init
     `featureClient` adds the network modules and `featureServer` the Postgres modules. A test
     replaces a binding at the system's edges (a backend the project does not own, a clock) with
     `subcutaneous(graph, edges = { server { … } })`, not in the graph.
+
+    A project with no server of its own lists only client modules, including the `:platform`
+    module that builds its HTTP client, and fakes the backend at the client edge:
+
+    ```kotlin
+    val projectsTestGraph = SubcutaneousGraph(
+        client = listOf(networkDependencies, projectsClientDependencies),
+    )
+    ```
 """)
 object TestGraph : Construct<Testing>(
     requirements = listOf(isSubcutaneousGraph),
@@ -55,4 +64,4 @@ object TestGraph : Construct<Testing>(
     }
 }
 
-private val TESTS_MODULE = Regex("""/feature/[^/]+/tests/src/""")
+private val TESTS_MODULE = Regex("""/feature/(?:[^/]+/)+tests/src/""")

@@ -239,7 +239,10 @@ for behaviour a Subcutaneous Test reaches poorly: transaction semantics, concurr
 edge cases. `TransactionRunnerTest` runs against an embedded Postgres.
 
 A client's adapters are the device's files, audio, sensors and document renderers, checked from
-a platform test source set (`jvmTest`, `iosSimulatorArm64Test`, …) of the module that owns them.
+a platform test source set (`jvmTest`, `iosSimulatorArm64Test`, `androidHostTest`, …) of the
+module that owns them. An Android adapter in `androidMain` is checked from `androidHostTest`,
+the only host test set that compiles against it; it runs with that source set's test task, so
+`snapshotTest` runs it, not `adapterTest`.
 
 ##### Requirements
 
@@ -408,6 +411,15 @@ val ukptTestGraph = SubcutaneousGraph(
 `featureClient` adds the network modules and `featureServer` the Postgres modules. A test
 replaces a binding at the system's edges (a backend the project does not own, a clock) with
 `subcutaneous(graph, edges = { server { … } })`, not in the graph.
+
+A project with no server of its own lists only client modules, including the `:platform`
+module that builds its HTTP client, and fakes the backend at the client edge:
+
+```kotlin
+val projectsTestGraph = SubcutaneousGraph(
+    client = listOf(networkDependencies, projectsClientDependencies),
+)
+```
 
 ##### Requirements
 

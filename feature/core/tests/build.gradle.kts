@@ -3,7 +3,7 @@ plugins {
 }
 
 dependencies {
-    api(projects.platform.common.subcutaneous)
+    api(projects.platform.common.subcutaneousServer)
     api(projects.platform.common.robots)
     implementation(projects.feature.core.client)
     implementation(projects.feature.core.server)

@@ -57,8 +57,9 @@ Kotlin source. Build-file exemptions use the `// architecture-exception:` commen
     * **Note:** The one sanctioned cross-feature namespace is shared UI: `feature.common.client.ui` holds composite Compose components several features render, which can't live in Compose-free `:api`. It is UI-only — nothing outside `..common.client.ui..` is shareable this way. That carve-out answers a cross-*feature* question and is not the subsystem question: a subsystem package groups one feature's own code and is never shared at all (`ModuleRules.subsystemsNotPublished`).
 * A file in a `:client` module must declare a `client` package, a file in a `:server` module a `server` package, and an `:api` module may declare either
     * **Why:** A declaration's package says what it is; the module it lives in says who may see it. When the two agree, the path gives the visibility and the package gives the layer, and publishing a type is moving one file rather than renaming it everywhere. When they disagree neither reading holds: a package with no side segment could be client or server code, so the module-graph rules and the package rules stop describing the same boundary.
-    * **Note:** The feature root — `feature.[name]`, two segments — is allowed in every module: it is the shared vocabulary in `:api` and the feature's DI module in `:client`/`:server`.
+    * **Note:** The feature root — `feature.[name]`, the package the name itself ends at — is allowed in every module: it is the shared vocabulary in `:api` and the feature's DI module in `:client`/`:server`.
     * **Note:** `:api` may declare both client and server packages, because publishing a client or server type is what the module is for.
+    * **Note:** A grouped feature's name spans its group, so the side is the segment after the whole name: `:feature:capture:insta:client` declares `feature.capture.insta.client.**`. A package segment can't be kebab-case, so a hyphenated directory drops its dashes — `:feature:capture:device-camera` declares `feature.capture.devicecamera.**`.
     * **Note:** `platform.**` packages inside a feature module are platform code that has not been lifted into its own module yet; the platform rules govern them, so they are out of scope here.
 * A declaration in a layer's subsystem package must reside in a `:client` or `:server` module
     * **Why:** Publishing is moving a file between modules without changing its package, so a published subsystem declaration would put `feature.shop.client.domain.checkout` in `:api` and make another feature's compiler aware of one feature's internal decomposition. A subsystem exists because nothing outside the feature depends on it.  When another feature does need what a subsystem computes, the capability is restated as a layer-root contract that the subsystem satisfies. That costs one declaration and makes publication the visible act `:api` placement is meant to be.
@@ -78,7 +79,7 @@ Kotlin source. Build-file exemptions use the `// architecture-exception:` commen
     * **Note:** To keep a deliberate edge, annotate the `:api` source file holding the import with `@file:ArchitectureException(ruleIds = ["ModuleRules.apiGraphAcyclic"], reason = "…")`; its edges are then excluded from the graph.
 * A `:platform` module must never depend on an `:app` module
 * A `:platform` module must never depend on a `:feature` module
-* A test-support module (`:platform:common:testing`, `:platform:common:subcutaneous`, `:platform:common:robots`, a `:feature:[name]:tests` module) may only be a test dependency, or a dependency of another test-support module
+* A test-support module (`:platform:common:testing`, `:platform:common:subcutaneous`, `:platform:common:subcutaneous-server`, `:platform:common:robots`, a `:feature:[name]:tests` module) may only be a test dependency, or a dependency of another test-support module
     * **Why:** Test-support code on a production classpath ships test categories, fakes, and an embedded database to users.
     * **Note:** A test dependency is one declared in a test source set block (`commonTest.dependencies { }`) or with a test configuration (`testImplementation`).
 * A `:feature:[name]:tests` module must depend on its feature's `:client` and `:server` modules; it may depend on other `:feature` and `:platform` modules
@@ -98,6 +99,8 @@ Kotlin source. Build-file exemptions use the `// architecture-exception:` commen
     * **Audited:** a test reports non-conforming code without ever failing.
 * A `:feature` module may be grouped (`:feature:[group]:[name]:…`)
     * **Note:** A module that serves as a group should exist only as a group, and should not itself contain `:api`, `:server` or `:client` modules.
+    * **Note:** The group is part of every nested feature's name, and its packages nest with it: `:feature:capture:insta:client` declares `feature.capture.insta.client.**`, and `:feature:capture:device-camera:client` declares `feature.capture.devicecamera.client.**` — a package segment can't be kebab-case, so the directory's dashes are dropped.
+    * **Note:** Grouping is naming, not kinship: two features in one group are two features, reaching each other through `:api` like any other pair (`ModuleRules.crossFeatureCodeViaApi`), and each edge between them counts towards `ModuleRules.apiGraphAcyclic`.
     * **Audited:** a test reports non-conforming code without ever failing.
 * A `:platform` module may depend on other `:platform` modules
     * **Note:** `:platform` to `:platform` dependencies are allowed, but should be kept to a minimum.

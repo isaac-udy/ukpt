@@ -27,7 +27,7 @@ the test may use besides the code under test; the `Testing` rules check it
 | `@ComponentTest` | A `[Name]ScreenContent` with fixed state, driven through its robot; a Compose HTML `[Name]HtmlScreenContent`; or a shared primitive, navigation container or app-shell composable | the `:client` module's `src/jvmTest/` (Compose UI) or `src/jsTest/` (HTML); shared UI in its own `:platform:client:*` or `:app:client:common` module |
 | `@SnapshotTest` | The module's one `PreviewSnapshotTest` | `src/androidHostTest/` |
 | `@WiringTest` | An app shell's Koin graph (`verify()`) | the `:app` module's test set |
-| `@AdapterTest` | One adapter against real infrastructure, where a Subcutaneous Test reaches poorly: a server adapter, or a client's device files, sensors or renderers | a server module's `src/test/`; a client module's platform test set (`jvmTest`, `iosSimulatorArm64Test`, …) |
+| `@AdapterTest` | One adapter against real infrastructure, where a Subcutaneous Test reaches poorly: a server adapter, or a client's device files, sensors or renderers | a server module's `src/test/`; a client module's platform test set (`jvmTest`, `iosSimulatorArm64Test`, …); `androidHostTest` for an adapter in `androidMain`, which `snapshotTest` runs |
 | `@CheckTest` | Two committed files that must agree (CSS tokens, doc images) | a JVM test set |
 | `@EndToEndTest` | A journey through the desktop app's UI | `:app:client:desktop`, `src/test/` |
 
@@ -119,10 +119,13 @@ A `:client` module's `jvmTest` depends on its own `:tests` module for the robots
 
 ## Subcutaneous tests
 
-The harness is `:platform:common:subcutaneous` (package `platform.testing.subcutaneous`). A
-feature's `:feature:<name>:tests` module applies `ukpt.feature-tests` and depends on the harness
-and the feature's `:client` and `:server` (`ukpt-feature-slice` scaffolds it). Its `src/main` holds
-the test graph and the scenarios; its `src/test` holds the tests.
+The harness is `:platform:common:subcutaneous-server` (package `platform.testing.subcutaneous`),
+which runs the server in-process, over `:platform:common:subcutaneous`, which builds the client
+graph. A feature's `:feature:<name>:tests` module applies `ukpt.feature-tests` and depends on the
+harness and the feature's `:client` and `:server` (`ukpt-feature-slice` scaffolds it). Its
+`src/main` holds the test graph and the scenarios; its `src/test` holds the tests. A project
+without a server of its own depends on `:platform:common:subcutaneous` alone: see "Without a
+server" below.
 
 **Graph.** One `SubcutaneousGraph` per `:tests` module, production modules only:
 
@@ -199,11 +202,43 @@ fun Edges.temporaryAppFiles() {
 }
 ```
 
+**Without a server.** A project whose backend it does not own (a third-party REST API) has no
+`:server` modules and no `:platform:common:subcutaneous-server`. Its `:tests` module depends on
+`:platform:common:subcutaneous` and the feature's `:client`. The graph lists client modules only,
+including the `:platform` module that builds the HTTP client:
+
+```kotlin
+val projectsTestGraph = SubcutaneousGraph(
+    client = listOf(networkDependencies, projectsClientDependencies),
+)
+```
+
+The backend is an edge. A `Fake[Name]Backend` in `src/main` holds the records a test seeds and
+answers the client's requests through a Ktor `MockEngine`. An `Edges` extension beside it binds
+the fake and the engine, so the test files import neither Ktor nor Koin
+(`Testing.SubcutaneousTest.noInfrastructureImports`):
+
+```kotlin
+fun Edges.fakeBackend() {
+    client {
+        single { FakeProjectsBackend() }
+        single<HttpClientEngine> { get<FakeProjectsBackend>().engine }
+    }
+}
+
+suspend fun Scenario.projects(vararg names: String): List<Project> =
+    client<FakeProjectsBackend>().addProjects(*names)
+```
+
+`subcutaneous(projectsTestGraph, edges = { fakeBackend() }) { … }` then runs the production client
+graph against it. `server<T>()`, `service<S>()` and `edges = { server { … } }` need a graph with a
+server and fail without one.
+
 **Coverage.** `./gradlew subcutaneousCoverage` writes the feature modules' coverage by Subcutaneous
 Tests alone to `build/reports/kover/html/index.html` and `build/reports/kover/report.xml`. Only the
 `:tests` modules' `subcutaneousTest` tasks are instrumented. It is advisory: there are no bounds.
 
-**Memory.** Each test JVM starts one embedded Postgres; `ukpt.feature-tests` runs one test JVM at a
+**Memory.** Each test JVM with a server starts one embedded Postgres; `ukpt.feature-tests` runs one test JVM at a
 time with a 1 GB heap. The first test in a JVM takes about 3 s (Postgres start and migration), the
 rest under 1 s.
 
