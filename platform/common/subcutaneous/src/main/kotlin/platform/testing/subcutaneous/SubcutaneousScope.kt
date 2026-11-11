@@ -22,8 +22,15 @@ class SubcutaneousScope internal constructor(
     suspend fun <T> given(block: suspend Scenario.() -> T): T = scenario.block()
 
     /** Opens [key]'s ViewModel from the client graph, with a test navigation handle for [key]. */
-    inline fun <reified VM : ViewModel, K : NavigationKey> viewModel(key: K): Screen<VM, K> {
+    inline fun <reified VM : ViewModel, K : NavigationKey> viewModel(key: K): Screen<VM, K> = viewModel<VM, K>(key) {}
+
+    /** Opens [key]'s ViewModel as [viewModel] does, with [metadata] set on the key's instance first. */
+    inline fun <reified VM : ViewModel, K : NavigationKey> viewModel(
+        key: K,
+        metadata: NavigationKey.Metadata.() -> Unit,
+    ): Screen<VM, K> {
         val navigation = putNavigationHandleForViewModel<VM, K>(key)
+        navigation.instance.metadata.metadata()
         return Screen(createViewModel(VM::class), navigation)
     }
 

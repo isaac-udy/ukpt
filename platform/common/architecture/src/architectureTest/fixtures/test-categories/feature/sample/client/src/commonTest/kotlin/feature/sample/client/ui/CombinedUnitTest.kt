@@ -10,7 +10,7 @@ class CombinedUnitTest {
 
     @Test
     fun combinesTwoClasses() {
-        val repository = SampleRepository()
+        val repository = SampleRepository(source = { "sample" })
         val viewModel = SampleViewModel()
     }
 }

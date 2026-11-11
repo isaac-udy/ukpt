@@ -13,16 +13,16 @@ import dev.isaacudy.udytils.architecture.*
 object AdapterTest : Construct<Testing>(
     requirements = listOf(isClass, isAnnotatedWith("AdapterTest")),
 ) {
-    @Describe("An Adapter Test must live in the `src/test` source set of a `:platform:server:*` or `:feature:[name]:server` module, or a platform test source set of a `:platform:client:*` or `:feature:[name]:client` module")
+    @Describe("An Adapter Test must live in the `src/test` source set of a `:platform:server:*` or `:feature:[name]:server` module, of `:app:server` when it spans more than one feature, or a platform test source set of a `:platform:client:*` or `:feature:[name]:client` module")
     val placement by rule {
-        rationale("Server adapters run on the JVM; a client adapter runs only on the platform it adapts, so its test can't live in `commonTest`.")
+        rationale("Server adapters run on the JVM; a client adapter runs only on the platform it adapts, so its test can't live in `commonTest`. A feature `:server` may not depend on another, so a test of two features' adapters together lives in the server shell that composes them.")
         constrain(
             placement("a server module's `src/test/`, or a client module's platform test source set") { decl ->
                 val module = decl.moduleDirectory()
                 val sourceSet = decl.sourceSet()
                 val serverModule = "/platform/server/" in module || Regex("/feature/[^/]+/server$").containsMatchIn(module)
                 val clientModule = "/platform/client/" in module || Regex("/feature/[^/]+/client$").containsMatchIn(module)
-                (serverModule && sourceSet == "test") ||
+                ((serverModule || module.endsWith("/app/server")) && sourceSet == "test") ||
                     (clientModule && sourceSet.endsWith("Test") && sourceSet !in setOf("commonTest", "androidHostTest"))
             },
         )

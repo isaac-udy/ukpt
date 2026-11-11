@@ -38,10 +38,10 @@ internal fun placement(where: String, allowed: (KoBaseDeclaration) -> Boolean) =
     if (allowed(decl)) emptyList() else listOf(Violation(decl, "lives in `${decl.moduleDirectory()}/src/${decl.sourceSet()}/`; belongs in $where"))
 }
 
-/** A check that the declaration's file imports nothing under [prefixes]. */
-internal fun noImportsOf(prefixes: List<String>) = ConstructCheck { decl, _ ->
+/** A check that the declaration's file imports nothing under [prefixes], other than the names in [except]. */
+internal fun noImportsOf(prefixes: List<String>, except: List<String> = emptyList()) = ConstructCheck { decl, _ ->
     decl.file.imports
-        .filter { import -> prefixes.any { import.name.startsWith(it) } }
+        .filter { import -> prefixes.any { import.name.startsWith(it) } && import.name !in except }
         .map { Violation(decl, "imports `${it.name}`") }
 }
 

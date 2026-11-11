@@ -154,7 +154,11 @@ fun `confirming the reset dialog clears the history`() = subcutaneous(ukptTestGr
 ```
 
 - `viewModel<VM, K>(key)` — the ViewModel from the client graph, with a `TestNavigationHandle` for
-  `key` (`screen.navigation`; use the enro-test assertions on it).
+  `key` (`screen.navigation`; use the enro-test assertions on it). `viewModel<VM, K>(key) { set(…) }`
+  sets navigation metadata on the key's instance before the ViewModel opens.
+- `screen.navigation.awaitOpened(key)`, `awaitOpened<K> { … }` and `awaitClosed()` — wait for an
+  open or a close the ViewModel performs later, such as after a result arrives. `awaitOpened<K>()`
+  checks the key's type; enro-test's `assertOpened<K>()` alone matches any open.
 - `state.awaitMatching(timeout = 10.seconds) { … }` — suspends until the state matches; fails with
   the last state.
 - `awaitAsserted(timeout = 10.seconds) { … }` — retries an assertion until it passes; fails with
