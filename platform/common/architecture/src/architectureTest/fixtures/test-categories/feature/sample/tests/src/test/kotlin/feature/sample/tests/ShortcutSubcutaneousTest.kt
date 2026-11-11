@@ -14,7 +14,7 @@ class ShortcutSubcutaneousTest {
     fun constructsItsOwnViewModel() {
         // Names subcutaneous(sampleTestGraph) and viewModel.onDelete() only in this comment.
         val viewModel = SampleViewModel()
-        SampleRepository()
+        SampleRepository(source = { "sample" })
         assertTrue(viewModel.state.value.label.isEmpty())
     }
 }

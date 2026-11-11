@@ -139,10 +139,11 @@ not change when the layers between the ViewModel and the database are restructur
     * **Why:** `androidHostTest` runs Paparazzi; a `:tests` module holds Subcutaneous Tests.
 * A Unit Test must not import dependency injection, network, database, file-system, or UI-test APIs
     * **Why:** Those APIs are what the other categories use. A unit test that reaches them is a Wiring, Adapter, Subcutaneous or Component test, and is annotated as one.
+    * **Note:** `io.ktor.http.HttpStatusCode` is a value, not infrastructure, and may be imported.
 * A Unit Test must construct at most one production class; constructing domain models, states and other value types is test data
     * **Why:** A test that assembles several production classes is testing their combination, which is what a Subcutaneous Test covers with the real dependency graph.
     * **Note:** Constructed means the class name followed by `(` in the test file's code.
-    * **Note:** A value type wherever it lives — a `data class`, a `value class`, or a class whose only members are `val`s declared in its primary constructor — is test data.
+    * **Note:** A value type wherever it lives — a `data class`, a `value class`, an `enum class`, a navigation key, a class whose only members are `val`s declared in its primary constructor, or a class with no supertype and no constructor parameters — is test data.
 
 ---
 
@@ -250,8 +251,8 @@ the only host test set that compiles against it; it runs with that source set's 
 
 ##### Rules
 
-* An Adapter Test must live in the `src/test` source set of a `:platform:server:*` or `:feature:[name]:server` module, or a platform test source set of a `:platform:client:*` or `:feature:[name]:client` module
-    * **Why:** Server adapters run on the JVM; a client adapter runs only on the platform it adapts, so its test can't live in `commonTest`.
+* An Adapter Test must live in the `src/test` source set of a `:platform:server:*` or `:feature:[name]:server` module, of `:app:server` when it spans more than one feature, or a platform test source set of a `:platform:client:*` or `:feature:[name]:client` module
+    * **Why:** Server adapters run on the JVM; a client adapter runs only on the platform it adapts, so its test can't live in `commonTest`. A feature `:server` may not depend on another, so a test of two features' adapters together lives in the server shell that composes them.
 
 ##### Guidance
 

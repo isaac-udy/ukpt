@@ -58,7 +58,7 @@ class TestCategoriesTest {
     }
 
     @Test
-    fun `a unit test constructing two production classes is reported, a value type is not counted`() {
+    fun `a unit test constructing two production classes is reported, value types, navigation keys and plain no-argument classes are not`() {
         val violations = violations("Testing.UnitTest.oneProductionClass")
         assertEquals(listOf("CombinedUnitTest.kt"), violations.files())
         assertTrue("SampleRepository" in violations.single().message && "SampleViewModel" in violations.single().message)

@@ -10,7 +10,7 @@ class SampleRepositoryTest {
 
     @Test
     fun repositoryIsCreated() {
-        val repository = SampleRepository()
+        val repository = SampleRepository(source = { "sample" })
         checkLabel(SampleState(label = "a"), "a")
     }
 

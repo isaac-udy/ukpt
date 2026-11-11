@@ -1,3 +1,7 @@
 package feature.sample.client.data
 
-internal class SampleRepository
+import feature.sample.client.domain.SampleSource
+
+internal class SampleRepository(private val source: SampleSource) {
+    fun label(): String = source()
+}
