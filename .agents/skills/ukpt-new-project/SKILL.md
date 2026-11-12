@@ -49,10 +49,10 @@ comparison, then ask which to keep: the canvas client, the Compose HTML client, 
 | Download, template as shipped (brotli) | About 3.7 MB | About 275 KB |
 | Browsers | Needs WasmGC: Chrome 119, Firefox 120, Safari 18.2 or later | Any current browser |
 | Page text | Pixels: find-in-page, browser translation, autofill and extensions can't read it | DOM text: find-in-page, translation, autofill, extensions and screen readers work as on any web page |
-| Design system | `:platform:client:design`, checked by Paparazzi snapshots | `ukpt-design.css` and the `platform.design.html` primitives; a test checks the token values, nothing checks the rendering |
+| Design system | `:platform:client:design`, checked by Paparazzi snapshots | `ukpt-design.css` and the `platform.design.html` primitives; a test checks the token values, no test checks the rendering |
 | UI libraries | Any Compose Multiplatform UI library, Compose resources, udytils `:ui` | Compose HTML only: no Material3, no Compose resources text (the app supplies resource-keyed text itself); udytils' confirmation and error dialogs through udytils `:ui-html` |
 
-Keeping both costs both columns: every destination needs its Compose HTML twin, and Enro fails
+Keeping both requires the work in both columns: every destination needs its Compose HTML twin, and Enro fails
 the HTML client's compile when one is missing.
 
 Apply the choice before renaming, so the rename has fewer files to change:

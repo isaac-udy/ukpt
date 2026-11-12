@@ -13,13 +13,13 @@ components here as they appear; there is nothing to build until you do.
 
 | | `:platform:client:design` | `:platform:client:ui` (here) |
 |---|---|---|
-| Holds | Tokens + stateless primitives | Composite / behavioural common components |
+| Contains | Tokens + stateless primitives | Composite / behavioural common components |
 | Navigation, DI | **Forbidden** (`DesignSystemRules.noNavigationOrDi`) | **Allowed** |
 | Depends on | Compose only | `:platform:client:design` + whatever a component needs |
 | Rule of thumb | "How a button looks" | "A screen scaffold that navigates" |
 
 If a thing is a stateless primitive styled purely from tokens, it belongs in `design`. If it wires
-several primitives together, carries behaviour, or reports/handles navigation, it belongs here.
+several primitives together, has behaviour, or reports/handles navigation, it belongs here.
 
 ## Adding the first component
 

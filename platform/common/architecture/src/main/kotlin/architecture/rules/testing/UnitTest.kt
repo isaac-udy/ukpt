@@ -7,8 +7,8 @@ import dev.isaacudy.udytils.architecture.*
     A `@UnitTest` class: one production class exercised over many inputs, with every collaborator
     a fake declared in test sources or a lambda.
 
-    A unit test is for logic whose input space is wider than the screens that reach it: parsers,
-    validators, formatters, reducers, a UseCase with many branches. Behaviour that a user reaches
+    A unit test is for logic whose input space is wider than the screens that call the logic: parsers,
+    validators, formatters, reducers, a UseCase with many branches. Behaviour that a user runs
     through a screen is covered by a [Subcutaneous Test](#subcutaneous-test) instead, which does
     not change when the layers between the ViewModel and the database are restructured.
 """)
@@ -17,7 +17,7 @@ object UnitTest : Construct<Testing>(
 ) {
     @Describe("A Unit Test must live in a test source set other than `androidHostTest`, outside a `:feature:[name]:tests` module")
     val placement by rule {
-        rationale("`androidHostTest` runs Paparazzi; a `:tests` module holds Subcutaneous Tests.")
+        rationale("`androidHostTest` runs Paparazzi; a `:tests` module contains Subcutaneous Tests.")
         constrain(
             placement("a `commonTest`, platform test, or `src/test` source set") { decl ->
                 decl.sourceSet() != "androidHostTest" && !decl.isInFeatureTestsModule()
@@ -29,7 +29,7 @@ object UnitTest : Construct<Testing>(
     val noInfrastructure by rule {
         rationale(
             """
-            Those APIs are what the other categories use. A unit test that reaches them is a
+            Those APIs are what the other categories use. A unit test that imports those APIs is a
             Wiring, Adapter, Subcutaneous or Component test, and is annotated as one.
             """.trimIndent(),
         )

@@ -51,12 +51,12 @@ object DesignSystemRules : RuleGroup() {
     @Describe("A feature's `ui` package should read colours and dimensions from the design system rather than declaring them literally")
     val noLiteralsInFeatureUi by guidance {
         note("Audited rather than enforced: a literal is occasionally right — a one-off illustration, an aspect ratio — and the judgement is easier to make in review than in a rule.")
-        note("A value the tokens don't have is a signal the palette or scale is missing a role. Add the role rather than the literal, so a theme change reaches it.")
+        note("A value the tokens don't have is a signal the palette or scale is missing a role. Add the role rather than the literal, so a theme change applies to the value.")
         note("A `@Preview` function is exempt: the viewport it frames (`UkptPreviewFrame(width = 360.dp)`) is part of what the preview asserts, and it describes the device being rendered rather than the design language. A non-preview helper the preview calls is not exempt.")
         audit { scope, exempt ->
-            // `Color(0x…)` and a bare numeric `.dp`/`.sp`: the two forms that silently survive a
-            // palette or scale change. Token reads (`UkptTheme.colors.accent`, `UkptSpacing.md`)
-            // carry no numeric literal and so never match.
+            // `Color(0x…)` and a bare numeric `.dp`/`.sp`: the two forms that a palette or scale
+            // change silently leaves unchanged. Token reads (`UkptTheme.colors.accent`,
+            // `UkptSpacing.md`) contain no numeric literal and so never match.
             val literalValue = Regex("""Color\(\s*0x|(?<![\w.])\d+(\.\d+)?\.(dp|sp)\b""")
             scope.functions()
                 .filter { it.resideInPackage("feature..ui..") }

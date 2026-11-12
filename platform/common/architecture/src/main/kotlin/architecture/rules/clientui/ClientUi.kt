@@ -19,10 +19,10 @@ import architecture.utils.resolvesToPublishedFqn
     Destination moves to `:api` (same package, a file move) only when another feature navigates to
     it — that published key is the one part of this layer a second feature may see.
 
-    Everything the UI loads or mutates arrives through
+    The UI loads and mutates data only through
     [domain interfaces](clientdomain.md#domain-interface), provided by
     [Repositories](clientdata.md#repository) in `client.data`. Server calls (via
-    [Services](serverservices.md#service-interface)) reach the screen the same way.
+    [Services](serverservices.md#service-interface)) are made through the same domain interfaces.
 
     The layer rules below apply across the whole `feature.[name].client.ui` package.
 """)
@@ -49,9 +49,9 @@ object ClientUi : RuleGroup(
         rationale(
             """
             `client.domain` is private to its feature except for what the feature publishes to
-            `:api` (`ClientDomain.pure`). The UI reaches another feature's domain the same way it
-            reaches everything else cross-feature: through the published surface, never the
-            feature's own `:client` module.
+            `:api` (`ClientDomain.pure`). The UI imports another feature's domain the same way the
+            UI imports every other cross-feature declaration: through the published surface, never
+            the feature's own `:client` module.
             """.trimIndent(),
         )
         note("Reuses the same published-FQN channel as `ClientDomain.pure` and `ServerDomain.pure` — publishing is moving the file, not changing the package.")
@@ -102,7 +102,8 @@ object ClientUi : RuleGroup(
         rationale(
             """
             The UI consumes `client.domain` interfaces only. Repositories (in `client.data`) call
-            `server.services` on the UI's behalf; the UI must not reach either directly.
+            `server.services` on the UI's behalf; the UI must not import `client.data` or
+            `server.services` directly.
             """.trimIndent(),
         )
         note("Tested over the import's package segments, so a `data` or `services` package is out of bounds wherever it sits and whichever feature owns it.")
@@ -142,7 +143,7 @@ object ClientUi : RuleGroup(
     val htmlSourceUsesNoComposeUi by rule {
         rationale(
             """
-            `src/jsMain/` holds the Compose HTML screens of `:app:client:web-html`. A Compose UI
+            `src/jsMain/` contains the Compose HTML screens of `:app:client:web-html`. A Compose UI
             import there brings skiko into the HTML bundle, which `verifyHtmlBundle` rejects only
             after a production webpack build.
             """.trimIndent(),
@@ -181,14 +182,14 @@ object ClientUi : RuleGroup(
     @Describe("Dialog destinations communicate with their opener through navigation results, not shared state or callbacks")
     val dialogsCommunicateViaResults by guidance {
         note("A dialog destination follows the same screen conventions as any other destination — it has its own ViewModel, and the ViewModel performs the navigation actions (`complete`/`requestClose` via its `navigationHandle`). Composables never reference the navigation handle directly.")
-        note("A dialog destination is a `NavigationKey`; add `WithResult<R>` only when complete/close cannot carry the data. `complete()` means the user performed the associated action; `requestClose()` means the user cancelled. A confirmation dialog uses plain `NavigationKey` with `complete()`/`requestClose()` — the opener's `registerForNavigationResult(onCompleted = { … })` channel still fires on completion, and dismissal is a no-op. Use `NavigationKey.WithResult<R>` when the dialog returns data that complete/close alone cannot represent (e.g. an editor returning the edited value).")
+        note("A dialog destination is a `NavigationKey`; add `WithResult<R>` only when complete/close cannot represent the data. `complete()` means the user performed the associated action; `requestClose()` means the user cancelled. A confirmation dialog uses plain `NavigationKey` with `complete()`/`requestClose()` — the opener's `registerForNavigationResult(onCompleted = { … })` channel still fires on completion, and dismissal is a no-op. Use `NavigationKey.WithResult<R>` when the dialog returns data that complete/close alone cannot represent (e.g. an editor returning the edited value).")
         note("Navigation results are held in-memory (`NavigationResultChannel.pendingResults`), so custom result types need no serializers-module registration — unlike managed-flow step results, which persist via `polymorphic(Any)`.")
         note("Editor-style dialogs may own their submission (inline error/retry, `complete(result)` only on success) and complete with the fresh data so the opener updates without a refetch. Under `ProjectRules.noDirectAsyncStateConstruction` the opener cannot wrap a returned payload in `AsyncState.Success` directly, so in practice the result handler triggers a reload.")
     }
 
     @Describe("A `client.ui` package imports this layer only through its own package, its direct child subsystems, and its ancestors up to the layer root")
     val subsystemVisibility by rule {
-        note("A `client.ui` subsystem is a screen family the rest of the UI reaches through one entry point — an onboarding flow's steps, a sign-in provider's screens. It needs no matching `client.domain` subsystem: the rule restricts what a subsystem may import, not what must exist.")
+        note("A `client.ui` subsystem is a screen family the rest of the UI opens through one entry point — an onboarding flow's steps, a sign-in provider's screens. It needs no matching `client.domain` subsystem: the rule restricts what a subsystem may import, not what must exist.")
         enforcedBy("ProjectRules.subsystemVisibility")
     }
 

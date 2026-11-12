@@ -104,7 +104,7 @@ Deploying: `ukpt-web-deploy`, "Compose HTML client".
 
 ## udytils dialogs
 
-udytils `:ui-html`, a `web-html` dependency, holds the Compose HTML destinations for
+udytils `:ui-html`, a `web-html` dependency, contains the Compose HTML destinations for
 `ConfirmationDestination` and for the `ErrorDialogDestination` that `ErrorHandler` opens. A
 ViewModel opens either dialog from `commonMain`; neither needs an HTML twin.
 

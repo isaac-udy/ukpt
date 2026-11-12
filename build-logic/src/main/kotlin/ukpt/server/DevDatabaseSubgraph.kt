@@ -11,7 +11,7 @@ import org.gradle.api.specs.Spec
  * One list, two consumers that have to agree: the fat jar leaves this subgraph out, and
  * `smokeTestFatJar` puts exactly it back on the classpath to boot that jar.
  *
- * A subgraph by coordinate, not by transitive reach: Shadow judges each dependency on its own, so a
+ * A subgraph by coordinate, not by transitive dependency: Shadow judges each dependency on its own, so a
  * library shared with production code (commons-compress, slf4j) stays in the jar.
  */
 object DevDatabaseSubgraph {
@@ -55,7 +55,7 @@ object DevDatabaseSubgraph {
      * The module names above that a composite build can substitute for a project of its own.
      *
      * A substituted dependency resolves to a project component, so its coordinates are gone by the
-     * time a classpath is resolved — only the project name survives, which the substituted builds
+     * time a classpath is resolved — only the project name remains, which the substituted builds
      * keep equal to the artifact name they publish. Wildcard names are left out: they would match
      * every project in the build tree.
      */

@@ -78,7 +78,7 @@ object ProjectRules : RuleGroup() {
             The urpc transport (`dev.isaacudy.udytils:urpc-*`) deserialises server-side exceptions
             into typed payloads on the client; without `@Serializable` the type and message are lost
             in transit and the client receives a generic deserialisation failure. Exceptions under a
-            `server.services` sub-package stay server-side and never reach the client, so they are
+            `server.services` sub-package are never sent to the client, so these exceptions are
             out of scope.
             """.trimIndent(),
         )
@@ -162,7 +162,7 @@ object ProjectRules : RuleGroup() {
         )
         note("An explicit backing field is Stable from Kotlin 2.4 and needs no compiler flag. It applies to a `val` that is not `open`, not delegated, and has no custom getter, with a field type that is a subtype of the property type: `val state: StateFlow<S>` over `field = MutableStateFlow(…)`, `val items: List<T>` over `field = mutableListOf()`.")
         note("An explicit backing field cannot be reassigned. A value the class reassigns is `var [name]: T` with a `private set`.")
-        note("A private value whose type is not a subtype of the exposed property's type — a `Channel` behind a `Flow` — is its own property, named for what it holds (`eventChannel`), not `_events`.")
+        note("A private value whose type is not a subtype of the exposed property's type — a `Channel` behind a `Flow` — is its own property, named for the value the property stores (`eventChannel`), not `_events`.")
         note("Reported by the pair: a `_[name]` property beside a `[name]` property in the same class, object, interface, or file. A `_`-prefixed property with no such sibling is not reported.")
         scope { scope, exempt ->
             val containers = scope.classesAndInterfacesAndObjects(includeNested = true) + scope.files
@@ -291,7 +291,7 @@ object ProjectRules : RuleGroup() {
 
     @Describe("An architecture exception must explain why it exists and the intended resolution in a non-blank `reason` argument on the `@ArchitectureException`")
     val exceptionNeedsReason by rule {
-        note("The test covers `@ArchitectureException` on declarations, including file-level `@file:` annotations; `// architecture-exception:` comments in build files carry their reason inline and are out of scope.")
+        note("The test covers `@ArchitectureException` on declarations, including file-level `@file:` annotations; `// architecture-exception:` comments in build files state their reason inline and are out of scope.")
         note("The explanation must be the annotation's own `reason` argument — it is machine-readable, travels with the annotation, and is the natural form for a file-level `@file:ArchitectureException(reason = …)`. A KDoc comment alone does not satisfy this rule.")
         scope { scope, exempt ->
             scope.declarations(includeNested = true)
@@ -305,7 +305,7 @@ object ProjectRules : RuleGroup() {
                         ?.firstOrNull { it.name == "ArchitectureException" }
                         ?.text?.contains(Regex("""reason\s*=\s*"\s*[^\s"]""")) == true
                 }
-                .map { Violation(it, "declaration carries @ArchitectureException without a non-blank `reason` explaining why and the intended resolution") }
+                .map { Violation(it, "declaration is annotated with @ArchitectureException without a non-blank `reason` explaining why and the intended resolution") }
         }
     }
 
@@ -318,8 +318,8 @@ object ProjectRules : RuleGroup() {
             """
             Without a `@SerialName`, kotlinx derives the discriminator from the fully-qualified class
             name — so the package path silently becomes part of the serialized format, and the first
-            package move invalidates every stored row and every persisted client state that carries
-            one. Pinning makes the wire value an explicit, reviewable decision.
+            package move invalidates every stored row and every persisted client state that contains
+            that discriminator. Pinning makes the wire value an explicit, reviewable decision.
 
             Sealed variants are the obvious case; a top-level `@Serializable` class registered for
             polymorphic dispatch — an Enro `NavigationKey` is exactly this — is *not* a sealed
@@ -361,7 +361,7 @@ object ProjectRules : RuleGroup() {
         )
         note("Only the required suffix is checked for a sealed variant, so a hierarchy pinned to a pre-move fully-qualified name for compatibility already satisfies this — the type chain is the end of an FQN.")
         note("The required chain runs from the outermost declaring type, not just the immediate sealed parent: two destinations each nesting a sealed `Action` with a `Delete` variant would otherwise share the discriminator `\"Action.Delete\"`, and a value two readers can claim identifies neither.")
-        note("A destination is checked exactly, not by suffix: nothing durable rides on a navigation key, so there is no compatibility case that would justify a longer value.")
+        note("A destination is checked exactly, not by suffix: no durable data depends on a navigation key, so there is no compatibility case that would justify a longer value.")
         scope { scope, exempt ->
             scope.classesAndInterfacesAndObjects(includeNested = true)
                 .filterNot { exempt(it) || ArchitectureExceptions.isIgnored(it) }
@@ -455,7 +455,7 @@ object ProjectRules : RuleGroup() {
             """.trimIndent(),
         )
         note("A dependency is a required constructor parameter, even one production always satisfies with a standard instance (`single<Clock> { Clock.System }`). A setting fixed for every deployment is a private property or a constant of the class. A setting that varies between deployments is a field of a typed configuration object the dependency module assembles and the graph injects: a [domain model](serverdomain.md#domain-model) for a UseCase, a [configuration](serverdata.md#configuration) in the data layer.")
-        note("Applies to the classes a Koin module registers by constructor reference or constructs in a binding lambda. A data, value, enum, sealed, or abstract class constructed in a lambda is a value assembled by hand and keeps its defaults, as do wire models, UI state, and ordinary functions, which nothing injects.")
+        note("Applies to the classes a Koin module registers by constructor reference or constructs in a binding lambda. A data, value, enum, sealed, or abstract class constructed in a lambda is a value assembled by hand and keeps its defaults, as do wire models, UI state, and ordinary functions, which the graph does not inject.")
         note("Koin's `verify()` treats a parameter with a default as optional and only warns when its type is unbound, so a graph-resolution test does not close this gap; this rule does.")
         scope { scope, exempt ->
             val classesByFqn = scope.projectClassesByFqn()
@@ -481,7 +481,7 @@ object ProjectRules : RuleGroup() {
     val transactionRunnerInjectedByUseCaseOrRepository by rule {
         rationale(
             """
-            Opening a transaction is a statement about which writes have to land together, and only
+            Opening a transaction is a statement about which writes have to commit together, and only
             two places are positioned to make it. A [UseCase](serverdomain.md#use-case) composes
             several domain interfaces and is the one place that knows the whole unit of work; a
             [Repository](serverdata.md#repository) owns the writes it makes through its
@@ -492,7 +492,7 @@ object ProjectRules : RuleGroup() {
             it is a participant in.
             """.trimIndent(),
         )
-        note("A block that spans two features' writes is a UseCase by construction: a Repository may not inject a domain interface, so it cannot reach another feature's contract to put inside one.")
+        note("A block that spans two features' writes is a UseCase by construction: a Repository may not inject a domain interface, so a Repository cannot call another feature's contract inside a transaction block.")
         scope { scope, exempt ->
             scope.classes(includeNested = true)
                 .filter { it.isFeatureModule() }
@@ -522,7 +522,7 @@ object ProjectRules : RuleGroup() {
             with a same-named exception are indistinguishable to a client.
             """.trimIndent(),
         )
-        note("Scoped to exceptions that reach the wire: those declared in the services contract package (`feature.x.server.services`, excluding its server-only sub-packages) or in a feature root, which is the vocabulary both the client and server name. Two server-private exceptions with one name never meet, so they do not collide.")
+        note("Scoped to exceptions that are serialized to the client: those declared in the services contract package (`feature.x.server.services`, excluding its server-only sub-packages) or in a feature root, which is the vocabulary both the client and server name. Two server-private exceptions with one name never meet, so they do not collide.")
         scope { scope, exempt ->
             scope.classes(includeNested = true)
                 .filter { it.isFeatureModule() }
@@ -557,7 +557,7 @@ private fun FeatureLayerPath.mirrors(domainSubsystem: String): Boolean =
 
 /**
  * Resolves a named type to the package that *declares* it, rather than reading the package off the
- * name. Two measured shapes make the string reading wrong: a nested member carries more segments
+ * name. Two measured shapes make the string reading wrong: a nested member's name has more segments
  * than its package (`ProcessingConfig.Companion.DEFAULT` names its own file), and a name that
  * resolves to nothing is not project source — a generated binding or a library — so it is untested.
  */

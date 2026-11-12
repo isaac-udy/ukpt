@@ -40,7 +40,7 @@ object ViewModelState : Construct<ClientUi>(
             `AsyncState` keeps atomic.
             """.trimIndent(),
         )
-        note("The pair is two stored properties. A Boolean with a getter holds no state of its own — `val deleting: Boolean get() = deleteProgress is AsyncState.Loading` reads the lifecycle it derives from — so it is not half of a pair and the rule skips it.")
+        note("The pair is two stored properties. A Boolean with a getter stores no state of its own — `val deleting: Boolean get() = deleteProgress is AsyncState.Loading` reads the lifecycle it derives from — so it is not half of a pair and the rule skips it.")
         val progressPattern = Regex("^(is)?(loading|saving|sending|submitting|refreshing|deleting|updating)", RegexOption.IGNORE_CASE)
         val errorPattern = Regex("error|failure|exception|throwable", RegexOption.IGNORE_CASE)
         constrain { decl, _ ->
@@ -107,7 +107,7 @@ object ViewModelState : Construct<ClientUi>(
             destination with its own ViewModel and state, regardless of how it is rendered. Making
             it a destination eliminates the flag; the destination's ViewModel performs
             `complete`/`requestClose`, and the opener consumes the outcome through a navigation
-            result channel (add `WithResult<R>` only when complete/close cannot carry the data).
+            result channel (add `WithResult<R>` only when complete/close cannot represent the data).
             """.trimIndent(),
         )
         val pattern = Regex("show.*Dialog|.*DialogVisible|show.*Sheet|.*SheetVisible", RegexOption.IGNORE_CASE)

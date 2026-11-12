@@ -68,10 +68,10 @@ object ServiceImpl : Construct<ServerServices>(
             """
             A ServiceImpl answers a request by composing the feature's `server.domain` interfaces;
             persistence sits on the far side of those interfaces, where `ServerServices.noDataImports`
-            keeps it. A Repository is the wiring that provides those interfaces, not a thing to hold —
-            injecting it, or the StorageClass under it, states the table the handler wants instead of
-            the contract it needs, so nothing else can reuse that access and nothing names what the
-            request actually required. It is the same rule that keeps ViewModels off client
+            keeps it. A Repository is the wiring that provides those interfaces, not a dependency to
+            inject — injecting a Repository, or the StorageClass under the Repository, states the
+            table the handler reads instead of the contract the handler needs, so no other class can
+            reuse that access and no contract names what the request actually required. It is the same rule that keeps ViewModels off client
             Repositories.
             """.trimIndent(),
         )

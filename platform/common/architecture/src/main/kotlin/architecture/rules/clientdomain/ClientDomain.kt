@@ -10,7 +10,7 @@ import dev.isaacudy.udytils.architecture.*
     provide, and [domain models](#domain-model) that never leave the client. The layer may include
     [UseCases](#use-case) when multiple domain interfaces need to be composed,
     [extension functions](#extension-function) and [extension properties](#extension-property) that
-    add derived behaviour to a domain model, and [constants](#constants) objects that hold shared
+    add derived behaviour to a domain model, and [constants](#constants) objects that contain shared
     constant values.
 
     It is **pure**: it may import feature roots and nothing else. No Compose, no Ktor, no
@@ -69,7 +69,7 @@ object ClientDomain : DomainGroupRules(
         enforcedBy("ModuleRules.clientApiOnly", "ModuleRules.crossFeatureCodeViaApi")
     }
 
-    @Describe("A feature's `client.domain` layer should hold domain interfaces in proportion to its domain models and consumers, not one per storage call or field")
+    @Describe("A feature's `client.domain` layer should declare domain interfaces in proportion to its domain models and consumers, not one per storage call or field")
     val inventory by guidance {
         note("The audit reports one line per feature: domain interfaces (published ones counted separately), domain models in `client.domain` and the feature root, UseCases, and how many interfaces have no production consumer, one, or several. Many interfaces beside few models, or a high one-consumer share, marks the feature for the domain contract inventory in `ukpt-architecture-review`.")
         note("A consumer is a class whose primary constructor takes the interface; DI modules and tests are not consumers.")
@@ -78,7 +78,7 @@ object ClientDomain : DomainGroupRules(
 
     @Describe("A `client.domain` package imports this layer only through its own package, its direct child subsystems, and its ancestors up to the layer root")
     val subsystemVisibility by rule {
-        note("A subsystem package is a capability of the feature that nothing outside it names, and it is never published (`ModuleRules.subsystemsNotPublished`): the constructs classify inside one exactly as they do at the layer root, because a subsystem is a location rather than a kind of thing.")
+        note("A subsystem package is a capability of the feature that no declaration outside the subsystem names, and a subsystem package is never published (`ModuleRules.subsystemsNotPublished`): the constructs classify inside a subsystem exactly as they do at the layer root, because a subsystem is a location rather than a kind of thing.")
         note("Composition across two subsystems belongs to their shared ancestor, where a shared payload is an ordinary [domain model](#domain-model) and a shared contract an ordinary [domain interface](#domain-interface).")
         enforcedBy("ProjectRules.subsystemVisibility")
     }

@@ -8,9 +8,9 @@ import kotlin.test.assertTrue
 /**
  * Every image a `design-system/` page links to must exist on disk.
  *
- * Doc surfaces are only worth their cost if the docs and the code cannot drift. A renamed test
+ * Doc surfaces are only worth maintaining if the docs and the code cannot drift. A renamed test
  * method renames its golden and silently breaks the embed — the page still renders, just with a
- * hole in it, which nobody notices for months. This turns that into a failing build.
+ * hole in the page, which can go unnoticed for months. This turns that into a failing build.
  *
  * It hard-asserts rather than warning: a warning in a test report is the same as no check at all.
  * The one exception is the bootstrap case — before goldens have ever been recorded there is nothing

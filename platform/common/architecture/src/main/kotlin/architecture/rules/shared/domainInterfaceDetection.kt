@@ -10,7 +10,7 @@ import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
 
 /**
  * True for the name of a reactive return type — the generics- and nullability-stripped head of the
- * type expression is one of [reactiveWrapperTypeNames], which carries both the simple and the
+ * type expression is one of [reactiveWrapperTypeNames], which contains both the simple and the
  * fully-qualified forms. So `Flow<User>`, `kotlinx.coroutines.flow.Flow<User>`, and
  * `StateFlow<User>` all count, while `DataFlowState` and a project type that merely *ends* in
  * `.Flow` (its FQN is not in the set) do not.

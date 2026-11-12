@@ -18,13 +18,13 @@ private val LocalUkptFonts = staticCompositionLocalOf { UkptFonts.System }
  * Installs a palette and typeface set, and wraps a [MaterialTheme] derived from them.
  *
  * The MaterialTheme wrapper is not optional decoration. Raw material3 internals — text-field
- * decoration, dividers, `LocalContentColor`, ripple — read the material theme, so without it those
- * details land on material's defaults and quietly disagree with the tokens. Wrapping here means
+ * decoration, dividers, `LocalContentColor`, ripple — read the material theme, so without the wrapper those
+ * details use material's defaults and quietly disagree with the tokens. Wrapping here means
  * call sites never wrap twice.
  *
  * [colors] has no default **on purpose**: the sibling overload defaults everything, so giving this
- * one a default would make a bare `UkptTheme { }` ambiguous. You reach for this overload precisely
- * when you want to force a palette or inject fonts.
+ * one a default would make a bare `UkptTheme { }` ambiguous. Call this overload to force a
+ * palette or inject fonts.
  */
 @Composable
 fun UkptTheme(
@@ -93,7 +93,7 @@ fun UkptTheme(
 /**
  * Reads the tokens in effect.
  *
- * This is the **only** way feature code should reach tokens — `UkptTheme.colors.accent`, never a
+ * This is the **only** way feature code should read tokens — `UkptTheme.colors.accent`, never a
  * literal and never a direct `UkptColors.Light` reference, which would ignore the active palette.
  */
 object UkptTheme {

@@ -27,7 +27,7 @@ interface SubcutaneousServer {
 class RunningServer(
     /** The server's graph, which a scenario's `server<T>()` resolves from. */
     val koin: Koin,
-    /** Loaded after the client graph: the transport that reaches this server. */
+    /** Loaded after the client graph: the transport that connects to this server. */
     val clientModules: List<Module>,
     /** Builds a client for the server-side service [KClass] from the client graph. */
     val services: (clientKoin: Koin, service: KClass<*>) -> Any,

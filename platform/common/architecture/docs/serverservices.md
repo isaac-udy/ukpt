@@ -37,7 +37,7 @@ Within a feature, the layer dependency rules are:
 * `client.ui` may depend on `client.domain` only; server calls go through
   [Repositories](clientdata.md#repository), which provide
   [domain interfaces](clientdomain.md#domain-interface) for the UI to consume.
-* Nothing depends on `client.ui`.
+* No layer depends on `client.ui`.
 
 The client and server meet only at the contract this layer declares in `:api`. Cross-feature
 use of another feature's services goes through `:api` as well: `ServerServices.crossFeatureViaApi`,
@@ -45,8 +45,8 @@ in the [rules](#rules) below.
 
 A Service contract exists for clients to call, not for server features to compose: a class in
 this layer never injects another feature's Service contract
-(`ServerServices.noForeignServiceContractInjection`). One server feature reaches another
-through the capability the owner publishes — a
+(`ServerServices.noForeignServiceContractInjection`). One server feature calls another
+through the capability the owning feature publishes — a
 [`server.domain` interface](serverdomain.md#domain-interface) whose file resides in `:api` —
 which is the same channel the domain layers use.
 
@@ -58,7 +58,7 @@ ancestors up to the layer root — never a sibling.
 
 ## Persistence
 
-Entry points reach persistence only through
+Entry points call persistence only through
 [`server.domain` interfaces](serverdomain.md#domain-interface) provided by
 [Repositories](serverdata.md#repository); the Postgres conventions and codegen pipeline are
 documented on [`server.data`](serverdata.md).
@@ -72,14 +72,14 @@ documented on [`server.data`](serverdata.md).
 ##### Rules
 
 * The `server.services` layer must never import `server.data`
-    * **Why:** `server.domain` sits between services and persistence and imports neither: services consume domain interfaces, and Repositories provide them. A ServiceImpl that reaches a table directly has skipped the layer where the contract should have been stated, so nothing else can reuse that access, and nothing names what the service actually needed.  `ServerData.noEntryPointImports` is the other half. Together they make storage a thing that *satisfies* a stated need rather than a thing services reach through.
+    * **Why:** `server.domain` sits between services and persistence and imports neither: services consume domain interfaces, and Repositories provide them. A ServiceImpl that imports a table directly has skipped the layer where the contract should have been stated, so no other class can reuse that access, and no contract names what the service actually needed.  `ServerData.noEntryPointImports` is the other half. Together the two rules make storage a thing that *satisfies* a stated need rather than a thing services import.
     * **Note:** Tested over imports of persistence, wherever the imported file sits: reaching a table is the same act whatever the package holding it is called.
 * The `server.services` layer must not import client code
     * **Why:** The client and server meet at the RPC contract and nowhere else.
 * The `services` layer may depend on another feature's `services` only via that feature's `:api` module
     * **Enforced by:** `ModuleRules.clientApiOnly`, `ModuleRules.serverApiOnly`, `ModuleRules.crossFeatureCodeViaApi`
 * A class in `server.services` must not inject another feature's Service contract
-    * **Why:** A Service contract is the door between a client and this server, not a way for one server feature to call another. Injecting another feature's contract gives a server-internal call the wire's shape — a request object, a session the caller must already hold, an error type written for a screen — and hands the caller every operation on that service when it needed one capability. That capability is what the owning feature's [`server.domain` interfaces](serverdomain.md#domain-interface) say: the owner publishes the narrow one to `:api`, a Repository provides it, and the caller states it like any other contract.
+    * **Why:** A Service contract is the door between a client and this server, not a way for one server feature to call another. Injecting another feature's contract gives a server-internal call the wire's shape — a request object, a session the caller must already have, an error type written for a screen — and hands the caller every operation on that service when it needed one capability. That capability is what the owning feature's [`server.domain` interfaces](serverdomain.md#domain-interface) say: the owner publishes the narrow one to `:api`, a Repository provides it, and the caller states it like any other contract.
     * **Note:** Tested on the primary constructor of every class in `feature.[name].server.services` and its sub-packages: a parameter whose type — bare, or inside a wrapper such as `Lazy<…>` — is an `@Urpc` interface belonging to another feature.
     * **Note:** A feature's own contract is unaffected: a class in this layer may wrap or delegate to its own feature's Service.
 * A `server.services` package imports this layer only through its own package, its direct child subsystems, and its ancestors up to the layer root
@@ -164,7 +164,7 @@ contract, so it belongs to this layer, not the top-level feature group.
     * **Why:** The construct classifies on name and package alone, so without this rule a `[Name]ServiceImpl` that never implements `[Name]Service` — unfinished or misnamed — would pass unnoticed.
     * **Note:** Matched by fully-qualified name: the contract shares the impl's package by construction — it is declared in `:api` under the same `server.services` package — so the expected parent is exactly `<package>.<Name>Service`, however the impl writes the reference (bare, aliased, or qualified).
 * A Service implementation must not inject persistence: neither a Repository nor a StorageClass
-    * **Why:** A ServiceImpl answers a request by composing the feature's `server.domain` interfaces; persistence sits on the far side of those interfaces, where `ServerServices.noDataImports` keeps it. A Repository is the wiring that provides those interfaces, not a thing to hold — injecting it, or the StorageClass under it, states the table the handler wants instead of the contract it needs, so nothing else can reuse that access and nothing names what the request actually required. It is the same rule that keeps ViewModels off client Repositories.
+    * **Why:** A ServiceImpl answers a request by composing the feature's `server.domain` interfaces; persistence sits on the far side of those interfaces, where `ServerServices.noDataImports` keeps it. A Repository is the wiring that provides those interfaces, not a dependency to inject — injecting a Repository, or the StorageClass under the Repository, states the table the handler reads instead of the contract the handler needs, so no other class can reuse that access and no contract names what the request actually required. It is the same rule that keeps ViewModels off client Repositories.
     * **Note:** Tested on the primary constructor: a parameter whose type is named `[Name]Repository`, `[Name]Storage`, or `[Name]Store`, or whose type resolves into a persistence package.
     * **Note:** This is the constructor-shaped half of `ServerServices.noDataImports`, which measures the same coupling over imports; a ServiceImpl reaching persistence some other way is counted there.
     * **Note:** Constructor discipline beyond persistence comes from the layer rules, not from a whitelist here: session authentication, domain interfaces, and platform types are all legitimate parameters.

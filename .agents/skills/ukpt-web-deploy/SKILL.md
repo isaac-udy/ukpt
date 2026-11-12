@@ -49,8 +49,8 @@ Cache-Control: public, max-age=31536000, immutable
   must set the type explicitly. A wrong type shows as a console `TypeError` about the MIME type.
 - The host may send the brotli bytes regardless of the request's `Accept-Encoding`: Compose for web
   requires WebAssembly GC, and every browser that implements it accepts brotli over HTTPS.
-- Object stores serve the bytes and headers they hold, and CDN dynamic compression leaves
-  `application/wasm` uncompressed. On those hosts nothing compresses the wasm unless the deploy
+- Object stores serve the bytes and headers they store, and CDN dynamic compression leaves
+  `application/wasm` uncompressed. On those hosts the wasm is served uncompressed unless the deploy
   uploads the `.br` bytes.
 
 ## Hosts
@@ -60,13 +60,13 @@ Cache-Control: public, max-age=31536000, immutable
 | Edge-compressing hosts (Firebase Hosting, Cloudflare, Netlify, Vercel) | Deploy the directory without the `.br` files. Confirm with the curl check that the edge compresses `application/wasm`; if it does not, the host needs one of the recipes below. |
 | nginx | `brotli_static on;` (ngx_brotli) answers a request for `<file>` with `<file>.br` when the client accepts br. `types` must map `wasm` to `application/wasm`. |
 | Caddy | `file_server { precompressed br }`. |
-| Object store (GCS, S3) behind a CDN | Upload each `.br` file under its `.wasm` key with explicit headers, as below. Leave the CDN's dynamic compression on for the text assets; it skips responses that already carry a `Content-Encoding`. |
+| Object store (GCS, S3) behind a CDN | Upload each `.br` file under its `.wasm` key with explicit headers, as below. Leave the CDN's dynamic compression on for the text assets; the CDN skips responses that already have a `Content-Encoding`. |
 
 ### Object-store upload
 
 The rest of the directory goes up with a sync command, which must exclude the wasm, the `.br`
 files, and the stable-named files. A sync compares object size with the local file; the stored
-object holds the compressed bytes, so a sync that includes the wasm re-uploads the uncompressed file
+object contains the compressed bytes, so a sync that includes the wasm re-uploads the uncompressed file
 on every deploy. Stable-named files go up in their own pass with their own `Cache-Control`.
 
 With `gcloud storage` (`aws s3 sync` / `aws s3 cp` take the equivalent `--exclude`,

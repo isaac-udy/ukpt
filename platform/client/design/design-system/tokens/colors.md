@@ -2,8 +2,8 @@
 
 Source: [`UkptColors.kt`](../../src/commonMain/kotlin/platform/design/UkptColors.kt)
 
-Colour is expressed as **semantic roles**, never as a palette of named hues. A screen asks for
-`surface` and `onSurface`; it never asks for "grey 100". That indirection is the whole point — it is
+Colour is expressed as **semantic roles**, never as a palette of named hues. A screen reads
+`surface` and `onSurface`; a screen never reads "grey 100". That indirection is the whole point — it is
 what lets a palette change without touching a single call site.
 
 A theme *is* a `UkptColors` instance. There is no enum of theme names and no `isDark` flag to branch
@@ -61,6 +61,6 @@ explainable line by line instead of accumulating unattributed values.
 - Feature code reads colour through `UkptTheme.colors`, never `UkptColors.Light`/`Dark` directly
   and never a literal `Color(0xFF…)`.
 - Use the `on*` role paired with the surface underneath; don't mix pairings.
-- Meaning is never carried by colour alone — pair it with text, icon or shape.
+- Meaning is never conveyed by colour alone — pair the colour with text, icon or shape.
 - A new role is preferable to a literal, and a non-spec role is labelled as such.
 - Changing a palette value means re-recording every golden in the same change.

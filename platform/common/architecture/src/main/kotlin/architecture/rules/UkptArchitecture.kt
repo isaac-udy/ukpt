@@ -29,7 +29,7 @@ import architecture.rules.serverservices.ServerServices
     assembled by thin application shells (`:app`). Module-graph rules keep the slices independent.
 
     A declaration's **package** says what it is; the Gradle **module** it lives in says who may see
-    it. A feature is rooted at `feature.[name]`, which holds its shared vocabulary — the domain
+    it. A feature is rooted at `feature.[name]`, which contains the feature's shared vocabulary — the domain
     models that both the client and server use. Below the whole name is `client` or `server`, and
     below that a layer within the side. The deeper the package, the more private the code. A feature
     may be grouped (`:feature:capture:insta`), in which case the group is part of the name and the
@@ -51,8 +51,8 @@ import architecture.rules.serverservices.ServerServices
     keeps its feature code in `feature.[name]` package namespaces so each slice stays liftable into
     its own module.
 
-    Rules land enforced from their first commit, never as audits, and no declaration carries an
-    `@ArchitectureException`. A rule that cannot be met is a design question, not a setting.
+    Each rule is enforced from its first commit, never added as an audit, and no declaration is
+    annotated with `@ArchitectureException`. A rule that cannot be met is a design question, not a setting.
 """)
 object UkptArchitecture : ArchitectureDefinition(
     groups = listOf(

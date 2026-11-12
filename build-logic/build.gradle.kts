@@ -12,7 +12,8 @@ dependencies {
     // Applied by ukpt.snapshot-testing-base, so it must be on the convention plugins' classpath.
     implementation(libs.paparazzi.gradlePlugin)
     // ukpt.server-packaging types the `shadowJar` task, so both must be on this classpath. Shadow
-    // is named separately: Ktor depends on it at runtime only, so it never arrives transitively.
+    // is named separately: Ktor depends on Shadow at runtime only, so the Ktor plugin does not add
+    // Shadow to this classpath.
     implementation(libs.ktor.gradlePlugin)
     implementation(libs.shadow.gradlePlugin)
 

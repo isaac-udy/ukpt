@@ -16,16 +16,27 @@ All rule documentation uses the same voice:
   avoids — "renders each `@Preview` with Paparazzi", not "no device or emulator needed".
 - The modal is the rule: "must", never "must always". No intensifiers ("genuinely", "precisely",
   "the very thing") — the sentence means the same without them.
-- One name for one thing. Repeat the noun rather than switching to a pronoun or a synonym; two
-  names for one thing read as two things.
+- State the component, the action, and the condition, with a literal verb: "the parser requires
+  a terminator", not "the parser wants a terminator". Software does not intend, travel, or pay:
+  re-read each use of wants, asks, reaches, arrives, lands, survives, holds, carries, spends,
+  costs, earns, and remembers, and replace the word with the literal verb (requires, calls,
+  imports, contains, declares, stores, is merged, takes).
+- State the actor. "Nothing" and "nobody" are not subjects: "no second class applies the rule",
+  not "nothing carries the rule across".
+- One name for one thing. Repeat the noun rather than switching to a synonym; two names for one
+  thing read as two things.
+- Repeat the noun rather than writing "it", "this", or "they". A pronoun is allowed only when
+  the noun is the subject of the same sentence and no other noun could be meant.
+- A counting word keeps its noun: "each Rule", "both RuleGroups", not "each", "both".
+- Each sentence must be clear when quoted alone.
 - Name the concrete package, layer, or component — never a collective term for the axis you
   think along ("side", "edge", "world", "tier").
-- Compression must not cost precision. A statement is wrong when its shorthand doesn't say what
+- Compression must not reduce precision. A statement is wrong when its shorthand doesn't say what
   is meant: "a 1:1 relationship" doesn't say what is paired; "exactly one ViewModel" does. Never
   use a term the statement hasn't defined or shown by example.
 - Example identifiers are generic and consistent — one example vocabulary across the catalog
   (`feature.shop`, `checkout`, `payments`), never a type from a real project. Show enough
-  package path for the example to carry its scope: `feature.shop.client.ui.checkout`, not
+  package path for the example to show its scope: `feature.shop.client.ui.checkout`, not
   `ui.checkout`.
 - Say "layer" in dependency and role statements; say "package" for file placement.
 - Only include information that is critical to understanding the rule. Leave out anything the
@@ -59,7 +70,7 @@ architecture.
 - `constructs = listOf(…)` is the documentation order.
 - Rules and Guidance that are not tied to one Construct are declared as properties on the group
   object.
-- A `<Group>.examples.md` beside the group's `.kt` file holds layer-level examples.
+- A `<Group>.examples.md` beside the group's `.kt` file contains layer-level examples.
 
 ### Test-scoped groups
 
@@ -134,7 +145,7 @@ Each concrete object registers its own copy of every base Rule under its own ID
 documentation see independent Rules per group. RuleGroup-level Rules are shared the same way, with
 an abstract class extending RuleGroup.
 
-- The base class holds only Rules that hold identically for every group that instantiates it.
+- The base class declares only Rules that hold identically for every group that instantiates it.
   When a Rule stops being universal, move it onto each concrete object in the same change. Never
   redeclare a base Rule on a concrete object — the duplicate ID fails the integrity tests.
 - Group context a rule body needs (a side name, a package segment) must be a constructor
@@ -143,7 +154,7 @@ an abstract class extending RuleGroup.
 - `@Describe` text is a compile-time constant, so a shared statement must be worded to be true for
   every instantiating group. A statement that needs group-specific wording marks a Rule that
   belongs on the concrete object.
-- Each concrete object still carries its own object-level `@Describe` (the narrative is per-group,
+- Each concrete object still declares its own object-level `@Describe` (the narrative is per-group,
   never inherited) and its own examples file in its group's package.
 - Declare the base class in a package that no RuleGroup owns; groups own their packages and their
   documentation pages.
@@ -162,7 +173,7 @@ A Rule is a mandatory statement about a Construct or RuleGroup. Declare it as a 
   each matching declaration), `scope { … }` (applies to the whole scope), `moduleGraph { … }`
   (applies to module dependencies), or `enforcedBy(…)` (another Rule already enforces it).
 - If the statement cannot be tested, end it with `unverifiable()`. It is still a Rule: it is
-  enforced by review, and its documentation carries a "not automatically verifiable" note. Add
+  enforced by review, and its documentation includes a "not automatically verifiable" note. Add
   a `note("…")` explaining why it can't be tested if that isn't obvious.
 - `rationale("…")` records why the Rule matters, in one or two short sentences. Rendered as a
   single line under **Why**. It does not explain what things are, walk through failure
@@ -196,7 +207,7 @@ what was planned, to understand what a rule requires.
   sentence each where possible.
 - A RuleGroup or Construct's `@Describe` states what the group contains and where its boundary
   sits, with only the reasoning needed to understand the boundary; rule-specific reasoning
-  belongs on the rule that carries it.
+  belongs on the rule the reasoning explains.
 - Reasoning is welcome; it should justify the rule from the system as it stands, not from how the
   system got here.
 
@@ -222,4 +233,4 @@ An audit is a test that reports findings without ever failing.
   when a permission should be watched ("allowed, but keep these minimal").
 - Findings appear in the test output under `<rule> [audit]`.
 - Declare it with `audit { … }` (Construct Guidance) or `auditModuleGraph { … }` (RuleGroup
-  Guidance). An unverifiable Rule may also carry an audit, via `unverifiable { … }`.
+  Guidance). An unverifiable Rule may also declare an audit, via `unverifiable { … }`.

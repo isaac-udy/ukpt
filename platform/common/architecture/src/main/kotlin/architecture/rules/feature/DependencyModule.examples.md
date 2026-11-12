@@ -18,7 +18,7 @@ internal class UserServiceImpl(
 ) : UserService { /* … */ }
 ```
 
-A dependency the graph supplies, a setting fixed for every deployment kept private, and a setting that varies between deployments carried by a configuration the module assembles (`ProjectRules.injectableConstructorsHaveNoDefaults`):
+A dependency the graph supplies, a setting fixed for every deployment kept private, and a setting that varies between deployments declared in a configuration the module assembles (`ProjectRules.injectableConstructorsHaveNoDefaults`):
 
 ```kotlin
 // feature.orders.server.domain.ReconcileOrders.kt (:server)

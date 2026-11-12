@@ -19,9 +19,9 @@ says which one you are in:
   happens here. This is the same construct as the client's
   [Repository](clientdata.md#repository), with the same rules.
 * In the `server.data.storage` subpackage, a [StorageClass](#storage-class) speaks
-  [Rows](#storage-record) only. It holds the queries and the single write path for the tables it
-  owns, and it names no domain type at all: the mapping is the Repository's job, not the
-  query's. `.storage` is the Row-only subpackage, the counterpart of
+  [Rows](#storage-record) only. A StorageClass contains the queries and the single write path
+  for the tables the StorageClass owns, and names no domain type at all: the mapping is the
+  Repository's job, not the query's. `.storage` is the Row-only subpackage, the counterpart of
   [`client.data.storage`](clientdata.md#client-storage).
 
 [IntegrationClients](#integration-client) are the Repository idea pointed outward — an adapter
@@ -43,7 +43,7 @@ in `server.data.storage` beside the StorageClass that returns them; codecs and m
 name domain types by definition, so they belong at the `server.data` root.
 
 **This layer must never import `server.services`.** Wire contracts stay out of persistence, and
-storage can never reach the thing that is meant to consume it.
+storage can never call the layer that is meant to consume storage.
 [`ServerServices.noDataImports`](serverservices.md#rules) enforces the same separation from the
 other direction.
 
@@ -64,7 +64,7 @@ A [Repository](#repository) or a [UseCase](serverdomain.md#use-case) may inject
 `platform.server.postgres.TransactionRunner` and run several writes in one transaction
 (`ProjectRules.transactionRunnerInjectedByUseCaseOrRepository`). Storage calls made inside the
 block **join** that transaction, so a StorageClass never states whether it is in one: it issues
-the same query either way, and the caller that knows which writes have to land together decides
+the same query either way, and the caller that knows which writes have to commit together decides
 the boundary. That is what lets a UseCase compose one feature's write with another's — see
 [server domain interfaces](serverdomain.md#domain-interface).
 
@@ -164,7 +164,7 @@ a tested rule.
 ##### Rules
 
 * The `server.data` layer must import no server layer other than `server.domain` and `server.data`
-    * **Why:** Persistence exists to satisfy the domain, not to serve requests. The other server layers, such as `server.services`, are entry points that call into the domain. An import of one would put the request format inside the storage layer, or let a write reach back through the layer that called it — a cycle between the layers.
+    * **Why:** Persistence exists to satisfy the domain, not to serve requests. The other server layers, such as `server.services`, are entry points that call into the domain. An import of one would put the request format inside the storage layer, or let a write call back into the layer that called the write — a cycle between the layers.
     * **Note:** An allow-list: `server.domain` and `server.data` of any feature, sub-packages included. Every other `feature.[name].server.[layer]` import is a violation.
 * The `server.data` layer must not import `client` code
     * **Why:** The client and server meet at the RPC contract and nowhere else.
@@ -175,13 +175,13 @@ a tested rule.
     * **Why:** The generated `Table` objects and `Row` classes live in the shared `platform.server.postgres.tables` package, so any file at all can import one and read or write any table. That is the hole beneath every other storage rule: the Storage class stops being the single write path for its rows, and the invariants and side effects it owns get skipped by whoever went around it. The two generated shapes confine differently: an `XxxRow` is data, which the layer's mapping functions legitimately speak, but a `Table` object is the query and write path itself — a Repository holding one has bypassed the StorageClass this rule exists to make the door.
     * **Note:** `feature.[name].server.data` is the only home a table has: a file that names one from anywhere else is reaching around the Storage class that owns it, whatever package that file is in.
     * **Note:** Within the layer, `Row` imports are legal anywhere — mapping functions at the data root take Rows as receivers — while `Table` imports are legal only in the flat `storage` package, where the owning StorageClass lives.
-    * **Note:** Both imports and fully-qualified body references are counted, so `platform.server.postgres.tables.XxxTable.selectAll()` with no import line is the same reach-around.
+    * **Note:** Both imports and fully-qualified body references are counted, so `platform.server.postgres.tables.XxxTable.selectAll()` with no import line is the same violation.
 * A generated table object must be named by exactly one feature
-    * **Why:** A table two features write has no single owner, so no one place can hold its invariants and every change has to be reasoned about twice. This is the persistence-level counterpart to `ModuleRules.crossFeatureCodeViaApi`: reaching another feature's rows is the same coupling whether it goes through their Storage class or straight to their table.
+    * **Why:** A table two features write has no single owner, so no single feature can enforce the table's invariants and every change has to be reasoned about twice. This is the persistence-level counterpart to `ModuleRules.crossFeatureCodeViaApi`: reaching another feature's rows is the same coupling whether it goes through their Storage class or straight to their table.
     * **Note:** The feature is the first segment after `feature.`, the same unit every other cross-feature rule uses.
     * **Note:** Tested over every feature file that names a table; `ServerData.tableAccessOwnedByStorage` is what makes the feature that names a table and the feature whose storage owns it the same feature.
 * A generated table object must be named by at most one StorageClass file
-    * **Why:** A StorageClass is the single write path for the tables it owns, which is what lets its invariants and side effects hold: a partial-update shape, a lock order, a counter that may not go negative. A second class writing the same table is a second write path, and nothing carries those rules across to it — the split is invisible at both call sites and shows up as missed rules or missed data. Ownership therefore runs from the table: a class may own several tables, and a table has one owner.
+    * **Why:** A StorageClass is the single write path for the tables it owns, which is what lets its invariants and side effects hold: a partial-update shape, a lock order, a counter that may not go negative. A second class writing the same table is a second write path, and no code applies those invariants and side effects to the second write path — the split is invisible at both call sites and shows up as missed rules or missed data. Ownership therefore runs from the table: a class may own several tables, and a table has one owner.
     * **Note:** The sibling of `ServerData.tableOwnedBySingleFeature`, one level down: that rule gives a table one owning feature, this one gives it one owning class.
 * A `Table`/`Row` source is generated by the `dev.isaacudy.udytils.postgres` plugin from the Flyway-migrated schema, into the shared package `platform.server.postgres.tables`
     * **Enforced by:** code generation.
@@ -345,12 +345,12 @@ StorageClass speaks [Rows](#storage-record): it takes and returns persistence sh
 no domain type at all. It lives in `feature.[name].server.data.storage`, the layer's Row-only
 subpackage, the counterpart of [`client.data.storage`](clientdata.md#client-storage). The
 [Repository](#repository) above it, at the `server.data` root, injects it, maps what it returns,
-and provides the [domain interfaces](serverdomain.md#domain-interface) callers actually hold. See
+and provides the [domain interfaces](serverdomain.md#domain-interface) callers actually inject. See
 the [`server.data` overview](serverdata.md).
 
 **Ownership runs from the table.** A StorageClass may own several tables, and should when they
 change together — a reservation that locks and increments two counters in one transaction has one
-set of invariants, and two classes would hold half of it each. What a table may not have is two
+set of invariants, and two classes would each contain half of that set. What a table may not have is two
 owners: `ServerData.tableOwnedBySingleStorage` gives every table exactly one class that writes
 it, so its rules and side effects live in one place and cannot be skipped by going around it.
 
@@ -407,7 +407,7 @@ either an `object` named `[Name]Codec` holding discriminator constants (such as
 `[Name]Mappers.kt` file.
 
 * **Note:** The name is what classifies it: "an `object` in `server.data`" would claim any
-  other object the layer holds.
+  other object the layer contains.
 
 ##### Requirements
 
@@ -501,12 +501,12 @@ configuration field.
 * A Configuration must be immutable — no `var` properties
     * **Why:** A configuration is shared by every class the graph injects it into; a `var` lets one consumer change another's settings after the graph is assembled.
 * A Configuration is constructed in a dependency module or an `:app` module, never by the class that consumes it
-    * **Why:** The consuming class receives its configuration through its constructor, so the values are decided where the graph is assembled and a test supplies other values the same way. A class that constructs its own configuration holds settings nothing outside it decides.
+    * **Why:** The consuming class receives its configuration through its constructor, so the values are decided where the graph is assembled and a test supplies other values the same way. A class that constructs its own configuration contains settings that no code outside the class decides.
     * **Note:** A file that declares Koin bindings, or any file of an `:app` module, may construct it; the configuration's own file may declare a companion value. Test sources are outside the scope.
 
 ##### Examples
 
-A setting that varies between deployments, carried by a configuration the dependency module assembles; the clock is a dependency the graph supplies, and the retry count a setting fixed for every deployment:
+A setting that varies between deployments, declared in a configuration the dependency module assembles; the clock is a dependency the graph supplies, and the retry count a setting fixed for every deployment:
 
 ```kotlin
 // feature/orders/server/data/InvoicesConfig.kt

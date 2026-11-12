@@ -5,8 +5,8 @@ import dev.isaacudy.udytils.architecture.*
 
 @Describe("""
     Every test class declares one category with an annotation from `:platform:common:testing`. The
-    category states what the test may use besides the code under test, which decides how much a
-    run costs and what a failure means.
+    category states what the test may use besides the code under test, which decides how long a
+    run takes and what a failure means.
 
     | Category | Exercises | Uses for real | Runs on |
     | --- | --- | --- | --- |
@@ -23,7 +23,7 @@ import dev.isaacudy.udytils.architecture.*
     reading its state. A unit test is for logic with many inputs. A test that needs another kind
     of coverage states it with its category.
 
-    On the JVM each annotation carries a JUnit 5 tag and timeout. `./gradlew unitTest` runs the
+    On the JVM each annotation declares a JUnit 5 tag and timeout. `./gradlew unitTest` runs the
     unit tests of every module; each category has its task (`subcutaneousTest`, `componentTest`,
     `wiringTest`, `adapterTest`, `checkTest`, `endToEndTest`, and `snapshotTest`, which needs
     `--no-configuration-cache`). kotlin.test has no tags on JS, wasm or iOS, so `componentTest`
@@ -54,7 +54,7 @@ object Testing : RuleGroup(
     ),
     codeScope = CodeScope.Test,
 ) {
-    @Describe("Every test class (a class declaring a `@Test` function or extending `PreviewSnapshotTestCase`) must carry exactly one test category annotation")
+    @Describe("Every test class (a class declaring a `@Test` function or extending `PreviewSnapshotTestCase`) must have exactly one test category annotation")
     val oneCategoryPerTestClass by rule {
         rationale("The category decides which task runs the test and which rules check it.")
         scope { scope, exempt ->
@@ -65,8 +65,8 @@ object Testing : RuleGroup(
                     val categories = CATEGORY_ANNOTATIONS.filter { test.hasAnnotationWithName(it) }
                     when (categories.size) {
                         1 -> null
-                        0 -> Violation(test, "carries no category annotation")
-                        else -> Violation(test, "carries ${categories.joinToString { "@$it" }}")
+                        0 -> Violation(test, "has no category annotation")
+                        else -> Violation(test, "is annotated with ${categories.joinToString { "@$it" }}")
                     }
                 }
         }

@@ -14,7 +14,7 @@ description: >-
 
 # ukpt-testing
 
-Every test class carries exactly one annotation from `platform.testing`. The category says what
+Every test class has exactly one annotation from `platform.testing`. The category says what
 the test may use besides the code under test; the `Testing` rules check it
 (`platform/common/architecture/docs/testing.md`).
 
@@ -22,12 +22,12 @@ the test may use besides the code under test; the `Testing` rules check it
 
 | Write a… | When | Where |
 | --- | --- | --- |
-| `@SubcutaneousTest` | Behaviour a user reaches through a screen, or a `@Urpc` service no screen calls. **The default.** | `:feature:<name>:tests`, `src/test/` |
+| `@SubcutaneousTest` | Behaviour a user triggers through a screen, or a `@Urpc` service no screen calls. **The default.** | `:feature:<name>:tests`, `src/test/` |
 | `@UnitTest` | Logic with many inputs: parsing, validation, formatting, a branching UseCase | the module's `commonTest` (or a platform test set) |
 | `@ComponentTest` | A `[Name]ScreenContent` with fixed state, driven through its robot; a Compose HTML `[Name]HtmlScreenContent`; or a shared primitive, navigation container or app-shell composable | the `:client` module's `src/jvmTest/` (Compose UI) or `src/jsTest/` (HTML); shared UI in its own `:platform:client:*` or `:app:client:common` module |
 | `@SnapshotTest` | The module's one `PreviewSnapshotTest` | `src/androidHostTest/` |
 | `@WiringTest` | An app shell's Koin graph (`verify()`) | the `:app` module's test set |
-| `@AdapterTest` | One adapter against real infrastructure, where a Subcutaneous Test reaches poorly: a server adapter, or a client's device files, sensors or renderers | a server module's `src/test/`; a client module's platform test set (`jvmTest`, `iosSimulatorArm64Test`, …); `androidHostTest` for an adapter in `androidMain`, which `snapshotTest` runs |
+| `@AdapterTest` | One adapter against real infrastructure that a Subcutaneous Test covers poorly: a server adapter, or a client's device files, sensors or renderers | a server module's `src/test/`; a client module's platform test set (`jvmTest`, `iosSimulatorArm64Test`, …); `androidHostTest` for an adapter in `androidMain`, which `snapshotTest` runs |
 | `@CheckTest` | Two committed files that must agree (CSS tokens, doc images) | a JVM test set |
 | `@EndToEndTest` | A journey through the desktop app's UI | `:app:client:desktop`, `src/test/` |
 
@@ -122,8 +122,8 @@ A `:client` module's `jvmTest` depends on its own `:tests` module for the robots
 The harness is `:platform:common:subcutaneous-server` (package `platform.testing.subcutaneous`),
 which runs the server in-process, over `:platform:common:subcutaneous`, which builds the client
 graph. A feature's `:feature:<name>:tests` module applies `ukpt.feature-tests` and depends on the
-harness and the feature's `:client` and `:server` (`ukpt-feature-slice` scaffolds it). Its
-`src/main` holds the test graph and the scenarios; its `src/test` holds the tests. A project
+harness and the feature's `:client` and `:server` (`ukpt-feature-slice` scaffolds it). The module's
+`src/main` contains the test graph and the scenarios; the module's `src/test` contains the tests. A project
 without a server of its own depends on `:platform:common:subcutaneous` alone: see "Without a
 server" below.
 
@@ -160,17 +160,17 @@ fun `confirming the reset dialog clears the history`() = subcutaneous(ukptTestGr
   `key` (`screen.navigation`; use the enro-test assertions on it). `viewModel<VM, K>(key) { set(…) }`
   sets navigation metadata on the key's instance before the ViewModel opens.
 - `screen.navigation.awaitOpened(key)`, `awaitOpened<K> { … }` and `awaitClosed()` — wait for an
-  open or a close the ViewModel performs later, such as after a result arrives. `awaitOpened<K>()`
+  open or a close the ViewModel performs later, such as after a result is received. `awaitOpened<K>()`
   checks the key's type; enro-test's `assertOpened<K>()` alone matches any open.
 - `state.awaitMatching(timeout = 10.seconds) { … }` — suspends until the state matches; fails with
   the last state.
 - `awaitAsserted(timeout = 10.seconds) { … }` — retries an assertion until it passes; fails with
-  its last failure. For navigation a ViewModel reaches after a state change:
+  its last failure. For navigation a ViewModel performs after a state change:
   `awaitAsserted { screen.navigation.assertClosed() }`.
 - `service<S>()` — the `@Urpc` service's generated client, calling the in-process server. For
-  server behaviour no screen reaches.
-- `given { … }` — runs scenarios, before a ViewModel opens or while it is open. A change made
-  mid-test reaches an open ViewModel through the server's notifications, as in the app.
+  server behaviour no screen calls.
+- `given { … }` — runs scenarios, before a ViewModel opens or while it is open. An open ViewModel
+  receives a change made mid-test through the server's notifications, as in the app.
 
 **Scenarios.** `suspend fun Scenario.<name>(…)` in the `:tests` module's `src/main`. Inside,
 `server<T>()` and `client<T>()` resolve from the running graphs. A scenario writes through server
@@ -213,7 +213,7 @@ val projectsTestGraph = SubcutaneousGraph(
 )
 ```
 
-The backend is an edge. A `Fake[Name]Backend` in `src/main` holds the records a test seeds and
+The backend is an edge. A `Fake[Name]Backend` in `src/main` stores the records a test seeds and
 answers the client's requests through a Ktor `MockEngine`. An `Edges` extension beside it binds
 the fake and the engine, so the test files import neither Ktor nor Koin
 (`Testing.SubcutaneousTest.noInfrastructureImports`):
@@ -300,7 +300,7 @@ A task name given without a module path runs in every module that has it:
 ./gradlew snapshotTest --no-configuration-cache
 ```
 
-One module: `./gradlew :feature:core:client:unitTest`. On the JVM the category annotations carry
+One module: `./gradlew :feature:core:client:unitTest`. On the JVM the category annotations apply
 JUnit 5 tags and timeouts (10 s unit; 30 s component, wiring, check; 60 s adapter, subcutaneous;
 120 s end-to-end). kotlin.test has no tags on JS, wasm or iOS, so those targets run through their
 own tasks (`jsTest`, `wasmJsTest`, `iosSimulatorArm64Test`). `test`/`jvmTest` still run every
@@ -367,14 +367,14 @@ rather than running them one after another.
 
 ### Checking a feature: by hand, a throwaway test, or a kept test
 
-- **By hand** (`ukpt-drive-app`): layout, spacing, how a screen looks and responds. Nothing re-runs
-  it, so it is not a test of behaviour.
+- **By hand** (`ukpt-drive-app`): layout, spacing, how a screen looks and responds. No task re-runs
+  the manual check, so the manual check is not a test of behaviour.
 - **A throwaway End To End Test:** a journey across several screens that would take many steps to
   repeat by hand after each change. Write it in `:app:client:desktop`'s `src/test` with the
   feature's robots, run it while iterating, and delete it before committing unless it meets the
   next point.
 - **A kept End To End Test:** one per main journey of the app, for what a Subcutaneous Test can't
-  reach: screens bound to their ViewModels, navigation between screens, the shell starting. A
+  cover: screens bound to their ViewModels, navigation between screens, the shell starting. A
   behaviour inside one screen, even one an End To End Test found, gets a Subcutaneous Test.
 
 ## Rule failures
@@ -393,7 +393,7 @@ failure names the rule; its statement and rationale are in
 - `ClientUi.ViewModel.publicFunctionsExercised` — call the named function in a Subcutaneous Test of
   that ViewModel.
 - `Testing.SubcutaneousTest.entryPointVocabularyOnly` — replace the repository or use case with the
-  ViewModel or service that reaches it, and seed through a scenario.
+  ViewModel or service that calls that repository or use case, and seed through a scenario.
 - `Testing.SubcutaneousTest.viewModelsFromTheGraph` — open the ViewModel with `viewModel<VM, K>(key)`.
 - `Testing.SubcutaneousTest.noInfrastructureImports` — move the binding to `edges`, the setup to a
   scenario, `runTest` to `awaitMatching`.

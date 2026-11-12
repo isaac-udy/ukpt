@@ -49,8 +49,9 @@ Compile every platform (client + server) to verify correctness:
           :app:server:compileKotlin
 ```
 `checkDebugAarMetadata` enforces each Android dependency's minimum AGP and compileSdk;
-`compileDebugKotlin` never reaches it. It is cheap, and it is the only gate on the sweep that a
-Compose or androidx bump can fail (`assembleDebug` runs it too, at the cost of a full build).
+`compileDebugKotlin` does not run that check. `checkDebugAarMetadata` is cheap, and is the only gate
+on the sweep that a Compose or androidx bump can fail (`assembleDebug` also runs the check, as part
+of a full build).
 `:app:client:web-html:compileKotlinJs` runs Enro's code generator, which fails for a Compose UI
 screen with no Compose HTML twin. A project that deleted one of the web clients drops its line.
 
@@ -94,7 +95,7 @@ failure messages. Skip this section if the project deleted `app/client/web-html`
 
 ### By category
 
-Every test class carries one category annotation (the `ukpt-testing` skill). A category task
+Every test class has one category annotation (the `ukpt-testing` skill). A category task
 given without a module path runs in every module that has it:
 ```
 ./gradlew unitTest wiringTest checkTest adapterTest componentTest
@@ -164,8 +165,8 @@ Record then verify goldens, per client module:
 ./gradlew :feature:core:client:snapshotTest --no-configuration-cache
 ```
 
-Goldens are **directory-grouped** by the preview's declaring package and function name, so a preview
-in `feature.ukpt.client.ui` lands at
+Goldens are **directory-grouped** by the preview's declaring package and function name, so the golden
+for a preview in `feature.ukpt.client.ui` is written to
 `src/androidHostTest/snapshots/images/feature/ukpt/client/ui/UkptScreenPreview.png`.
 `DirectorySnapshotHandler` implements this layout (stock Paparazzi only emits flat filenames). Two
 previews resolving to the same golden path fail fast at test-parameter creation.
@@ -183,4 +184,4 @@ Server coverage lives in **two** modules:
 ```
 ./gradlew :feature:core:server:test :app:server:test
 ```
-The feature module holds nearly all of it; `:app:server:test` alone runs only the shell's own tests.
+The feature module contains nearly all of the server coverage; `:app:server:test` alone runs only the shell's own tests.

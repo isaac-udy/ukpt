@@ -13,12 +13,12 @@ import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
     no domain type at all. It lives in `feature.[name].server.data.storage`, the layer's Row-only
     subpackage, the counterpart of [`client.data.storage`](clientdata.md#client-storage). The
     [Repository](#repository) above it, at the `server.data` root, injects it, maps what it returns,
-    and provides the [domain interfaces](serverdomain.md#domain-interface) callers actually hold. See
+    and provides the [domain interfaces](serverdomain.md#domain-interface) callers actually inject. See
     the [`server.data` overview](serverdata.md).
 
     **Ownership runs from the table.** A StorageClass may own several tables, and should when they
     change together — a reservation that locks and increments two counters in one transaction has one
-    set of invariants, and two classes would hold half of it each. What a table may not have is two
+    set of invariants, and two classes would each contain half of that set. What a table may not have is two
     owners: `ServerData.tableOwnedBySingleStorage` gives every table exactly one class that writes
     it, so its rules and side effects live in one place and cannot be skipped by going around it.
 """)

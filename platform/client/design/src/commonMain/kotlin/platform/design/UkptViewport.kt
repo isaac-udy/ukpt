@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.dp
  *
  * Deliberately not a full breakpoint ladder: [isCompact] is a single boolean, so a layout either
  * has room or it doesn't. Multi-step breakpoints multiply the number of states every screen must be
- * designed and snapshotted in, and the middle steps are the ones nobody checks.
+ * designed and snapshotted in, and the middle steps are the states that go unchecked.
  */
 @Immutable
 data class UkptViewport(
@@ -31,7 +31,7 @@ data class UkptViewport(
         )
 
         /**
-         * The value in effect when nothing has measured yet. Set to the project's primary form
+         * The value in effect when no [ProvideUkptViewport] has measured. Set to the project's primary form
          * factor so a composable rendered outside [ProvideUkptViewport] — a preview, a doc surface
          * — still reads a sensible viewport rather than a misleading one.
          */
@@ -45,7 +45,7 @@ internal val LocalUkptViewport = staticCompositionLocalOf { UkptViewport.Default
  * Measures the available width and publishes it as [UkptTheme.viewport] to [content].
  *
  * Wrap this once at the app root, inside [UkptTheme]. Nesting it is legal — an inner call
- * re-measures for a pane — but a screen that reaches for it usually wants a plain layout instead.
+ * re-measures for a pane — but a screen that nests a call usually needs a plain layout instead.
  */
 @Composable
 fun ProvideUkptViewport(

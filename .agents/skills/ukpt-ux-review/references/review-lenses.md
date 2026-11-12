@@ -2,7 +2,7 @@
 
 Use these prompts to investigate an actual task. They are a curated application of UX principles,
 not an exhaustive catalogue of laws. Link a relevant source when a finding depends on that
-principle; the application evidence must still carry the finding.
+principle; the application evidence must still support the finding.
 
 ## Journeys and decisions
 

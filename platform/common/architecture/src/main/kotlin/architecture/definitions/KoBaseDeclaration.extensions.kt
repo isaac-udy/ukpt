@@ -134,7 +134,7 @@ fun KoBaseDeclaration.featureName(): String {
 /**
  * The feature a module path names: the directory segments between `/feature/` and the
  * `api`/`client`/`server`/`tests` submodule directory, dot-joined. `feature/camera/client` names `camera`;
- * a **grouped** feature carries its group, so `feature/capture/insta/client` names `capture.insta`
+ * the name of a **grouped** feature includes the group, so `feature/capture/insta/client` names `capture.insta`
  * — `:feature:capture:insta` and `:feature:capture:device-camera` are two features, not two halves
  * of one.
  *
@@ -320,7 +320,7 @@ fun KoBaseDeclaration.isMutable(): Boolean {
 // ---- the feature taxonomy (see platform/common/architecture/README.md) --------------------------
 // A feature package is `feature.<name>[.<side>.<layer>[.<sub>]]`, where `<name>` spans as many
 // segments as the feature's module path does — one for `:feature:camera`, two for the grouped
-// `:feature:capture:insta`. The feature root is the name itself and holds the shared wire
+// `:feature:capture:insta`. The feature root is the name itself and contains the shared wire
 // vocabulary; everything deeper is side-private.
 
 /**
@@ -358,13 +358,13 @@ fun KoBaseDeclaration.featureSide(): String? {
         ?.takeIf { it in featureSideSegments }
 }
 
-/** True once this declaration's package carries a `client.`/`server.` segment. */
+/** True once this declaration's package contains a `client.`/`server.` segment. */
 fun KoBaseDeclaration.isSideFirstPackage(): Boolean = featureSide() != null
 
 /**
  * True for a declaration in `feature.[name].server.data` — the package the ServerData Constructs
- * classify. The group's `inPackage` gate is the same package, so a Construct can never reach wider
- * than this; the layer's file-based import rules (`ServerData.noEntryPointImports`,
+ * classify. The group's `inPackage` gate is the same package, so a Construct can never match a
+ * declaration outside `server.data`; the layer's file-based import rules (`ServerData.noEntryPointImports`,
  * `ServerData.noClientImports`, `ServerData.tableAccessOwnedByStorage`) use `isInServerData()`,
  * the file-level form of the same test.
  */
@@ -384,7 +384,7 @@ fun KoBaseDeclaration.isInServerDataOutsideStorage(): Boolean {
 
 /**
  * True for a declaration in `feature.[name].server.data.storage` — the Row-speaking subpackage that
- * holds the layer's Storage classes and hand-written storage records, mirroring `client.data.storage`.
+ * contains the layer's Storage classes and hand-written storage records, mirroring `client.data.storage`.
  * The rest of `server.data` — Repositories, mapping functions, codec objects, IntegrationClients —
  * names domain types, and sits at the layer's root instead.
  *
@@ -430,7 +430,7 @@ fun KoBaseDeclaration.isNavigationKey(): Boolean =
 
 /**
  * The simple names of the `sealed` types this declaration is a variant of — empty when it is not a
- * sealed variant. A declaration reaches more than one only by implementing two sealed interfaces.
+ * sealed variant. A declaration has more than one sealed parent only by implementing two sealed interfaces.
  */
 fun KoBaseDeclaration.sealedParentSimpleNames(): List<String> =
     (this as? KoParentProvider)?.parents().orEmpty()

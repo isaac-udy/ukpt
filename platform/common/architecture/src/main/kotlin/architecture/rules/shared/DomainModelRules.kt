@@ -32,7 +32,7 @@ abstract class DomainModelRules<G : RuleGroup>(
         }
     }
 
-    @Describe("A domain model must not hold a domain interface: no property or constructor parameter whose type is a domain interface of the same client or server `domain` layer, bare, nullable, or inside a wrapper such as `Lazy<…>` or `List<…>`")
+    @Describe("A domain model must not contain a domain interface: no property or constructor parameter whose type is a domain interface of the same client or server `domain` layer, bare, nullable, or inside a wrapper such as `Lazy<…>` or `List<…>`")
     val noDomainInterfaceProperties by rule {
         rationale("A domain model is data; a property typed as a domain interface is a dependency that is supplied at the model's construction site rather than injected, so Koin's startup validation does not see it and the class that consumes the model has a dependency its constructor does not declare.")
         note("A property type is resolved through its file's imports and matched against the $side's classified domain interfaces by fully-qualified name.")
@@ -43,7 +43,7 @@ abstract class DomainModelRules<G : RuleGroup>(
                 .filterNot { exempt(it) }
                 .flatMap { cls ->
                     val file = cls.containingFile
-                    val message = { typeName: String -> "domain model holds domain interface `$typeName` — a model is data; inject the interface where it is used" }
+                    val message = { typeName: String -> "domain model has a property of domain interface type `$typeName` — a model is data; inject the interface into the class that calls the interface" }
                     val interfaceProperties = cls.properties()
                         .filter { file.typeExpressionResolvesTo(it.type?.name.orEmpty(), domainInterfaces) }
                     // A `val` constructor parameter is also a property; report it once.
@@ -61,7 +61,7 @@ abstract class DomainModelRules<G : RuleGroup>(
                     val file = iface.containingFile
                     iface.properties()
                         .filter { file.typeExpressionResolvesTo(it.type?.name.orEmpty(), domainInterfaces) }
-                        .map { Violation(iface, "domain model holds domain interface `${it.type?.name}` — a model is data; inject the interface where it is used") }
+                        .map { Violation(iface, "domain model has a property of domain interface type `${it.type?.name}` — a model is data; inject the interface into the class that calls the interface") }
                 }
             classViolations + interfaceViolations
         }
@@ -82,7 +82,7 @@ abstract class DomainModelRules<G : RuleGroup>(
 
     @Describe("A typed configuration value for a UseCase is a domain model of its side, assembled in the dependency module and injected")
     val carriesConfiguration by guidance {
-        note("A setting that varies between deployments reaches a UseCase as a field of an immutable data class the dependency module constructs (`single { ReconciliationConfig(cleanupTimeout = 15.seconds) }`), never as a constructor default (`ProjectRules.injectableConstructorsHaveNoDefaults`). A setting fixed for every deployment is a private property of the UseCase.")
+        note("A setting that varies between deployments is injected into a UseCase as a field of an immutable data class the dependency module constructs (`single { ReconciliationConfig(cleanupTimeout = 15.seconds) }`), never as a constructor default (`ProjectRules.injectableConstructorsHaveNoDefaults`). A setting fixed for every deployment is a private property of the UseCase.")
         note("The data layer's counterpart is a [configuration](${side}data.md#configuration): a `[Name]Config` data class beside the Repository or adapter it configures.")
     }
 }

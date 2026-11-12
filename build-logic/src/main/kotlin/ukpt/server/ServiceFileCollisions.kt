@@ -11,7 +11,7 @@ data class ServiceFileDeclaration(
 )
 
 /**
- * A `META-INF/services/…` path declared by more than one classpath entry. A fat jar holds one file
+ * A `META-INF/services/…` path declared by more than one classpath entry. A fat jar contains one file
  * per path, so on a collision every declaration but one is dropped — silently, because
  * ServiceLoader has no way to know the file it read is a fragment.
  */

@@ -88,7 +88,7 @@ skipping, cancellation, and completion.
 Suggest substantial layout or flow changes when the expected user benefit reasonably justifies
 the implementation cost and disruption. Explain the gain, the supporting evidence, the tradeoff,
 and why a smaller change would not achieve enough of it. Do not recommend a screen rewrite for a
-minor preference. Include worthwhile polish opportunities even when nothing is functionally broken.
+minor preference. Include worthwhile polish opportunities even when no feature is functionally broken.
 
 Prefer improvements that use the existing design system. Explain any proposed departure in terms
 of the user's task. [ukpt-design-system](../ukpt-design-system/SKILL.md) governs implementing token

@@ -94,7 +94,7 @@ object Robot : Construct<Testing>(
 
     @Describe("A Robot's file must declare its entry point, a `User.on[Screen]` function")
     val hasEntryPoint by rule {
-        rationale("Tests reach a robot only through `on[Screen] { }`, which waits for the screen before the first step.")
+        rationale("Tests call a robot only through `on[Screen] { }`, which waits for the screen before the first step.")
         constrain { decl, _ ->
             if (ENTRY_POINT.containsMatchIn(decl.fileCode())) emptyList()
             else listOf(Violation(decl, "its file declares no `fun User.on[Screen](block: ${(decl as KoClassDeclaration).name}.() -> Unit)`"))

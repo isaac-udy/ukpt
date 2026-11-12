@@ -17,7 +17,7 @@ kotlin {
         // The AGP KMP library plugin disables Android resource processing by default, and with it
         // the module's assets artifact. Compose Multiplatform packages this module's
         // `composeResources` (strings .cvr, fonts, drawables) as Android *assets*, so without this
-        // flag the pack never reaches the consuming APK and every stringResource/Font lookup from
+        // flag the consuming APK does not contain the pack and every stringResource/Font lookup from
         // this module fails at runtime — silently for fonts, MissingResourceException for strings.
         // Snapshot tests don't catch it (host-JVM tests read resources from the classpath, not APK
         // assets), and stale merged assets in consumers mask it until a clean build.
@@ -30,11 +30,11 @@ kotlin {
     }
 }
 
-// Compose 1.12 fails this check for every wasmJs test compilation that reaches Skiko, which every
+// Compose 1.12 fails this check for every wasmJs test compilation that depends on Skiko, which every
 // Compose library's does. The constraint it guards is real only for runComposeUiTest (CMP-4906):
 // Skiko's wasm runtime is loaded by the webpack bundle an executable produces. Plain kotlin.test
 // suites run in the browser without one, and a library declaring `binaries.executable()` would only
-// add a bundle nothing serves. A module that adds runComposeUiTest on wasmJs must declare
+// add an unused bundle. A module that adds runComposeUiTest on wasmJs must declare
 // `wasmJs { binaries.executable() }` and re-enable the task.
 tasks.named { it.startsWith("checkComposeUiTestConfigurationFor") }.configureEach {
     enabled = false

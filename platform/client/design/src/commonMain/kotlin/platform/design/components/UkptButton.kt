@@ -18,11 +18,11 @@ import platform.design.UkptSpacing
 import platform.design.UkptTheme
 
 /**
- * How much weight a button carries. Growth means a new entry here, never a new button composable —
+ * How much emphasis a button has. Growth means a new entry here, never a new button composable —
  * see `design-system/principles.md`.
  */
 enum class UkptButtonVariant {
-    /** The one action the screen wants. At most one per view. */
+    /** The screen's one main action. At most one per view. */
     Primary,
 
     /** A real alternative to [Primary]: "Cancel" next to "Save". */
@@ -46,7 +46,7 @@ enum class UkptButtonVariant {
  * truth.
  *
  * Every value it draws with resolves to a token. A variant that needs a colour the palette does not
- * have is a signal the palette is missing a role, not that this file should hold a literal.
+ * have is a signal the palette is missing a role, not that this file should contain a literal.
  */
 @Composable
 fun UkptButton(

@@ -1,7 +1,7 @@
 plugins {
     // Compose library + Paparazzi host-test wiring: common components are snapshot-tested the same
     // preview-driven way as the design system (see ukpt.snapshot-testing). Ready for the first
-    // component's `@Preview`; nothing is snapshotted until one exists.
+    // component's `@Preview`; no snapshot is recorded until a `@Preview` exists.
     id("ukpt.snapshot-testing")
 }
 

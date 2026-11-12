@@ -33,7 +33,7 @@ abstract class DomainInterfaceRules<G : RuleGroup>(
     @Describe("A Domain Interface may define additional default functions that call the primary function")
     val interfaceDefaults by guidance
 
-    @Describe("A Domain Interface should name a capability a consumer asks for, or return a domain model a consumer needs; it should not mirror one storage call, one property of a domain model, or one step of an implementation")
+    @Describe("A Domain Interface should name a capability a consumer requires, or return a domain model a consumer needs; a Domain Interface should not mirror one storage call, one property of a domain model, or one step of an implementation")
     val namesACapability by guidance {
         rationale(
             """
@@ -66,15 +66,15 @@ abstract class DomainInterfaceRules<G : RuleGroup>(
         )
         note("Reads stay separate when a consumer uses one of them alone, when their authorization, freshness, failure, or lifecycle differs, or when one is optional and its failure must not fail the other. Appearing on the same Screen is not a reason to combine reads.")
         note("Returning one data class does not by itself make its facts consistent. When the consumer needs one consistent snapshot, the provider uses one query, one transaction at a suitable isolation level, a shared lock, or a revision, and preserves authorization and tenant scope across every constituent read.")
-        note("Queries over one collection that differ only in their filter share one Domain Interface: a nested `sealed interface Input` carries the variants and a default function per variant keeps call sites flat.")
-        note("A domain model with lifecycle states is a sealed hierarchy whose variants carry the values each state requires, in place of nullable properties and Booleans that are meaningful only in combination.")
-        note("The audit reports three or more reads from one provider whose only consumer is one class. Constructor injection is the evidence, so the finding asks whether the reads are collected together; it does not prove they are.")
+        note("Queries over one collection that differ only in their filter share one Domain Interface: a nested `sealed interface Input` declares the variants and a default function per variant keeps call sites flat.")
+        note("A domain model with lifecycle states is a sealed hierarchy whose variants contain the values each state requires, in place of nullable properties and Booleans that are meaningful only in combination.")
+        note("The audit reports three or more reads from one provider whose only consumer is one class. Constructor injection is the evidence, so the finding prompts a check that the reads are collected together; the finding does not prove that the reads are.")
         auditScope { scope, _ ->
             DomainInterfaceAudits.readFamiliesWithOneConsumer(scope.domainInterfaceGraph(side))
         }
     }
 
-    @Describe("When several mutations act on one domain model and share a return type, prefer a single `Update[Noun]` interface over one interface per mutation: a nested `sealed interface Update` carries the variants, the abstract `invoke(id, update)` is the single entry point, and default functions (`title(...)`, `addMember(...)`) keep call sites flat. When publishing through `:api`, publish exactly the capability another feature needs, never the whole mutation family.")
+    @Describe("When several mutations act on one domain model and share a return type, prefer a single `Update[Noun]` interface over one interface per mutation: a nested `sealed interface Update` declares the variants, the abstract `invoke(id, update)` is the single entry point, and default functions (`title(...)`, `addMember(...)`) keep call sites flat. When publishing through `:api`, publish exactly the capability another feature needs, never the whole mutation family.")
     val collapsedUpdateFamilies by guidance {
         note("Reads do not join an update family: a read returns the domain model it produces, and reads a consumer needs together form one read projection.")
         note("The audit reports three or more mutations on one noun from one provider, by name (`CreateTeam`, `UpdateTeam`, `DeleteTeam`). Whether they share a return type, and so form one family, is the reviewer's call.")
@@ -87,19 +87,19 @@ abstract class DomainInterfaceRules<G : RuleGroup>(
     val consumedInProduction by guidance {
         note("A DI module binds an interface without consuming it, and a test fake is not a consumer. An interface published through `:api` may be consumed from another feature's module, which the audit sees when that module is in scope.")
         note("The audit counts two forms of consumption: a class taking the interface as a primary-constructor parameter, and a file resolving it out of the Koin container with `get<T>()`, `inject<T>()`, or `koinInject<T>()` — the form an app module's startup wiring or a Compose entry point uses. A `bind T::class` in a module is the binding, not a consumer, and is not counted.")
-        note("A consumer that reaches the interface in neither form — through reflection, or a lambda parameter typed elsewhere — is not counted, so an interface reported here is a question to check rather than proven dead code.")
+        note("A consumer that obtains the interface in neither form — through reflection, or a lambda parameter typed elsewhere — is not counted, so an interface reported here is a question to check rather than proven dead code.")
         auditScope { scope, _ ->
             DomainInterfaceAudits.interfacesWithoutConsumer(scope.domainInterfaceGraph(side))
         }
     }
 
-    @Describe("A mutation should return the value its caller needs next, and no value when an observed read projection already carries the outcome")
+    @Describe("A mutation should return the value its caller needs next, and no value when an observed read projection already contains the outcome")
     val mutationResults by guidance {
         rationale(
             """
             A caller that receives an identifier and reads the model back performs a second read
             for a value the producer had in hand. A caller that receives a value it never uses
-            carries a contract with no consumer.
+            depends on a contract with no consumer.
             """.trimIndent(),
         )
         note("A returned value describes the state captured within the mutation, including whether the mutation was accepted; it does not imply the state is unchanged after the mutation completes.")
@@ -140,7 +140,7 @@ abstract class DomainInterfaceRules<G : RuleGroup>(
     val errorsViaExceptions by rule {
         rationale(
             """
-            A result type that carries the failure makes every caller unwrap it, and the layer's
+            A result type that contains the failure makes every caller unwrap the result, and the layer's
             vocabulary grows a wrapper around each contract. Thrown exceptions keep the primary
             function's return type the thing it produces.
             """.trimIndent(),

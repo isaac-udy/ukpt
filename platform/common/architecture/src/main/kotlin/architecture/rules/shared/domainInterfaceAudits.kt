@@ -47,8 +47,8 @@ internal object DomainInterfaceAudits {
                 Violation(
                     where = group.consumer.className,
                     message = "${group.nodes.size} reads from `${group.provider}` have `${group.consumer.className}` as their only consumer, injected together. " +
-                        "Could `${group.provider}` return one domain model that carries them? " +
-                        "Check that they are collected together, and for independent callers, authorization, failure, and freshness, before combining.",
+                        "Could `${group.provider}` return one domain model that contains those values? " +
+                        "Check that the reads are collected together, and for independent callers, authorization, failure, and freshness, before combining.",
                     evidence = group.nodes.map { it.name },
                 )
             }
@@ -102,7 +102,7 @@ internal object DomainInterfaceAudits {
                 val part = rest.removePrefix(model)
                 Violation(
                     where = node.name,
-                    message = "names `$part` of domain model `$model`. Can `$model`, or a projection of it, carry `$part` instead of a separate read?",
+                    message = "names `$part` of domain model `$model`. Can `$model`, or a projection of `$model`, include `$part` instead of a separate read?",
                 )
             }
 
@@ -129,7 +129,7 @@ internal object DomainInterfaceAudits {
                 )
             }
 
-    /** Interfaces nothing injects and nothing resolves out of the Koin container. */
+    /** Interfaces that no class injects and no file resolves out of the Koin container. */
     fun interfacesWithoutConsumer(graph: DomainInterfaceGraph): List<Violation> =
         graph.nodes
             .filter { it.consumerCount == 0 }
@@ -137,8 +137,8 @@ internal object DomainInterfaceAudits {
             .map { node ->
                 Violation(
                     where = "${node.name} (feature.${node.feature})",
-                    message = "no class injects it and no `get<T>()`/`inject<T>()`/`koinInject<T>()` resolves it. " +
-                        "A consumer that reaches it some other way is not counted; check before deleting.",
+                    message = "no class injects this interface and no `get<T>()`/`inject<T>()`/`koinInject<T>()` resolves this interface. " +
+                        "A consumer that obtains the interface another way is not counted; check before deleting.",
                 )
             }
 

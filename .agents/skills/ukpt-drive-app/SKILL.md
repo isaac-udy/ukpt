@@ -28,7 +28,7 @@ common code, the desktop app is the surface for checking shared screens.
 | `take_screenshot` | PNG of the Compose content. Pass `save_to` with an absolute path, then open the file to look at it. |
 | `click`, `long_click` | Act on a node by `nodeId`. The node must list the action in `actions`. |
 | `type_text`, `scroll`, `scroll_to_index` | Text entry and scrolling on a node. |
-| `reload` | Recompiles and hot-reloads changed classes into the running app. Returns `reloaded: false` when nothing changed. |
+| `reload` | Recompiles and hot-reloads changed classes into the running app. Returns `reloaded: false` when no class changed. |
 | `await_reload` | Only when the app was started with continuous build (`--auto`). |
 | `get_ui_error` | Message and stacktrace for a window whose composition threw. |
 | `get_logs` | Recent stdout/stderr lines from the app process. |
