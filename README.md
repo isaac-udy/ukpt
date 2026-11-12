@@ -128,7 +128,7 @@ Both libraries are published to Maven Central, so this is entirely optional. To 
 
 ```toml
 [versions]
-enro = "3.0.0-beta03"
+enro = "3.0.0"
 udytils = "1.2.1"
 
 [libraries]
