@@ -171,6 +171,11 @@ for a preview in `feature.ukpt.client.ui` is written to
 `DirectorySnapshotHandler` implements this layout (stock Paparazzi only emits flat filenames). Two
 previews resolving to the same golden path fail fast at test-parameter creation.
 
+The snapshot test JVM runs in a fixed locale and time zone, so a golden that renders a date or a
+time is identical on every machine. Two Gradle properties in `gradle.properties` select the values:
+`ukpt.snapshotLocale` (`language-COUNTRY`, default `en-US`) and `ukpt.snapshotTimeZone` (a time
+zone ID, default `UTC`). Changing either property requires re-recording the affected goldens.
+
 ### Unit tests
 
 Per KMP module via the umbrella task, e.g.:
