@@ -11,10 +11,10 @@ and the serializable Navigation Keys ([Destinations](#destination)) that open th
 Destination moves to `:api` (same package, a file move) only when another feature navigates to
 it — that published key is the one part of this layer a second feature may see.
 
-Everything the UI loads or mutates arrives through
+The UI loads and mutates data only through
 [domain interfaces](clientdomain.md#domain-interface), provided by
 [Repositories](clientdata.md#repository) in `client.data`. Server calls (via
-[Services](serverservices.md#service-interface)) reach the screen the same way.
+[Services](serverservices.md#service-interface)) are made through the same domain interfaces.
 
 The layer rules below apply across the whole `feature.[name].client.ui` package.
 
@@ -32,23 +32,23 @@ The layer rules below apply across the whole `feature.[name].client.ui` package.
 ##### Rules
 
 * A `client.ui` file may import another feature's `client.domain` only when the imported declaration is published to `:api`
-    * **Why:** `client.domain` is private to its feature except for what the feature publishes to `:api` (`ClientDomain.pure`). The UI reaches another feature's domain the same way it reaches everything else cross-feature: through the published surface, never the feature's own `:client` module.
+    * **Why:** `client.domain` is private to its feature except for what the feature publishes to `:api` (`ClientDomain.pure`). The UI imports another feature's domain the same way the UI imports every other cross-feature declaration: through the published surface, never the feature's own `:client` module.
     * **Note:** Reuses the same published-FQN channel as `ClientDomain.pure` and `ServerDomain.pure` — publishing is moving the file, not changing the package.
 * The `client.ui` layer must never implement `domain` interfaces
     * **Why:** Domain interfaces are the contract between presentation and persistence; implementations belong in `client.data` (Repositories) or `client.domain` (UseCases). A ViewModel that implements one couples two layers' lifecycles and makes the ViewModel un-injectable elsewhere.
     * **Note:** A parent reference is resolved through its file's imports and matched against the client's classified [Domain Interfaces](clientdomain.md#domain-interface) by fully-qualified name — an `:api`-declared parent often resolves to no source declaration, so resolution-based testing would silently skip exactly the published contracts.
 * The `client.ui` layer must never depend on `data` or `services`
-    * **Why:** The UI consumes `client.domain` interfaces only. Repositories (in `client.data`) call `server.services` on the UI's behalf; the UI must not reach either directly.
+    * **Why:** The UI consumes `client.domain` interfaces only. Repositories (in `client.data`) call `server.services` on the UI's behalf; the UI must not import `client.data` or `server.services` directly.
     * **Note:** Tested over the import's package segments, so a `data` or `services` package is out of bounds wherever it sits and whichever feature owns it.
 * The `client.ui` layer must not use `koinInject`: all dependencies are injected through ViewModels
     * **Why:** Resolving from Koin inside a Composable bypasses the ViewModel as the single dependency surface, makes the screen untestable in snapshot tests (there is no Koin runtime), and re-resolves on every recomposition.
 * A `client.ui` file in `src/jsMain/` must not import Compose UI: it renders with Compose HTML
-    * **Why:** `src/jsMain/` holds the Compose HTML screens of `:app:client:web-html`. A Compose UI import there brings skiko into the HTML bundle, which `verifyHtmlBundle` rejects only after a production webpack build.
+    * **Why:** `src/jsMain/` contains the Compose HTML screens of `:app:client:web-html`. A Compose UI import there brings skiko into the HTML bundle, which `verifyHtmlBundle` rejects only after a production webpack build.
     * **Note:** Compose UI here means `androidx.compose.ui`, `foundation`, `material`, `material3` and `animation`, Compose resources, udytils `:ui`, and the Compose design system. `androidx.compose.runtime`, udytils `:ui-html` (`dev.isaacudy.udytils.ui.html`) and `platform.design.html` are allowed.
 * A `client.ui` file in `src/jsMain/` declares only Screens and composables: State, ViewModels and value types live in `commonMain`
     * **Why:** An HTML Screen renders the same ViewModel and State as its Compose UI Screen. A class declared beside it would give the HTML client behaviour the other clients don't share.
 * A `client.ui` package imports this layer only through its own package, its direct child subsystems, and its ancestors up to the layer root
-    * **Note:** A `client.ui` subsystem is a screen family the rest of the UI reaches through one entry point — an onboarding flow's steps, a sign-in provider's screens. It needs no matching `client.domain` subsystem: the rule restricts what a subsystem may import, not what must exist.
+    * **Note:** A `client.ui` subsystem is a screen family the rest of the UI opens through one entry point — an onboarding flow's steps, a sign-in provider's screens. It needs no matching `client.domain` subsystem: the rule restricts what a subsystem may import, not what must exist.
     * **Enforced by:** `ProjectRules.subsystemVisibility`
 * A `client.ui` subsystem package imports `client.domain` only through the matching `client.domain` subsystem package, that package's direct children, and their ancestors
     * **Note:** A file at the layer root is unconstrained — it sees the whole of `client.domain`. Only a file inside a subsystem package is bound to the matching-subsystem rule.
@@ -59,7 +59,7 @@ The layer rules below apply across the whole `feature.[name].client.ui` package.
 * The `client.ui` layer may depend on `client.domain`
 * Dialog destinations communicate with their opener through navigation results, not shared state or callbacks
     * **Note:** A dialog destination follows the same screen conventions as any other destination — it has its own ViewModel, and the ViewModel performs the navigation actions (`complete`/`requestClose` via its `navigationHandle`). Composables never reference the navigation handle directly.
-    * **Note:** A dialog destination is a `NavigationKey`; add `WithResult<R>` only when complete/close cannot carry the data. `complete()` means the user performed the associated action; `requestClose()` means the user cancelled. A confirmation dialog uses plain `NavigationKey` with `complete()`/`requestClose()` — the opener's `registerForNavigationResult(onCompleted = { … })` channel still fires on completion, and dismissal is a no-op. Use `NavigationKey.WithResult<R>` when the dialog returns data that complete/close alone cannot represent (e.g. an editor returning the edited value).
+    * **Note:** A dialog destination is a `NavigationKey`; add `WithResult<R>` only when complete/close cannot represent the data. `complete()` means the user performed the associated action; `requestClose()` means the user cancelled. A confirmation dialog uses plain `NavigationKey` with `complete()`/`requestClose()` — the opener's `registerForNavigationResult(onCompleted = { … })` channel still fires on completion, and dismissal is a no-op. Use `NavigationKey.WithResult<R>` when the dialog returns data that complete/close alone cannot represent (e.g. an editor returning the edited value).
     * **Note:** Navigation results are held in-memory (`NavigationResultChannel.pendingResults`), so custom result types need no serializers-module registration — unlike managed-flow step results, which persist via `polymorphic(Any)`.
     * **Note:** Editor-style dialogs may own their submission (inline error/retry, `complete(result)` only on success) and complete with the fresh data so the opener updates without a refetch. Under `ProjectRules.noDirectAsyncStateConstruction` the opener cannot wrap a returned payload in `AsyncState.Success` directly, so in practice the result handler triggers a reload.
 
@@ -83,7 +83,7 @@ the destination declaration site.
 ### Compose HTML Screens
 
 When the project keeps the Compose HTML web client (`:app:client:web-html`), each Screen that
-client reaches has a Compose HTML twin in the same package under `src/jsMain/`, named with an
+client can open has a Compose HTML twin in the same package under `src/jsMain/`, named with an
 `Html` infix (`UkptHtmlScreen`, `confirmResetDialogHtmlDestination`). It renders the same
 ViewModel and State, is annotated `@NavigationDestination.PlatformOverride`, and builds from
 `platform.design.html`. Its `[Name]HtmlScreenContent` is tested in `src/jsTest/` instead of by
@@ -242,7 +242,7 @@ Snapshots are preview-driven: `PreviewSnapshotTest` (in `src/androidHostTest/`) 
     * **Why:** Dialogs are their own destinations: a `NavigationKey` rendered through Enro's overlay support, not an inline composable toggled by a boolean in screen state. Restricting dialog primitives to dialog-destination files makes embedded dialogs a build failure, not a review finding. Platform and design-system modules are exempt — they may define dialog primitives and wrappers.
     * **Note:** Detection is import-based: an import of any dialog primitive in a non-dialog-destination file is a violation, regardless of whether the call site is reached.
 * A feature module that contains `@Preview` composables must have a Snapshot Test in its `androidHostTest` source set
-    * **Why:** The scanner test is what turns previews into snapshots; without it, previews render in the IDE but nothing guards against visual regressions.
+    * **Why:** The scanner test is what turns previews into snapshots; without the scanner test, previews render in the IDE but no test detects visual regressions.
     * **Note:** A module opts in with a `@SnapshotTest` `PreviewSnapshotTest` extending `PreviewSnapshotTestCase` from `dev.isaacudy.udytils:snapshot`, which supplies the preview scanning and the golden layout.
 
 ---
@@ -271,14 +271,14 @@ provided by that screen (if any).
 * A Destination lives in the feature's `:client` module, and in `:api` only when another feature navigates to it
     * **Why:** `:api` is what features share through — with each other, or across the network. A Destination another feature has to name is one of those things; a Destination only its own feature names is not, and publishing it widens the feature's surface for nothing.  App modules are not the test. The shell, the admin client and the server wiring depend on the side modules directly and are meant to see and compose every feature's declarations, so a reference from `app/…` — a graph binding, a start destination, a shell decorator — never makes a Destination `:api`.
     * **Note:** The test measures the `:server` half: a Destination is client-side, so it is never declared in a `:server` module.
-    * **Note:** Which of `:api` and `:client` holds a Destination is a judgement about who navigates to it, so it is read rather than tested; the default is `:client`, and a Destination moves to `:api` when a second feature needs it.
+    * **Note:** Which of `:api` and `:client` contains a Destination is a judgement about who navigates to the Destination, so the choice is read rather than tested; the default is `:client`, and a Destination moves to `:api` when a second feature needs it.
 
 ##### Guidance
 
 * A Destination should accept the minimal data required to initialise the associated Screen
-* A NavigationKey may carry a small optional presentation hint (for example a title hint) so minimal chrome stays informative while required data loads
+* A NavigationKey may declare a small optional presentation hint (for example a title hint) so minimal chrome stays informative while required data loads
     * **Note:** Identifiers remain the authoritative destination inputs. A presentation hint is non-authoritative, may be stale after restoration, and must not drive domain behavior. Loaded domain data always replaces hints.
-    * **Note:** Whole domain payloads are not hints. A hint is a single display-ready value (a name, a title) that the opener already holds.
+    * **Note:** Whole domain payloads are not hints. A hint is a single display-ready value (a name, a title) that the opener already has.
 
 ---
 
@@ -309,7 +309,7 @@ to load data and perform side effects based on user actions.
 * A ViewModel's `public`/`internal` functions must not be `suspend`
     * **Why:** A suspending public method makes the caller await work the ViewModel should own; on Android the awaiter (a composition scope, a `CompletableDeferred`) is lost on process death, silently dropping the result. Launch into `viewModelScope` and reflect the outcome in `state` instead.
 * A ViewModel must not declare `private var` properties
-    * **Why:** A mutable private field is a side channel around `state` (the source of truth) and is lost on process death — for example a `pendingX` captured across a navigation round-trip. Carry per-open context on the navigation itself (key fields, or `instance.metadata` via a `NavigationKey.MetadataKey`) so the result handler recovers it process-death-safe; put genuine UI state in `state`.
+    * **Why:** A mutable private field is a side channel around `state` (the source of truth) and is lost on process death — for example a `pendingX` captured across a navigation round-trip. Store per-open context on the navigation itself (key fields, or `instance.metadata` via a `NavigationKey.MetadataKey`) so the result handler recovers it process-death-safe; put genuine UI state in `state`.
 * A ViewModel must use `JobManager` to manage coroutines, never a `var job: Job?` reference
     * **Why:** `dev.isaacudy.udytils.coroutines.JobManager` provides cancel-then-replace semantics and ties every job to `viewModelScope`; manual `var job: Job?` tracking leaks the previous job and skips lifecycle cancellation.
 * Every ViewModel must be referenced by a Subcutaneous Test
@@ -354,7 +354,7 @@ The complete, immutable representation of a Screen's data at a single point in t
     * **Verification:** not automatically verifiable; enforced by review.
 * A ViewModel State object must not pair a stored progress-verb Boolean property with an error-synonym sibling — this is a hand-rolled async lifecycle; use `AsyncState<T>` / `AsyncState<Unit>` (via `fromFlow`/`fromSuspending`) or `UpdatableState<T>`
     * **Why:** A Boolean progress flag paired with an error property reimplements the state machine `AsyncState` already provides. The hand-rolled pair lacks idle/loading distinction, drops progress reporting, and forces every consumer to combine two fields that `AsyncState` keeps atomic.
-    * **Note:** The pair is two stored properties. A Boolean with a getter holds no state of its own — `val deleting: Boolean get() = deleteProgress is AsyncState.Loading` reads the lifecycle it derives from — so it is not half of a pair and the rule skips it.
+    * **Note:** The pair is two stored properties. A Boolean with a getter stores no state of its own — `val deleting: Boolean get() = deleteProgress is AsyncState.Loading` reads the lifecycle it derives from — so it is not half of a pair and the rule skips it.
 * A ViewModel State object must use `AsyncState<T>` / `UpdatableState<T>` for asynchronously loaded data and action progress
     * **Why:** Sentinel defaults (`""`, `emptyList()`, `false`) conflate a legitimate successful value with not-started, loading, and error. A required async value needs an explicit lifecycle state: `AsyncState<T>` for load-once data and action progress (`AsyncState<Unit>` for fire-and-observe actions like save/send/submit), or `UpdatableState<T>` when already-loaded data should stay visible through a refresh or error. An ordinary nullable or synchronous property remains valid when `null` has exactly one meaning.
     * **Note:** The audit reports stored progress-verb Booleans. A Boolean with a getter derives its value from another property — `val refreshing: Boolean get() = refreshProgress is AsyncState.Loading` reads the `AsyncState` rather than standing in for it — so the audit skips it; a getter that flattens an `AsyncState` is `noFlattenedAsyncProxies`' subject instead.
@@ -362,7 +362,7 @@ The complete, immutable representation of a Screen's data at a single point in t
     * **Audited:** a test reports non-conforming code without ever failing.
 * A ViewModel State object must not define custom sealed types for loading/success/error; use `AsyncState<T>` instead
 * A ViewModel State object must not contain dialog or sheet visibility flags (`show.*Dialog`, `.*DialogVisible`, `show.*Sheet`, `.*SheetVisible`) — dialog visibility is navigation state, not screen state
-    * **Why:** A boolean flag that toggles a modal — whether rendered through an inline `AlertDialog`, a design-system dialog wrapper, or a bottom sheet — couples the modal's lifecycle to the screen's state object instead of to the navigation backstack. The modal is still a destination with its own ViewModel and state, regardless of how it is rendered. Making it a destination eliminates the flag; the destination's ViewModel performs `complete`/`requestClose`, and the opener consumes the outcome through a navigation result channel (add `WithResult<R>` only when complete/close cannot carry the data).
+    * **Why:** A boolean flag that toggles a modal — whether rendered through an inline `AlertDialog`, a design-system dialog wrapper, or a bottom sheet — couples the modal's lifecycle to the screen's state object instead of to the navigation backstack. The modal is still a destination with its own ViewModel and state, regardless of how it is rendered. Making it a destination eliminates the flag; the destination's ViewModel performs `complete`/`requestClose`, and the opener consumes the outcome through a navigation result channel (add `WithResult<R>` only when complete/close cannot represent the data).
 * A ViewModel State object must not expose calculated properties that flatten an `AsyncState` property back into a nullable or default value — the `AsyncState` remains the visible source of truth at the rendering boundary
     * **Why:** A proxy getter that returns `asyncProp.getOrNull()` or `asyncProp.getOrNull()?.field` reads as an independently authoritative field although it is conditional on the `AsyncState` succeeding. `.orEmpty()` and default values make Loading, Error, and legitimately-empty data indistinguishable. Call sites stop revealing which async operation owns the value, and the Screen can render a plausible invented partial frame before required data exists.
     * **Note:** Calculated State properties remain correct when they combine two or more top-level state properties, apply a real `if`/`when` decision, validate a draft against independently loaded options, or derive an affordance such as `canSubmit` — rather than renaming stored data.
@@ -541,7 +541,8 @@ to another feature's screen.
 A top-level `Local…` [`CompositionLocal`](https://developer.android.com/jetpack/compose/compositionlocal)
 declared in a `..ui..` package — the Compose-native channel for supplying ambient behaviour to a
 composable without threading it as a parameter (for example a `LocalImageLoader` that lets a
-reusable component reach a DI-provided dependency without every call site passing it down). The
+reusable component read a DI-provided dependency without every call site passing the dependency
+down). The
 value is provided once near the composition root and read by leaf composables.
 
 ##### Requirements

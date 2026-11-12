@@ -4,7 +4,7 @@ import dev.isaacudy.udytils.architecture.*
 
 @Describe("""
     An `@AdapterTest` class: one infrastructure adapter checked against the real infrastructure,
-    for behaviour a Subcutaneous Test reaches poorly: transaction semantics, concurrency, a query's
+    for behaviour a Subcutaneous Test covers poorly: transaction semantics, concurrency, a query's
     edge cases. `TransactionRunnerTest` runs against an embedded Postgres.
 
     A client's adapters are the device's files, audio, sensors and document renderers, checked from
@@ -31,7 +31,7 @@ object AdapterTest : Construct<Testing>(
         )
     }
 
-    @Describe("Prefer a Subcutaneous Test; an Adapter Test is for behaviour a Subcutaneous Test cannot reach")
+    @Describe("Prefer a Subcutaneous Test; an Adapter Test is for behaviour a Subcutaneous Test cannot cover")
     val rare by guidance {
         rationale("Each Adapter Test fixes an adapter's interface in place, so restructuring the adapter changes the test.")
         audit { decl, _ -> listOf(Violation(decl, "Adapter Test: confirm a Subcutaneous Test cannot cover this behaviour")) }

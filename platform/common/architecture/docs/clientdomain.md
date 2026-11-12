@@ -11,7 +11,7 @@ single-function [domain interfaces](clientdomain.md#domain-interface) that the c
 provide, and [domain models](#domain-model) that never leave the client. The layer may include
 [UseCases](#use-case) when multiple domain interfaces need to be composed,
 [extension functions](#extension-function) and [extension properties](#extension-property) that
-add derived behaviour to a domain model, and [constants](#constants) objects that hold shared
+add derived behaviour to a domain model, and [constants](#constants) objects that contain shared
 constant values.
 
 It is **pure**: it may import feature roots and nothing else. No Compose, no Ktor, no
@@ -48,13 +48,13 @@ layer supplies the context, so the names never repeat it.
 * The `client.domain` layer may depend on another feature's root, but only via that feature's `:api` module
     * **Enforced by:** `ModuleRules.clientApiOnly`, `ModuleRules.crossFeatureCodeViaApi`
 * A `client.domain` package imports this layer only through its own package, its direct child subsystems, and its ancestors up to the layer root
-    * **Note:** A subsystem package is a capability of the feature that nothing outside it names, and it is never published (`ModuleRules.subsystemsNotPublished`): the constructs classify inside one exactly as they do at the layer root, because a subsystem is a location rather than a kind of thing.
+    * **Note:** A subsystem package is a capability of the feature that no declaration outside the subsystem names, and a subsystem package is never published (`ModuleRules.subsystemsNotPublished`): the constructs classify inside a subsystem exactly as they do at the layer root, because a subsystem is a location rather than a kind of thing.
     * **Note:** Composition across two subsystems belongs to their shared ancestor, where a shared payload is an ordinary [domain model](#domain-model) and a shared contract an ordinary [domain interface](#domain-interface).
     * **Enforced by:** `ProjectRules.subsystemVisibility`
 
 ##### Guidance
 
-* A feature's `client.domain` layer should hold domain interfaces in proportion to its domain models and consumers, not one per storage call or field
+* A feature's `client.domain` layer should declare domain interfaces in proportion to its domain models and consumers, not one per storage call or field
     * **Note:** The audit reports one line per feature: domain interfaces (published ones counted separately), domain models in `client.domain` and the feature root, UseCases, and how many interfaces have no production consumer, one, or several. Many interfaces beside few models, or a high one-consumer share, marks the feature for the domain contract inventory in `ukpt-architecture-review`.
     * **Note:** A consumer is a class whose primary constructor takes the interface; DI modules and tests are not consumers.
     * **Audited:** a test reports non-conforming code without ever failing.
@@ -86,7 +86,7 @@ A `fun interface` that represents a piece of domain-level business logic.
 * A Domain Interface's primary-function parameters must be shared domain models, the layer's own domain models, nested types, primitives, standard date/time value types, collections of those, or a `Flow` of those
 * A Domain Interface's primary-function return type must be shared domain models, the layer's own domain models, nested types, primitives, standard date/time value types, collections of those, a `Flow` of those, or no value
 * A Domain Interface's functions must propagate errors via thrown exceptions, never via the return type
-    * **Why:** A result type that carries the failure makes every caller unwrap it, and the layer's vocabulary grows a wrapper around each contract. Thrown exceptions keep the primary function's return type the thing it produces.
+    * **Why:** A result type that contains the failure makes every caller unwrap the result, and the layer's vocabulary grows a wrapper around each contract. Thrown exceptions keep the primary function's return type the thing it produces.
     * **Note:** Known exceptions should be their own type extending RuntimeException, marked with `@Throws`.
     * **Note:** `@Throws` on a `suspend` function must include `kotlin.coroutines.cancellation.CancellationException` (or a superclass such as `Exception`): an interface published to `:api` compiles for every target, and kotlinc rejects the function on iOS without it.
 * A Domain Interface must be implemented by a Repository (as a property) or by a UseCase
@@ -95,7 +95,7 @@ A `fun interface` that represents a piece of domain-level business logic.
 ##### Guidance
 
 * A Domain Interface may define additional default functions that call the primary function
-* A Domain Interface should name a capability a consumer asks for, or return a domain model a consumer needs; it should not mirror one storage call, one property of a domain model, or one step of an implementation
+* A Domain Interface should name a capability a consumer requires, or return a domain model a consumer needs; a Domain Interface should not mirror one storage call, one property of a domain model, or one step of an implementation
     * **Why:** A consumer that injects several storage-shaped interfaces and joins their results reconstructs a domain model the owning Repository could have produced; the join, and the knowledge of which storage produces each part, then repeats in every consumer.
     * **Note:** Before adding a Domain Interface, name its consumer, the domain result it returns, its provider, and its reason to exist apart from the interfaces beside it. Several interfaces added together for one consumer are a candidate for one Repository property returning one domain model.
     * **Note:** An implementation step with one caller is a private function, a file-private function, or a nested class of that caller, not a Domain Interface.
@@ -106,21 +106,21 @@ A `fun interface` that represents a piece of domain-level business logic.
     * **Why:** One read returns one snapshot. Several reads assembled by the consumer return facts from different moments, and every consumer decides for itself how a partially loaded model behaves.
     * **Note:** Reads stay separate when a consumer uses one of them alone, when their authorization, freshness, failure, or lifecycle differs, or when one is optional and its failure must not fail the other. Appearing on the same Screen is not a reason to combine reads.
     * **Note:** Returning one data class does not by itself make its facts consistent. When the consumer needs one consistent snapshot, the provider uses one query, one transaction at a suitable isolation level, a shared lock, or a revision, and preserves authorization and tenant scope across every constituent read.
-    * **Note:** Queries over one collection that differ only in their filter share one Domain Interface: a nested `sealed interface Input` carries the variants and a default function per variant keeps call sites flat.
-    * **Note:** A domain model with lifecycle states is a sealed hierarchy whose variants carry the values each state requires, in place of nullable properties and Booleans that are meaningful only in combination.
-    * **Note:** The audit reports three or more reads from one provider whose only consumer is one class. Constructor injection is the evidence, so the finding asks whether the reads are collected together; it does not prove they are.
+    * **Note:** Queries over one collection that differ only in their filter share one Domain Interface: a nested `sealed interface Input` declares the variants and a default function per variant keeps call sites flat.
+    * **Note:** A domain model with lifecycle states is a sealed hierarchy whose variants contain the values each state requires, in place of nullable properties and Booleans that are meaningful only in combination.
+    * **Note:** The audit reports three or more reads from one provider whose only consumer is one class. Constructor injection is the evidence, so the finding prompts a check that the reads are collected together; the finding does not prove that the reads are.
     * **Audited:** a test reports non-conforming code without ever failing.
-* When several mutations act on one domain model and share a return type, prefer a single `Update[Noun]` interface over one interface per mutation: a nested `sealed interface Update` carries the variants, the abstract `invoke(id, update)` is the single entry point, and default functions (`title(...)`, `addMember(...)`) keep call sites flat. When publishing through `:api`, publish exactly the capability another feature needs, never the whole mutation family.
+* When several mutations act on one domain model and share a return type, prefer a single `Update[Noun]` interface over one interface per mutation: a nested `sealed interface Update` declares the variants, the abstract `invoke(id, update)` is the single entry point, and default functions (`title(...)`, `addMember(...)`) keep call sites flat. When publishing through `:api`, publish exactly the capability another feature needs, never the whole mutation family.
     * **Note:** Reads do not join an update family: a read returns the domain model it produces, and reads a consumer needs together form one read projection.
     * **Note:** The audit reports three or more mutations on one noun from one provider, by name (`CreateTeam`, `UpdateTeam`, `DeleteTeam`). Whether they share a return type, and so form one family, is the reviewer's call.
     * **Audited:** a test reports non-conforming code without ever failing.
 * A Domain Interface should be injected by at least one production class
     * **Note:** A DI module binds an interface without consuming it, and a test fake is not a consumer. An interface published through `:api` may be consumed from another feature's module, which the audit sees when that module is in scope.
     * **Note:** The audit counts two forms of consumption: a class taking the interface as a primary-constructor parameter, and a file resolving it out of the Koin container with `get<T>()`, `inject<T>()`, or `koinInject<T>()` — the form an app module's startup wiring or a Compose entry point uses. A `bind T::class` in a module is the binding, not a consumer, and is not counted.
-    * **Note:** A consumer that reaches the interface in neither form — through reflection, or a lambda parameter typed elsewhere — is not counted, so an interface reported here is a question to check rather than proven dead code.
+    * **Note:** A consumer that obtains the interface in neither form — through reflection, or a lambda parameter typed elsewhere — is not counted, so an interface reported here is a question to check rather than proven dead code.
     * **Audited:** a test reports non-conforming code without ever failing.
-* A mutation should return the value its caller needs next, and no value when an observed read projection already carries the outcome
-    * **Why:** A caller that receives an identifier and reads the model back performs a second read for a value the producer had in hand. A caller that receives a value it never uses carries a contract with no consumer.
+* A mutation should return the value its caller needs next, and no value when an observed read projection already contains the outcome
+    * **Why:** A caller that receives an identifier and reads the model back performs a second read for a value the producer had in hand. A caller that receives a value it never uses depends on a contract with no consumer.
     * **Note:** A returned value describes the state captured within the mutation, including whether the mutation was accepted; it does not imply the state is unchanged after the mutation completes.
 
 ##### Examples
@@ -324,15 +324,17 @@ A model that belongs to one side only: a draft being edited, a cursor, an in-fli
 machine, a computed projection, a payload written to a column.
 
 The contrast with a [shared domain model](feature.md#shared-domain-model) is what the package
-split encodes, and it is **residence and reach** rather than shape. A shared domain model is part
+split encodes, and the contrast is **residence and visibility** rather than shape. A shared
+domain model is part
 of the feature's shared vocabulary, named by both the client and server and readable by other
 features, so renaming a field is a cross-feature compatibility event. A domain model is private
-to the client: nothing outside the client can observe a change, so it refactors freely.
+to the client: no code outside the client can observe a change to a domain model, so a domain
+model refactors freely.
 
-Serialization does not decide which of the two a type is. A domain model may carry
+Serialization does not decide which of the two a type is. A domain model may be annotated with
 `@Serializable` — a payload persisted in a column, state restored across a process death — and
-what that costs is a migration for its own stored data, never a cross-feature compatibility
-event.
+a change to a `@Serializable` domain model requires a migration for the model's own stored data,
+never a cross-feature compatibility event.
 
 The **network** is what decides: a model the server receives is no longer client-private, and
 belongs in the feature root with the compatibility obligations that come with it.
@@ -347,7 +349,7 @@ belongs in the feature root with the compatibility obligations that come with it
 
 * A domain model must be immutable — no `var` properties
     * **Why:** Mutable state in the domain layer makes results depend on the order of earlier calls, and the layer untestable in isolation.
-* A domain model must not hold a domain interface: no property or constructor parameter whose type is a domain interface of the same client or server `domain` layer, bare, nullable, or inside a wrapper such as `Lazy<…>` or `List<…>`
+* A domain model must not contain a domain interface: no property or constructor parameter whose type is a domain interface of the same client or server `domain` layer, bare, nullable, or inside a wrapper such as `Lazy<…>` or `List<…>`
     * **Why:** A domain model is data; a property typed as a domain interface is a dependency that is supplied at the model's construction site rather than injected, so Koin's startup validation does not see it and the class that consumes the model has a dependency its constructor does not declare.
     * **Note:** A property type is resolved through its file's imports and matched against the client's classified domain interfaces by fully-qualified name.
 * A domain model that needs to cross the network belongs in the feature root instead
@@ -361,7 +363,7 @@ belongs in the feature root with the compatibility obligations that come with it
 ##### Guidance
 
 * A typed configuration value for a UseCase is a domain model of its side, assembled in the dependency module and injected
-    * **Note:** A setting that varies between deployments reaches a UseCase as a field of an immutable data class the dependency module constructs (`single { ReconciliationConfig(cleanupTimeout = 15.seconds) }`), never as a constructor default (`ProjectRules.injectableConstructorsHaveNoDefaults`). A setting fixed for every deployment is a private property of the UseCase.
+    * **Note:** A setting that varies between deployments is injected into a UseCase as a field of an immutable data class the dependency module constructs (`single { ReconciliationConfig(cleanupTimeout = 15.seconds) }`), never as a constructor default (`ProjectRules.injectableConstructorsHaveNoDefaults`). A setting fixed for every deployment is a private property of the UseCase.
     * **Note:** The data layer's counterpart is a [configuration](clientdata.md#configuration): a `[Name]Config` data class beside the Repository or adapter it configures.
 
 ##### Examples
@@ -381,7 +383,7 @@ data class UserProfile(
 
 ---
 
-A domain model that holds domain interfaces — a violation:
+A domain model that contains domain interfaces — a violation:
 
 ```kotlin
 // feature/shop/client/domain/CheckoutInputs.kt
@@ -505,9 +507,9 @@ top-level declaration another construct governs — the [steps](#workflow-step) 
 the [UseCase](#use-case) that injects them, calls `resolve`, and runs the plan.
 
 * **Note:** Nesting is what makes the definition readable as one unit — a reader opens one file
-  and sees the whole vocabulary. It is also the one place the catalog's membership rule does not
-  reach, which is why `nestsOnlyDefinition` exists: nesting is for definition, never a way to
-  keep behaviour out of the catalog's sight.
+  and sees the whole vocabulary. Nested declarations are also the only declarations the
+  catalog's membership rule does not check, which is why `nestsOnlyDefinition` exists: nesting
+  is for definition, never a way to keep behaviour out of the catalog's sight.
 * **Note:** The ordering function stays on the object while it is pure and dependency-free. The
   day it needs a collaborator is the day it becomes a [domain interface](#domain-interface) with
   a [UseCase](#use-case) behind it, like anything else with a dependency.
@@ -525,12 +527,12 @@ the [UseCase](#use-case) that injects them, calls `resolve`, and runs the plan.
 * A Workflow must nest a `Step` contract
     * **Why:** The `Step` interface is what makes the object a workflow rather than a namespace: it is the contract the process is assembled from. An object named `[Name]Workflow` that declares no `Step` is a misnamed constants holder, and saying so is more useful than leaving it unclassified.
 * A Workflow's `Step` contract must declare the metadata the workflow composes by
-    * **Why:** A workflow derives its order from what each step says about itself, so the contract has to carry that as data. A `Step` whose only members are functions can only be hand-sequenced, which is the thing a workflow exists not to be.
+    * **Why:** A workflow derives its order from what each step says about itself, so the contract has to declare that information as data. A `Step` whose only members are functions can only be hand-sequenced, which is the thing a workflow exists not to be.
     * **Note:** Typical members are `requires` and `produces`, stated over the workflow's nested artifact vocabulary; another workflow may compose by something else.
 * A Workflow must nest only its definition: no `suspend` function on the object itself or on a nested class
     * **Why:** The membership rule classifies top-level declarations only, so anything nested inside an object is invisible to the catalog. That is correct for a definition and dangerous for anything else: a Repository or a UseCase nested here would answer to no construct at all. Behaviour stays at the top level where a construct governs it.
     * **Note:** `suspend` is this codebase's marker for reaching outside the process, so it is what separates a definition from work. The nested `Step` contract is exempt — declaring suspending work is exactly its job; performing it is the step implementation's, at the top level.
-    * **Note:** What a nested declaration may *hold* is left to the layer's `pure` rule, which already forbids this layer the adapters a hidden Repository or UseCase would need. This rule holds the line that matters here: nothing nested inside a workflow does work.
+    * **Note:** What a nested declaration may *contain* is left to the layer's `pure` rule, which already forbids this layer the adapters a hidden Repository or UseCase would need. This rule enforces one constraint: no declaration nested inside a workflow does work.
 * A Workflow's own vocabulary must be immutable: no `var` properties and no mutable collection types
     * **Why:** The object is a single shared instance read by every step. State that changes on it would make one run observable from another.
 
@@ -548,7 +550,7 @@ outputs instead of being called in a fixed position: the workflow reads those de
 decides when it runs.
 
 Steps live at the top level, not nested in the workflow object, precisely so the catalog
-governs them. The workflow holds the definition; the steps are the behaviour.
+governs them. The workflow contains the definition; the steps are the behaviour.
 
 * **Note:** Name a step for what it does — `[Verb]Step`, as in `ValidateStep` or
   `SubmitStep`. The suffix is what a reader scans for; the verb is what they read.
@@ -565,10 +567,10 @@ governs them. The workflow holds the definition; the steps are the behaviour.
 ##### Rules
 
 * A WorkflowStep must not inject another step
-    * **Why:** A step that holds another step calls it directly, which puts the order back in the code and takes it away from the declarations. Dependencies between steps are expressed as artifacts the workflow resolves.
+    * **Why:** A step that injects another step calls the injected step directly, which puts the order back in the code and removes the order from the declarations. Dependencies between steps are expressed as artifacts the workflow resolves.
 * Only a Workflow's composing UseCase may take steps as dependencies
-    * **Why:** A step is meaningful only in the order its workflow derives. A ViewModel or an unrelated UseCase that injects one calls it out of that order, in a position nothing declared and the workflow cannot see — which is how half a process ends up running somewhere else.
-    * **Note:** The composer is the `[Interface]Impl` UseCase that injects the steps, asks the workflow to order them, and runs the plan — so the exemption is an `Impl` in the side's `domain` layer, where UseCases live. A ServiceImpl or any other outer-layer class holding a step is reported.
+    * **Why:** A step is meaningful only in the order its workflow derives. A ViewModel or an unrelated UseCase that injects a step calls the step out of that order, in a position no step declared and the workflow cannot see — which is how half a process ends up running somewhere else.
+    * **Note:** The composer is the `[Interface]Impl` UseCase that injects the steps, calls the workflow to order the steps, and runs the plan — so the exemption is an `Impl` in the side's `domain` layer, where UseCases live. A ServiceImpl or any other outer-layer class injecting a step is reported.
 
 ##### Guidance
 
@@ -584,8 +586,8 @@ its own — a cache that cannot be read, a draft that will not restore.
 The counterpart of a [shared exception](feature.md#shared-exception), which is the same idea one
 level up: a failure both the client and server name, thrown by a server implementation and
 matched by client code, living in the feature root because it crosses the wire. A domain
-exception does not cross anything. Nothing outside the client can observe it, so it refactors
-freely.
+exception does not cross anything. No code outside the client can observe a domain exception, so
+a domain exception refactors freely.
 
 `SharedException` already draws the line: an exception that is not wire-visible belongs in
 `client.domain` or `server.domain`, not in the root. This is that home.

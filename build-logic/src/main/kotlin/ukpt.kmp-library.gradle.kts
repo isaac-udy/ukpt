@@ -29,7 +29,7 @@ private val androidCompileSdk = libs.findVersion("android-compileSdk").get().req
 private val androidMinSdk = libs.findVersion("android-minSdk").get().requiredVersion.toInt()
 
 base {
-    // Same constraint as ukpt.jvm-base: the jvm target's jar reaches the server's runtime
+    // Same constraint as ukpt.jvm-base: the jvm target's jar is on the server's runtime
     // classpath, where every `:feature:*:api` would otherwise be `api-jvm.jar`.
     archivesName.set(ArchiveNaming.baseNameFor(project.path))
 }

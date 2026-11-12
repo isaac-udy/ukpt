@@ -212,8 +212,8 @@ A project created from UKPT can pull later template changes down.
 ## Coding agents
 
 The repository works with [Codex](https://developers.openai.com/codex/) and
-[Claude Code](https://claude.com/claude-code). [`AGENTS.md`](AGENTS.md) holds project-owned guidance,
-[`UKPT.md`](UKPT.md) holds template-owned operational guidance, and [`CLAUDE.md`](CLAUDE.md) imports
+[Claude Code](https://claude.com/claude-code). [`AGENTS.md`](AGENTS.md) contains project-owned guidance,
+[`UKPT.md`](UKPT.md) contains template-owned operational guidance, and [`CLAUDE.md`](CLAUDE.md) imports
 both for Claude Code. The architecture rules double as machine-readable instructions.
 
 Five shared skills cover repetitive work. Their canonical home is `.agents/skills/`, which Codex

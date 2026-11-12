@@ -36,7 +36,7 @@ abstract class WorkflowRules<G : RuleGroup> : Construct<G>(
         rationale(
             """
             A workflow derives its order from what each step says about itself, so the contract has
-            to carry that as data. A `Step` whose only members are functions can only be
+            to declare that information as data. A `Step` whose only members are functions can only be
             hand-sequenced, which is the thing a workflow exists not to be.
             """.trimIndent(),
         )
@@ -63,7 +63,7 @@ abstract class WorkflowRules<G : RuleGroup> : Construct<G>(
             """.trimIndent(),
         )
         note("`suspend` is this codebase's marker for reaching outside the process, so it is what separates a definition from work. The nested `Step` contract is exempt — declaring suspending work is exactly its job; performing it is the step implementation's, at the top level.")
-        note("What a nested declaration may *hold* is left to the layer's `pure` rule, which already forbids this layer the adapters a hidden Repository or UseCase would need. This rule holds the line that matters here: nothing nested inside a workflow does work.")
+        note("What a nested declaration may *contain* is left to the layer's `pure` rule, which already forbids this layer the adapters a hidden Repository or UseCase would need. This rule enforces one constraint: no declaration nested inside a workflow does work.")
         constrain { decl, _ ->
             val obj = decl as? KoObjectDeclaration ?: return@constrain emptyList()
             val onTheObject = obj.functions(includeNested = false)

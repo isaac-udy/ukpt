@@ -146,8 +146,8 @@ object Composable : Construct<ClientUi>(
     val previewsAreSnapshotTested by rule {
         rationale(
             """
-            The scanner test is what turns previews into snapshots; without it, previews render in
-            the IDE but nothing guards against visual regressions.
+            The scanner test is what turns previews into snapshots; without the scanner test,
+            previews render in the IDE but no test detects visual regressions.
             """.trimIndent(),
         )
         note("A module opts in with a `@SnapshotTest` `PreviewSnapshotTest` extending `PreviewSnapshotTestCase` from `dev.isaacudy.udytils:snapshot`, which supplies the preview scanning and the golden layout.")

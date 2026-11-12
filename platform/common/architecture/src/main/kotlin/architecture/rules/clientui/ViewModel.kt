@@ -69,7 +69,7 @@ object ViewModel : Construct<ClientUi>(
             val cls = decl as? KoClassDeclaration ?: return@constrain emptyList()
             cls.functions()
                 // `hasPublicOrDefaultModifier` (not `hasPublicModifier`) so default-public functions,
-                // which carry no explicit visibility modifier, are also caught.
+                // which have no explicit visibility modifier, are also caught.
                 .filter { (it.hasPublicOrDefaultModifier || it.hasInternalModifier) && !it.hasOverrideModifier }
                 .filterNot { it.returnType?.name == "Unit" || it.returnType == null }
                 .map { Violation(it, "ViewModel function `${it.name}` returns `${it.returnType?.name}` — public/internal ViewModel functions must return `Unit`") }
@@ -101,7 +101,7 @@ object ViewModel : Construct<ClientUi>(
             """
             A mutable private field is a side channel around `state` (the source of truth) and is
             lost on process death — for example a `pendingX` captured across a navigation round-trip.
-            Carry per-open context on the navigation itself (key fields, or `instance.metadata` via a
+            Store per-open context on the navigation itself (key fields, or `instance.metadata` via a
             `NavigationKey.MetadataKey`) so the result handler recovers it process-death-safe; put
             genuine UI state in `state`.
             """.trimIndent(),
@@ -111,7 +111,7 @@ object ViewModel : Construct<ClientUi>(
             // includeNested = false so a private nested helper's own vars don't count against the VM.
             cls.properties(includeNested = false)
                 .filter { it.hasPrivateModifier && it.isVar }
-                .map { Violation(it, "ViewModel declares `private var ${it.name}` — state is the source of truth; carry per-open context on the navigation instead") }
+                .map { Violation(it, "ViewModel declares `private var ${it.name}` — state is the source of truth; store per-open context on the navigation instead") }
         }
     }
 
@@ -148,7 +148,7 @@ object ViewModel : Construct<ClientUi>(
                     val typeName = it.type?.name.orEmpty()
                     typeName == "Job" || typeName == "Job?"
                 }
-                .map { Violation(it, "ViewModel holds a `Job` reference — use `JobManager` instead") }
+                .map { Violation(it, "ViewModel stores a `Job` reference — use `JobManager` instead") }
         }
     }
 

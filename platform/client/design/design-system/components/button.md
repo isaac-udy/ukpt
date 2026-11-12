@@ -6,7 +6,7 @@ Doc surface: `UkptButtonDocSurface.kt`
 ![UkptButton variants, Light palette](../../src/androidHostTest/snapshots/images/platform/design/UkptButtonVariantsLightPreview.png)
 ![UkptButton variants, Dark palette](../../src/androidHostTest/snapshots/images/platform/design/UkptButtonVariantsDarkPreview.png)
 
-There is **one** button. Everything a project might reach for a second button composable to express
+There is **one** button. Everything a project might add a second button composable to express
 is a variant of this one, and if a case genuinely doesn't fit, that is a discussion about the
 system — not a new file.
 
@@ -14,7 +14,7 @@ system — not a new file.
 
 | Variant | Use |
 |---|---|
-| `Primary` | The one action the screen wants. At most one per view. |
+| `Primary` | The screen's one main action. At most one per view. |
 | `Secondary` | A real alternative to primary: "Cancel" beside "Save". |
 | `Ghost` | Low-emphasis and usually repeated: a row action, a toolbar item. |
 

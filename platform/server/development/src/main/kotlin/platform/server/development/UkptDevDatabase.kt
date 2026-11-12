@@ -7,7 +7,7 @@ import java.nio.file.Path
 
 /**
  * Turns an application's dev-database switches into a [DevServerConfig]. The env-var names stay
- * with the application; this module knows only the values they can carry.
+ * with the application; this module knows only the values the env vars can have.
  */
 object UkptDevDatabase {
 
@@ -18,7 +18,7 @@ object UkptDevDatabase {
     const val MODE_EPHEMERAL: String = "ephemeral"
 
     /**
-     * The dev-server configuration [mode] asks for, or `null` when [mode] names no dev database —
+     * The dev-server configuration [mode] selects, or `null` when [mode] names no dev database —
      * the signal to connect to a real Postgres instead.
      *
      * A [scenarioName] is validated eagerly ([DevScenarios.byName]); a fresh cluster without one

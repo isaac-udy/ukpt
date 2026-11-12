@@ -14,7 +14,7 @@ import dev.isaacudy.udytils.architecture.Describe
     decides when it runs.
 
     Steps live at the top level, not nested in the workflow object, precisely so the catalog
-    governs them. The workflow holds the definition; the steps are the behaviour.
+    governs them. The workflow contains the definition; the steps are the behaviour.
 
     * **Note:** Name a step for what it does — `[Verb]Step`, as in `ValidateStep` or
       `SubmitStep`. The suffix is what a reader scans for; the verb is what they read.

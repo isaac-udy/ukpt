@@ -8,8 +8,8 @@
 _This RuleGroup governs test sources._
 
 Every test class declares one category with an annotation from `:platform:common:testing`. The
-category states what the test may use besides the code under test, which decides how much a
-run costs and what a failure means.
+category states what the test may use besides the code under test, which decides how long a
+run takes and what a failure means.
 
 | Category | Exercises | Uses for real | Runs on |
 | --- | --- | --- | --- |
@@ -26,7 +26,7 @@ Subcutaneous tests are the main suite: most behaviour is covered by driving a Vi
 reading its state. A unit test is for logic with many inputs. A test that needs another kind
 of coverage states it with its category.
 
-On the JVM each annotation carries a JUnit 5 tag and timeout. `./gradlew unitTest` runs the
+On the JVM each annotation declares a JUnit 5 tag and timeout. `./gradlew unitTest` runs the
 unit tests of every module; each category has its task (`subcutaneousTest`, `componentTest`,
 `wiringTest`, `adapterTest`, `checkTest`, `endToEndTest`, and `snapshotTest`, which needs
 `--no-configuration-cache`). kotlin.test has no tags on JS, wasm or iOS, so `componentTest`
@@ -57,7 +57,7 @@ are Constructs too: every top-level declaration in test sources matches exactly 
 
 ##### Rules
 
-* Every test class (a class declaring a `@Test` function or extending `PreviewSnapshotTestCase`) must carry exactly one test category annotation
+* Every test class (a class declaring a `@Test` function or extending `PreviewSnapshotTestCase`) must have exactly one test category annotation
     * **Why:** The category decides which task runs the test and which rules check it.
 * Every `@Test` function must assert: call an `assert*`, `fail`, `verify`, `expect*` or `await*` function, or a Robot's `see*` function, directly or through a function declared in the same file
     * **Why:** A test without an assertion passes whatever the code does. It reports coverage that does not exist.
@@ -68,12 +68,12 @@ are Constructs too: every top-level declaration in test sources matches exactly 
 ## [Subcutaneous Test](../src/main/kotlin/architecture/rules/testing/SubcutaneousTest.kt)
 
 A `@SubcutaneousTest` class: drives a real entry point (a ViewModel, or a `@Urpc` service for
-server behaviour that no screen reaches) built from the production DI graph, with the real
+server behaviour that no screen uses) built from the production DI graph, with the real
 server running in-process against an embedded database. It asserts on what the entry point
 exposes: ViewModel state, navigation results, service responses.
 
-Subcutaneous tests are the main suite. They exercise the code a user reaches through a screen,
-and do not change when the domain and data layers below the ViewModel are restructured.
+Subcutaneous tests are the main suite. Subcutaneous tests exercise the code a user runs through
+a screen, and do not change when the domain and data layers below the ViewModel are restructured.
 
 ```kotlin
 @SubcutaneousTest
@@ -123,8 +123,8 @@ transport. `given { }` runs [Scenarios](#scenario), before or after a ViewModel 
 A `@UnitTest` class: one production class exercised over many inputs, with every collaborator
 a fake declared in test sources or a lambda.
 
-A unit test is for logic whose input space is wider than the screens that reach it: parsers,
-validators, formatters, reducers, a UseCase with many branches. Behaviour that a user reaches
+A unit test is for logic whose input space is wider than the screens that call the logic: parsers,
+validators, formatters, reducers, a UseCase with many branches. Behaviour that a user runs
 through a screen is covered by a [Subcutaneous Test](#subcutaneous-test) instead, which does
 not change when the layers between the ViewModel and the database are restructured.
 
@@ -136,9 +136,9 @@ not change when the layers between the ViewModel and the database are restructur
 ##### Rules
 
 * A Unit Test must live in a test source set other than `androidHostTest`, outside a `:feature:[name]:tests` module
-    * **Why:** `androidHostTest` runs Paparazzi; a `:tests` module holds Subcutaneous Tests.
+    * **Why:** `androidHostTest` runs Paparazzi; a `:tests` module contains Subcutaneous Tests.
 * A Unit Test must not import dependency injection, network, database, file-system, or UI-test APIs
-    * **Why:** Those APIs are what the other categories use. A unit test that reaches them is a Wiring, Adapter, Subcutaneous or Component test, and is annotated as one.
+    * **Why:** Those APIs are what the other categories use. A unit test that imports those APIs is a Wiring, Adapter, Subcutaneous or Component test, and is annotated as one.
     * **Note:** `io.ktor.http.HttpStatusCode` is a value, not infrastructure, and may be imported.
 * A Unit Test must construct at most one production class; constructing domain models, states and other value types is test data
     * **Why:** A test that assembles several production classes is testing their combination, which is what a Subcutaneous Test covers with the real dependency graph.
@@ -178,7 +178,7 @@ primitive directly: there is no screen, so there is no robot.
 
 * A Component Test must live in the `jsTest`, `jvmTest` or `desktopTest` source set of a `:client`, `:platform:client:*` or `:app:client:common` module
     * **Why:** `[Name]ScreenContent` is `internal` to its `:client` module, and a shared primitive's internals to its own.
-* A feature's Component Test must reference only composables, ViewModel states, and the value types they carry from production code, and must not import dependency injection
+* A feature's Component Test must reference only composables, ViewModel states, and the value types those composables and states use from production code, and must not import dependency injection
     * **Why:** The test fixes the state and reads what renders. A ViewModel, a repository, or the DI graph in the test makes it a Subcutaneous Test.
     * **Note:** Shared UI tests are not checked: a navigation container or the app shell is tested with the destinations it hosts.
 * A feature's Compose UI Component Test must find and act on nodes only through Robots: no `onNode…`, `onAllNodes…`, `onRoot`, `perform…` or node `waitUntil…` calls
@@ -235,7 +235,7 @@ module list in `ClientDependencies.kt` or `ServerDependencies.kt` so one test co
 ## [Adapter Test](../src/main/kotlin/architecture/rules/testing/AdapterTest.kt)
 
 An `@AdapterTest` class: one infrastructure adapter checked against the real infrastructure,
-for behaviour a Subcutaneous Test reaches poorly: transaction semantics, concurrency, a query's
+for behaviour a Subcutaneous Test covers poorly: transaction semantics, concurrency, a query's
 edge cases. `TransactionRunnerTest` runs against an embedded Postgres.
 
 A client's adapters are the device's files, audio, sensors and document renderers, checked from
@@ -256,7 +256,7 @@ the only host test set that compiles against it; it runs with that source set's 
 
 ##### Guidance
 
-* Prefer a Subcutaneous Test; an Adapter Test is for behaviour a Subcutaneous Test cannot reach
+* Prefer a Subcutaneous Test; an Adapter Test is for behaviour a Subcutaneous Test cannot cover
     * **Why:** Each Adapter Test fixes an adapter's interface in place, so restructuring the adapter changes the test.
     * **Audited:** a test reports non-conforming code without ever failing.
 
@@ -386,7 +386,7 @@ Another feature's `:tests` module depends on this one to reuse its scenarios.
 ##### Rules
 
 * A Scenario must write through server domain interfaces: no server data classes, generated tables, Exposed, JDBC or SQL
-    * **Why:** A row written past the domain skips the invariants the server enforces, and the test then covers a state the application cannot reach. A Scenario that calls the domain also stays valid when the storage below it changes.
+    * **Why:** A row written past the domain skips the invariants the server enforces, and the test then covers a state the application cannot produce. A Scenario that calls the domain also stays valid when the storage below it changes.
 
 ##### Guidance
 
@@ -484,7 +484,7 @@ step can't act on a screen behind a dialog.
 * Every public function of a Robot must be named for a user action (`click…`, `enter…`, `clear…`, `select…`, `toggle…`, `scroll…`) or for what the user sees (`see…`)
     * **Why:** A test reads as what a user would report: "I click Greet, then I see Hello again". A name such as `greet()` hides which control the step uses.
 * A Robot's file must declare its entry point, a `User.on[Screen]` function
-    * **Why:** Tests reach a robot only through `on[Screen] { }`, which waits for the screen before the first step.
+    * **Why:** Tests call a robot only through `on[Screen] { }`, which waits for the screen before the first step.
 
 ---
 

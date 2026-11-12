@@ -5,7 +5,7 @@ import java.io.File
 
 /**
  * The root of the build being scanned: the nearest ancestor of the test JVM's working directory
- * that holds a `settings.gradle.kts`, which is how Konsist resolves its own project root.
+ * that contains a `settings.gradle.kts`, which is how Konsist resolves its own project root.
  */
 private val buildRoot: String = generateSequence(File(System.getProperty("user.dir")).absoluteFile) { it.parentFile }
     .firstOrNull { File(it, "settings.gradle.kts").isFile }

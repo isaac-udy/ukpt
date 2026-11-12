@@ -21,7 +21,7 @@ fun main() {
 
 /**
  * The dev path starts an embedded Postgres and migrates and seeds it itself; every other path
- * points at a real server and migrates it here, before the first request can reach it.
+ * points at a real server and migrates that server here, before the first request is handled.
  */
 private fun resolvePostgresConfig(): PostgresConfig {
     val devServerConfig = UkptDevDatabase.configFor(

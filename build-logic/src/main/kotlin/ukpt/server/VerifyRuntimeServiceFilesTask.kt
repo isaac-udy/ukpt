@@ -21,7 +21,7 @@ import java.util.zip.ZipFile
  * Fails when two runtime dependencies declare the same `META-INF/services` path.
  *
  * On a normal classpath ServiceLoader reads every declaration, so `run` and the tests keep passing
- * while the fat jar carries a truncated manifest. Checking the classpath rather than the jar
+ * while the fat jar contains a truncated manifest. Checking the classpath rather than the jar
  * catches the collision when the offending dependency is added.
  */
 abstract class VerifyRuntimeServiceFilesTask : DefaultTask() {
@@ -87,7 +87,7 @@ abstract class VerifyRuntimeServiceFilesTask : DefaultTask() {
                 .toSet()
         }
     } catch (_: ZipException) {
-        // A classpath entry that is not an archive at all carries no service declarations.
+        // A classpath entry that is not an archive at all contains no service declarations.
         emptySet()
     }
 }

@@ -8,7 +8,8 @@ import com.lemonappdev.konsist.api.declaration.KoPropertyDeclaration
     A top-level `Local…` [`CompositionLocal`](https://developer.android.com/jetpack/compose/compositionlocal)
     declared in a `..ui..` package — the Compose-native channel for supplying ambient behaviour to a
     composable without threading it as a parameter (for example a `LocalImageLoader` that lets a
-    reusable component reach a DI-provided dependency without every call site passing it down). The
+    reusable component read a DI-provided dependency without every call site passing the dependency
+    down). The
     value is provided once near the composition root and read by leaf composables.
 """)
 object CompositionLocal : Construct<ClientUi>(

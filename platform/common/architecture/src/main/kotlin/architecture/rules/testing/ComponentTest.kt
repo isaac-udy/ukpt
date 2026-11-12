@@ -37,7 +37,7 @@ object ComponentTest : Construct<Testing>(
         )
     }
 
-    @Describe("A feature's Component Test must reference only composables, ViewModel states, and the value types they carry from production code, and must not import dependency injection")
+    @Describe("A feature's Component Test must reference only composables, ViewModel states, and the value types those composables and states use from production code, and must not import dependency injection")
     val rendersScreenContentOnly by rule {
         rationale(
             """

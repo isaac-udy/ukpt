@@ -6,8 +6,8 @@ import androidx.compose.ui.graphics.Color
 /**
  * The design system's semantic colour roles.
  *
- * Roles are named for the job they do, not the colour they are: a screen asks for `surface` and
- * `onSurface`, never for "grey 100". That is what lets a palette swap without touching call sites,
+ * Roles are named for the job they do, not the colour they are: a screen reads `surface` and
+ * `onSurface`, never "grey 100". That is what lets a palette swap without touching call sites,
  * and it is why a theme *is* a [UkptColors] instance rather than an enum of theme names.
  *
  * The [Light] and [Dark] palettes below are deliberately neutral placeholders — a greyscale with a

@@ -29,7 +29,7 @@ treat the scaffold shapes as one possible answer, not the contract:
   vs. a bare `Gt.colors` object), and the **type prefix**. Use what you find, not the names below.
 - **Check whether the doc pipeline exists**: a `design-system/` folder and Paparazzi on the module. If
   it does, follow the doc-page / doc-surface / `recordPaparazzi` steps verbatim. If it does not, the
-  token-authoring steps still apply to whichever files hold the tokens, but there are no doc pages or
+  token-authoring steps still apply to whichever files contain the tokens, but there are no doc pages or
   doc-surface goldens to maintain — skip those steps, or offer to set the pipeline up.
 
 On the scaffold (the common case, and any project from `ukpt-new-project`) read
@@ -53,15 +53,15 @@ design document, and do not assume a conventional location:
 2. *"What should the primitives be built on?"* — see Step 1.
 
 If there is no handoff, work through the identity **with** the user rather than inventing one. Do
-not silently pick a palette; an identity nobody chose is worse than the neutral placeholder, because
-it looks decided.
+not silently pick a palette; an identity the user did not choose is worse than the neutral
+placeholder, because that identity looks decided.
 
 ## Step 1 — Choose what primitives are built on
 
 This is the decision that is expensive to reverse, so make it explicitly and record it. Present the
 trade-off (also in `design-system/README.md` → "What to build primitives on"):
 
-| Basis | Gets you | Costs you |
+| Basis | Gets you | Drawback |
 |---|---|---|
 | **Material3** | Semantics, minimum touch targets, state layers, ripple, focus, a11y — free | Material's structural opinions; stubborn when the identity diverges |
 | **Compose Unstyled** | Behaviourally complete, visually neutral primitives | An extra dependency; smaller component set |
@@ -77,8 +77,8 @@ Then **adapt the scaffold to the answer** — do not leave a basis the project d
   a material component inside it inherits the palette and type scale with no extra wiring.
 - **Compose Unstyled** — add the dependency to `gradle/libs.versions.toml` and the module, then
   rebuild the primitive on it. **Check the library's current API rather than trusting a template
-  here** — this skill deliberately does not carry a verbatim Compose Unstyled snippet, because a
-  stale one would be worse than none. Keep the contract in templates.md §3 (stateless, variant enum,
+  here** — this skill deliberately does not contain a verbatim Compose Unstyled snippet, because a
+  stale snippet would be worse than no snippet. Keep the contract in templates.md §3 (stateless, variant enum,
   tokens only, explicit semantics) whatever the API turns out to be.
 - **From scratch** — keep what ships, and tell the user plainly what they are taking on: the current
   button has no minimum touch target, no focus indication and no state layers.
@@ -87,7 +87,7 @@ Record the decision in `design-system/README.md` so the next person doesn't reli
 
 ## Step 2 — Confirm the type prefix
 
-Design-system types carry the **project's** prefix (`<Prefix>Theme`, `<Prefix>Colors`). Read
+Design-system type names start with the **project's** prefix (`<Prefix>Theme`, `<Prefix>Colors`). Read
 `platform/client/design/src/commonMain/kotlin/platform/design/` to see what it currently is.
 
 For a project created by `ukpt-new-project`, the rename already happened — `Ukpt` is the project type
@@ -123,7 +123,7 @@ where there is one, and from the user where there isn't.
 
 `design-system/principles.md` ships the generalisable principles worded for the template. Reword them
 in the project's terms and, most importantly, **fill in the prohibition list** with the decisions this
-project has actually made. The list earns its keep by recording the argument that was had — a generic
+project has actually made. The list is useful when it records the argument that was had — a generic
 list is ignored.
 
 ## Step 5 — Re-record and verify
@@ -157,7 +157,7 @@ its variant enum instead, which is one edit and no new doc page.
 
 Proceed only if the answer is genuinely "none of them".
 
-## Step 1 — The three files land together
+## Step 1 — The three files are added together
 
 This is the rule the whole docs pipeline rests on. A primitive without its doc page and doc-surface
 test is how a system starts drifting from its documentation.
@@ -204,7 +204,7 @@ that doesn't exist — so a filename typo or a renamed method is caught here rat
 - **`--no-configuration-cache` on every Paparazzi task.** Paparazzi's resource-preparation task can't
   be stored in the configuration cache.
 - **Composables under test must be at least `internal`**, not `private`, or the host-test source set
-  can't reach them.
+  can't call the composables.
 - **Don't add navigation or DI to this module.** `DesignSystemRules.noNavigationOrDi` enforces it. A
   primitive that seems to need navigation is missing a callback parameter — the caller navigates.
 - **Don't put non-design-system client infrastructure here** either (markdown rendering, pickers,

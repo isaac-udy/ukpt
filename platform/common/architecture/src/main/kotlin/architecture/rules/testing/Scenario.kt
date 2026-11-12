@@ -28,7 +28,7 @@ object Scenario : Construct<Testing>(
         rationale(
             """
             A row written past the domain skips the invariants the server enforces, and the test
-            then covers a state the application cannot reach. A Scenario that calls the domain also
+            then covers a state the application cannot produce. A Scenario that calls the domain also
             stays valid when the storage below it changes.
             """.trimIndent(),
         )

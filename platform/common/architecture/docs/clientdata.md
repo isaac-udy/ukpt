@@ -9,13 +9,13 @@
 (Keychain, SharedPreferences, etc.). A [Repository](#repository) provides
 [domain interfaces](clientdomain.md#domain-interface) for the rest of the client to consume, as
 a [server Repository](serverdata.md#repository) provides
-[server domain interfaces](serverdomain.md#domain-interface). The two carry the same name
-because they are the same construct; what differs is what they read through — a
+[server domain interfaces](serverdomain.md#domain-interface). The two Repositories have the same
+name because they are the same construct; what differs is what each Repository reads through — a
 [Service](serverservices.md#service-interface) and local storage on the client, a
 [StorageClass](serverdata.md#storage-class) over a table on the server.
 
-This is also the only layer that may talk to the server: Repositories call
-[Services](serverservices.md#service-interface) — the `:api` contract — to reach it
+`client.data` is also the only layer that may call the server: Repositories call the server
+through [Services](serverservices.md#service-interface) — the `:api` contract
 (`ClientData.clientServerDependencyRestriction`).
 
 A setting of this layer that varies between deployments is a [configuration](#configuration):
@@ -237,12 +237,12 @@ deployment is a private property of the class that uses it, not a configuration 
 * A Configuration must be immutable — no `var` properties
     * **Why:** A configuration is shared by every class the graph injects it into; a `var` lets one consumer change another's settings after the graph is assembled.
 * A Configuration is constructed in a dependency module or an `:app` module, never by the class that consumes it
-    * **Why:** The consuming class receives its configuration through its constructor, so the values are decided where the graph is assembled and a test supplies other values the same way. A class that constructs its own configuration holds settings nothing outside it decides.
+    * **Why:** The consuming class receives its configuration through its constructor, so the values are decided where the graph is assembled and a test supplies other values the same way. A class that constructs its own configuration contains settings that no code outside the class decides.
     * **Note:** A file that declares Koin bindings, or any file of an `:app` module, may construct it; the configuration's own file may declare a companion value. Test sources are outside the scope.
 
 ##### Examples
 
-A setting that varies between deployments, carried by a configuration the dependency module assembles; the clock is a dependency the graph supplies, and the page size a setting fixed for every deployment:
+A setting that varies between deployments, declared in a configuration the dependency module assembles; the clock is a dependency the graph supplies, and the page size a setting fixed for every deployment:
 
 ```kotlin
 // feature/shop/client/data/CatalogConfig.kt

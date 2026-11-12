@@ -7,7 +7,7 @@ import dev.isaacudy.udytils.architecture.*
 
 /**
  * The WorkflowStep rules, shared by both sided domain groups. [side] scopes the one rule that
- * reaches outside the domain layer; [outerCaller] names the side's characteristic outer-layer
+ * checks classes outside the domain layer; [outerCaller] names the side's characteristic outer-layer
  * class in that rule's rationale (a ViewModel on the client, a ServiceImpl on the server).
  */
 abstract class WorkflowStepRules<G : RuleGroup>(
@@ -34,8 +34,8 @@ abstract class WorkflowStepRules<G : RuleGroup>(
     val noSiblingInjection by rule {
         rationale(
             """
-            A step that holds another step calls it directly, which puts the order back in the code
-            and takes it away from the declarations. Dependencies between steps are expressed as
+            A step that injects another step calls the injected step directly, which puts the order
+            back in the code and removes the order from the declarations. Dependencies between steps are expressed as
             artifacts the workflow resolves.
             """.trimIndent(),
         )
@@ -57,12 +57,12 @@ abstract class WorkflowStepRules<G : RuleGroup>(
         rationale(
             """
             A step is meaningful only in the order its workflow derives. A $outerCaller or an
-            unrelated UseCase that injects one calls it out of that order, in a position nothing
-            declared and the workflow cannot see — which is how half a process ends up running
+            unrelated UseCase that injects a step calls the step out of that order, in a position no
+            step declared and the workflow cannot see — which is how half a process ends up running
             somewhere else.
             """.trimIndent(),
         )
-        note("The composer is the `[Interface]Impl` UseCase that injects the steps, asks the workflow to order them, and runs the plan — so the exemption is an `Impl` in the side's `domain` layer, where UseCases live. A ServiceImpl or any other outer-layer class holding a step is reported.")
+        note("The composer is the `[Interface]Impl` UseCase that injects the steps, calls the workflow to order the steps, and runs the plan — so the exemption is an `Impl` in the side's `domain` layer, where UseCases live. A ServiceImpl or any other outer-layer class injecting a step is reported.")
         scope { scope, exempt ->
             val stepNames = scope.classes().filter { test(it) }.mapNotNull { it.name }.toSet()
             scope.classes()
@@ -76,7 +76,7 @@ abstract class WorkflowStepRules<G : RuleGroup>(
                         .map {
                             Violation(
                                 cls,
-                                "`${cls.name}` injects workflow step `${it.name}: ${it.type.name}` — only the workflow's composing UseCase may hold steps",
+                                "`${cls.name}` injects workflow step `${it.name}: ${it.type.name}` — only the workflow's composing UseCase may inject steps",
                             )
                         }
                 }
@@ -86,7 +86,7 @@ abstract class WorkflowStepRules<G : RuleGroup>(
     @Describe("A WorkflowStep should be named for the work it does, as `[Verb]Step`")
     val namedForItsVerb by guidance
 
-    /** The side this construct governs — `composedNotInjected` reaches outside `domain`, so it is scoped by hand. */
+    /** The side this construct governs — `composedNotInjected` checks classes outside `domain`, so the rule is scoped by hand. */
     private fun KoClassDeclaration.isOnThisSide(): Boolean =
         containingFile.packagee?.name?.contains(sideMarker) == true
 

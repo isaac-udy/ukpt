@@ -9,8 +9,8 @@ import kotlin.time.Duration.Companion.seconds
 
 /**
  * Suspends until this handle has opened [key] and returns its instance; fails after [timeout] of
- * real time. For an open the ViewModel performs later, such as when a result it registered for
- * arrives.
+ * real time. For an open the ViewModel performs later, such as when the ViewModel
+ * receives a result the ViewModel registered for.
  */
 suspend inline fun <reified K : NavigationKey> TestNavigationHandle<*>.awaitOpened(
     key: K,

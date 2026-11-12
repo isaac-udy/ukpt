@@ -34,7 +34,7 @@ abstract class ConfigurationRules<G : RuleGroup>(
 
     @Describe("A Configuration is constructed in a dependency module or an `:app` module, never by the class that consumes it")
     val assembledAtTheCompositionBoundary by rule {
-        rationale("The consuming class receives its configuration through its constructor, so the values are decided where the graph is assembled and a test supplies other values the same way. A class that constructs its own configuration holds settings nothing outside it decides.")
+        rationale("The consuming class receives its configuration through its constructor, so the values are decided where the graph is assembled and a test supplies other values the same way. A class that constructs its own configuration contains settings that no code outside the class decides.")
         note("A file that declares Koin bindings, or any file of an `:app` module, may construct it; the configuration's own file may declare a companion value. Test sources are outside the scope.")
         scope { scope, exempt ->
             val boundaryPaths = scope.koinModuleFiles().map { it.path }.toSet()

@@ -79,7 +79,7 @@ basis.
 Read `platform/client/design/src/commonMain/kotlin/platform/design/components/<Prefix>Button.kt` — it is the
 worked example and is kept current.
 
-What it must carry that a material component would have given you for free:
+What the primitive must have that a material component would have given you for free:
 
 - `role = Role.Button` (or the right `Role`) on the clickable modifier — without it a screen reader
   announces nothing.
@@ -92,12 +92,12 @@ What it must carry that a material component would have given you for free:
 ## §3 — Primitive on **Compose Unstyled**
 
 No verbatim template on purpose: the library's API is not vendored here, and a stale snippet would be
-worse than none. Add the dependency, read its current documentation, and hold to the same contract:
+worse than none. Add the dependency, read the library's current documentation, and follow the same contract:
 
 - Stateless — props in, events out; no state owned by the component.
 - Variant `enum class` in the same file as the component.
 - Every colour, dimension and text style from `<Prefix>Theme` / `<Prefix>Spacing` / `<Prefix>Shapes`.
-- Explicit semantics on interactive elements, and on non-interactive states that carry meaning.
+- Explicit semantics on interactive elements, and on non-interactive states that have meaning.
 - One primitive per concept; growth is a new variant.
 
 ---
@@ -159,7 +159,7 @@ Add a row for the page to the table in `design-system/README.md`.
 `@Preview` functions discovered by the module's SHRINK-mode `PreviewSnapshotTest`, each wrapping a
 curated sheet — every variant, labelled — in `DocSurface`'s fixed-size container. One preview per
 palette, passing the palette explicitly; bare `@Preview` with no qualifiers, so the golden's name
-is exactly the function name. The golden lands at
+is exactly the function name. The golden is written to
 `snapshots/images/platform/design/<FunctionName>.png`.
 
 ```kotlin
@@ -217,7 +217,7 @@ private fun VariantsSheet(paletteName: String) {
 ```
 
 **Sizing:** the author picks `width`/`height` — `DocSurface` fixes the golden's exact canvas
-(SHRINK crops to the container), so the doc page embeds stable geometry. Size so nothing clips; the
+(SHRINK crops to the container), so the doc page embeds stable geometry. Size so no content is clipped; the
 sheet's `fillMaxSize().background(...)` paints any spare canvas, and content that outgrows the
 container is clipped rather than shrunk. Record and *look at the PNG* before settling the numbers.
 

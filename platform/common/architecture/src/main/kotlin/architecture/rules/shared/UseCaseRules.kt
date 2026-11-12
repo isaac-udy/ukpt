@@ -10,7 +10,7 @@ import dev.isaacudy.udytils.architecture.*
  * The UseCase rules, declared once and instantiated by each sided domain group's concrete
  * `object UseCase : UseCaseRules<Group>(side)`. The group's package gate does the scoping of the
  * rules; [side] scopes only the dependency audit to the side's classified domain interfaces. The
- * base carries the whole discipline; a concrete object adds only its side's narrative and any
+ * base declares the shared rules; a concrete object adds only its side's narrative and any
  * side-specific rules.
  */
 abstract class UseCaseRules<G : RuleGroup>(
@@ -123,7 +123,7 @@ abstract class UseCaseRules<G : RuleGroup>(
  * `<X>`. We deliberately do NOT call `DomainInterface.test()` on the parent — `parents()` yields a
  * parent *reference*, not the resolved interface declaration, so the interface predicates can't run
  * against it, and in the normal case the interface lives in the sibling `:api` module and can't be
- * resolved from the class alone. The "`<X>` is really a domain interface" guarantee is carried by
+ * resolved from the class alone. The "`<X>` is really a domain interface" guarantee is enforced by
  * each side's scope-level provided-by rule on its DomainInterface construct.
  */
 private fun KoClassDeclaration.associatedDomainInterfaceName(): String? {

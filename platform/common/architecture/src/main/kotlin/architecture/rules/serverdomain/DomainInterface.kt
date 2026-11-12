@@ -11,9 +11,9 @@ import dev.isaacudy.udytils.architecture.Describe
     `platform.server.postgres.TransactionRunner.inTransaction` block, its writes are part of that
     transaction and commit or roll back with the rest of the block. That is what makes a published
     interface composable: a [UseCase](#use-case) in another feature can put one write beside its own
-    and have the pair land together, without either feature naming the other's tables. An interface
-    an [IntegrationClient](serverdata.md#integration-client) provides is not — it reaches outside the
-    process, and belongs outside the block entirely.
+    and both writes commit together, without either feature naming the other's tables. An interface
+    an [IntegrationClient](serverdata.md#integration-client) provides is not — the IntegrationClient
+    calls outside the process, and the call belongs outside the block entirely.
 
     * **Note:** Default functions should use expressive names. They should provide commonly used
       functionality, such as handling a particular exception type, or simplify calling the primary
@@ -33,7 +33,7 @@ object DomainInterface : DomainInterfaceRules<ServerDomain>(side = "server") {
             over the tables its StorageClasses own, an
             [IntegrationClient](serverdata.md#integration-client) does the same over something outside
             the process, or a UseCase implements it by composing several others. An interface with
-            none of the three is a contract nothing answers.
+            none of the three is a contract no class satisfies.
             """.trimIndent(),
         )
         note("The test accepts either a class whose parents include the interface (a UseCase, or an IntegrationClient that satisfies it directly) or a `[Name]Repository`/`[Name]Client`/`[Name]Provider` with a property that references it.")

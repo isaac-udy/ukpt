@@ -18,8 +18,8 @@ that stops the system eroding.
 ## Status: a scaffold, not an identity
 
 This system ships with the template, so its palette is a deliberately neutral greyscale and its
-typography uses system faces. That is **placeholder, not design**: it renders honestly and is
-snapshot-tested, but it carries no identity.
+typography uses system faces. That is **placeholder, not design**: the placeholder renders
+honestly and is snapshot-tested, but has no identity.
 
 Authoring the identity is the first real design task on a new project — the palette, the type
 scale, the typefaces, the principles' wording, and the prohibition list. The `ukpt-design-system`
@@ -40,7 +40,8 @@ instead, and should pick it early, because converting primitives later is a rewr
 | **Compose Unstyled** | Behaviourally complete primitives with no visual opinion: the interaction and accessibility work is done, the styling is entirely yours. | A dependency, and a smaller component set than Material's. |
 | **From scratch** (what this scaffold does) | Total control; nothing to override. | You re-implement interaction and accessibility yourself, and the omissions are the kind no visual review catches. |
 
-That last cost is not hypothetical. `UkptButton` has to set `role = Role.Button` by hand precisely
+The omissions in that last row are not hypothetical. `UkptButton` has to set `role = Role.Button`
+by hand precisely
 because a bespoke clickable `Box` announces nothing to a screen reader — and it still lacks the
 minimum touch target, focus indication and state layers a Material button would have given it. Read
 [components/button.md](components/button.md) with that in mind: it is a worked example of the
@@ -63,12 +64,12 @@ it.
 Doc surfaces use the same preview-driven pipeline as the feature modules, with one module-specific
 twist: this module renders in `RenderingMode.SHRINK`, and every surface bounds itself with
 `DocSurface`'s fixed-size root container, so each golden is cropped to the exact canvas its page
-wants rather than padded out to the shared 960 dp device canvas. The sheets themselves remain
+requires rather than padded out to the shared 960 dp device canvas. The sheets themselves remain
 curated compositions no real screen would draw — labelled grids of every variant, one per palette —
 and they live in the test source set so they never ship in the artifact.
 
 Goldens are directory-grouped by the preview's declaring package and function name: a preview in
-`platform.design` lands at `src/androidHostTest/snapshots/images/platform/design/<PreviewName>.png`,
+`platform.design` is written to `src/androidHostTest/snapshots/images/platform/design/<PreviewName>.png`,
 and that is the path its page embeds. **Preview function names are load-bearing** — renaming one
 renames its golden and breaks every doc that embeds it. `DesignSystemDocImagesTest` fails the build
 if a page links to an image that does not exist, so a renamed preview cannot silently leave a hole

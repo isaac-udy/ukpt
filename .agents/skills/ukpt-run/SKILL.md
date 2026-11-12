@@ -83,7 +83,7 @@ into Exposed `Table`/`Row` sources; `:platform:server:development` owns the dev-
 
 `./gradlew :app:server:run` needs no database of your own — it starts an embedded Postgres, migrates
 it, seeds a brand-new one from `DefaultScenario`, and prints a banner saying where it is. The data
-lives in `app/server/build/dev-postgres/pg<major>/` and survives restarts (`clean` wipes it, as does
+is in `app/server/build/dev-postgres/pg<major>/` and is kept across restarts (`clean` wipes the data, as does
 `./gradlew :app:server:wipeDevDatabase`).
 
 ### Environment switches
@@ -97,5 +97,5 @@ lives in `app/server/build/dev-postgres/pg<major>/` and survives restarts (`clea
 - `PORT` — what the server listens on, default 8080.
 
 `run` reads the three `UKPT_DEV_*` switches at execution time, not from the configuration-cache
-entry, so a scenario set in an IDE run configuration or one shell does not carry into later runs
+entry, so a scenario set in an IDE run configuration or one shell does not apply to later runs
 from another, and changing a switch reuses the cached entry.

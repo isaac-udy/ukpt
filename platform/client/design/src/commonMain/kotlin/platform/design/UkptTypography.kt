@@ -8,7 +8,7 @@ import androidx.compose.ui.unit.sp
 /**
  * The type scale, as a fixed set of roles.
  *
- * Built with [from] so the scale is defined once against whichever [UkptFonts] the theme carries —
+ * Built with [from] so the scale is defined once against whichever [UkptFonts] the theme has —
  * a project swaps typefaces without restating every size and weight.
  *
  * The scale is deliberately short. A role that does not exist cannot be misused, and a screen that

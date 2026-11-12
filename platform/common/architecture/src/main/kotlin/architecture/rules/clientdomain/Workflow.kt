@@ -21,9 +21,9 @@ import dev.isaacudy.udytils.architecture.Describe
     the [UseCase](#use-case) that injects them, calls `resolve`, and runs the plan.
 
     * **Note:** Nesting is what makes the definition readable as one unit — a reader opens one file
-      and sees the whole vocabulary. It is also the one place the catalog's membership rule does not
-      reach, which is why `nestsOnlyDefinition` exists: nesting is for definition, never a way to
-      keep behaviour out of the catalog's sight.
+      and sees the whole vocabulary. Nested declarations are also the only declarations the
+      catalog's membership rule does not check, which is why `nestsOnlyDefinition` exists: nesting
+      is for definition, never a way to keep behaviour out of the catalog's sight.
     * **Note:** The ordering function stays on the object while it is pure and dependency-free. The
       day it needs a collaborator is the day it becomes a [domain interface](#domain-interface) with
       a [UseCase](#use-case) behind it, like anything else with a dependency.

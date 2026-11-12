@@ -38,8 +38,8 @@ private fun DismissBootScreenOnFirstFrame() {
 }
 
 /**
- * Sets the flag as well as calling the callback: `App.js` is requested from the head and can reach
- * this before the parser reaches the boot script, which then dismisses on the flag.
+ * Sets the flag as well as calling the callback: `App.js` is requested from the head and can call
+ * this function before the parser runs the boot script, which then dismisses on the flag.
  */
 @OptIn(ExperimentalWasmJsInterop::class)
 private fun notifyFirstFrameDrawn(): Unit = js(

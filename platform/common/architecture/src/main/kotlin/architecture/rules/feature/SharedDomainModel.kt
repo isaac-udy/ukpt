@@ -16,7 +16,7 @@ import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
     field is part of a compatibility surface.
 
     The private counterpart is the [domain model](clientdomain.md#domain-model)
-    ([server](serverdomain.md#domain-model)), which refactors freely because nothing outside its
+    ([server](serverdomain.md#domain-model)), which refactors freely because no code outside its
     client or server can observe the change. `Shared` is what says both the client and server name
     it, and the package is where that is written down. A private model may serialize too — for a
     column or for restored state — so `@Serializable` is what a shared model needs, not what

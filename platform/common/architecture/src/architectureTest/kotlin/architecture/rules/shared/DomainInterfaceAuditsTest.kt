@@ -11,12 +11,12 @@ import kotlin.test.assertTrue
 
 /**
  * The domain-interface audits over `src/architectureTest/fixtures/domain-audits`: a `feature.shop`
- * client whose `SubmitReviewImpl` injects four reads that only it consumes, whose
+ * client whose `SubmitReviewImpl` injects four reads that only `SubmitReviewImpl` consumes, whose
  * `AdministerTeamsImpl` injects a Create/Update/Delete family, whose `RequireReviewerImpl`
- * forwards one dependency, and whose `GetOrphan` nothing injects. `GetPromotions` and
+ * forwards one dependency, and whose `GetOrphan` no class injects. `GetPromotions` and
  * `GetReviewAuthor` have several consumers and must stay out of every group.
  *
- * The app module beside it carries the three Koin resolution forms — `koin.get<T>()`,
+ * The app module beside the client contains the three Koin resolution forms — `koin.get<T>()`,
  * `by inject<T>()`, `koinInject<T>()` — over `GetResolvedFromKoin`,
  * `GetResolvedByInjectDelegate`, and `GetResolvedInCompose`, plus a `bind GetBoundNotConsumed::class`
  * whose interface no one resolves.

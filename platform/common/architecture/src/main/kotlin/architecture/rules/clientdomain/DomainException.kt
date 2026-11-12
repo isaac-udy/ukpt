@@ -10,8 +10,8 @@ import dev.isaacudy.udytils.architecture.Describe
     The counterpart of a [shared exception](feature.md#shared-exception), which is the same idea one
     level up: a failure both the client and server name, thrown by a server implementation and
     matched by client code, living in the feature root because it crosses the wire. A domain
-    exception does not cross anything. Nothing outside the client can observe it, so it refactors
-    freely.
+    exception does not cross anything. No code outside the client can observe a domain exception, so
+    a domain exception refactors freely.
 
     `SharedException` already draws the line: an exception that is not wire-visible belongs in
     `client.domain` or `server.domain`, not in the root. This is that home.

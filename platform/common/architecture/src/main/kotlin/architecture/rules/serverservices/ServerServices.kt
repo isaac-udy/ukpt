@@ -46,7 +46,7 @@ import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
     * `client.ui` may depend on `client.domain` only; server calls go through
       [Repositories](clientdata.md#repository), which provide
       [domain interfaces](clientdomain.md#domain-interface) for the UI to consume.
-    * Nothing depends on `client.ui`.
+    * No layer depends on `client.ui`.
 
     The client and server meet only at the contract this layer declares in `:api`. Cross-feature
     use of another feature's services goes through `:api` as well: `ServerServices.crossFeatureViaApi`,
@@ -54,8 +54,8 @@ import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
 
     A Service contract exists for clients to call, not for server features to compose: a class in
     this layer never injects another feature's Service contract
-    (`ServerServices.noForeignServiceContractInjection`). One server feature reaches another
-    through the capability the owner publishes — a
+    (`ServerServices.noForeignServiceContractInjection`). One server feature calls another
+    through the capability the owning feature publishes — a
     [`server.domain` interface](serverdomain.md#domain-interface) whose file resides in `:api` —
     which is the same channel the domain layers use.
 
@@ -67,7 +67,7 @@ import com.lemonappdev.konsist.api.declaration.KoFileDeclaration
 
     ## Persistence
 
-    Entry points reach persistence only through
+    Entry points call persistence only through
     [`server.domain` interfaces](serverdomain.md#domain-interface) provided by
     [Repositories](serverdata.md#repository); the Postgres conventions and codegen pipeline are
     documented on [`server.data`](serverdata.md).
@@ -87,13 +87,13 @@ object ServerServices : RuleGroup(
         rationale(
             """
             `server.domain` sits between services and persistence and imports neither: services
-            consume domain interfaces, and Repositories provide them. A ServiceImpl that reaches a
+            consume domain interfaces, and Repositories provide them. A ServiceImpl that imports a
             table directly has skipped the layer where the contract
-            should have been stated, so nothing else can reuse that access, and nothing names what
-            the service actually needed.
+            should have been stated, so no other class can reuse that access, and no contract names
+            what the service actually needed.
 
-            `ServerData.noEntryPointImports` is the other half. Together they make storage a thing that
-            *satisfies* a stated need rather than a thing services reach through.
+            `ServerData.noEntryPointImports` is the other half. Together the two rules make storage a thing that
+            *satisfies* a stated need rather than a thing services import.
             """.trimIndent(),
         )
         note("Tested over imports of persistence, wherever the imported file sits: reaching a table is the same act whatever the package holding it is called.")
@@ -137,7 +137,7 @@ object ServerServices : RuleGroup(
             A Service contract is the door between a client and this server, not a way for one
             server feature to call another. Injecting another feature's contract gives a
             server-internal call the wire's shape — a request object, a session the caller must
-            already hold, an error type written for a screen — and hands the caller every
+            already have, an error type written for a screen — and hands the caller every
             operation on that service when it needed one capability. That capability is what the
             owning feature's [`server.domain` interfaces](serverdomain.md#domain-interface) say:
             the owner publishes the narrow one to `:api`, a Repository provides it, and the caller
@@ -149,7 +149,7 @@ object ServerServices : RuleGroup(
         scope { scope, exempt ->
             // Keyed by fully-qualified name: a parameter reference is resolved through its file's
             // imports (alias-aware) before lookup, so a simple name shared by two features'
-            // contracts, an aliased import, and a fully-qualified reference all land on the
+            // contracts, an aliased import, and a fully-qualified reference all resolve to the
             // contract actually named.
             val contractOwnerByFqn: Map<String, String> = scope.interfaces()
                 .filter { iface -> iface.annotations.any { it.name == "Urpc" } }

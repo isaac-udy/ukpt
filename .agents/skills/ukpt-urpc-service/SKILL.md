@@ -40,8 +40,8 @@ to end. Copy-paste skeletons are in `templates.md`.
    `ServerDomain.DomainInterface.readProjections`). **Never persistence** — no `server.data` imports, no
    StorageClasses (`ServerServices.ServiceImpl.noPersistenceInjection`, `ServerServices.noDataImports`) —
    and **never another feature's Service contract**
-   (`ServerServices.noForeignServiceContractInjection`): reach another server feature through the
-   `server.domain` interface it publishes to `:api`. Persistence, when the feature truly stores data,
+   (`ServerServices.noForeignServiceContractInjection`): call another server feature through the
+   `server.domain` interface that feature publishes to `:api`. Persistence, when the feature truly stores data,
    sits behind those domain interfaces in `server.data` (that needs the `:platform:server:postgres`
    setup — flag it, don't auto-scaffold).
 4. **Bind in DI** (`:server`, `feature.<name>`): a `<name>ServerDependencies` Koin module (templates.md §3):
@@ -67,7 +67,7 @@ to end. Copy-paste skeletons are in `templates.md`.
      module binds it with `single<<Name>Service> { get<UrpcClientFactory>().create() }`.
      `UrpcClientFactory` comes from `:platform:client:network`'s `networkDependencies`, which every
      client shell already installs (templates.md §5).
-6. **Errors** — service exceptions must be `@Serializable` (`ProjectRules.serviceExceptionsSerializable`) so urpc carries type + message to the
+6. **Errors** — service exceptions must be `@Serializable` (`ProjectRules.serviceExceptionsSerializable`) so urpc sends type + message to the
    client; prefer subclassing `PresentableException` with a deliberate `retryable` flag (templates.md §6). Never
    `catch (Exception)` — deserialized urpc errors may not extend `Exception`; use `catch (t: Throwable)` or a
    specific type (`ProjectRules.noCatchException`).

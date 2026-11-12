@@ -11,7 +11,7 @@ import dev.isaacudy.udytils.architecture.*
     leave the server. The layer may include [UseCases](#use-case) when multiple domain interfaces
     need to be composed, [extension functions](#extension-function) and
     [extension properties](#extension-property) that add derived behaviour to a domain model, and
-    [constants](#constants) objects that hold shared constant values.
+    [constants](#constants) objects that contain shared constant values.
 
     `server.services` and `server.data` never import each other: services consume the domain's
     interfaces, Repositories implement them by reading through the
@@ -51,9 +51,9 @@ object ServerDomain : DomainGroupRules(
         rationale(
             """
             The domain layer imports neither of its neighbouring layers. Importing `server.data`
-            would couple logic to persistence; importing `server.services` would drag the wire
-            contract and request scope into it, and would let a domain interface reach the layer
-            that is supposed to consume it.
+            would couple logic to persistence; importing `server.services` would add the wire
+            contract and request scope to the domain layer, and would let a domain interface
+            depend on the layer that consumes the domain interface.
             """.trimIndent(),
         )
         note("This is what makes `noTables` and `noAuth` unnecessary as separate rules — neither is reachable from here.")
@@ -76,7 +76,7 @@ object ServerDomain : DomainGroupRules(
         enforcedBy("ModuleRules.crossFeatureCodeViaApi")
     }
 
-    @Describe("A feature's `server.domain` layer should hold domain interfaces in proportion to its domain models and consumers, not one per storage call or field")
+    @Describe("A feature's `server.domain` layer should declare domain interfaces in proportion to its domain models and consumers, not one per storage call or field")
     val inventory by guidance {
         note("The audit reports one line per feature: domain interfaces (published ones counted separately), domain models in `server.domain` and the feature root, UseCases, and how many interfaces have no production consumer, one, or several. Many interfaces beside few models, or a high one-consumer share, marks the feature for the domain contract inventory in `ukpt-architecture-review`.")
         note("A consumer is a class whose primary constructor takes the interface; DI modules and tests are not consumers.")
@@ -85,7 +85,7 @@ object ServerDomain : DomainGroupRules(
 
     @Describe("A `server.domain` package imports this layer only through its own package, its direct child subsystems, and its ancestors up to the layer root")
     val subsystemVisibility by rule {
-        note("A subsystem is a capability the feature has that nothing outside it names — the framework of a processing pipeline, an audio subtree. It earns a package at the point where a reader scanning the layer root has to skip past it, and the constructs classify inside one exactly as they do at the root: a subsystem is a location, not a kind of thing.")
+        note("A subsystem is a capability the feature has that no declaration outside the subsystem names — the framework of a processing pipeline, an audio subtree. A subsystem gets its own package at the point where a reader scanning the layer root has to skip past the subsystem's declarations, and the constructs classify inside a subsystem exactly as they do at the root: a subsystem is a location, not a kind of thing.")
         note("Composition across two subsystems belongs to their shared ancestor, where a shared payload is an ordinary [domain model](#domain-model) and a shared contract an ordinary [domain interface](#domain-interface).")
         enforcedBy("ProjectRules.subsystemVisibility")
     }

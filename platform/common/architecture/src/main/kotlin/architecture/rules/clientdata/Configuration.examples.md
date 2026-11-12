@@ -1,4 +1,4 @@
-A setting that varies between deployments, carried by a configuration the dependency module assembles; the clock is a dependency the graph supplies, and the page size a setting fixed for every deployment:
+A setting that varies between deployments, declared in a configuration the dependency module assembles; the clock is a dependency the graph supplies, and the page size a setting fixed for every deployment:
 
 ```kotlin
 // feature/shop/client/data/CatalogConfig.kt

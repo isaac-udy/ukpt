@@ -18,7 +18,7 @@ import com.lemonappdev.konsist.api.provider.KoContainingFileProvider
     * **Note:** The naming convention is `[name]ClientDependencies` in `:client` and
       `[name]ServerDependencies` in `:server`. The Construct enforces the `Dependencies` suffix;
       the `Client`/`Server` infix is convention. `[name]` is the feature's whole name, so a grouped
-      feature carries its group: `:feature:capture:device-camera:client` names
+      feature's name includes its group: `:feature:capture:device-camera:client` names
       `captureDeviceCameraClientDependencies`.
     * **Note:** The `:app` modules (application shells) are responsible for collecting the DI
       modules provided by feature modules into the final dependency graph. A `:client` dependency
@@ -40,8 +40,8 @@ object DependencyModule : Construct<FeatureRules>(
     requirements = listOf(
         predicate("resides in the top-level `feature.[name]` package of a `:client` or `:server` module") { decl ->
             // Exactly the feature root — a `Dependencies` property anywhere deeper would let an
-            // undeclared layer package slip past the taxonomy by holding only DI code — and on a
-            // side module: DI wiring binds implementations, which `:api` never holds.
+            // undeclared layer package slip past the taxonomy by containing only DI code — and on a
+            // side module: DI wiring binds implementations, which `:api` never contains.
             decl.isFeatureModule() && decl.isFeatureRootPackage() &&
                 (decl.isClientModule() || decl.isServerModule())
         },
@@ -84,7 +84,7 @@ object DependencyModule : Construct<FeatureRules>(
             from one list fails only when that client first resolves a ViewModel from it.
             """.trimIndent(),
         )
-        note("Reads every `app/client/*/src/**/ClientDependencies.kt`, including shells the current build doesn't include. With one shell, `ClientDependenciesTest` covers the list and the rule checks nothing.")
+        note("Reads every `app/client/*/src/**/ClientDependencies.kt`, including shells the current build doesn't include. With one shell, `ClientDependenciesTest` covers the list and the rule checks no file.")
         note("A module another `:client` module installs through `includes(…)` is registered through that module.")
         constrain { decl, _ ->
             val property = decl as? KoPropertyDeclaration ?: return@constrain emptyList()

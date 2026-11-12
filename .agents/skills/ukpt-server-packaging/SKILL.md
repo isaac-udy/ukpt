@@ -19,10 +19,10 @@ runtime classpath.
 ## Service-file collision check
 
 `verifyRuntimeServiceFiles` (part of `check`, and gates `shadowJar`) fails when two runtime
-dependencies declare the same `META-INF/services` path, since only one copy survives packaging.
+dependencies declare the same `META-INF/services` path, since packaging keeps only one copy.
 `flyway-core` and `flyway-database-postgresql` collide;
-`app/server/src/main/resources/META-INF/services/` holds a hand-merged copy (its README says when to
-regenerate it).
+`app/server/src/main/resources/META-INF/services/` contains a hand-merged copy (the directory's README
+says when to regenerate the copy).
 
 **Do not trust Shadow's `mergeServiceFiles()`**: it is called and, on 9.1.0, does not merge —
 verify by extracting the file from a built jar.
@@ -33,7 +33,7 @@ verify by extracting the file from a built jar.
 ./gradlew :app:server:smokeTestFatJar
 ```
 Boots the built jar the way a container would, on an OS-assigned port against a throwaway database,
-and asserts it migrates and answers. Nothing else exercises the jar itself.
+and asserts it migrates and answers. No other task runs the jar itself.
 
 ## Development distribution
 

@@ -11,7 +11,7 @@ description: >-
 # ukpt-feature-slice
 
 Scaffold `:feature:<name>:{api,client,server,tests}` modeled on the canonical `:feature:core`.
-`templates.md` carries the build files + source skeletons; `:feature:core` is the living reference
+`templates.md` contains the build files + source skeletons; `:feature:core` is the living reference
 to read when in doubt.
 
 ## Naming (read first — `:feature:core` has a deliberate mismatch)
@@ -25,7 +25,7 @@ to read when in doubt.
 Do **not** copy the literal `ukpt`/`Ukpt` from core — substitute `<name>`/`<Name>`.
 
 `<Prefix>` in the templates is a different thing: the **project's** type prefix, which the design
-system's types carry (`<Prefix>Theme`, `<Prefix>Colors`). It is `Ukpt` in the template itself and
+system's type names start with (`<Prefix>Theme`, `<Prefix>Colors`). It is `Ukpt` in the template itself and
 whatever the project was renamed to downstream — read `platform/client/design` to see which. It does
 **not** vary per feature.
 
@@ -92,8 +92,8 @@ as any other: it has its own ViewModel (registered in Koin — the wasm crash fr
 the opener's result channel (`registerForNavigationResult(onCompleted = { ... })`) fires on
 completion; dismissal is a no-op. Add `NavigationKey.WithResult<R>` only when the dialog returns
 data that complete/close cannot represent (e.g. an editor returning the edited value). The
-destination is `@Serializable` + `@SerialName("NavigationKey.<Name>...")`; its
-`navigationDestination` carries the `directOverlayWithFade()` metadata marker. Copy the shape from
+destination is `@Serializable` + `@SerialName("NavigationKey.<Name>...")`; the destination's
+`navigationDestination` declares the `directOverlayWithFade()` metadata marker. Copy the shape from
 `:feature:core`'s worked example: `ConfirmResetDestination.kt` + `ConfirmResetDialogScreen.kt` +
 `ConfirmResetViewModel.kt` (client `ui` package), opened from `UkptViewModel.onResetRequested()`.
 Governing rules: `ClientUi.Composable.dialogPrimitivesOnlyInDialogDestinations` (enforced — dialog
@@ -125,7 +125,7 @@ result-channel pattern above; being a destination means the ordinary screen rule
 
 ## Async UI state
 ViewModels load data with `fromFlow` (read projections) and fire actions with `fromSuspending`
-(returns a flow of `AsyncState<Unit>`). State holds `AsyncState<T>` properties with idle defaults.
+(returns a flow of `AsyncState<Unit>`). State declares `AsyncState<T>` properties with idle defaults.
 The Screen renders each required `AsyncState` exhaustively: Idle/Loading, Error (with retry),
 Success. Action state (e.g. a save or submit) renders in the Success branch — disable the trigger
 button during Loading, show an inline error caption on Error. Four `@Preview` per screen: Loading,

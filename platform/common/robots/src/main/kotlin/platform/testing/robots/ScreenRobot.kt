@@ -80,7 +80,7 @@ abstract class ScreenRobot(context: RobotContext) {
         node(tag).performTextClearance()
     }
 
-    /** The editable field inside [within], for a text field primitive whose modifier lands on its frame. */
+    /** The editable field inside [within], for a text field primitive whose modifier is applied to its frame. */
     protected fun enterTextWithin(within: String, text: String) {
         val matcher = hasSetTextAction() and hasAnyAncestor(hasTestTag(within))
         ui.waitUntilExactlyOneExists(matcher, ROBOT_TIMEOUT_MILLIS)

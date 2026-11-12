@@ -21,14 +21,14 @@ the network is the only connection between client and server, and `:api` is the 
 between features.
 
 The feature **root** is `feature.[name]`, with no `client` or `server` segment. The Gradle
-module it is compiled into decides what it holds: in `:api` it is the feature's shared
-vocabulary; in `:client` and `:server` the same package name holds DI wiring.
+module the root is compiled into decides what the root contains: in `:api` the root is the
+feature's shared vocabulary; in `:client` and `:server` the same package name contains DI wiring.
 
-**In `:api`, the root holds the shared vocabulary**: the domain models, exceptions, and
+**In `:api`, the root contains the shared vocabulary**: the domain models, exceptions, and
 constants that both the client and the server use. It is common Kotlin that compiles for every
 target.
 
-The root also shows, straight off the package path, how far a change reaches. A
+The package path of the root also shows which code a change to the root affects. A
 [shared domain model](#shared-domain-model) is used by the client, the server, and potentially
 other features, so renaming a field is a compatibility event. A
 [domain model](clientdomain.md#domain-model) in
@@ -41,19 +41,19 @@ the shared ones.
 > renaming a field, changing a type, or moving a sealed variant breaks compatibility across
 > features. A PR touching a feature root should be reviewed as one.
 
-The root holds domain objects and validation only: no interfaces with behaviour, no use cases, no
-logic beyond validating the values it carries. Anything with behaviour belongs on a side —
+The root contains domain objects and validation only: no interfaces with behaviour, no use cases,
+no logic beyond validating the values of the domain objects. Anything with behaviour belongs on a side —
 single-function contracts are [domain interfaces](clientdomain.md#domain-interface) in
 `client.domain` or [`server.domain`](serverdomain.md#domain-interface).
 
-**In `:client` and `:server`, the same package holds the feature's wiring.** It is reserved for
+**In `:client` and `:server`, the same package contains the feature's wiring.** It is reserved for
 dependency injection: Koin modules that define the feature's DI bindings, wiring its
 [ViewModels](clientui.md#view-model), Repositories
 ([client](clientdata.md#repository), [server](serverdata.md#repository)),
 [UseCases](clientdomain.md#use-case) ([server](serverdomain.md#use-case)),
 [StorageClasses](serverdata.md#storage-class), and
 [Service](serverservices.md#service-interface) implementations into the graph. Concrete classes
-(ServiceImpls, helpers, etc.) live in their layer-specific package; nothing else belongs here.
+(ServiceImpls, helpers, etc.) live in their layer-specific package; no other declaration belongs in the root package.
 
 ##### Constructs
 
@@ -71,10 +71,10 @@ dependency injection: Koin modules that define the feature's DI bindings, wiring
     * **Why:** The root is shared vocabulary: both the client and server depend on it, so it can depend on neither. An import of `client.**` would make the type unusable on the server, and an import of `server.**` would drag persistence or wire machinery into a type the client compiles.
     * **Note:** Other features' roots are importable — real vocabularies reference each other. Keep that graph acyclic.
     * **Note:** Tested as an allow-list: a `feature.` import is a root import when everything between the feature name and the imported declaration is a type name, so anything sitting in a deeper package is client- or server-private whatever that package is called.
-    * **Note:** Scoped to `:api`, where the vocabulary lives; the same package name on `:client`/`:server` holds the feature's DI module, whose job is to name both client and server implementations.
+    * **Note:** Scoped to `:api`, where the vocabulary lives; the same package name on `:client`/`:server` contains the feature's DI module, whose job is to name both client and server implementations.
 * A feature root must not contain platform-specific dependencies, such as Android, Compose, Ktor, or SQL
     * **Why:** The root is common Kotlin consumed by every target and by the server. A platform import here would break compilation for some target or drag transport/persistence machinery into the vocabulary itself.
-    * **Note:** Scoped to `:api`, where the vocabulary lives; the same package name on `:client`/`:server` holds the feature's [dependency module](#dependency-module), which is out of scope because wiring a client or server necessarily names its platform types.
+    * **Note:** Scoped to `:api`, where the vocabulary lives; the same package name on `:client`/`:server` contains the feature's [dependency module](#dependency-module), which is out of scope because wiring a client or server necessarily names its platform types.
 * A feature root must declare only domain objects, constants, validation, and pure extensions over them
     * **Why:** Behaviour in the root would be shared between client and server, and only vocabulary is shared. A single-function interface belongs in `client.domain` or `server.domain` ([client](clientdomain.md#domain-interface), [server](serverdomain.md#domain-interface)), where the data layer provides it.
     * **Note:** Enforced by the Constructs: a declaration in the root matching none of them fails the membership rule.
@@ -95,7 +95,7 @@ client and server use. Because both name it and it is serialized across the netw
 field is part of a compatibility surface.
 
 The private counterpart is the [domain model](clientdomain.md#domain-model)
-([server](serverdomain.md#domain-model)), which refactors freely because nothing outside its
+([server](serverdomain.md#domain-model)), which refactors freely because no code outside its
 client or server can observe the change. `Shared` is what says both the client and server name
 it, and the package is where that is written down. A private model may serialize too — for a
 column or for restored state — so `@Serializable` is what a shared model needs, not what
@@ -202,7 +202,7 @@ sealed interface Transport {
 ## [Shared Exception](../src/main/kotlin/architecture/rules/feature/SharedException.kt)
 
 A class representing a known failure mode that both the client and server name: thrown by a
-server implementation, carried across the service boundary, and matched by client code. Because
+server implementation, serialized across the service boundary, and matched by client code. Because
 it crosses the wire, it is part of the feature's shared vocabulary and lives in the root.
 
 * **Note:** A shared exception must be listed in `@Throws` on the primary function of every
@@ -210,8 +210,8 @@ it crosses the wire, it is part of the feature's shared vocabulary and lives in 
   ([server](serverdomain.md#domain-interface)) that raises it.
 * **Note:** `@Serializable` is part of what a shared exception *is* — a failure mode that
   cannot be serialized cannot cross the network, and
-  `ProjectRules.serviceExceptionsSerializable` holds the same line inside a service contract's
-  reach. An exception that is not wire-visible belongs in `client.domain` or `server.domain`,
+  `ProjectRules.serviceExceptionsSerializable` requires `@Serializable` on the exceptions a
+  service contract declares. An exception that is not wire-visible belongs in `client.domain` or `server.domain`,
   not in the root.
 
 ##### Requirements
@@ -225,7 +225,7 @@ it crosses the wire, it is part of the feature's shared vocabulary and lives in 
 
 ## [Shared Constants](../src/main/kotlin/architecture/rules/feature/SharedConstants.kt)
 
-An `object` declaration whose only members are `val` constants. It holds the feature's magic
+An `object` declaration whose only members are `val` constants. The object contains the feature's magic
 numbers, lookup tables, and named tags — values both the client and server need to agree on.
 
 * **Note:** A constants object is the right home for values such as `val MAX_PARTY_SIZE = 6`
@@ -293,7 +293,7 @@ The configuration for Dependency Injection (DI) that wires the feature together.
 * **Note:** The naming convention is `[name]ClientDependencies` in `:client` and
   `[name]ServerDependencies` in `:server`. The Construct enforces the `Dependencies` suffix;
   the `Client`/`Server` infix is convention. `[name]` is the feature's whole name, so a grouped
-  feature carries its group: `:feature:capture:device-camera:client` names
+  feature's name includes its group: `:feature:capture:device-camera:client` names
   `captureDeviceCameraClientDependencies`.
 * **Note:** The `:app` modules (application shells) are responsible for collecting the DI
   modules provided by feature modules into the final dependency graph. A `:client` dependency
@@ -323,7 +323,7 @@ The configuration for Dependency Injection (DI) that wires the feature together.
     * **Why:** If feature A binds an implementation of feature B's domain interface, feature B's DI graph silently depends on feature A, and removing or refactoring A breaks B's wiring at runtime rather than at compile time. Each feature owns its own bindings; cross-feature consumption goes through `:api` interfaces only.
 * A `:client` Dependency Module must be listed in every client shell's `ClientDependencies.kt`
     * **Why:** `:app:client:common` and `:app:client:web-html` each keep their own `clientDependencies` list, because the HTML client can't depend on the Compose UI shell. A module missing from one list fails only when that client first resolves a ViewModel from it.
-    * **Note:** Reads every `app/client/*/src/**/ClientDependencies.kt`, including shells the current build doesn't include. With one shell, `ClientDependenciesTest` covers the list and the rule checks nothing.
+    * **Note:** Reads every `app/client/*/src/**/ClientDependencies.kt`, including shells the current build doesn't include. With one shell, `ClientDependenciesTest` covers the list and the rule checks no file.
     * **Note:** A module another `:client` module installs through `includes(…)` is registered through that module.
 * A Dependency Module registers a service's generated `[Name]ServiceUrpcBinding` by chaining `.bindService(::[Name]ServiceUrpcBinding)` off the implementation's binding, inside the per-call `scope<UrpcCall> { }` block
     * **Note:** `bindService` (from `dev.isaacudy.udytils.urpc.koin`) registers the binding under its own concrete type, bound to `UrpcService`, with the impl resolved lazily.
@@ -352,7 +352,7 @@ internal class UserServiceImpl(
 ) : UserService { /* … */ }
 ```
 
-A dependency the graph supplies, a setting fixed for every deployment kept private, and a setting that varies between deployments carried by a configuration the module assembles (`ProjectRules.injectableConstructorsHaveNoDefaults`):
+A dependency the graph supplies, a setting fixed for every deployment kept private, and a setting that varies between deployments declared in a configuration the module assembles (`ProjectRules.injectableConstructorsHaveNoDefaults`):
 
 ```kotlin
 // feature.orders.server.domain.ReconcileOrders.kt (:server)

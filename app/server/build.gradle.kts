@@ -22,7 +22,8 @@ dependencies {
 
     implementation(projects.platform.server.host)
     implementation(projects.platform.server.postgres)
-    // The only module allowed to depend on this: it carries Zonky's embedded Postgres binaries.
+    // :app:server is the only module allowed to depend on :platform:server:development, which
+    // adds Zonky's embedded Postgres binaries to the runtime classpath.
     implementation(projects.platform.server.development)
 
     implementation(libs.logback)

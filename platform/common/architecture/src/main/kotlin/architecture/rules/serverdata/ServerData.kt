@@ -22,9 +22,9 @@ import dev.isaacudy.udytils.architecture.*
       happens here. This is the same construct as the client's
       [Repository](clientdata.md#repository), with the same rules.
     * In the `server.data.storage` subpackage, a [StorageClass](#storage-class) speaks
-      [Rows](#storage-record) only. It holds the queries and the single write path for the tables it
-      owns, and it names no domain type at all: the mapping is the Repository's job, not the
-      query's. `.storage` is the Row-only subpackage, the counterpart of
+      [Rows](#storage-record) only. A StorageClass contains the queries and the single write path
+      for the tables the StorageClass owns, and names no domain type at all: the mapping is the
+      Repository's job, not the query's. `.storage` is the Row-only subpackage, the counterpart of
       [`client.data.storage`](clientdata.md#client-storage).
 
     [IntegrationClients](#integration-client) are the Repository idea pointed outward — an adapter
@@ -46,7 +46,7 @@ import dev.isaacudy.udytils.architecture.*
     name domain types by definition, so they belong at the `server.data` root.
 
     **This layer must never import `server.services`.** Wire contracts stay out of persistence, and
-    storage can never reach the thing that is meant to consume it.
+    storage can never call the layer that is meant to consume storage.
     [`ServerServices.noDataImports`](serverservices.md#rules) enforces the same separation from the
     other direction.
 
@@ -67,7 +67,7 @@ import dev.isaacudy.udytils.architecture.*
     `platform.server.postgres.TransactionRunner` and run several writes in one transaction
     (`ProjectRules.transactionRunnerInjectedByUseCaseOrRepository`). Storage calls made inside the
     block **join** that transaction, so a StorageClass never states whether it is in one: it issues
-    the same query either way, and the caller that knows which writes have to land together decides
+    the same query either way, and the caller that knows which writes have to commit together decides
     the boundary. That is what lets a UseCase compose one feature's write with another's — see
     [server domain interfaces](serverdomain.md#domain-interface).
 
@@ -173,8 +173,8 @@ object ServerData : RuleGroup(
             """
             Persistence exists to satisfy the domain, not to serve requests. The other server layers,
             such as `server.services`, are entry points that call into the domain. An import of one
-            would put the request format inside the storage layer, or let a write reach back through
-            the layer that called it — a cycle between the layers.
+            would put the request format inside the storage layer, or let a write call back into
+            the layer that called the write — a cycle between the layers.
             """.trimIndent(),
         )
         note("An allow-list: `server.domain` and `server.data` of any feature, sub-packages included. Every other `feature.[name].server.[layer]` import is a violation.")
@@ -227,7 +227,7 @@ object ServerData : RuleGroup(
         )
         note("`feature.[name].server.data` is the only home a table has: a file that names one from anywhere else is reaching around the Storage class that owns it, whatever package that file is in.")
         note("Within the layer, `Row` imports are legal anywhere — mapping functions at the data root take Rows as receivers — while `Table` imports are legal only in the flat `storage` package, where the owning StorageClass lives.")
-        note("Both imports and fully-qualified body references are counted, so `platform.server.postgres.tables.XxxTable.selectAll()` with no import line is the same reach-around.")
+        note("Both imports and fully-qualified body references are counted, so `platform.server.postgres.tables.XxxTable.selectAll()` with no import line is the same violation.")
         scope { scope, exempt ->
             val outsideLayer = scope.files
                 .filter { it.isFeatureModule() }
@@ -265,8 +265,8 @@ object ServerData : RuleGroup(
     val tableOwnedBySingleFeature by rule {
         rationale(
             """
-            A table two features write has no single owner, so no one place can hold its invariants
-            and every change has to be reasoned about twice. This is the persistence-level
+            A table two features write has no single owner, so no single feature can enforce the
+            table's invariants and every change has to be reasoned about twice. This is the persistence-level
             counterpart to `ModuleRules.crossFeatureCodeViaApi`: reaching another feature's rows is
             the same coupling whether it goes through their Storage class or straight to their table.
             """.trimIndent(),
@@ -310,7 +310,8 @@ object ServerData : RuleGroup(
             A StorageClass is the single write path for the tables it owns, which is what lets its
             invariants and side effects hold: a partial-update shape, a lock order, a counter that
             may not go negative. A second class writing the same table is a second write path, and
-            nothing carries those rules across to it — the split is invisible at both call sites and
+            no code applies those invariants and side effects to the second write path — the split is
+            invisible at both call sites and
             shows up as missed rules or missed data. Ownership therefore runs from the table: a class
             may own several tables, and a table has one owner.
             """.trimIndent(),

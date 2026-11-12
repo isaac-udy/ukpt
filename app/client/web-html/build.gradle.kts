@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 
 // The Compose HTML web client. It has no Compose UI dependency, and verifyHtmlBundle fails the
-// build if Compose UI reaches the production bundle.
+// build if the production bundle contains Compose UI.
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeCompiler)

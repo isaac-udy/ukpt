@@ -6,12 +6,12 @@ import androidx.compose.ui.unit.dp
  * The spacing scale.
  *
  * A bare object, not a theme-scoped token holder and not a CompositionLocal: spacing is **one
- * density**, on purpose. Making it themeable invites per-screen density drift and a "compact mode"
- * nobody maintains. If a layout needs to adapt, it adapts through [UkptViewport] breakpoints —
+ * density**, on purpose. Making it themeable invites per-screen density drift and an unmaintained
+ * "compact mode". If a layout needs to adapt, it adapts through [UkptViewport] breakpoints —
  * changing *which* layout renders — not by shrinking every gap.
  *
  * The scale is geometric so that adjacent steps read as clearly different. Values between steps are
- * a smell: reach for the nearest step instead.
+ * a smell: use the nearest step instead.
  */
 object UkptSpacing {
     /** Hairline separation: icon to its label. */

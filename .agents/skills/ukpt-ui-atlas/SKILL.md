@@ -18,7 +18,7 @@ preview goldens that have no matching destination.
 ./gradlew generateUiAtlas
 ```
 
-Output lands in `build/ui-atlas/`:
+Output is written to `build/ui-atlas/`:
 - `index.html` — interactive atlas (open in a browser to pan, zoom, search, and browse variants).
 - `manifest.json` — machine-readable UI map.
 - `images/` — copied golden PNGs.

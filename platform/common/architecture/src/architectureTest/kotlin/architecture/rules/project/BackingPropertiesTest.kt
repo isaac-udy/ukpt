@@ -12,7 +12,7 @@ import kotlin.test.assertTrue
 /**
  * `ProjectRules.noBackingProperties` over `src/architectureTest/fixtures/backing-properties`: a
  * `feature.shop` client whose `CartStore` backs `items` and `events` with `_`-prefixed
- * properties and holds an unpaired `_scratch`, whose file backs a top-level `registry`, whose
+ * properties and declares an unpaired `_scratch`, whose file backs a top-level `registry`, whose
  * `PromoStore` uses an explicit backing field and a `private set`, and whose nested
  * `PromoStore.Defaults` backs `limits`.
  */

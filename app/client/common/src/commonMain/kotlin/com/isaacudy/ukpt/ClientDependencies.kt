@@ -22,5 +22,5 @@ val clientDependencies: List<Module> = listOf(
     ukptClientDependencies,
 )
 
-/** The dev server's address as this platform reaches it. */
+/** The dev server's address that this platform connects to. */
 internal expect fun serverEndpointConfig(): ServerEndpointConfig

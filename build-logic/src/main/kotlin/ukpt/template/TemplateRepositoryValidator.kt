@@ -98,7 +98,7 @@ object TemplateRepositoryValidator {
     }
 
     /**
-     * A downstream project's marker carries a `project` rename map (see the `ukpt-new-project`
+     * A downstream project's marker contains a `project` rename map (see the `ukpt-new-project`
      * skill); the template's own marker has only a `templateVersion`. This is what distinguishes a
      * repository generated *from* the template from the template repository itself, and lets the
      * template-repo-specific checks be scoped out of a downstream run.
@@ -136,7 +136,7 @@ object TemplateRepositoryValidator {
             return null
         }
 
-        // A downstream marker (one carrying a `project` rename map) must also carry the rest of the
+        // A downstream marker (one with a `project` rename map) must also contain the rest of the
         // schema the ukpt-template-update skill relies on; the template's own marker is exempt.
         if (root["project"] != null) validateDownstreamMarker(root, submodulePaths(repository, gitRoot), relativePath, issues)
 
@@ -163,7 +163,7 @@ object TemplateRepositoryValidator {
     }
 
     /**
-     * Validates the fields a downstream marker must carry beyond `templateVersion` (see the
+     * Validates the fields a downstream marker must contain beyond `templateVersion` (see the
      * `ukpt-new-project` skill): the `templateCommit` SHA, the `project` rename map
      * (`package`/`name`/`typePrefix`), and a `submodules` SHA for each path in `.gitmodules`. The
      * update skill depends on every one to resolve its base commit and translate template diffs into
@@ -231,8 +231,8 @@ object TemplateRepositoryValidator {
     /**
      * A template flavour — a long-lived branch that drops part of the template — declares what it
      * dropped and how each divergent file is merged in `.ukpt/flavour.json`. The checks keep that
-     * manifest true: nothing it drops is tracked, the files it names exist, and it names the branch
-     * the marker records.
+     * manifest true: no path the manifest drops is tracked, the files the manifest names exist, and
+     * the manifest names the branch the marker records.
      */
     private fun validateFlavourManifest(
         repository: Path,
@@ -476,7 +476,7 @@ object TemplateRepositoryValidator {
     /**
      * Checks that the file paths and architecture rule ids a skill cites still resolve.
      *
-     * Skills describe code they do not contain, and nothing compiles that relationship — so when
+     * Skills describe code they do not contain, and no compiler checks that relationship — so when
      * code moves, a skill silently starts instructing agents to copy files that no longer exist.
      * This is the mechanical half of that problem: it cannot tell whether prose is still *true*,
      * only whether the things it names are still *there*, which is where the rot has shown up.

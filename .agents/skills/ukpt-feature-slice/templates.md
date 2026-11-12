@@ -203,7 +203,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 @SerialName("NavigationKey.<Name>Destination")   // ProjectRules.serialNameEncodesEnclosingType: destinations pin exactly this
 object <Name>Destination : NavigationKey
-// Use a `@Serializable data class <Name>Destination(...) : NavigationKey` if the key carries arguments.
+// Use a `@Serializable data class <Name>Destination(...) : NavigationKey` if the key has arguments.
 ```
 
 `:client` → `feature/<name>/client/src/commonMain/kotlin/feature/<name>/client/ui/<Name>Screen.kt`
@@ -568,7 +568,7 @@ with `viewModelOf` in the feature's Koin module — the wasm crash from a missin
 here too), and the ViewModel performs the navigation actions (`complete`/`requestClose` via its
 `navigationHandle`). A confirmation dialog is a plain `NavigationKey` — `complete()` means the user
 confirmed, `requestClose()` means they cancelled; add `NavigationKey.WithResult<R>` only when the
-dialog returns data that complete/close cannot represent. The destination carries
+dialog returns data that complete/close cannot represent. The destination declares
 `directOverlayWithFade()` metadata, the opener uses `registerForNavigationResult(onCompleted = { ... })` /
 `channel.open(key)` — never a `show*Dialog` flag on `State`
 (`ClientUi.ViewModelState.noDialogVisibilityFlags`, `ClientUi.Composable.dialogPrimitivesOnlyInDialogDestinations`,
@@ -584,6 +584,6 @@ dialog returns data that complete/close cannot represent. The destination carrie
 - [ ] `app/client/web-html/build.gradle.kts` — `jsMain` → `implementation(projects.feature.<name>.client)`, and a
       Compose HTML screen per destination (`ukpt-html-web`). Skip both if the project deleted `app/client/web-html`.
 - [ ] `app/server/build.gradle.kts` — `implementation(projects.feature.<name>.server)` (only if using the server).
-- [ ] Add a navigation entry to the new `<Name>Destination` from wherever the app should reach it.
+- [ ] Add a navigation entry to the new `<Name>Destination` from wherever the app should open the destination.
 - [ ] `app/server/src/main/kotlin/com/isaacudy/ukpt/ServerDependencies.kt` — add `<name>ServerDependencies` once
       it binds something (`:app:server:test` verifies the list). A service is the `ukpt-urpc-service` skill.
