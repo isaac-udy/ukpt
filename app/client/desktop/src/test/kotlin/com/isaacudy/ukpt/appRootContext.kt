@@ -1,6 +1,7 @@
 package com.isaacudy.ukpt
 
 import androidx.compose.runtime.mutableStateOf
+import dev.enro.annotations.AdvancedEnroApi
 import dev.enro.context.RootContext
 import dev.enro.test.fixtures.TestLifecycleAndViewModelStoreOwner
 
@@ -11,6 +12,7 @@ private val navigationController by lazy { UkptNavigation.installNavigationContr
  * A root context on the application's navigation controller, for `LocalRootContext`. In
  * `runComposeUiTest` no `RootWindow` exists to provide one.
  */
+@OptIn(AdvancedEnroApi::class)
 fun appRootContext(): RootContext {
     val owner = TestLifecycleAndViewModelStoreOwner()
     return RootContext(

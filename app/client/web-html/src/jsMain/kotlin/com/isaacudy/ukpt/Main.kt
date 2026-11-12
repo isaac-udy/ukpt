@@ -1,6 +1,5 @@
 package com.isaacudy.ukpt
 
-import dev.enro.annotations.ExperimentalEnroApi
 import dev.enro.asInstance
 import dev.enro.backstackOf
 import dev.enro.html.EnroHtmlContent
@@ -14,7 +13,6 @@ import org.jetbrains.compose.web.renderComposable
 import org.koin.core.context.startKoin
 import platform.design.html.UkptHtmlTheme
 
-@OptIn(ExperimentalEnroApi::class)
 fun main() {
     startKoin { modules(clientDependencies) }
     UkptHtmlNavigation.installNavigationController(document)
