@@ -339,7 +339,9 @@ Then `verifyArchitecture` and `validateTemplate`.
 
 **Snapshots.** Verify only the modules whose previews changed. Record
 (`recordPaparazzi --no-configuration-cache`) only after an intended visual change, in that module,
-and open the changed golden images before committing them.
+and open the changed golden images before committing them. The snapshot test JVM runs in locale
+`en-US` and time zone `UTC` on every machine; the Gradle properties `ukpt.snapshotLocale` and
+`ukpt.snapshotTimeZone` in `gradle.properties` change the pair.
 
 **Timings** on a 16 GB M1 Pro, with the Gradle daemon running and the code compiled, the test task
 forced to run (`--rerun`), in seconds:

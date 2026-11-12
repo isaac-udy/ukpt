@@ -1,3 +1,5 @@
+import java.time.ZoneId
+
 /**
  * Leaf convention for Paparazzi snapshot-test wiring, independent of the module's target set.
  *
@@ -17,6 +19,10 @@
  *
  * Snapshot tasks must be run with `--no-configuration-cache`: Paparazzi's resource-preparation
  * task cannot be stored in the configuration cache.
+ *
+ * The snapshot test JVM runs in locale `en-US` and time zone `UTC`. A project sets the Gradle
+ * properties `ukpt.snapshotLocale` (`language-COUNTRY`) and `ukpt.snapshotTimeZone` (a time zone
+ * ID) in `gradle.properties` to record in another locale or time zone.
  */
 plugins {
     id("org.jetbrains.kotlin.multiplatform")
@@ -68,5 +74,19 @@ tasks.withType<Test>().configureEach {
         doFirst {
             classpath = classpath + rJar
         }
+
+        // A golden renders dates, weekday order and times from the JVM's default locale and time
+        // zone, so every machine that records or verifies goldens must run with the same pair.
+        val snapshotLocale = providers.gradleProperty("ukpt.snapshotLocale").getOrElse("en-US")
+        require(Regex("[a-z]{2,3}-[A-Z]{2}").matches(snapshotLocale)) {
+            "ukpt.snapshotLocale must be language-COUNTRY, for example en-US. Found: '$snapshotLocale'."
+        }
+        val snapshotTimeZone = providers.gradleProperty("ukpt.snapshotTimeZone").getOrElse("UTC")
+        require(runCatching { ZoneId.of(snapshotTimeZone) }.isSuccess) {
+            "ukpt.snapshotTimeZone must be a time zone ID, for example UTC or Pacific/Auckland. Found: '$snapshotTimeZone'."
+        }
+        systemProperty("user.language", snapshotLocale.substringBefore("-"))
+        systemProperty("user.country", snapshotLocale.substringAfter("-"))
+        systemProperty("user.timezone", snapshotTimeZone)
     }
 }
