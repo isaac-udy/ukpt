@@ -49,6 +49,7 @@ develocity {
 
 buildCache {
     local {
+        if (providers.environmentVariable("CI").isPresent) return@local
         directory = providers.environmentVariable("UKPT_REVIEW_BUILD_CACHE")
             .map { File(it) }
             .getOrElse(File(rootDir, "../ukpt-review-build-cache"))
