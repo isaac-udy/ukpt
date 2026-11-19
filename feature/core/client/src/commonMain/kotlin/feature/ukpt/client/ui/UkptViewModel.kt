@@ -46,7 +46,8 @@ class UkptViewModel(
     }
 
     fun onRetryClicked() {
-        loadGreetingSummary()
+        val retries = 1
+        repeat(retries) { loadGreetingSummary() }
     }
 
     fun onGreetClicked() {
