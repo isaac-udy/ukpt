@@ -32,6 +32,27 @@ dependencyResolutionManagement {
 
 plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+    id("com.gradle.develocity") version "4.6.1"
+}
+
+develocity {
+    buildScan {
+        termsOfUseUrl = "https://gradle.com/help/legal-terms-of-use"
+        termsOfUseAgree = "yes"
+        obfuscation {
+            username { "redacted" }
+            hostname { "redacted" }
+            ipAddresses { it.map { "0.0.0.0" } }
+        }
+    }
+}
+
+buildCache {
+    local {
+        directory = providers.environmentVariable("UKPT_REVIEW_BUILD_CACHE")
+            .map { File(it) }
+            .getOrElse(File(rootDir, "../ukpt-review-build-cache"))
+    }
 }
 
 apply(from = "gradle/embedded-sdk-location.settings.gradle.kts")
