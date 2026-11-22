@@ -56,6 +56,14 @@ If there is no handoff, work through the identity **with** the user rather than 
 not silently pick a palette; an identity the user did not choose is worse than the neutral
 placeholder, because that identity looks decided.
 
+**Put visual choices in front of the user rendered, not named.** Never ask them to choose a
+typeface, shape language, palette or visual style from a list of names or descriptions. Render each
+option in situ on a real screen of this project — a Paparazzi preview, a `DocSurface` sheet or an
+HTML page — at the project's primary viewport (`<Prefix>Viewport.Default`, 1:1), side by side, with
+controls sized so their labels fit, one typeface per option across every control, and spacing on the
+grid. Polish the comparison before showing it: a cramped inline mock-up with overflowing buttons is
+not a comparison. Then ask.
+
 ## Step 1 — Choose what primitives are built on
 
 This is the decision that is expensive to reverse, so make it explicitly and record it. Present the
@@ -102,7 +110,8 @@ going further.
 ## Step 3 — Author the tokens
 
 Edit in place; the files are one-per-concern and already documented. Take values from the handoff
-where there is one, and from the user where there isn't.
+where there is one, and from the user where there isn't — put the choice to them as rendered options
+(Step 0), not as a list of names.
 
 - `<Prefix>Colors.kt` — replace the `Light`/`Dark` placeholder palettes. Keep the roles semantic; if
   the handoff names hues ("brand blue"), map them onto roles rather than renaming roles after hues.

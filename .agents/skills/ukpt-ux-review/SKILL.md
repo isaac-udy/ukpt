@@ -109,6 +109,11 @@ For each substantive finding, include:
 - A specific change: proposed wording, default, layout, or interaction, not just “simplify”.
 - Approximate effort or material tradeoffs, and a way to validate the improvement.
 
+When a finding offers a choice between typefaces, shapes, colours or visual styles, render each
+option in situ on the affected screen at the project's primary viewport, side by side, before
+asking the user to choose. Names and descriptions are not a comparison. Follow the rendering
+guidance in [ukpt-design-system](../ukpt-design-system/SKILL.md), Mode 1 Step 0.
+
 Use priority to express user impact and reach: blocked tasks and misleading consequential choices
 usually outrank extra effort, which usually outranks minor visual refinements. A rare blocker can
 still matter. Use confidence to express the strength and limits of the evidence; avoid numerical
