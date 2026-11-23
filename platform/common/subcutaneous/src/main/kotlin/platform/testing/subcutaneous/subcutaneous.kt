@@ -31,21 +31,21 @@ fun subcutaneous(
         .asCoroutineDispatcher()
     Dispatchers.setMain(main)
     try {
-        runBlocking(main) { run(graph, Edges().apply(edges), block) }
+        runBlocking(main) { run(graph, Edges().apply(graph.hostEdges), Edges().apply(edges), block) }
     } finally {
         Dispatchers.resetMain()
         main.close()
     }
 }
 
-private suspend fun run(graph: SubcutaneousGraph, edges: Edges, block: suspend SubcutaneousScope.() -> Unit) {
+private suspend fun run(graph: SubcutaneousGraph, hostEdges: Edges, edges: Edges, block: suspend SubcutaneousScope.() -> Unit) {
     val server = graph.server
     if (server == null) {
-        require(!edges.hasServerBindings) { "edges = { server { … } } needs a test graph with a server. Bind a backend the project does not own with client { … }." }
-        withClient(graph.client + edges.clientModule(), running = null, block)
+        require(!hostEdges.hasServerBindings && !edges.hasServerBindings) { "server { … } edges need a test graph with a server. Bind a backend the project does not own with client { … }." }
+        withClient(graph.client + hostEdges.clientModule() + edges.clientModule(), running = null, block)
     } else {
-        server.run(edges.serverModule()) { running ->
-            withClient(graph.client + running.clientModules + edges.clientModule(), running, block)
+        server.run(listOf(hostEdges.serverModule(), edges.serverModule())) { running ->
+            withClient(graph.client + running.clientModules + hostEdges.clientModule() + edges.clientModule(), running, block)
         }
     }
 }

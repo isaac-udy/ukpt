@@ -75,7 +75,7 @@ to end. Copy-paste skeletons are in `templates.md`.
    service. When a screen calls it, the ViewModel's test does. A function no screen calls gets a
    server-entry test: `service<<Name>Service>()` returns the generated urpc client, which calls the
    in-process server through the client transport. Seed with the feature's scenarios in `given { }`.
-   Copy `feature/core/tests/src/test/kotlin/feature/ukpt/tests/GreetingServiceTest.kt`:
+   Copy `feature/core/tests/src/commonTest/kotlin/feature/ukpt/tests/GreetingServiceTest.kt`:
    ```kotlin
    @Test
    fun `reset empties the history`() = subcutaneous(ukptTestGraph) {
@@ -87,7 +87,7 @@ to end. Copy-paste skeletons are in `templates.md`.
        assertEquals(emptyList(), greetingService.observeHistory().first().greetings)
    }
    ```
-8. **Verify** — the full compile sweep (all 6 targets), `./gradlew :feature:<name>:tests:subcutaneousTest`
+8. **Verify** — the full compile sweep (all 6 targets), `./gradlew :feature:<name>:tests:subcutaneousJvmTest`
    and `./gradlew :platform:common:architecture:verifyArchitecture`. If a web client consumes the
    service, also run the `ukpt-verify-web` skill.
 

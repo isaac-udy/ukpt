@@ -22,7 +22,7 @@ the test may use besides the code under test; the `Testing` rules check it
 
 | Write a… | When | Where |
 | --- | --- | --- |
-| `@SubcutaneousTest` | Behaviour a user triggers through a screen, or a `@Urpc` service no screen calls. **The default.** | `:feature:<name>:tests`, `src/test/` |
+| `@SubcutaneousTest` | Behaviour a user triggers through a screen, or a `@Urpc` service no screen calls. **The default.** | `:feature:<name>:tests`, `src/commonTest/` |
 | `@UnitTest` | Logic with many inputs: parsing, validation, formatting, a branching UseCase | the module's `commonTest` (or a platform test set) |
 | `@ComponentTest` | A `[Name]ScreenContent` with fixed state, driven through its robot; a Compose HTML `[Name]HtmlScreenContent`; or a shared primitive, navigation container or app-shell composable | the `:client` module's `src/jvmTest/` (Compose UI) or `src/jsTest/` (HTML); shared UI in its own `:platform:client:*` or `:app:client:common` module |
 | `@SnapshotTest` | The module's one `PreviewSnapshotTest` | `src/androidHostTest/` |
@@ -41,13 +41,13 @@ API (`Testing.UnitTest.noInfrastructure`); collaborators are lambdas for `fun in
 
 Copy the nearest test of the same category:
 
-- Subcutaneous: `feature/core/tests/src/test/kotlin/feature/ukpt/tests/UkptViewModelTest.kt`
+- Subcutaneous: `feature/core/tests/src/commonTest/kotlin/feature/ukpt/tests/UkptViewModelTest.kt`
   (ViewModel entry), `GreetingServiceTest.kt` beside it (server entry)
 - Unit: `feature/core/client/src/commonTest/kotlin/feature/ukpt/client/ui/AsyncStateLoadTest.kt`
 - Component: `feature/core/client/src/jvmTest/kotlin/feature/ukpt/client/ui/UkptScreenContentTest.kt`
   (Compose UI), `feature/core/client/src/jsTest/kotlin/feature/ukpt/client/ui/UkptHtmlScreenContentTest.kt`
   (HTML)
-- Robot: `feature/core/tests/src/main/kotlin/feature/ukpt/tests/UkptScreenRobot.kt`
+- Robot: `feature/core/tests/src/jvmMain/kotlin/feature/ukpt/tests/UkptScreenRobot.kt`
 - Snapshot: `feature/core/client/src/androidHostTest/kotlin/platform/snapshot/PreviewSnapshotTest.kt`
 - Wiring: `app/server/src/test/kotlin/com/isaacudy/ukpt/ServerDependenciesTest.kt`
 - Adapter: `platform/server/postgres/src/test/kotlin/platform/server/postgres/TransactionRunnerTest.kt`
@@ -69,7 +69,7 @@ robot, a top-level fixture function or property, or a `@Composable` snapshot sur
 
 Compose UI Component Tests and End To End Tests find and act on nodes only through robots
 (`Testing.ComponentTest.drivesThroughRobots`, `Testing.EndToEndTest.drivesThroughRobots`). A
-robot covers one screen and lives in the feature's `:tests` module, `src/main`, from
+robot covers one screen and lives in the feature's `:tests` module, `src/jvmMain`, from
 `:platform:common:robots` (package `platform.testing.robots`).
 
 1. **Tags.** Beside the screen, in `client.ui`, declare `object [Screen]Tags` with `const val`
@@ -122,10 +122,18 @@ A `:client` module's `jvmTest` depends on its own `:tests` module for the robots
 The harness is `:platform:common:subcutaneous-server` (package `platform.testing.subcutaneous`),
 which runs the server in-process, over `:platform:common:subcutaneous`, which builds the client
 graph. A feature's `:feature:<name>:tests` module applies `ukpt.feature-tests` and depends on the
-harness and the feature's `:client` and `:server` (`ukpt-feature-slice` scaffolds it). The module's
-`src/main` contains the test graph and the scenarios; the module's `src/test` contains the tests. A project
-without a server of its own depends on `:platform:common:subcutaneous` alone: see "Without a
-server" below.
+harness and the feature's `:client` and `:server` in `commonMain` (`ukpt-feature-slice` scaffolds
+it). The module's `src/commonMain` contains the test graph and the scenarios, `src/commonTest` the
+tests, and `src/jvmMain` the robots. A project without a server of its own depends on
+`:platform:common:subcutaneous` alone: see "Without a server" below.
+
+**Hosts.** The `ukpt.subcutaneousHosts` property in `gradle.properties` lists the hosts that run
+the tests: `jvm`, `android` (default `jvm,android`). Each host has its task:
+`subcutaneousJvmTest` and `subcutaneousAndroidHostTest`, the Android host being a JVM with the
+Android variants of every dependency. A project without a desktop client sets
+`ukpt.subcutaneousHosts=android`. The in-process server and embedded Postgres run on both hosts.
+A `:tests` module holds only Subcutaneous Tests (`Testing.SubcutaneousTest.testsModuleHoldsOnlySubcutaneousTests`),
+and each test function is `= subcutaneous(graph) { … }` (`.runsInTheHarness`).
 
 **Graph.** One `SubcutaneousGraph` per `:tests` module, production modules only:
 
@@ -172,7 +180,7 @@ fun `confirming the reset dialog clears the history`() = subcutaneous(ukptTestGr
 - `given { … }` — runs scenarios, before a ViewModel opens or while it is open. An open ViewModel
   receives a change made mid-test through the server's notifications, as in the app.
 
-**Scenarios.** `suspend fun Scenario.<name>(…)` in the `:tests` module's `src/main`. Inside,
+**Scenarios.** `suspend fun Scenario.<name>(…)` in the `:tests` module's `src/commonMain`. Inside,
 `server<T>()` and `client<T>()` resolve from the running graphs. A scenario writes through server
 domain interfaces only and returns what it created (`Testing.Scenario.*`). Another feature's
 `:tests` module depends on this one to reuse them.
@@ -202,6 +210,32 @@ fun Edges.temporaryAppFiles() {
 }
 ```
 
+**Host edges.** A binding that one host cannot build for any test, such as a database driver or a
+DataStore that needs an Android `Context` on the Android host, is replaced in the graph's
+`hostEdges` (`Testing.HostEdges`). The harness loads host edges after the graph and before a
+test's `edges`:
+
+```kotlin
+// src/commonMain
+expect val notesHostEdges: Edges.() -> Unit
+
+val notesTestGraph = SubcutaneousGraph(
+    client = featureClient(notesClientDependencies),
+    server = featureServer(notesServerDependencies),
+    hostEdges = notesHostEdges,
+)
+
+// src/androidMain
+actual val notesHostEdges: Edges.() -> Unit = {
+    client { single<SqlDriver> { JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY) } }
+}
+
+// src/jvmMain
+actual val notesHostEdges: Edges.() -> Unit = {}
+```
+
+A graph whose bindings every host can build declares no host edges.
+
 **Without a server.** A project whose backend it does not own (a third-party REST API) has no
 `:server` modules and no `:platform:common:subcutaneous-server`. Its `:tests` module depends on
 `:platform:common:subcutaneous` and the feature's `:client`. The graph lists client modules only,
@@ -213,7 +247,7 @@ val projectsTestGraph = SubcutaneousGraph(
 )
 ```
 
-The backend is an edge. A `Fake[Name]Backend` in `src/main` stores the records a test seeds and
+The backend is an edge. A `Fake[Name]Backend` in `src/commonMain` stores the records a test seeds and
 answers the client's requests through a Ktor `MockEngine`. An `Edges` extension beside it binds
 the fake and the engine, so the test files import neither Ktor nor Koin
 (`Testing.SubcutaneousTest.noInfrastructureImports`):
@@ -236,7 +270,8 @@ server and fail without one.
 
 **Coverage.** `./gradlew subcutaneousCoverage` writes the feature modules' coverage by Subcutaneous
 Tests alone to `build/reports/kover/html/index.html` and `build/reports/kover/report.xml`. Only the
-`:tests` modules' `subcutaneousTest` tasks are instrumented. It is advisory: there are no bounds.
+`:tests` modules' tests on one host are instrumented: the JVM when `ukpt.subcutaneousHosts` lists it,
+otherwise the Android host. It is advisory: there are no bounds.
 
 **Memory.** Each test JVM with a server starts one embedded Postgres; `ukpt.feature-tests` runs one test JVM at a
 time with a 1 GB heap. The first test in a JVM takes about 3 s (Postgres start and migration), the
@@ -294,13 +329,13 @@ A task name given without a module path runs in every module that has it:
 
 ```
 ./gradlew unitTest
-./gradlew subcutaneousTest
+./gradlew subcutaneousJvmTest       # or subcutaneousAndroidHostTest
 ./gradlew componentTest     # also runs each :client module's jsTest
 ./gradlew wiringTest checkTest adapterTest endToEndTest
 ./gradlew snapshotTest --no-configuration-cache
 ```
 
-One module: `./gradlew :feature:core:client:unitTest`. On the JVM the category annotations apply
+One module: `./gradlew :feature:core:client:unitTest`. On the JVM and the Android host the category annotations apply
 JUnit 5 tags and timeouts (10 s unit; 30 s component, wiring, check; 60 s adapter, subcutaneous;
 120 s end-to-end). kotlin.test has no tags on JS, wasm or iOS, so those targets run through their
 own tasks (`jsTest`, `wasmJsTest`, `iosSimulatorArm64Test`). `test`/`jvmTest` still run every
@@ -315,7 +350,7 @@ request (`ukpt-verify`, "CI"). Run builds one at a time.
 **After each edit:**
 
 - The test class for the code that changed, with a filter:
-  `./gradlew :feature:<name>:tests:subcutaneousTest --tests '*<Name>ViewModelTest'`. Gradle
+  `./gradlew :feature:<name>:tests:subcutaneousJvmTest --tests '*<Name>ViewModelTest'`. Gradle
   compiles only what that test needs.
 - `./gradlew verifyArchitecture` after adding, moving or renaming a declaration.
 - Not `test`, `jvmTest`, `allTests`, `check` or a category task without a module path: each runs
@@ -325,8 +360,8 @@ request (`ukpt-verify`, "CI"). Run builds one at a time.
 
 | Changed | Run |
 | --- | --- |
-| A ViewModel, its State, or what it calls in `client.domain`/`client.data` | `:feature:<name>:tests:subcutaneousTest` |
-| A `@Urpc` service, `server.domain` or `server.data` | `:feature:<name>:tests:subcutaneousTest`; `adapterTest` in the module whose storage changed |
+| A ViewModel, its State, or what it calls in `client.domain`/`client.data` | `:feature:<name>:tests:subcutaneousJvmTest` (the first host in `ukpt.subcutaneousHosts`) |
+| A `@Urpc` service, `server.domain` or `server.data` | `:feature:<name>:tests:subcutaneousJvmTest`; `adapterTest` in the module whose storage changed |
 | A `[Name]ScreenContent`, its tags, or a robot | `:feature:<name>:client:componentTest` and `:feature:<name>:client:snapshotTest --no-configuration-cache` |
 | A Compose HTML screen | `:feature:<name>:client:jsTest` |
 | Logic with a Unit Test | that module's `unitTest` |
@@ -350,7 +385,8 @@ forced to run (`--rerun`), in seconds:
 | --- | --- |
 | `validateTemplate` | 3 |
 | `verifyArchitecture` | 15 |
-| `:feature:core:tests:subcutaneousTest`, one class or all 11 tests | 15–18 |
+| `:feature:core:tests:subcutaneousJvmTest`, one class or all 11 tests | 14–18 |
+| `:feature:core:tests:subcutaneousAndroidHostTest`, all 11 tests | 17 |
 | `:feature:core:client:componentTest -x jsTest` | 7 |
 | `:feature:core:client:jsTest` | 5 |
 | `:feature:core:client:unitTest` | 5 |

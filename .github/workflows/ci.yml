@@ -33,7 +33,7 @@ jobs:
         run: ./gradlew -p build-logic test
       # componentTest also runs each :client module's jsTest, in headless Chrome.
       - name: Tests by category
-        run: ./gradlew unitTest checkTest wiringTest adapterTest componentTest subcutaneousTest endToEndTest --continue
+        run: ./gradlew unitTest checkTest wiringTest adapterTest componentTest subcutaneousJvmTest subcutaneousAndroidHostTest endToEndTest --continue
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v4

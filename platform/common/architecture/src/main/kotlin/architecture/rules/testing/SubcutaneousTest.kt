@@ -38,7 +38,7 @@ import dev.isaacudy.udytils.architecture.*
 object SubcutaneousTest : Construct<Testing>(
     requirements = listOf(isClass, isAnnotatedWith("SubcutaneousTest")),
 ) {
-    @Describe("A Subcutaneous Test must live in the `src/test` source set of a `:feature:[name]:tests` module")
+    @Describe("A Subcutaneous Test must live in the `src/commonTest` source set of a `:feature:[name]:tests` module")
     val placement by rule {
         rationale(
             """
@@ -47,8 +47,8 @@ object SubcutaneousTest : Construct<Testing>(
             """.trimIndent(),
         )
         constrain(
-            placement("`:feature:[name]:tests`, `src/test/`") { decl ->
-                decl.isInFeatureTestsModule() && decl.sourceSet() == "test"
+            placement("`:feature:[name]:tests`, `src/commonTest/`") { decl ->
+                decl.isInFeatureTestsModule() && decl.sourceSet() == "commonTest"
             },
         )
     }
@@ -81,14 +81,33 @@ object SubcutaneousTest : Construct<Testing>(
         }
     }
 
-    @Describe("Every `@Test` function of a Subcutaneous Test must run its body in `subcutaneous(graph) { … }`")
+    @Describe("Every `@Test` function of a Subcutaneous Test must be an expression body that calls the harness: `fun `…`() = subcutaneous(graph) { … }`")
     val runsInTheHarness by rule {
-        rationale("The harness starts the server and the client graph against a new database, and tears them down after the test.")
+        rationale(
+            """
+            The harness starts the server and the client graph against a new database, and tears them
+            down after the test. On JS and wasm the harness returns a Promise that the test function
+            must return; a block body discards the Promise, and the test passes without running.
+            """.trimIndent(),
+        )
         constrain { decl, _ ->
             (decl as KoClassDeclaration).functions()
                 .filter { it.hasAnnotationWithName("Test") }
-                .filterNot { Regex("""\bsubcutaneous\s*\(""").containsMatchIn(it.text.withoutStringsAndComments()) }
-                .map { Violation(it, "`${it.name}` does not call `subcutaneous(`") }
+                .filterNot { HARNESS_EXPRESSION_BODY.containsMatchIn(it.text.withoutStringsAndComments()) }
+                .map { Violation(it, "`${it.name}` is not `= subcutaneous(…) { … }`") }
+        }
+    }
+
+    @Describe("A `:feature:[name]:tests` module's tests must all be Subcutaneous Tests")
+    val testsModuleHoldsOnlySubcutaneousTests by rule {
+        rationale("Each host's task runs every test in the module's `commonTest`. A test of another category belongs in the module its category names, where that category's task runs it.")
+        scope { scope, exempt ->
+            scope.classes()
+                .filter { it.isInFeatureTestsModule() && it.sourceSet().endsWith("Test") }
+                .filter { test -> test.functions().any { it.hasAnnotationWithName("Test") } }
+                .filterNot { it.hasAnnotationWithName("SubcutaneousTest") }
+                .filterNot { exempt(it) }
+                .map { Violation(it, "is a test in a `:tests` module without `@SubcutaneousTest`") }
         }
     }
 
@@ -104,6 +123,8 @@ object SubcutaneousTest : Construct<Testing>(
         constrain(noImportsOf(listOf("org.koin.", "io.ktor.", "org.jetbrains.exposed.", "java.sql.", "javax.sql.", "kotlinx.coroutines.test.")))
     }
 }
+
+private val HARNESS_EXPRESSION_BODY = Regex("""\)\s*(:\s*[\w.<>]+\s*)?=\s*subcutaneous\s*\(""")
 
 private val ENTRY_POINT_CONSTRUCTS = setOf(
     "ClientUi.ViewModel",

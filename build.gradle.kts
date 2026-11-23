@@ -34,14 +34,26 @@ plugins {
     alias(libs.plugins.kover)
 }
 
-// Advisory coverage of the feature modules by the Subcutaneous Tests alone: only each
-// `:feature:[name]:tests` module's `subcutaneousTest` task is instrumented. No verification bounds.
+// Advisory coverage of the feature modules by the Subcutaneous Tests alone, on one host: the JVM
+// when `ukpt.subcutaneousHosts` lists it, otherwise the Android host. Only that host's test task in
+// each `:feature:[name]:tests` module is instrumented; a `:tests` module holds only Subcutaneous
+// Tests. No verification bounds.
+val coverageHostTask = if ("jvm" in providers.gradleProperty("ukpt.subcutaneousHosts").getOrElse("jvm,android")) {
+    "jvmTest"
+} else {
+    "testAndroidHostTest"
+}
+val uninstrumentedTestTasks = listOf(
+    "test", "jvmTest", "testAndroidHostTest", "subcutaneousJvmTest", "subcutaneousAndroidHostTest",
+    "unitTest", "componentTest", "wiringTest", "adapterTest", "checkTest", "endToEndTest",
+) - coverageHostTask
+
 kover {
     merge {
         subprojects { it.path.startsWith(":feature:") && it.name in setOf("client", "server", "tests") }
         instrumentation {
             disabledForAll.set(!project.path.endsWith(":tests"))
-            disabledForTestTasks.addAll("test", "unitTest", "componentTest", "wiringTest", "adapterTest", "checkTest", "endToEndTest")
+            disabledForTestTasks.addAll(uninstrumentedTestTasks)
         }
     }
     reports {

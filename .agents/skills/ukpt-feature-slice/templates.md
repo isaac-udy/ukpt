@@ -479,18 +479,26 @@ plugins {
     id("ukpt.feature-tests")
 }
 
-dependencies {
-    api(projects.platform.common.subcutaneousServer)
-    implementation(projects.feature.<name>.client)
-    implementation(projects.feature.<name>.server)
+kotlin {
+    sourceSets {
+        commonMain.dependencies {
+            api(projects.platform.common.subcutaneousServer)
+            implementation(projects.feature.<name>.client)
+            implementation(projects.feature.<name>.server)
+        }
+        jvmMain.dependencies {
+            api(projects.platform.common.robots)
+        }
+    }
 }
 ```
 `ModuleRules.testsModuleShape` requires the `:client` and `:server` edges. A feature without a
-`:server` lists only its `:client`. In a project without a server of its own, the module depends on
+`:server` lists only its `:client`. The `jvmMain` block is for robots; skip it until the feature has one, and
+in a project without `jvm` in `ukpt.subcutaneousHosts`. In a project without a server of its own, the module depends on
 `projects.platform.common.subcutaneous` instead, and the graph and scenarios follow `ukpt-testing`,
 "Without a server".
 
-Test graph → `feature/<name>/tests/src/main/kotlin/feature/<name>/tests/<Name>TestGraph.kt`
+Test graph → `feature/<name>/tests/src/commonMain/kotlin/feature/<name>/tests/<Name>TestGraph.kt`
 ```kotlin
 package feature.<name>.tests
 
@@ -508,7 +516,7 @@ val <name>TestGraph = SubcutaneousGraph(
 One per module, production modules only (`Testing.TestGraph.onePerTestsModule`,
 `.productionModulesOnly`). A feature whose `:server` binds nothing yet passes `featureServer()`.
 
-Scenarios → `feature/<name>/tests/src/main/kotlin/feature/<name>/tests/<Name>Scenarios.kt`
+Scenarios → `feature/<name>/tests/src/commonMain/kotlin/feature/<name>/tests/<Name>Scenarios.kt`
 ```kotlin
 package feature.<name>.tests
 
@@ -526,7 +534,7 @@ suspend fun Scenario.<thing>s(vararg names: String): List</*domain model*/> {
 A scenario writes through server domain interfaces (`Testing.Scenario.seedsThroughServerDomain`) and
 returns what it created. Skip the file until the feature's server has a domain to write through.
 
-ViewModel test → `feature/<name>/tests/src/test/kotlin/feature/<name>/tests/<Name>ViewModelTest.kt`
+ViewModel test → `feature/<name>/tests/src/commonTest/kotlin/feature/<name>/tests/<Name>ViewModelTest.kt`
 ```kotlin
 package feature.<name>.tests
 
@@ -552,7 +560,8 @@ class <Name>ViewModelTest {
     }
 }
 ```
-Run with `./gradlew :feature:<name>:tests:subcutaneousTest`. A test references only entry-point
+Run with `./gradlew :feature:<name>:tests:subcutaneousJvmTest` (or `subcutaneousAndroidHostTest`, one task
+per host in `ukpt.subcutaneousHosts`). A test references only entry-point
 vocabulary (ViewModels, states, destinations, domain models, `@Urpc` service interfaces) and imports
 no Koin, Ktor, Exposed or `kotlinx.coroutines.test` (`Testing.SubcutaneousTest.*`).
 

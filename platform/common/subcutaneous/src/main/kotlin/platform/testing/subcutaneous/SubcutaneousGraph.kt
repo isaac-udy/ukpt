@@ -8,10 +8,13 @@ import kotlin.reflect.KClass
  * The production Koin modules a feature's Subcutaneous Tests run: [client] builds the ViewModels,
  * and [server], when the project has one, runs in-process for the client to call. A project whose
  * backend it does not own has no [server]; its tests fake that backend at the client edge.
+ * [hostEdges] replace bindings the test host cannot provide, such as an Android `Context`, for
+ * every test; a test's own edges are loaded after them.
  */
 class SubcutaneousGraph(
     val client: List<Module>,
     val server: SubcutaneousServer? = null,
+    val hostEdges: Edges.() -> Unit = {},
 )
 
 /**
@@ -19,8 +22,8 @@ class SubcutaneousGraph(
  * `:platform:common:subcutaneous-server` is the in-process Ktor server over embedded Postgres.
  */
 interface SubcutaneousServer {
-    /** Starts the server with [edges] loaded after its graph, runs [block], then stops it. */
-    suspend fun run(edges: Module, block: suspend (RunningServer) -> Unit)
+    /** Starts the server with [edges] loaded after its graph, in order, runs [block], then stops it. */
+    suspend fun run(edges: List<Module>, block: suspend (RunningServer) -> Unit)
 }
 
 /** A started [SubcutaneousServer]. */

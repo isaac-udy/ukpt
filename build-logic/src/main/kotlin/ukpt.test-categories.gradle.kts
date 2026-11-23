@@ -7,6 +7,8 @@
  * from `:platform:common:testing`. Gradle runs a task name given without a path in every module
  * that has it, so `./gradlew unitTest` runs the unit tests of the whole build.
  *
+ * Subcutaneous Tests have no category task: ukpt.feature-tests registers one task per host.
+ *
  * kotlin.test has no tags on JS, wasm or iOS. `componentTest` therefore also runs `jsTest` in a
  * module that has `src/jsTest`, which includes the module's commonTest classes compiled to JS.
  * `snapshotTest` (from ukpt.snapshot-testing-base) runs Paparazzi, which uses JUnit 4.
@@ -16,7 +18,6 @@ private val libs = versionCatalogs.named("libs")
 
 private val categoryTags = mapOf(
     "unitTest" to "unit",
-    "subcutaneousTest" to "subcutaneous",
     "componentTest" to "component",
     "wiringTest" to "wiring",
     "adapterTest" to "adapter",
