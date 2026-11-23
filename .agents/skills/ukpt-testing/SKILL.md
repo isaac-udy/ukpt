@@ -249,6 +249,12 @@ actual val notesHostEdges: Edges.() -> Unit = {}
 
 A graph whose bindings every host can build declares no host edges.
 
+The Android host runs without Robolectric: `android.jar` there is stubs, so a production binding
+that calls an Android API or needs a `Context` fails on `subcutaneousAndroidHostTest`. Bind each
+such dependency through a small factory or `fun interface` in a `:platform:client:*` module (a
+DataStore factory, an SQL driver, a storage root), so a host edge replaces that one binding and
+the rest of the graph stays production code.
+
 **Without a server.** A project whose backend it does not own (a third-party REST API) has no
 `:server` modules and no `:platform:common:subcutaneous-server`. Its `:tests` module depends on
 `:platform:common:subcutaneous` and the feature's `:client`, and runs on every host. The graph

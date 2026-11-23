@@ -78,8 +78,8 @@ grep -rn "subcutaneousTest\b" --include='*.yml' --include='*.yaml' --include='*.
 6. A robot that calls a desktop-only API fails to compile for the Android target. Replace the
    call with the common Compose UI test API that `ScreenRobot` uses.
 7. A graph binding that the Android host cannot build (it needs a `Context`) fails on
-   `subcutaneousAndroidHostTest`. Replace it in a `[name]HostEdges` declaration; the `ukpt-testing`
-   skill, "Host edges", shows the shape.
+   `subcutaneousAndroidHostTest`: the Android host runs without Robolectric. Replace the binding
+   in a `[name]HostEdges` declaration; the `ukpt-testing` skill, "Host edges", shows the shape.
 8. A Subcutaneous Test that now fails with an exception from a ViewModel coroutine exposes a
    ViewModel that throws in the app too. Fix the ViewModel or the test's setup.
 9. Update `@ArchitectureException` annotations that name `Testing.SubcutaneousTest.placement` or
