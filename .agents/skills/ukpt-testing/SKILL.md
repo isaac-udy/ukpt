@@ -128,10 +128,22 @@ it). The module's `src/commonMain` contains the test graph, the scenarios and th
 `:platform:common:subcutaneous` alone: see "Without a server" below.
 
 **Hosts.** The `ukpt.subcutaneousHosts` property in `gradle.properties` lists the hosts that run
-the tests: `jvm`, `android` (default `jvm,android`). Each host has its task:
-`subcutaneousJvmTest` and `subcutaneousAndroidHostTest`, the Android host being a JVM with the
-Android variants of every dependency. A project without a desktop client sets
-`ukpt.subcutaneousHosts=android`. The in-process server and embedded Postgres run on both hosts.
+the tests (default `jvm,android`). A `gradle.properties` in a `:tests` module's directory overrides
+the list for that module. Each host has its task:
+
+| Host | Task | Runs |
+| --- | --- | --- |
+| `jvm` | `subcutaneousJvmTest` | every graph |
+| `android` | `subcutaneousAndroidHostTest` | every graph; a JVM with the Android variants of every dependency |
+| `ios` | `subcutaneousIosSimulatorArm64Test` | graphs without a server; macOS only |
+| `wasmJs` | `subcutaneousWasmJsTest` | graphs without a server; headless Chrome |
+| `js` | `subcutaneousJsTest` | graphs without a server; headless Chrome |
+
+The `ios`, `wasmJs` and `js` tasks run the base test task, so a `--tests` filter goes on that task:
+`:feature:<name>:tests:jsBrowserTest --tests '*<Name>ViewModelTest'`. A project without a desktop
+client sets `ukpt.subcutaneousHosts=android`. The in-process server and embedded Postgres run on
+the JVM, so a `:tests` module that depends on a `:server` fails
+configuration when its list contains `ios`, `wasmJs` or `js`.
 A `:tests` module holds only Subcutaneous Tests (`Testing.SubcutaneousTest.testsModuleHoldsOnlySubcutaneousTests`),
 and each test function is `= subcutaneous(graph) { … }` (`.runsInTheHarness`).
 
@@ -148,7 +160,8 @@ val ukptTestGraph = SubcutaneousGraph(
 empty database from a template migrated once per JVM (`classpath:db/migration`), starts the server
 graph on Ktor's test engine, builds the client graph against it, and installs enro-test. It tears
 all of it down when the block returns or throws. The block runs on `Dispatchers.Main`, a dedicated
-thread; waits are real time.
+thread (the event loop on JS and wasm); waits are real time. `subcutaneous` returns a `TestResult`,
+which on JS and wasm is the Promise the test runner waits for, so each test is an expression body.
 
 ```kotlin
 @Test
@@ -238,12 +251,12 @@ A graph whose bindings every host can build declares no host edges.
 
 **Without a server.** A project whose backend it does not own (a third-party REST API) has no
 `:server` modules and no `:platform:common:subcutaneous-server`. Its `:tests` module depends on
-`:platform:common:subcutaneous` and the feature's `:client`. The graph lists client modules only,
-including the `:platform` module that builds the HTTP client:
+`:platform:common:subcutaneous` and the feature's `:client`, and runs on every host. The graph
+lists client modules only; `featureClient` adds the network modules:
 
 ```kotlin
 val projectsTestGraph = SubcutaneousGraph(
-    client = listOf(networkDependencies, projectsClientDependencies),
+    client = featureClient(projectsClientDependencies),
 )
 ```
 
@@ -270,8 +283,9 @@ server and fail without one.
 
 **Coverage.** `./gradlew subcutaneousCoverage` writes the feature modules' coverage by Subcutaneous
 Tests alone to `build/reports/kover/html/index.html` and `build/reports/kover/report.xml`. Only the
-`:tests` modules' tests on one host are instrumented: the JVM when `ukpt.subcutaneousHosts` lists it,
-otherwise the Android host. It is advisory: there are no bounds.
+`:tests` modules' tests on one host are instrumented: the JVM when the root `ukpt.subcutaneousHosts`
+lists it, otherwise the Android host. A `:tests` module whose own list omits that host reports no
+coverage. It is advisory: there are no bounds.
 
 **Memory.** Each test JVM with a server starts one embedded Postgres; `ukpt.feature-tests` runs one test JVM at a
 time with a 1 GB heap. The first test in a JVM takes about 3 s (Postgres start and migration), the
@@ -329,7 +343,7 @@ A task name given without a module path runs in every module that has it:
 
 ```
 ./gradlew unitTest
-./gradlew subcutaneousJvmTest       # or subcutaneousAndroidHostTest
+./gradlew subcutaneousJvmTest       # or the task of another host in ukpt.subcutaneousHosts
 ./gradlew componentTest     # also runs each :client module's jsTest
 ./gradlew wiringTest checkTest adapterTest endToEndTest
 ./gradlew snapshotTest --no-configuration-cache

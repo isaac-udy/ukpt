@@ -1,7 +1,7 @@
 // The server half of the Subcutaneous Test harness: `featureServer(…)` runs a feature's server
 // graph in-process on Ktor's test engine against an embedded Postgres cloned from a migrated
-// template for every test, `featureClient(…)` adds the transport that connects to that server, and
-// `inProcessServer` does the same for `:app:client:desktop`'s End To End Tests.
+// template for every test, and `inProcessServer` does the same for `:app:client:desktop`'s End To
+// End Tests.
 plugins {
     id("ukpt.jvm-base")
 }

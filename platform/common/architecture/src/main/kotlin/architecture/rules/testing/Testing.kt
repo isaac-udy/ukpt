@@ -10,7 +10,7 @@ import dev.isaacudy.udytils.architecture.*
 
     | Category | Exercises | Uses for real | Runs on |
     | --- | --- | --- | --- |
-    | `@SubcutaneousTest` | a ViewModel, or a `@Urpc` service, from the production DI graph | everything below it: the server in-process, an embedded database | JVM, Android host |
+    | `@SubcutaneousTest` | a ViewModel, or a `@Urpc` service, from the production DI graph | everything below it: the server in-process, an embedded database | JVM, Android host; iOS simulator, wasm, JS without a server |
     | `@UnitTest` | one production class over many inputs | nothing; collaborators are test fakes or lambdas | every target |
     | `@ComponentTest` | one screen's content, with fixed state | the renderer | JS (DOM), JVM |
     | `@SnapshotTest` | previews, compared with golden images | the renderer | Android host |
@@ -28,7 +28,8 @@ import dev.isaacudy.udytils.architecture.*
     (`componentTest`, `wiringTest`, `adapterTest`, `checkTest`, `endToEndTest`, and
     `snapshotTest`, which needs `--no-configuration-cache`). Subcutaneous Tests have one task per
     host listed in the `ukpt.subcutaneousHosts` Gradle property: `subcutaneousJvmTest`,
-    `subcutaneousAndroidHostTest`. kotlin.test has no tags on JS, wasm or iOS, so `componentTest`
+    `subcutaneousAndroidHostTest`, `subcutaneousIosSimulatorArm64Test`, `subcutaneousWasmJsTest`,
+    `subcutaneousJsTest`. kotlin.test has no tags on JS, wasm or iOS, so `componentTest`
     also runs the module's `jsTest`.
 
     Component Tests and End To End Tests drive Compose UI screens through [Robots](#robot), one

@@ -37,7 +37,8 @@ plugins {
 // Advisory coverage of the feature modules by the Subcutaneous Tests alone, on one host: the JVM
 // when `ukpt.subcutaneousHosts` lists it, otherwise the Android host. Only that host's test task in
 // each `:feature:[name]:tests` module is instrumented; a `:tests` module holds only Subcutaneous
-// Tests. No verification bounds.
+// Tests. Kover measures JVM hosts only, so a `:tests` module without either host reports no
+// coverage. No verification bounds.
 val coverageHostTask = if ("jvm" in providers.gradleProperty("ukpt.subcutaneousHosts").getOrElse("jvm,android")) {
     "jvmTest"
 } else {

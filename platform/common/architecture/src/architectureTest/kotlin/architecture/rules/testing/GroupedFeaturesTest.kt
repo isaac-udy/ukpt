@@ -40,7 +40,7 @@ class GroupedFeaturesTest {
 
     @Test
     fun `a grouped feature's tests module is test source`() {
-        assertTrue(isTestSource("/feature/capture/insta/tests/src/main/kotlin/feature/capture/insta/tests/InstaTestGraph.kt"))
+        assertTrue(isTestSource("/feature/capture/insta/tests/src/commonMain/kotlin/feature/capture/insta/tests/InstaTestGraph.kt"))
     }
 
     @Test

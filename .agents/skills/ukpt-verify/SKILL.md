@@ -23,12 +23,14 @@ parallel jobs:
 
 | Job | Runs |
 | --- | --- |
-| Rules and tests | `validateTemplate`, `verifyArchitecture`, `-p build-logic test`, every test category except snapshots |
+| Rules and tests | `validateTemplate`, `verifyArchitecture`, `-p build-logic test`, every test category except snapshots, the Subcutaneous harness's own tests on wasm and JS |
 | Snapshots | `snapshotTest --no-configuration-cache` |
 | Android, desktop, web and server builds | the Android AAR metadata check and compile, the desktop compile, the wasm development bundle, `:app:client:web-html:check`, `:app:server:smokeTestFatJar` |
-| iOS targets (macOS) | `:app:client:common` for the iOS simulator and device targets |
+| iOS targets (macOS) | `:app:client:common` for the iOS simulator and device targets, the Subcutaneous harness's own tests on the iOS simulator |
 
-A failed run uploads the test reports (`test-reports`) or the Paparazzi failure images
+A project whose `ukpt.subcutaneousHosts` lists `ios`, `wasmJs` or `js` adds that host's task
+(`subcutaneousIosSimulatorArm64Test` to the iOS job, `subcutaneousWasmJsTest` or
+`subcutaneousJsTest` to the tests job). A failed run uploads the test reports (`test-reports`) or the Paparazzi failure images
 (`snapshot-failures`) as artifacts. A project adds its own jobs and deploy steps to the same file.
 
 For web/wasm bundle and runtime verification, use the `ukpt-verify-web` skill — it covers the four

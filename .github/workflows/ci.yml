@@ -34,6 +34,8 @@ jobs:
       # componentTest also runs each :client module's jsTest, in headless Chrome.
       - name: Tests by category
         run: ./gradlew unitTest checkTest wiringTest adapterTest componentTest subcutaneousJvmTest subcutaneousAndroidHostTest endToEndTest --continue
+      - name: Subcutaneous harness on wasm and JS
+        run: ./gradlew :platform:common:subcutaneous:wasmJsBrowserTest :platform:common:subcutaneous:jsBrowserTest --continue
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v4
@@ -119,3 +121,5 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
       - name: Compile iOS targets
         run: ./gradlew :app:client:common:compileKotlinIosSimulatorArm64 :app:client:common:compileKotlinIosArm64 --continue
+      - name: Subcutaneous harness on the iOS simulator
+        run: ./gradlew :platform:common:subcutaneous:iosSimulatorArm64Test
