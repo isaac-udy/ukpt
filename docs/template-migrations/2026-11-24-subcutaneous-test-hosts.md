@@ -59,7 +59,8 @@ grep -rn "subcutaneousTest\b" --include='*.yml' --include='*.yaml' --include='*.
 
 1. Add `ukpt.subcutaneousHosts=jvm,android` to `gradle.properties`, or `android` when the project
    has no desktop client. A `:tests` module without a server dependency may add `ios`, `wasmJs`
-   and `js` in a `gradle.properties` in its directory.
+   and `js` in a `gradle.properties` in its directory. CI may run one listed host only, such as
+   `subcutaneousJvmTest` when the list contains `jvm`; the other listed hosts run on demand.
 2. In each `:feature:<name>:tests` module:
    - `git mv src/main/kotlin src/commonMain/kotlin`.
    - `git mv src/test/kotlin src/commonTest/kotlin`.
@@ -76,7 +77,9 @@ grep -rn "subcutaneousTest\b" --include='*.yml' --include='*.yaml' --include='*.
    A project without a server that builds its graph with `listOf(networkDependencies, …)` may
    switch to `featureClient(…)`.
 6. A robot that calls a desktop-only API fails to compile for the Android target. Replace the
-   call with the common Compose UI test API that `ScreenRobot` uses.
+   call with the common Compose UI test API that `ScreenRobot` uses. A step with no common API
+   calls an `expect fun` in `src/commonMain`, with an `actual` in the source set of each target
+   the module builds (`jvmMain`, `androidMain`, …).
 7. A graph binding that the Android host cannot build (it needs a `Context`) fails on
    `subcutaneousAndroidHostTest`: the Android host runs without Robolectric. Replace the binding
    in a `[name]HostEdges` declaration; the `ukpt-testing` skill, "Host edges", shows the shape.

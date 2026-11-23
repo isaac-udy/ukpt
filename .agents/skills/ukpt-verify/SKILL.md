@@ -28,9 +28,10 @@ parallel jobs:
 | Android, desktop, web and server builds | the Android AAR metadata check and compile, the desktop compile, the wasm development bundle, `:app:client:web-html:check`, `:app:server:smokeTestFatJar` |
 | iOS targets (macOS) | `:app:client:common` for the iOS simulator and device targets, the Subcutaneous harness's own tests on the iOS simulator |
 
-A project whose `ukpt.subcutaneousHosts` lists `ios`, `wasmJs` or `js` adds that host's task
-(`subcutaneousIosSimulatorArm64Test` to the iOS job, `subcutaneousWasmJsTest` or
-`subcutaneousJsTest` to the tests job). A failed run uploads the test reports (`test-reports`) or the Paparazzi failure images
+CI may run one host that `ukpt.subcutaneousHosts` lists, such as `subcutaneousJvmTest` when the
+list contains `jvm`; a project removes the other host tasks from the tests job. A project that
+runs `ios`, `wasmJs` or `js` in CI adds that host's task (`subcutaneousIosSimulatorArm64Test` to
+the iOS job, `subcutaneousWasmJsTest` or `subcutaneousJsTest` to the tests job). A failed run uploads the test reports (`test-reports`) or the Paparazzi failure images
 (`snapshot-failures`) as artifacts. A project adds its own jobs and deploy steps to the same file.
 
 For web/wasm bundle and runtime verification, use the `ukpt-verify-web` skill — it covers the four

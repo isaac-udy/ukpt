@@ -97,7 +97,10 @@ robot covers one screen and lives in the feature's `:tests` module, `src/commonM
    `seeDisabled`, `enterText`, `clearText`, `scrollTo`, `clickCentre`, `seeContentDescription`,
    `seeProgress`, `seeSizeAtLeast`, `boundsOf`. For a node a design primitive draws without a tag
    of its own, the `…Within(tag, text)` and `…Described(tag, description)` steps find it inside a
-   tagged ancestor. Add a `ScreenRobot` helper when a robot needs a new kind of step.
+   tagged ancestor. Add a `ScreenRobot` helper when a robot needs a new kind of step. A step
+   with no common Compose UI test API calls an `expect fun` in `src/commonMain`, with an
+   `actual` in the source set of each target the `:tests` module builds (`jvmMain`,
+   `androidMain`, …).
 3. **Use.** One `on[Screen] { }` block per screen visit, inside `asUser { }`:
 
    ```kotlin
@@ -141,9 +144,11 @@ the list for that module. Each host has its task:
 
 The `ios`, `wasmJs` and `js` tasks run the base test task, so a `--tests` filter goes on that task:
 `:feature:<name>:tests:jsBrowserTest --tests '*<Name>ViewModelTest'`. A project without a desktop
-client sets `ukpt.subcutaneousHosts=android`. The in-process server and embedded Postgres run on
-the JVM, so a `:tests` module that depends on a `:server` fails
-configuration when its list contains `ios`, `wasmJs` or `js`.
+client sets `ukpt.subcutaneousHosts=android`. Listing a host makes its task available; CI may run
+one listed host only, such as `subcutaneousJvmTest` when the list contains `jvm`. The other listed
+hosts run on demand, such as `subcutaneousAndroidHostTest` after a change to an Android binding.
+The in-process server and embedded Postgres run on the JVM, so a `:tests` module that depends on a
+`:server` fails configuration when its list contains `ios`, `wasmJs` or `js`.
 A `:tests` module holds only Subcutaneous Tests (`Testing.SubcutaneousTest.testsModuleHoldsOnlySubcutaneousTests`),
 and each test function is `= subcutaneous(graph) { … }` (`.runsInTheHarness`).
 
