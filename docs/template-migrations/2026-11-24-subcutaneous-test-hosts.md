@@ -27,7 +27,8 @@ Source sets of a `:tests` module:
 
 Rule changes:
 
-- `Testing.SubcutaneousTest.placement` requires `src/commonTest`; `Testing.Robot.placement`
+- `Testing.SubcutaneousTest.placement` requires `src/commonTest`, in a `:feature:<name>:tests`
+  module or in `:platform:common:subcutaneous` for the harness's own tests; `Testing.Robot.placement`
   requires `src/commonMain`.
 - `Testing.SubcutaneousTest.runsInTheHarness` requires an expression body,
   `fun `…`() = subcutaneous(graph) { … }`.

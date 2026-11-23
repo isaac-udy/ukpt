@@ -38,17 +38,18 @@ import dev.isaacudy.udytils.architecture.*
 object SubcutaneousTest : Construct<Testing>(
     requirements = listOf(isClass, isAnnotatedWith("SubcutaneousTest")),
 ) {
-    @Describe("A Subcutaneous Test must live in the `src/commonTest` source set of a `:feature:[name]:tests` module")
+    @Describe("A Subcutaneous Test must live in the `src/commonTest` source set of a `:feature:[name]:tests` module, or of `:platform:common:subcutaneous` for the harness's own tests")
     val placement by rule {
         rationale(
             """
             The `:tests` module depends on the feature's `:client` and `:server`, which no other
-            module may combine.
+            module may combine. The harness's own tests drive fake ViewModels through the harness
+            on every host.
             """.trimIndent(),
         )
         constrain(
-            placement("`:feature:[name]:tests`, `src/commonTest/`") { decl ->
-                decl.isInFeatureTestsModule() && decl.sourceSet() == "commonTest"
+            placement("`:feature:[name]:tests` or `:platform:common:subcutaneous`, `src/commonTest/`") { decl ->
+                (decl.isInFeatureTestsModule() || decl.isInSubcutaneousHarnessModule()) && decl.sourceSet() == "commonTest"
             },
         )
     }

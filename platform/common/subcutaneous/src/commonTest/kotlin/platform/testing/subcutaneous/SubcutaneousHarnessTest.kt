@@ -9,7 +9,7 @@ import dev.isaacudy.udytils.state.ViewModelState
 import dev.isaacudy.udytils.state.viewModelState
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import platform.testing.UnitTest
+import platform.testing.SubcutaneousTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -17,7 +17,7 @@ import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.TimeSource
 
-@UnitTest
+@SubcutaneousTest
 class SubcutaneousHarnessTest {
 
     @Test

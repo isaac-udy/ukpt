@@ -23,7 +23,7 @@ parallel jobs:
 
 | Job | Runs |
 | --- | --- |
-| Rules and tests | `validateTemplate`, `verifyArchitecture`, `-p build-logic test`, every test category except snapshots, the Subcutaneous harness's own tests on wasm and JS |
+| Rules and tests | `validateTemplate`, `verifyArchitecture`, `-p build-logic test`, every test category except snapshots, the Subcutaneous harness's own tests on the JVM, wasm and JS |
 | Snapshots | `snapshotTest --no-configuration-cache` |
 | Android, desktop, web and server builds | the Android AAR metadata check and compile, the desktop compile, the wasm development bundle, `:app:client:web-html:check`, `:app:server:smokeTestFatJar` |
 | iOS targets (macOS) | `:app:client:common` for the iOS simulator and device targets, the Subcutaneous harness's own tests on the iOS simulator |

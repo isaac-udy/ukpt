@@ -109,8 +109,8 @@ transport. `given { }` runs [Scenarios](#scenario), before or after a ViewModel 
 
 ##### Rules
 
-* A Subcutaneous Test must live in the `src/commonTest` source set of a `:feature:[name]:tests` module
-    * **Why:** The `:tests` module depends on the feature's `:client` and `:server`, which no other module may combine.
+* A Subcutaneous Test must live in the `src/commonTest` source set of a `:feature:[name]:tests` module, or of `:platform:common:subcutaneous` for the harness's own tests
+    * **Why:** The `:tests` module depends on the feature's `:client` and `:server`, which no other module may combine. The harness's own tests drive fake ViewModels through the harness on every host.
 * A Subcutaneous Test must reference only entry-point vocabulary from production code: ViewModels, their states, Destinations, UI value types, client domain models and their extensions, domain exceptions and constants, shared wire types, and `@Urpc` service interfaces
     * **Why:** The test drives the entry point and reads what it exposes. A reference to a repository, a use case or a storage class fixes that class in place, and the test changes when the layers below the entry point are restructured.
     * **Note:** Test data comes from Scenarios (`given { }`), which may use the server domain.

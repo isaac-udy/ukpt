@@ -18,6 +18,9 @@ internal fun KoBaseDeclaration.moduleDirectory(): String = containingFilePath().
 
 internal fun KoBaseDeclaration.isInFeatureTestsModule(): Boolean = FEATURE_TESTS_MODULE.containsMatchIn(containingFilePath())
 
+/** `:platform:common:subcutaneous`, whose own tests run the harness against fakes. */
+internal fun KoBaseDeclaration.isInSubcutaneousHarnessModule(): Boolean = moduleDirectory().endsWith("/platform/common/subcutaneous")
+
 /** The design primitives, navigation containers and app shell: UI shared by every feature. */
 internal fun KoBaseDeclaration.isInSharedUiModule(): Boolean {
     val module = moduleDirectory()
