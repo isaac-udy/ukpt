@@ -10,14 +10,13 @@ Source sets of a `:tests` module:
 
 | Contents | Before | After |
 | --- | --- | --- |
-| Test graph, scenarios, fakes, fixtures | `src/main` | `src/commonMain` |
-| Robots | `src/main` | `src/jvmMain` |
+| Test graph, scenarios, fakes, fixtures, robots | `src/main` | `src/commonMain` |
 | Subcutaneous Tests | `src/test` | `src/commonTest` |
 
 Rule changes:
 
 - `Testing.SubcutaneousTest.placement` requires `src/commonTest`; `Testing.Robot.placement`
-  requires `src/jvmMain`.
+  requires `src/commonMain`.
 - `Testing.SubcutaneousTest.runsInTheHarness` requires an expression body,
   `fun `…`() = subcutaneous(graph) { … }`.
 - New: `Testing.SubcutaneousTest.testsModuleHoldsOnlySubcutaneousTests`.
@@ -25,6 +24,7 @@ Rule changes:
   `SubcutaneousGraph(hostEdges = …)` that replaces bindings one host cannot build, such as a
   binding that needs an Android `Context`.
 
+`:platform:common:robots` is a Kotlin Multiplatform module, so robots compile for every target.
 `SubcutaneousServer.run` takes `edges: List<Module>`. On the Android host the category
 annotations apply JUnit 5 tags and timeouts, as on the JVM.
 
@@ -42,23 +42,23 @@ grep -rn "subcutaneousTest\b" --include='*.yml' --include='*.yaml' --include='*.
 1. Add `ukpt.subcutaneousHosts=jvm,android` to `gradle.properties`, or `android` when the project
    has no desktop client.
 2. In each `:feature:<name>:tests` module:
-   - `git mv src/main/kotlin src/commonMain/kotlin`, then move each Robot (a class extending
-     `ScreenRobot`) to `src/jvmMain/kotlin`.
+   - `git mv src/main/kotlin src/commonMain/kotlin`.
    - `git mv src/test/kotlin src/commonTest/kotlin`.
    - Move the `dependencies { }` block of `build.gradle.kts` into
-     `kotlin { sourceSets { commonMain.dependencies { … } } }`, and
-     `projects.platform.common.robots` into `jvmMain.dependencies { }`. `:feature:core:tests`
-     shows the result.
+     `kotlin { sourceSets { commonMain.dependencies { … } } }`. `:feature:core:tests` shows the
+     result.
 3. Rewrite each `@Test` function of a Subcutaneous Test with a block body as
    `fun `…`() = subcutaneous(graph) { … }`.
 4. Move each test without `@SubcutaneousTest` out of the `:tests` module, to the module its
    category names.
 5. Replace `subcutaneousTest` with `subcutaneousJvmTest` and `subcutaneousAndroidHostTest` (the
    hosts the project lists) in CI workflows and scripts.
-6. A graph binding that the Android host cannot build (it needs a `Context`) fails on
+6. A robot that calls a desktop-only API fails to compile for the Android target. Replace the
+   call with the common Compose UI test API that `ScreenRobot` uses.
+7. A graph binding that the Android host cannot build (it needs a `Context`) fails on
    `subcutaneousAndroidHostTest`. Replace it in a `[name]HostEdges` declaration; the `ukpt-testing`
    skill, "Host edges", shows the shape.
-7. Update `@ArchitectureException` annotations that name `Testing.SubcutaneousTest.placement` or
+8. Update `@ArchitectureException` annotations that name `Testing.SubcutaneousTest.placement` or
    `Testing.Robot.placement` only if the annotated declaration moved.
 
 ## Verification

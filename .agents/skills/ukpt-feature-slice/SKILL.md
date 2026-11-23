@@ -64,7 +64,7 @@ domain contract inventory to check the result.
    ViewModel calling each of its public functions. `ClientUi.ViewModel.subcutaneouslyTested` fails
    until every ViewModel has one. ViewModel tests live here, not in `:client`'s `commonTest`.
    For a screen a Component Test or an End To End Test drives, add `<Name>ScreenTags` beside the
-   screen and `<Name>ScreenRobot` in the `:tests` module's `src/jvmMain` (`ukpt-testing`, "Robots").
+   screen and `<Name>ScreenRobot` in the `:tests` module's `src/commonMain` (`ukpt-testing`, "Robots").
 6. **Wire it up** — the easy-to-forget edits to existing files (templates.md §9 checklist):
    - `app/client/common/build.gradle.kts` → `implementation(projects.feature.<name>.client)`.
    - `app/client/common/.../ClientDependencies.kt` → add `<name>ClientDependencies` to the `clientDependencies`

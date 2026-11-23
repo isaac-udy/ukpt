@@ -46,10 +46,10 @@ object Robot : Construct<Testing>(
         predicate("extends `ScreenRobot`") { decl -> (decl as KoParentProvider).parents().any { it.name == "ScreenRobot" } },
     ),
 ) {
-    @Describe("A Robot must live in a `:feature:[name]:tests` module's `src/jvmMain` source set")
+    @Describe("A Robot must live in a `:feature:[name]:tests` module's `src/commonMain` source set")
     val placement by rule {
-        rationale("The feature's Component Tests and the application's End To End Tests both depend on its `:tests` module, and both run on the JVM.")
-        constrain(placement("a `:feature:[name]:tests` module's `src/jvmMain/`") { it.isInFeatureTestsModule() && it.sourceSet() == "jvmMain" })
+        rationale("The feature's Component Tests and the application's End To End Tests both depend on its `:tests` module.")
+        constrain(placement("a `:feature:[name]:tests` module's `src/commonMain/`") { it.isInFeatureTestsModule() && it.sourceSet() == "commonMain" })
     }
 
     @Describe("A Robot must reference exactly one Screen Tags object, or one `object [Name]Tags` of a screen in a shared UI module")

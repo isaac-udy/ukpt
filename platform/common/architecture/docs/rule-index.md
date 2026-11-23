@@ -346,7 +346,7 @@ The complete catalog, one row per Construct or Rule. IDs are based on the object
 | `Testing.HostEdges.placement` | A Host Edges declaration must live in a `:feature:[name]:tests` module's `src/commonMain` or a host's main source set | [tested](../src/main/kotlin/architecture/rules/testing/HostEdges.kt) |
 | `Testing.HostEdges.naming` | A Host Edges declaration must be named `[name]HostEdges` | [tested](../src/main/kotlin/architecture/rules/testing/HostEdges.kt) |
 | `Testing.Robot` | is a class · extends `ScreenRobot` | [construct](../src/main/kotlin/architecture/rules/testing/Robot.kt) |
-| `Testing.Robot.placement` | A Robot must live in a `:feature:[name]:tests` module's `src/jvmMain` source set | [tested](../src/main/kotlin/architecture/rules/testing/Robot.kt) |
+| `Testing.Robot.placement` | A Robot must live in a `:feature:[name]:tests` module's `src/commonMain` source set | [tested](../src/main/kotlin/architecture/rules/testing/Robot.kt) |
 | `Testing.Robot.oneScreen` | A Robot must reference exactly one Screen Tags object, or one `object [Name]Tags` of a screen in a shared UI module | [tested](../src/main/kotlin/architecture/rules/testing/Robot.kt) |
 | `Testing.Robot.userActionNames` | Every public function of a Robot must be named for a user action (`click…`, `enter…`, `clear…`, `select…`, `toggle…`, `scroll…`) or for what the user sees (`see…`) | [tested](../src/main/kotlin/architecture/rules/testing/Robot.kt) |
 | `Testing.Robot.hasEntryPoint` | A Robot's file must declare its entry point, a `User.on[Screen]` function | [tested](../src/main/kotlin/architecture/rules/testing/Robot.kt) |

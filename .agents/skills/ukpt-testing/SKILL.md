@@ -47,7 +47,7 @@ Copy the nearest test of the same category:
 - Component: `feature/core/client/src/jvmTest/kotlin/feature/ukpt/client/ui/UkptScreenContentTest.kt`
   (Compose UI), `feature/core/client/src/jsTest/kotlin/feature/ukpt/client/ui/UkptHtmlScreenContentTest.kt`
   (HTML)
-- Robot: `feature/core/tests/src/jvmMain/kotlin/feature/ukpt/tests/UkptScreenRobot.kt`
+- Robot: `feature/core/tests/src/commonMain/kotlin/feature/ukpt/tests/UkptScreenRobot.kt`
 - Snapshot: `feature/core/client/src/androidHostTest/kotlin/platform/snapshot/PreviewSnapshotTest.kt`
 - Wiring: `app/server/src/test/kotlin/com/isaacudy/ukpt/ServerDependenciesTest.kt`
 - Adapter: `platform/server/postgres/src/test/kotlin/platform/server/postgres/TransactionRunnerTest.kt`
@@ -69,7 +69,7 @@ robot, a top-level fixture function or property, or a `@Composable` snapshot sur
 
 Compose UI Component Tests and End To End Tests find and act on nodes only through robots
 (`Testing.ComponentTest.drivesThroughRobots`, `Testing.EndToEndTest.drivesThroughRobots`). A
-robot covers one screen and lives in the feature's `:tests` module, `src/jvmMain`, from
+robot covers one screen and lives in the feature's `:tests` module, `src/commonMain`, from
 `:platform:common:robots` (package `platform.testing.robots`).
 
 1. **Tags.** Beside the screen, in `client.ui`, declare `object [Screen]Tags` with `const val`
@@ -123,8 +123,8 @@ The harness is `:platform:common:subcutaneous-server` (package `platform.testing
 which runs the server in-process, over `:platform:common:subcutaneous`, which builds the client
 graph. A feature's `:feature:<name>:tests` module applies `ukpt.feature-tests` and depends on the
 harness and the feature's `:client` and `:server` in `commonMain` (`ukpt-feature-slice` scaffolds
-it). The module's `src/commonMain` contains the test graph and the scenarios, `src/commonTest` the
-tests, and `src/jvmMain` the robots. A project without a server of its own depends on
+it). The module's `src/commonMain` contains the test graph, the scenarios and the robots, and
+`src/commonTest` the tests. A project without a server of its own depends on
 `:platform:common:subcutaneous` alone: see "Without a server" below.
 
 **Hosts.** The `ukpt.subcutaneousHosts` property in `gradle.properties` lists the hosts that run

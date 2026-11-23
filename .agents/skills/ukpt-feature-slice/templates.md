@@ -483,18 +483,15 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(projects.platform.common.subcutaneousServer)
+            api(projects.platform.common.robots)
             implementation(projects.feature.<name>.client)
             implementation(projects.feature.<name>.server)
-        }
-        jvmMain.dependencies {
-            api(projects.platform.common.robots)
         }
     }
 }
 ```
 `ModuleRules.testsModuleShape` requires the `:client` and `:server` edges. A feature without a
-`:server` lists only its `:client`. The `jvmMain` block is for robots; skip it until the feature has one, and
-in a project without `jvm` in `ukpt.subcutaneousHosts`. In a project without a server of its own, the module depends on
+`:server` lists only its `:client`. In a project without a server of its own, the module depends on
 `projects.platform.common.subcutaneous` instead, and the graph and scenarios follow `ukpt-testing`,
 "Without a server".
 

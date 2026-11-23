@@ -13,8 +13,8 @@ import ukpt.ArchiveNaming
  * Each host runs one test JVM at a time with a bounded heap: each test JVM may start an embedded
  * Postgres.
  *
- * The test graph, scenarios and fakes live in `src/commonMain`, the tests in `src/commonTest`, and
- * the robots in `src/jvmMain`. The module's build file declares the harness and the feature's
+ * The test graph, scenarios, fakes and robots live in `src/commonMain`, and the tests in
+ * `src/commonTest`. The module's build file declares the harness and the feature's
  * modules in `commonMain`: a feature with a server declares `:platform:common:subcutaneous-server`
  * and its `:client` and `:server`; a feature without one declares `:platform:common:subcutaneous`
  * and its `:client`.

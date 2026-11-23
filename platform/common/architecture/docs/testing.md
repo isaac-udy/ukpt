@@ -527,8 +527,8 @@ step can't act on a screen behind a dialog.
 
 ##### Rules
 
-* A Robot must live in a `:feature:[name]:tests` module's `src/jvmMain` source set
-    * **Why:** The feature's Component Tests and the application's End To End Tests both depend on its `:tests` module, and both run on the JVM.
+* A Robot must live in a `:feature:[name]:tests` module's `src/commonMain` source set
+    * **Why:** The feature's Component Tests and the application's End To End Tests both depend on its `:tests` module.
 * A Robot must reference exactly one Screen Tags object, or one `object [Name]Tags` of a screen in a shared UI module
     * **Why:** A robot drives one screen. A step on another screen belongs in that screen's robot, in its own `on[Screen] { }` block.
     * **Note:** A screen in a shared UI module (`:platform:client:*` or `:app:client:common`), such as a confirmation sheet every feature opens, keeps its tags beside it in an `object [Name]Tags` holding only `const val`s. Those modules have no Constructs, so its robot's tags count by that shape.
