@@ -13,7 +13,7 @@ run takes and what a failure means.
 
 | Category | Exercises | Uses for real | Runs on |
 | --- | --- | --- | --- |
-| `@SubcutaneousTest` | a ViewModel, or a `@Urpc` service, from the production DI graph | everything below it: the server in-process, an embedded database | JVM |
+| `@SubcutaneousTest` | a ViewModel, or a `@Urpc` service, from the production DI graph | everything below it: the server in-process, an embedded database | JVM, Android host; iOS simulator, wasm, JS without a server |
 | `@UnitTest` | one production class over many inputs | nothing; collaborators are test fakes or lambdas | every target |
 | `@ComponentTest` | one screen's content, with fixed state | the renderer | JS (DOM), JVM |
 | `@SnapshotTest` | previews, compared with golden images | the renderer | Android host |
@@ -26,16 +26,20 @@ Subcutaneous tests are the main suite: most behaviour is covered by driving a Vi
 reading its state. A unit test is for logic with many inputs. A test that needs another kind
 of coverage states it with its category.
 
-On the JVM each annotation declares a JUnit 5 tag and timeout. `./gradlew unitTest` runs the
-unit tests of every module; each category has its task (`subcutaneousTest`, `componentTest`,
-`wiringTest`, `adapterTest`, `checkTest`, `endToEndTest`, and `snapshotTest`, which needs
-`--no-configuration-cache`). kotlin.test has no tags on JS, wasm or iOS, so `componentTest`
+On the JVM and the Android host each annotation declares a JUnit 5 tag and timeout.
+`./gradlew unitTest` runs the unit tests of every module; each category has its task
+(`componentTest`, `wiringTest`, `adapterTest`, `checkTest`, `endToEndTest`, and
+`snapshotTest`, which needs `--no-configuration-cache`). Subcutaneous Tests have one task per
+host listed in the `ukpt.subcutaneousHosts` Gradle property: `subcutaneousJvmTest`,
+`subcutaneousAndroidHostTest`, `subcutaneousIosSimulatorArm64Test`, `subcutaneousWasmJsTest`,
+`subcutaneousJsTest`. kotlin.test has no tags on JS, wasm or iOS, so `componentTest`
 also runs the module's `jsTest`.
 
 Component Tests and End To End Tests drive Compose UI screens through [Robots](#robot), one
 per screen, named for what the user does: `clickGreetButton()`, `seeGreeting("Hi there")`.
 
-Test-support declarations (fakes, fixtures, snapshot surfaces, scenarios, test graphs, robots)
+Test-support declarations (fakes, fixtures, snapshot surfaces, scenarios, test graphs, host
+edges, robots)
 are Constructs too: every top-level declaration in test sources matches exactly one.
 
 ##### Constructs
@@ -52,6 +56,7 @@ are Constructs too: every top-level declaration in test sources matches exactly 
 * [Snapshot Surface](#snapshot-surface)
 * [Scenario](#scenario)
 * [Test Graph](#test-graph)
+* [Host Edges](#host-edges)
 * [Robot](#robot)
 * [Fixture](#fixture)
 
@@ -104,15 +109,17 @@ transport. `given { }` runs [Scenarios](#scenario), before or after a ViewModel 
 
 ##### Rules
 
-* A Subcutaneous Test must live in the `src/test` source set of a `:feature:[name]:tests` module
-    * **Why:** The `:tests` module depends on the feature's `:client` and `:server`, which no other module may combine.
+* A Subcutaneous Test must live in the `src/commonTest` source set of a `:feature:[name]:tests` module, or of `:platform:common:subcutaneous` for the harness's own tests
+    * **Why:** The `:tests` module depends on the feature's `:client` and `:server`, which no other module may combine. The harness's own tests drive fake ViewModels through the harness on every host.
 * A Subcutaneous Test must reference only entry-point vocabulary from production code: ViewModels, their states, Destinations, UI value types, client domain models and their extensions, domain exceptions and constants, shared wire types, and `@Urpc` service interfaces
     * **Why:** The test drives the entry point and reads what it exposes. A reference to a repository, a use case or a storage class fixes that class in place, and the test changes when the layers below the entry point are restructured.
     * **Note:** Test data comes from Scenarios (`given { }`), which may use the server domain.
 * A Subcutaneous Test must not construct a ViewModel; it opens one from the client graph with `viewModel<[Name]ViewModel, [Name]Destination>(key)`
     * **Why:** A ViewModel built by hand takes collaborators the test chose, not the ones the application binds.
-* Every `@Test` function of a Subcutaneous Test must run its body in `subcutaneous(graph) { … }`
-    * **Why:** The harness starts the server and the client graph against a new database, and tears them down after the test.
+* Every `@Test` function of a Subcutaneous Test must be an expression body that calls the harness: `fun `…`() = subcutaneous(graph) { … }`
+    * **Why:** The harness starts the server and the client graph against a new database, and tears them down after the test. On JS and wasm the harness returns a Promise that the test function must return; a block body discards the Promise, and the test passes without running.
+* A `:feature:[name]:tests` module's tests must all be Subcutaneous Tests
+    * **Why:** Each host's task runs every test in the module's `commonTest`. A test of another category belongs in the module its category names, where that category's task runs it.
 * A Subcutaneous Test must not import Koin, Ktor, Exposed, JDBC or `kotlinx.coroutines.test`
     * **Why:** The harness owns the graph, the server, the database and the dispatchers. Virtual time from `kotlinx.coroutines.test` does not advance real I/O; `awaitMatching` waits in real time.
 
@@ -365,7 +372,7 @@ such as a design-system doc surface, and the frame it renders in.
 
 ## [Scenario](../src/main/kotlin/architecture/rules/testing/Scenario.kt)
 
-A function with a `Scenario` receiver, in a `:feature:[name]:tests` module's `src/main`: puts
+A function with a `Scenario` receiver, in a `:feature:[name]:tests` module's `src/commonMain`: puts
 the test database into a state through the feature's server domain interfaces. A test calls it
 inside `given { }`, before it opens a ViewModel or while one is open; it returns what it created.
 
@@ -398,7 +405,7 @@ Another feature's `:tests` module depends on this one to reuse its scenarios.
 
 ## [Test Graph](../src/main/kotlin/architecture/rules/testing/TestGraph.kt)
 
-A top-level `SubcutaneousGraph` in a `:feature:[name]:tests` module's `src/main`: the production
+A top-level `SubcutaneousGraph` in a `:feature:[name]:tests` module's `src/commonMain`: the production
 Koin modules the feature's Subcutaneous Tests run, `[name]TestGraph`.
 
 ```kotlin
@@ -410,7 +417,9 @@ val ukptTestGraph = SubcutaneousGraph(
 
 `featureClient` adds the network modules and `featureServer` the Postgres modules. A test
 replaces a binding at the system's edges (a backend the project does not own, a clock) with
-`subcutaneous(graph, edges = { server { … } })`, not in the graph.
+`subcutaneous(graph, edges = { server { … } })`, not in the graph. A replacement that every
+test on one host needs, such as a binding that requires an Android `Context`, goes in the
+graph's [Host Edges](#host-edges).
 
 A project with no server of its own lists only client modules, including the `:platform`
 module that builds its HTTP client, and fakes the backend at the client edge:
@@ -431,6 +440,49 @@ val projectsTestGraph = SubcutaneousGraph(
     * **Why:** The graph repeats the module list the `:app` shells install for the feature. A second graph is a second list to keep in step with them.
 * A Test Graph must list production Koin modules only: each feature's `[name]ClientDependencies` and `[name]ServerDependencies`, and `:platform` modules
     * **Why:** A binding declared in the graph replaces production code for every test. Replacements at the system's edges go in `subcutaneous(graph, edges = { … })`.
+
+---
+
+## [Host Edges](../src/main/kotlin/architecture/rules/testing/HostEdges.kt)
+
+A top-level `Edges.() -> Unit` in a `:feature:[name]:tests` module, `[name]HostEdges`: bindings
+that replace production ones a test host cannot provide, such as a database driver or a
+DataStore that needs an Android `Context`, for every test the [Test Graph](#test-graph) runs
+on that host. The graph declares it with `expect` in `src/commonMain`; each host's source set
+declares the `actual`.
+
+```kotlin
+// src/commonMain
+expect val notesHostEdges: Edges.() -> Unit
+
+val notesTestGraph = SubcutaneousGraph(
+    client = featureClient(notesClientDependencies),
+    server = featureServer(notesServerDependencies),
+    hostEdges = notesHostEdges,
+)
+
+// src/androidMain
+actual val notesHostEdges: Edges.() -> Unit = {
+    client { single<SqlDriver> { JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY) } }
+}
+
+// src/jvmMain
+actual val notesHostEdges: Edges.() -> Unit = {}
+```
+
+The harness loads host edges after the graph and before a test's own `edges`, so a test can
+still replace a host binding.
+
+##### Requirements
+
+* A Host Edges is a top-level property of type `Edges.() -> Unit`
+
+##### Rules
+
+* A Host Edges declaration must live in a `:feature:[name]:tests` module's `src/commonMain` or a host's main source set
+    * **Why:** The Test Graph in the same module passes the declaration to `SubcutaneousGraph(hostEdges = …)`; a test's own replacements go in `subcutaneous(graph, edges = { … })`.
+* A Host Edges declaration must be named `[name]HostEdges`
+    * **Why:** The name states that the bindings apply to every test on a host, not to one test.
 
 ---
 
@@ -476,7 +528,7 @@ step can't act on a screen behind a dialog.
 
 ##### Rules
 
-* A Robot must live in a `:feature:[name]:tests` module's `src/main` source set
+* A Robot must live in a `:feature:[name]:tests` module's `src/commonMain` source set
     * **Why:** The feature's Component Tests and the application's End To End Tests both depend on its `:tests` module.
 * A Robot must reference exactly one Screen Tags object, or one `object [Name]Tags` of a screen in a shared UI module
     * **Why:** A robot drives one screen. A step on another screen belongs in that screen's robot, in its own `on[Screen] { }` block.
@@ -491,8 +543,8 @@ step can't act on a screen behind a dialog.
 ## [Fixture](../src/main/kotlin/architecture/rules/testing/Fixture.kt)
 
 A top-level function or property in test sources that builds test data or performs a shared
-test step, such as a builder for a domain model used by several tests. Scenarios and Test
-Graphs are their own Constructs.
+test step, such as a builder for a domain model used by several tests. Scenarios, Test Graphs
+and Host Edges are their own Constructs.
 
 ##### Requirements
 
@@ -500,3 +552,4 @@ Graphs are their own Constructs.
 * A Fixture does not satisfy: is annotated `@Composable`
 * A Fixture does not satisfy: has a `Scenario` receiver
 * A Fixture does not satisfy: is a top-level property initialised with `SubcutaneousGraph(`
+* A Fixture does not satisfy: is a top-level property of type `Edges.() -> Unit`

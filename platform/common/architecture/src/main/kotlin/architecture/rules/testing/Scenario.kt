@@ -6,7 +6,7 @@ import dev.isaacudy.udytils.architecture.*
 internal val hasScenarioReceiver = isFunctionWhere("has a `Scenario` receiver") { it.receiverType?.name == "Scenario" }
 
 @Describe("""
-    A function with a `Scenario` receiver, in a `:feature:[name]:tests` module's `src/main`: puts
+    A function with a `Scenario` receiver, in a `:feature:[name]:tests` module's `src/commonMain`: puts
     the test database into a state through the feature's server domain interfaces. A test calls it
     inside `given { }`, before it opens a ViewModel or while one is open; it returns what it created.
 

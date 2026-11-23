@@ -10,7 +10,7 @@ import dev.isaacudy.udytils.architecture.*
 
     | Category | Exercises | Uses for real | Runs on |
     | --- | --- | --- | --- |
-    | `@SubcutaneousTest` | a ViewModel, or a `@Urpc` service, from the production DI graph | everything below it: the server in-process, an embedded database | JVM |
+    | `@SubcutaneousTest` | a ViewModel, or a `@Urpc` service, from the production DI graph | everything below it: the server in-process, an embedded database | JVM, Android host; iOS simulator, wasm, JS without a server |
     | `@UnitTest` | one production class over many inputs | nothing; collaborators are test fakes or lambdas | every target |
     | `@ComponentTest` | one screen's content, with fixed state | the renderer | JS (DOM), JVM |
     | `@SnapshotTest` | previews, compared with golden images | the renderer | Android host |
@@ -23,16 +23,20 @@ import dev.isaacudy.udytils.architecture.*
     reading its state. A unit test is for logic with many inputs. A test that needs another kind
     of coverage states it with its category.
 
-    On the JVM each annotation declares a JUnit 5 tag and timeout. `./gradlew unitTest` runs the
-    unit tests of every module; each category has its task (`subcutaneousTest`, `componentTest`,
-    `wiringTest`, `adapterTest`, `checkTest`, `endToEndTest`, and `snapshotTest`, which needs
-    `--no-configuration-cache`). kotlin.test has no tags on JS, wasm or iOS, so `componentTest`
+    On the JVM and the Android host each annotation declares a JUnit 5 tag and timeout.
+    `./gradlew unitTest` runs the unit tests of every module; each category has its task
+    (`componentTest`, `wiringTest`, `adapterTest`, `checkTest`, `endToEndTest`, and
+    `snapshotTest`, which needs `--no-configuration-cache`). Subcutaneous Tests have one task per
+    host listed in the `ukpt.subcutaneousHosts` Gradle property: `subcutaneousJvmTest`,
+    `subcutaneousAndroidHostTest`, `subcutaneousIosSimulatorArm64Test`, `subcutaneousWasmJsTest`,
+    `subcutaneousJsTest`. kotlin.test has no tags on JS, wasm or iOS, so `componentTest`
     also runs the module's `jsTest`.
 
     Component Tests and End To End Tests drive Compose UI screens through [Robots](#robot), one
     per screen, named for what the user does: `clickGreetButton()`, `seeGreeting("Hi there")`.
 
-    Test-support declarations (fakes, fixtures, snapshot surfaces, scenarios, test graphs, robots)
+    Test-support declarations (fakes, fixtures, snapshot surfaces, scenarios, test graphs, host
+    edges, robots)
     are Constructs too: every top-level declaration in test sources matches exactly one.
 """)
 object Testing : RuleGroup(
@@ -49,6 +53,7 @@ object Testing : RuleGroup(
         SnapshotSurface,
         Scenario,
         TestGraph,
+        HostEdges,
         Robot,
         Fixture,
     ),

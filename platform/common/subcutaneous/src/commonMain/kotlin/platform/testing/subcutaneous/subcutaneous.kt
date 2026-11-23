@@ -3,49 +3,56 @@ package platform.testing.subcutaneous
 import androidx.lifecycle.ViewModelStore
 import dev.enro.result.NavigationResultChannel
 import dev.enro.test.EnroTest
+import kotlinx.coroutines.CloseableCoroutineDispatcher
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.TestResult
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withContext
 import org.koin.core.module.Module
 import org.koin.dsl.koinApplication
-import java.util.concurrent.Executors
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Runs [block] against [graph]: the client graph, calling the graph's server when it has one,
  * in-process over a fresh clone of the migrated database. [edges] replace bindings at the system's
  * edges. Everything is torn down when [block] returns or throws.
  *
- * [block] runs on `Dispatchers.Main`, a dedicated thread, as ViewModel code does in the app.
- * Waits use real time: the server, the database and the transport do real I/O.
+ * [block] runs on `Dispatchers.Main`, a dedicated thread (the event loop on JS and wasm), as
+ * ViewModel code does in the app. Waits use real time: the server, the database and the transport
+ * do real I/O. A test returns the result as its expression body: on JS and wasm the result is the
+ * Promise the test runner waits for.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 fun subcutaneous(
     graph: SubcutaneousGraph,
     edges: Edges.() -> Unit = {},
     block: suspend SubcutaneousScope.() -> Unit,
-) {
-    val main = Executors.newSingleThreadScheduledExecutor { Thread(it, "subcutaneous-main").apply { isDaemon = true } }
-        .asCoroutineDispatcher()
+): TestResult = runTest(timeout = 60.seconds) {
+    val main = mainDispatcher()
     Dispatchers.setMain(main)
     try {
-        runBlocking(main) { run(graph, Edges().apply(edges), block) }
+        withContext(main) { run(graph, Edges().apply(graph.hostEdges), Edges().apply(edges), block) }
     } finally {
         Dispatchers.resetMain()
-        main.close()
+        (main as? CloseableCoroutineDispatcher)?.close()
     }
 }
 
-private suspend fun run(graph: SubcutaneousGraph, edges: Edges, block: suspend SubcutaneousScope.() -> Unit) {
+/** The dispatcher [subcutaneous] installs as `Dispatchers.Main`. */
+internal expect fun mainDispatcher(): CoroutineDispatcher
+
+private suspend fun run(graph: SubcutaneousGraph, hostEdges: Edges, edges: Edges, block: suspend SubcutaneousScope.() -> Unit) {
     val server = graph.server
     if (server == null) {
-        require(!edges.hasServerBindings) { "edges = { server { … } } needs a test graph with a server. Bind a backend the project does not own with client { … }." }
-        withClient(graph.client + edges.clientModule(), running = null, block)
+        require(!hostEdges.hasServerBindings && !edges.hasServerBindings) { "server { … } edges need a test graph with a server. Bind a backend the project does not own with client { … }." }
+        withClient(graph.client + hostEdges.clientModule() + edges.clientModule(), running = null, block)
     } else {
-        server.run(edges.serverModule()) { running ->
-            withClient(graph.client + running.clientModules + edges.clientModule(), running, block)
+        server.run(listOf(hostEdges.serverModule(), edges.serverModule())) { running ->
+            withClient(graph.client + running.clientModules + hostEdges.clientModule() + edges.clientModule(), running, block)
         }
     }
 }

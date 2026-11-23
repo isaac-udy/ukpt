@@ -33,7 +33,7 @@ fun inProcessServer(
     block: suspend InProcessServerScope.() -> Unit,
 ) = runBlocking {
     val applied = Edges().apply(edges)
-    InProcessServer(server).run(applied.serverModule()) { running ->
+    InProcessServer(server).run(listOf(applied.serverModule())) { running ->
         withTeardown { teardown ->
             teardown { stopKoin() }
             val clientKoin = {
@@ -49,7 +49,7 @@ internal class InProcessServer(
     private val modules: (PostgresConfig) -> List<Module>,
 ) : SubcutaneousServer {
 
-    override suspend fun run(edges: Module, block: suspend (RunningServer) -> Unit) = withTeardown { teardown ->
+    override suspend fun run(edges: List<Module>, block: suspend (RunningServer) -> Unit) = withTeardown { teardown ->
         val database = TestDatabases.clone()
         teardown { database.close() }
 

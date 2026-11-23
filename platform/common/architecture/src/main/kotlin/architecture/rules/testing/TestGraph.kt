@@ -8,7 +8,7 @@ internal val isSubcutaneousGraph = isPropertyWhere("is a top-level property init
 }
 
 @Describe("""
-    A top-level `SubcutaneousGraph` in a `:feature:[name]:tests` module's `src/main`: the production
+    A top-level `SubcutaneousGraph` in a `:feature:[name]:tests` module's `src/commonMain`: the production
     Koin modules the feature's Subcutaneous Tests run, `[name]TestGraph`.
 
     ```kotlin
@@ -20,7 +20,9 @@ internal val isSubcutaneousGraph = isPropertyWhere("is a top-level property init
 
     `featureClient` adds the network modules and `featureServer` the Postgres modules. A test
     replaces a binding at the system's edges (a backend the project does not own, a clock) with
-    `subcutaneous(graph, edges = { server { … } })`, not in the graph.
+    `subcutaneous(graph, edges = { server { … } })`, not in the graph. A replacement that every
+    test on one host needs, such as a binding that requires an Android `Context`, goes in the
+    graph's [Host Edges](#host-edges).
 
     A project with no server of its own lists only client modules, including the `:platform`
     module that builds its HTTP client, and fakes the backend at the client edge:

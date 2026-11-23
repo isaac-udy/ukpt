@@ -64,7 +64,7 @@ domain contract inventory to check the result.
    ViewModel calling each of its public functions. `ClientUi.ViewModel.subcutaneouslyTested` fails
    until every ViewModel has one. ViewModel tests live here, not in `:client`'s `commonTest`.
    For a screen a Component Test or an End To End Test drives, add `<Name>ScreenTags` beside the
-   screen and `<Name>ScreenRobot` in the `:tests` module's `src/main` (`ukpt-testing`, "Robots").
+   screen and `<Name>ScreenRobot` in the `:tests` module's `src/commonMain` (`ukpt-testing`, "Robots").
 6. **Wire it up** — the easy-to-forget edits to existing files (templates.md §9 checklist):
    - `app/client/common/build.gradle.kts` → `implementation(projects.feature.<name>.client)`.
    - `app/client/common/.../ClientDependencies.kt` → add `<name>ClientDependencies` to the `clientDependencies`
@@ -78,7 +78,7 @@ domain contract inventory to check the result.
      once the feature has something to bind. The host already serves urpc; a service itself is the
      `ukpt-urpc-service` skill's job.
 7. **Verify** — the six-target compile sweep (see the `ukpt-verify` skill), record + verify Paparazzi for the new client
-   module, `./gradlew :feature:<name>:tests:subcutaneousTest`, and `./gradlew :platform:common:architecture:verifyArchitecture`. If the feature has web UI, run
+   module, `./gradlew :feature:<name>:tests:subcutaneousJvmTest` (each host in `ukpt.subcutaneousHosts` has its task), and `./gradlew :platform:common:architecture:verifyArchitecture`. If the feature has web UI, run
    the `ukpt-verify-web` skill — a forgotten `viewModelOf` only crashes at runtime on wasm, invisible to compile.
    Run the Compose HTML gates in `ukpt-verify` unless the project deleted `app/client/web-html`.
 

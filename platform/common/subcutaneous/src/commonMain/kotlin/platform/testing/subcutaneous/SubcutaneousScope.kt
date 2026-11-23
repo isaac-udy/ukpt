@@ -48,6 +48,7 @@ class SubcutaneousScope internal constructor(
     @PublishedApi
     internal fun <S : Any> service(type: KClass<S>): S {
         val build = services ?: error("service<${type.simpleName}>() needs a test graph with a server.")
-        return type.java.cast(build(clientKoin, type))
+        @Suppress("UNCHECKED_CAST")
+        return build(clientKoin, type) as S
     }
 }
