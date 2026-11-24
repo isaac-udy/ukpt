@@ -7,7 +7,7 @@ import kotlinx.serialization.json.JsonPrimitive
 
 /** The columns of each row in [pivotData], in order. */
 internal val PIVOT_FIELDS = listOf(
-    "path", "short", "package", "module", "construct", "basis", "expected", "line", "link",
+    "path", "short", "package", "module", "area", "feature", "affinity", "construct", "layer", "basis", "expected", "line", "link",
     "covered", "incidental", "uncovered", "run", "notRun",
 )
 
@@ -29,7 +29,8 @@ internal fun pivotData(report: CoverageReport, packageOf: (String) -> String, li
         JsonArray(
             listOf(
                 JsonPrimitive(target.path), JsonPrimitive(short), JsonPrimitive(pkg), JsonPrimitive(target.module.path),
-                JsonPrimitive(target.constructs.firstOrNull().orEmpty()), JsonPrimitive(target.basis.name.lowercase()), expected,
+                JsonPrimitive(target.module.area), JsonPrimitive(target.module.featurePath), JsonPrimitive(target.module.affinity),
+                JsonPrimitive(target.constructs.firstOrNull().orEmpty()), JsonPrimitive(layerOf(target)), JsonPrimitive(target.basis.name.lowercase()), expected,
                 JsonPrimitive(target.startLine), JsonPrimitive(linkOf(target)),
                 JsonPrimitive(tally.covered), JsonPrimitive(tally.incidental), JsonPrimitive(tally.uncovered),
                 JsonPrimitive(tally.run), JsonPrimitive(tally.notRun),
@@ -40,6 +41,12 @@ internal fun pivotData(report: CoverageReport, packageOf: (String) -> String, li
     val json = JsonObject(mapOf("categories" to categories, "fields" to JsonArray(PIVOT_FIELDS.map(::JsonPrimitive)), "rows" to JsonArray(rows)))
     // The JSON sits inside a <script> element, which a literal `</` would close.
     return json.toString().replace("</", "<\\/")
+}
+
+private fun layerOf(target: Target): String = target.constructs.firstOrNull()?.substringBefore('.') ?: when (target.basis) {
+    Basis.Module -> "Module expectation"
+    Basis.NoExpectation -> "No expectation"
+    else -> target.group ?: "Unclassified"
 }
 
 private val PACKAGE_DECLARATION = Regex("""^\s*package\s+([\w.]+)""", RegexOption.MULTILINE)

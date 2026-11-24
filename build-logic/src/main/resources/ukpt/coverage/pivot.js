@@ -1,7 +1,5 @@
 // The index page's coverage table: groups the declarations in #coverage-data by module or by Construct.
 (() => {
-  const PKG_LAYER = { "client.ui": "ClientUi", "client.domain": "ClientDomain", "client.data": "ClientData",
-    "server.services": "ServerServices", "server.domain": "ServerDomain", "server.data": "ServerData" };
   const VIEWS = {
     modules: { inner: [["", "Flat"], ["construct", "Construct"], ["file", "File"]], opts: ["affinity", "nested"] },
     constructs: { inner: [["", "Flat"], ["feature", "Module"]], opts: ["affinity"] },
@@ -33,25 +31,10 @@
 
   function derive(f, r) {
     const o = {}; f.forEach((k, i) => (o[k] = r[i]));
-    const seg = o.module.split(":").filter(Boolean);
-    o.isFeature = seg[0] === "feature";
-    if (o.isFeature) {
-      o.area = ":feature:" + seg[1];
-      o.feature = seg.length >= 3 ? ":" + seg.slice(0, -1).join(":") : ":" + seg.join(":");
-      o.affinity = seg[seg.length - 1];
-    } else {
-      o.area = ":" + seg[0];
-      o.feature = seg[0] === "app" ? ":app:" + seg[1] : o.module;
-      o.affinity = seg[0] === "app" ? seg[seg.length - 1] : seg[1];
-    }
     o.fullPackage = o.package;
     o.pkgSegs = o.fullPackage.split(".").filter(Boolean);
     o.fileName = o.path.split("/").pop();
     o.sourceSet = (o.path.match(/\/src\/([^/]+)\//) || [, "?"])[1];
-    if (o.construct) o.layer = o.construct.split(".")[0];
-    else if (o.basis === "module") o.layer = "Module expectation";
-    else if (o.basis === "noexpectation") o.layer = "No expectation";
-    else { const m = o.fullPackage.match(/\.(client|server)\.(ui|domain|data|services)(\.|$)/); o.layer = m ? PKG_LAYER[m[1] + "." + m[2]] : "Unclassified"; }
     o.construct = o.construct || (o.basis === "module" ? "Module expectation" : o.basis === "noexpectation" ? "No expectation" : "Unclassified");
     o.constructShort = o.construct.includes(".") ? o.construct.split(".").slice(1).join(".") : o.construct;
     o.assessed = o.covered + o.incidental + o.uncovered;
