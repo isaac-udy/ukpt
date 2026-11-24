@@ -27,7 +27,7 @@ the test may use besides the code under test; the `Testing` rules check it
 | `@ComponentTest` | A `[Name]ScreenContent` with fixed state, driven through its robot; a Compose HTML `[Name]HtmlScreenContent`; or a shared primitive, navigation container or app-shell composable | the `:client` module's `src/jvmTest/` (Compose UI) or `src/jsTest/` (HTML); shared UI in its own `:platform:client:*` or `:app:client:common` module |
 | `@SnapshotTest` | The module's one `PreviewSnapshotTest` | `src/androidHostTest/` |
 | `@WiringTest` | An app shell's Koin graph (`verify()`) | the `:app` module's test set |
-| `@AdapterTest` | One adapter against real infrastructure that a Subcutaneous Test covers poorly: a server adapter, or a client's device files, sensors or renderers | a server module's `src/test/`; a client module's platform test set (`jvmTest`, `iosSimulatorArm64Test`, …); `androidHostTest` for an adapter in `androidMain`, which `snapshotTest` runs |
+| `@AdapterTest` | One adapter against real infrastructure that a Subcutaneous Test covers poorly: a server adapter, or a client's device files, sensors or renderers | a server module's `src/test/`; a client module's platform test set (`jvmTest`, `iosSimulatorArm64Test`, …); `androidHostTest` for an adapter in `androidMain`, which `testAndroidHostTest` runs, and `adapterTest` in a module with no JVM target |
 | `@CheckTest` | Two committed files that must agree (CSS tokens, doc images) | a JVM test set |
 | `@EndToEndTest` | A journey through the desktop app's UI | `:app:client:desktop`, `src/test/` |
 
@@ -61,7 +61,10 @@ Copy the nearest test of the same category:
 The module's test source set needs `projects.platform.common.testing` (in `commonTest` for a
 multiplatform module, `testImplementation` for a JVM module) and `libs.kotlin.test`. JVM tests run
 on JUnit 5; use `kotlin.test` assertions and `org.junit.jupiter.api` lifecycle annotations, never
-`org.junit.Test`. Only `androidHostTest` runs JUnit 4, for Paparazzi.
+`org.junit.Test`. `testAndroidHostTest` runs on JUnit 5 with two engines: Jupiter runs the
+kotlin.test classes and Vintage runs Paparazzi's JUnit 4 classes. A module with no JVM target
+builds its category tasks from `testAndroidHostTest`, and a module with a JVM target runs its
+category tasks on the JVM only.
 
 Every `@Test` function asserts (`Testing.testFunctionsAssert`): an `assert*`, `fail`, `verify`,
 `expect*` or `await*` call, or a robot's `see*` call, directly or through a helper declared in the
@@ -303,6 +306,10 @@ actual val notesHostEdges: Edges.() -> Unit = {}
 
 A graph whose bindings every host can build declares no host edges.
 
+Several `:tests` modules of one app can share one module's host edges, fakes and scenarios. Each
+other `:tests` module depends on the module that declares them and passes that module's
+`[name]HostEdges` to `SubcutaneousGraph(hostEdges = …)`, without an `expect` of its own.
+
 The Android host runs without Robolectric: `android.jar` there is stubs, so a production binding
 that calls an Android API or needs a `Context` fails on `subcutaneousAndroidHostTest`. Bind each
 such dependency through a small factory or `fun interface` in a `:platform:client:*` module (a
@@ -350,8 +357,12 @@ Lines that no Construct claims follow the module expectation in the root `testCo
 (`testedBy(":platform:server:postgres", "adapter", "subcutaneous")` or
 `noTests(":platform:common:robots", "test infrastructure")`). Constructs and modules that expect no
 tests are not in the totals. `./gradlew renderTestCoverageReport` rewrites the report from the last
-run without running the tests. Kover measures the JVM and the Android host only. The report is
-advisory: there are no bounds.
+run without running the tests. Kover measures the JVM and the Android host only. In the coverage
+build, `testAndroidHostTest` runs only Paparazzi and counts as Snapshot, and
+`subcutaneousAndroidHostTest` counts as Subcutaneous. The report lists each task that ran tests
+but wrote no coverage data. Kover identifies a file by its package and file name, so a platform
+file that repeats a `commonMain` file's name is named `[Name].<platform>.kt`
+(`ProjectRules.platformFileNamesDistinctFromCommon`). The report is advisory: there are no bounds.
 
 **Memory.** Each test JVM with a server starts one embedded Postgres; `ukpt.feature-tests` runs one test JVM at a
 time with a 1 GB heap. The first test in a JVM takes about 2–3 s (Postgres start and migration), the

@@ -40,6 +40,10 @@ abstract class CollectTestCoverageTask : DefaultTask() {
     @get:Input
     abstract val taskCategories: MapProperty<String, String>
 
+    /** `module|task` → the task's JUnit XML results directory. */
+    @get:Internal
+    abstract val testResultDirectories: MapProperty<String, String>
+
     /** Module path → module directory, relative to [repositoryDirectory]. */
     @get:Input
     abstract val modules: MapProperty<String, String>
@@ -63,6 +67,7 @@ abstract class CollectTestCoverageTask : DefaultTask() {
         val problems = mutableListOf<String>()
         val artifacts = artifacts.files.filter { it.isFile && it.name != ".artifact" }.map { KoverArtifact.read(it, root) }
         val output = outputDirectory.get().asFile
+        problems += uninstrumentedTasks(artifacts, testResultDirectories.get())
         val xmls = writeCategoryXmls(artifacts, taskCategories.get(), excludedClasses.get(), output.resolve("xml"), problems)
         val sourceDirs = artifacts.groupBy { it.variant }.mapValues { (_, list) ->
             list.flatMap { it.sourceDirs }.filter { it.isDirectory }.map { it.relativeTo(root).invariantSeparatorsPath }.distinct()

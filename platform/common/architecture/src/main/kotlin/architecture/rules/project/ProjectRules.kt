@@ -536,7 +536,31 @@ object ProjectRules : RuleGroup() {
                 }
         }
     }
+
+    // ---- §5.8 Source files -------------------------------------------------------------------
+    @Describe("A file in a platform source set must not share its module, package and file name with a file in `commonMain`; name the platform file `[Name].<platform>.kt`")
+    val platformFileNamesDistinctFromCommon by rule {
+        rationale(
+            """
+            Kover identifies a source file by its package and file name. When an `androidMain` or
+            `jvmMain` file shares both with a `commonMain` file, the coverage report keeps one of
+            the two files and leaves the other out.
+            """.trimIndent(),
+        )
+        scope { scope, exempt ->
+            val files = scope.files.filterNot { exempt(it) }.filter { "/src/" in it.path && it.sourceSetName().endsWith("Main") }
+            files.groupBy { Triple(it.path.substringBeforeLast("/src/"), it.packagee?.name.orEmpty(), it.nameWithExtension) }
+                .values
+                .filter { group -> group.any { it.sourceSetName() == "commonMain" } }
+                .flatMap { group -> group.filter { it.sourceSetName() != "commonMain" } }
+                .map { file ->
+                    Violation(file.path, "`${file.nameWithExtension}` in `${file.sourceSetName()}` shares its package and file name with a `commonMain` file; rename it `${file.name}.${file.sourceSetName().removeSuffix("Main")}.kt`")
+                }
+        }
+    }
 }
+
+private fun KoFileDeclaration.sourceSetName(): String = path.substringAfterLast("/src/").substringBefore('/')
 
 /**
  * A package sees its own, each **direct child** subsystem, and **any ancestor** up to the layer
