@@ -81,6 +81,8 @@ is the async-result wrapper that [ViewModels](clientui.md#view-model) consume.
 * Two features must not declare service exceptions with the same simple name
     * **Why:** urpc identifies an error by `throwable::class.simpleName` — `ServiceError.from` sends it and the client matches on it — so the simple name *is* the wire contract. That makes package moves free, which is why the migration is safe, but it also means two features with a same-named exception are indistinguishable to a client.
     * **Note:** Scoped to exceptions that are serialized to the client: those declared in the services contract package (`feature.x.server.services`, excluding its server-only sub-packages) or in a feature root, which is the vocabulary both the client and server name. Two server-private exceptions with one name never meet, so they do not collide.
+* A file in a platform source set must not share its module, package and file name with a file in `commonMain`; name the platform file `[Name].<platform>.kt`
+    * **Why:** Kover identifies a source file by its package and file name. When an `androidMain` or `jvmMain` file shares both with a `commonMain` file, the coverage report keeps one of the two files and leaves the other out.
 
 ##### Guidance
 

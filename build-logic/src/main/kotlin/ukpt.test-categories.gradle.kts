@@ -7,12 +7,19 @@
  * from `:platform:common:testing`. Gradle runs a task name given without a path in every module
  * that has it, so `./gradlew unitTest` runs the unit tests of the whole build.
  *
+ * `testAndroidHostTest` runs on JUnit 5 with two engines: Jupiter runs the kotlin.test classes and
+ * Vintage runs Paparazzi's JUnit 4 classes. A module with no JVM test task builds its category
+ * tasks from `testAndroidHostTest`, restricted to the Jupiter engine. A module with a JVM test
+ * task runs its category tasks on the JVM only.
+ *
  * Subcutaneous Tests have no category task: ukpt.feature-tests registers one task per host.
  *
  * kotlin.test has no tags on JS, wasm or iOS. `componentTest` therefore also runs `jsTest` in a
  * module that has `src/jsTest`, which includes the module's commonTest classes compiled to JS.
  * `snapshotTest` (from ukpt.snapshot-testing-base) runs Paparazzi, which uses JUnit 4.
  */
+
+import ukpt.runAndroidHostTestsOnJUnitPlatform
 
 private val libs = versionCatalogs.named("libs")
 
@@ -26,26 +33,39 @@ private val categoryTags = mapOf(
 )
 
 afterEvaluate {
+    val hasAndroidHostTest = tasks.names.contains("testAndroidHostTest")
+    runAndroidHostTestsOnJUnitPlatform()
+
     val (baseName, runtimeOnly) = when {
         tasks.names.contains("jvmTest") -> "jvmTest" to "jvmTestRuntimeOnly"
         tasks.names.contains("test") && configurations.names.contains("testRuntimeOnly") -> "test" to "testRuntimeOnly"
+        hasAndroidHostTest -> "testAndroidHostTest" to null
         else -> return@afterEvaluate
     }
-    dependencies {
-        add(runtimeOnly, platform(libs.findLibrary("junit-bom").get()))
-        add(runtimeOnly, libs.findLibrary("junit-platformLauncher").get())
+    if (runtimeOnly != null) {
+        dependencies {
+            add(runtimeOnly, platform(libs.findLibrary("junit-bom").get()))
+            add(runtimeOnly, libs.findLibrary("junit-platformLauncher").get())
+        }
     }
     val base = tasks.named<Test>(baseName) { useJUnitPlatform() }
     val hasJsTests = tasks.names.contains("jsTest") && file("src/jsTest").exists()
+    val type = when (baseName) {
+        "jvmTest" -> ukpt.JvmCategoryTest::class.java
+        "testAndroidHostTest" -> ukpt.AndroidCategoryTest::class.java
+        else -> Test::class.java
+    }
     categoryTags.forEach { (taskName, tag) ->
-        val type = if (baseName == "jvmTest") ukpt.JvmCategoryTest::class.java else Test::class.java
         tasks.register(taskName, type) {
             group = "verification"
             description = "Runs the JVM test classes annotated as $tag tests."
             testClassesDirs = base.get().testClassesDirs
             classpath = base.get().classpath
             systemProperties(base.get().systemProperties)
-            useJUnitPlatform { includeTags(tag) }
+            useJUnitPlatform {
+                if (baseName == "testAndroidHostTest") includeEngines("junit-jupiter")
+                includeTags(tag)
+            }
             failOnNoDiscoveredTests = false
             if (taskName == "componentTest" && hasJsTests) dependsOn("jsTest")
         }

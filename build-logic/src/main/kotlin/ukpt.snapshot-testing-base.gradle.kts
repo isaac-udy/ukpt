@@ -1,4 +1,5 @@
 import java.time.ZoneId
+import ukpt.runAndroidHostTestsOnJUnitPlatform
 
 /**
  * Leaf convention for Paparazzi snapshot-test wiring, independent of the module's target set.
@@ -49,6 +50,8 @@ kotlin {
         }
     }
 }
+
+afterEvaluate { runAndroidHostTestsOnJUnitPlatform() }
 
 // The Snapshot test category (see ukpt.test-categories): `./gradlew snapshotTest --no-configuration-cache`.
 tasks.register("snapshotTest") {

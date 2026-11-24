@@ -25,6 +25,7 @@ private val coverageRun = gradle.startParameter.taskNames.any { it.substringAfte
 
 private val categoryTasks = mapOf(
     "subcutaneousJvmTest" to "subcutaneous",
+    "subcutaneousAndroidHostTest" to "subcutaneous",
     "unitTest" to "unit",
     "componentTest" to "component",
     "wiringTest" to "wiring",
@@ -38,17 +39,19 @@ private fun Project.isReported() =
 
 private val reported = subprojects.filter { it.isReported() }
 
-// The Android host test task runs the Snapshot Tests in a module with Paparazzi, and the Subcutaneous
-// Tests in a `:tests` module whose hosts omit the JVM.
-private fun Project.androidHostCategory(): String? = when {
-    pluginManager.hasPlugin("app.cash.paparazzi") -> "snapshot"
-    path.startsWith(":feature:") && path.endsWith(":tests") &&
-        "jvm" !in (findProperty("ukpt.subcutaneousHosts") as String? ?: "jvm,android").split(',') -> "subcutaneous"
-    else -> null
-}
-
+// In a coverage run, the Android host test task of a module with Paparazzi runs the Snapshot Tests only.
 private fun Project.instrumentedTasks(): Map<String, String> =
-    categoryTasks + listOfNotNull(androidHostCategory()?.let { "testAndroidHostTest" to it })
+    categoryTasks + if (pluginManager.hasPlugin("app.cash.paparazzi")) mapOf("testAndroidHostTest" to "snapshot") else emptyMap()
+
+if (coverageRun) {
+    reported.forEach { p ->
+        p.pluginManager.withPlugin("app.cash.paparazzi") {
+            p.tasks.withType<Test>().named { it == "testAndroidHostTest" }.configureEach {
+                useJUnitPlatform { includeEngines("junit-vintage") }
+            }
+        }
+    }
+}
 
 val testCoverage = extensions.create<TestCoverageExtension>("testCoverage")
 
@@ -60,7 +63,7 @@ configure<KoverProjectExtension> {
                 disabledForAll.set(true)
             } else {
                 disabledForTestTasks.addAll(
-                    listOf("test", "jvmTest", "testAndroidHostTest", "endToEndTest", "subcutaneousAndroidHostTest", "jvmDevTest")
+                    listOf("test", "jvmTest", "testAndroidHostTest", "endToEndTest", "jvmDevTest")
                         .filter { it !in project.instrumentedTasks() },
                 )
             }
@@ -77,6 +80,12 @@ val collectTestCoverage = tasks.register<CollectTestCoverageTask>("collectTestCo
     modules.putAll(provider { reported.associate { it.path to it.projectDir.relativeTo(rootDir).invariantSeparatorsPath } })
     taskCategories.putAll(provider {
         reported.flatMap { p -> p.instrumentedTasks().map { (task, category) -> "${p.path}|$task" to category } }.toMap()
+    })
+    testResultDirectories.putAll(provider {
+        reported.flatMap { p ->
+            p.tasks.withType<Test>().filter { it.name in p.instrumentedTasks() }
+                .map { "${p.path}|${it.name}" to it.reports.junitXml.outputLocation.get().asFile.absolutePath }
+        }.toMap()
     })
     reported.forEach { p ->
         artifacts.from(p.layout.buildDirectory.dir("kover").map { dir -> dir.asFileTree.matching { include("*.artifact") } })

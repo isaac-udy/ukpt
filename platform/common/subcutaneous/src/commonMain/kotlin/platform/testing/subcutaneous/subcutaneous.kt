@@ -1,12 +1,15 @@
 package platform.testing.subcutaneous
 
 import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.viewModelScope
 import dev.enro.result.NavigationResultChannel
 import dev.enro.test.EnroTest
 import kotlinx.coroutines.CloseableCoroutineDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.job
+import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.test.TestResult
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -72,7 +75,12 @@ private suspend fun withClient(
     }
 
     val viewModels = ViewModelStore()
-    teardown { viewModels.clear() }
+    teardown {
+        val scopes = viewModels.keys().mapNotNull { key -> viewModels[key]?.viewModelScope?.coroutineContext?.job }
+        viewModels.clear()
+        // A cancelled ViewModel coroutine still resumes on Dispatchers.Main, so the scopes finish before resetMain().
+        scopes.joinAll()
+    }
 
     SubcutaneousScope(Scenario(running?.koin) { clientKoin }, clientKoin, viewModels, running?.services).block()
 }

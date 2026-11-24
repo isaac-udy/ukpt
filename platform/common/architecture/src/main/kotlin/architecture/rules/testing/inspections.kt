@@ -22,7 +22,7 @@ internal fun readsOnlyViolations(decl: KoBaseDeclaration, scopes: ArchitectureSc
         .mapNotNull { reference ->
             val ids = reference.constructs.map { it.id }
             val isDomainInterface = "$layer.DomainInterface" in ids ||
-                (reference.declaration is KoInterfaceDeclaration && DOMAIN_PACKAGE.containsMatchIn(reference.declaration.containingFilePackage()))
+                ((reference.declaration as? KoInterfaceDeclaration)?.hasFunModifier == true && DOMAIN_PACKAGE.containsMatchIn(reference.declaration.containingFilePackage()))
             when {
                 isDomainInterface && DOMAIN_READ_PREFIXES.any { reference.name.startsWith(it) } -> null
                 isDomainInterface -> Violation(decl, "references `${reference.name}`, a domain interface not named for a read")

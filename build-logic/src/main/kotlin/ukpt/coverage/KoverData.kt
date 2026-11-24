@@ -33,6 +33,16 @@ data class KoverArtifact(val module: String, val variant: String, val sourceDirs
     }
 }
 
+/** Reports each test task that wrote JUnit results but no `.ic` file: Kover did not instrument the task. */
+fun uninstrumentedTasks(artifacts: List<KoverArtifact>, testResultDirectories: Map<String, String>): List<String> {
+    val instrumented = artifacts.flatMap { artifact -> artifact.ics.filter { it.exists() }.map { "${artifact.module}|${icTaskName(it)}" } }.toSet()
+    return testResultDirectories.filter { (key, directory) ->
+        key !in instrumented && File(directory).listFiles().orEmpty().any { it.name.startsWith("TEST-") && it.extension == "xml" }
+    }.keys.sorted().map { key ->
+        "`${key.replace('|', ':')}` ran tests but Kover wrote no coverage data for it; the task's coverage is missing from the report."
+    }
+}
+
 data class CategoryXml(val category: String, val variant: String, val file: File)
 
 /** Kover writes one `.ic` file per instrumented test task, named after the task. */
