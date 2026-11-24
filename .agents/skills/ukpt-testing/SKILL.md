@@ -349,9 +349,11 @@ graph against it. `server<T>()`, `service<S>()` and `edges = { server { … } }`
 server and fail without one.
 
 **Coverage.** `./gradlew testCoverageReport --no-configuration-cache` runs every category except
-End-to-end with Kover and writes `build/reports/test-coverage/`: `index.html` (by Construct, by
-feature, by module, gaps, and a page per source file with each line marked), `index.md` (the same
-tables with `path:line` gaps) and `coverage.json`. A line is covered when a test from a category its
+End-to-end with Kover and writes `build/reports/test-coverage/`: `index.html`, `index.md` (tables
+by Construct, feature and module, with `path:line` gaps) and `coverage.json`. The `index.html` table
+groups every declaration by module (feature group, feature, module, package, then file, Construct or
+none) or by Construct, with filters by coverage, expected category, Construct, module type, affinity
+and source set; each declaration links to its source file's page, which marks every measured line. A line is covered when a test from a category its
 Construct's "Tested by" lists runs it, and incidental when only tests from other categories run it.
 Lines that no Construct claims follow the module expectation in the root `testCoverage { }` block
 (`testedBy(":platform:server:postgres", "adapter", "subcutaneous")` or
