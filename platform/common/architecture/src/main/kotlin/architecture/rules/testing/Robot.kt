@@ -41,6 +41,7 @@ import dev.isaacudy.udytils.architecture.*
     step can't act on a screen behind a dialog.
 """)
 object Robot : Construct<Testing>(
+    testedBy = TestExpectation.none("test infrastructure"),
     requirements = listOf(
         isClass,
         predicate("extends `ScreenRobot`") { decl -> (decl as KoParentProvider).parents().any { it.name == "ScreenRobot" } },

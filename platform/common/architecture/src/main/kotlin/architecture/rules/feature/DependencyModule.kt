@@ -1,5 +1,6 @@
 package architecture.rules.feature
 
+import architecture.definitions.TestCategories
 import dev.isaacudy.udytils.architecture.*
 
 import architecture.definitions.featureName
@@ -37,6 +38,7 @@ import com.lemonappdev.konsist.api.provider.KoContainingFileProvider
       against the graph without booting the application.
 """)
 object DependencyModule : Construct<FeatureRules>(
+    testedBy = TestExpectation.anyOf(TestCategories.Wiring, TestCategories.Subcutaneous),
     requirements = listOf(
         predicate("resides in the top-level `feature.[name]` package of a `:client` or `:server` module") { decl ->
             // Exactly the feature root — a `Dependencies` property anywhere deeper would let an

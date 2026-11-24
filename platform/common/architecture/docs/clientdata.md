@@ -74,6 +74,10 @@ The client's half of a pair: the server states the same construct as a
 * A Repository is named `[Name]Repository`
 * A Repository is declared in a file matching its name
 
+##### Tested by
+
+* Subcutaneous
+
 ##### Rules
 
 * A Repository must be `internal`
@@ -149,6 +153,10 @@ such as `BinaryUploadClient` for chunked file upload.
 * A Client Data Interface is an interface
 * A Client Data Interface resides in `feature.[name].client.data` (not `client.data.storage`)
 
+##### Tested by
+
+* Subcutaneous
+
 ---
 
 ## [Client Data Implementation](../src/main/kotlin/architecture/rules/clientdata/ClientDataImplementation.kt)
@@ -164,6 +172,10 @@ a Repository. Usually a platform-specific implementation of a
 * A Client Data Implementation is not named `[Name]Repository`
 * A Client Data Implementation is not a `data class` named `[Name]Config` or `[Name]Configuration`
 * A Client Data Implementation resides in `feature.[name].client.data` (not `client.data.storage`)
+
+##### Tested by
+
+* Subcutaneous or Adapter
 
 ---
 
@@ -184,6 +196,10 @@ DataStore, etc.
 * A Client Storage is not abstract
 * A Client Storage is not a `data class`
 * A Client Storage resides in `feature.[name].client.data.storage`
+
+##### Tested by
+
+* Adapter or Subcutaneous
 
 ##### Rules
 
@@ -231,6 +247,10 @@ deployment is a private property of the class that uses it, not a configuration 
 * A Configuration is a `data class`
 * A Configuration is named `[Name]Config` or `[Name]Configuration`
 * A Configuration resides in `feature.[name].client.data..`
+
+##### Tested by
+
+* Wiring or Subcutaneous
 
 ##### Rules
 

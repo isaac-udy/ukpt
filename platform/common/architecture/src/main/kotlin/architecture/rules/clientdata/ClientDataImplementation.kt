@@ -1,5 +1,6 @@
 package architecture.rules.clientdata
 
+import architecture.definitions.TestCategories
 import dev.isaacudy.udytils.architecture.*
 
 import architecture.definitions.containingFilePackage
@@ -11,6 +12,7 @@ import architecture.definitions.containsPackageSegment
     [client data interface](#client-data-interface).
 """)
 object ClientDataImplementation : Construct<ClientData>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous, TestCategories.Adapter),
     requirements = listOf(
         isClass,
         isClassWhere("is not named `[Name]Repository`") { !it.name.endsWith("Repository") },

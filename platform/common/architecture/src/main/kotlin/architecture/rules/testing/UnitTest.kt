@@ -13,6 +13,7 @@ import dev.isaacudy.udytils.architecture.*
     not change when the layers between the ViewModel and the database are restructured.
 """)
 object UnitTest : Construct<Testing>(
+    testedBy = TestExpectation.none("a test"),
     requirements = listOf(isClass, isAnnotatedWith("UnitTest")),
 ) {
     @Describe("A Unit Test must live in a test source set other than `androidHostTest`, outside a `:feature:[name]:tests` module")

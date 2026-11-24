@@ -16,6 +16,7 @@ import dev.isaacudy.udytils.architecture.*
     ```
 """)
 object ScreenTags : Construct<ClientUi>(
+    testedBy = TestExpectation.none("test tags are constants"),
     requirements = listOf(
         predicate("is named `[Screen]Tags`") { (it as? KoNameProvider)?.name?.endsWith("Tags") == true },
         isObjectWhere("is an `object` with only `const val` properties and no functions") { decl ->

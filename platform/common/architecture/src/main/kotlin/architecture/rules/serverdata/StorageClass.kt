@@ -1,5 +1,6 @@
 package architecture.rules.serverdata
 
+import architecture.definitions.TestCategories
 import architecture.definitions.isInServerDataStoragePackage
 
 import dev.isaacudy.udytils.architecture.*
@@ -23,6 +24,7 @@ import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
     it, so its rules and side effects live in one place and cannot be skipped by going around it.
 """)
 object StorageClass : Construct<ServerData>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous, TestCategories.Adapter),
     requirements = listOf(
         isClassWhere("is named `[Name]Storage` (or `[Name]Store` where the broader name fits)") { it.name.endsWith("Storage") || it.name.endsWith("Store") },
         isClassWhere("is not abstract and not a `data class`") { !it.hasAbstractModifier && !it.hasDataModifier },

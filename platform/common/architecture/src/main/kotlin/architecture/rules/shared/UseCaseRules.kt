@@ -1,5 +1,6 @@
 package architecture.rules.shared
 
+import architecture.definitions.TestCategories
 import architecture.definitions.isMutable
 import architecture.definitions.resolveTypeToken
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
@@ -16,6 +17,7 @@ import dev.isaacudy.udytils.architecture.*
 abstract class UseCaseRules<G : RuleGroup>(
     private val side: String,
 ) : Construct<G>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous, TestCategories.Unit),
     requirements = listOf(
         isClassWhere("is a non-sealed/data/enum/value class named `[DomainInterface]Impl`") { decl ->
             !decl.hasSealedModifier && !decl.hasDataModifier && !decl.hasEnumModifier && !decl.hasValueModifier &&

@@ -13,6 +13,7 @@ import com.lemonappdev.konsist.api.declaration.KoPropertyDeclaration
     value is provided once near the composition root and read by leaf composables.
 """)
 object CompositionLocal : Construct<ClientUi>(
+    testedBy = TestExpectation.none("a CompositionLocal declares a key; the composables that read it are tested"),
     requirements = listOf(
         isProperty,
         predicate("is a top-level `Local…` val built via `compositionLocalOf` / `staticCompositionLocalOf`") { d ->

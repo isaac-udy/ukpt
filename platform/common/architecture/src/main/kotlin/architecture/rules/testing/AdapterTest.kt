@@ -14,6 +14,7 @@ import dev.isaacudy.udytils.architecture.*
     `snapshotTest` runs it, not `adapterTest`.
 """)
 object AdapterTest : Construct<Testing>(
+    testedBy = TestExpectation.none("a test"),
     requirements = listOf(isClass, isAnnotatedWith("AdapterTest")),
 ) {
     @Describe("An Adapter Test must live in the `src/test` source set of a `:platform:server:*` or `:feature:[name]:server` module, of `:app:server` when it spans more than one feature, or a platform test source set of a `:platform:client:*` or `:feature:[name]:client` module")

@@ -1,5 +1,6 @@
 package architecture.rules.shared
 
+import architecture.definitions.TestCategories
 import architecture.definitions.containingFilePackage
 import architecture.definitions.isAppModule
 import architecture.definitions.isMutable
@@ -17,6 +18,7 @@ import dev.isaacudy.udytils.architecture.*
 abstract class ConfigurationRules<G : RuleGroup>(
     private val side: String,
 ) : Construct<G>(
+    testedBy = TestExpectation.anyOf(TestCategories.Wiring, TestCategories.Subcutaneous),
     requirements = listOf(
         isClassWhere("is a `data class`") { it.hasDataModifier },
         isClassWhere("is named `[Name]Config` or `[Name]Configuration`") { it.name.endsWith("Config") || it.name.endsWith("Configuration") },

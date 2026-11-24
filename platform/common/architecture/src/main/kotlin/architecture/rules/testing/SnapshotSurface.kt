@@ -7,6 +7,7 @@ import dev.isaacudy.udytils.architecture.*
     such as a design-system doc surface, and the frame it renders in.
 """)
 object SnapshotSurface : Construct<Testing>(
+    testedBy = TestExpectation.none("test infrastructure"),
     requirements = listOf(
         isFunction,
         isAnnotatedWith("Composable"),

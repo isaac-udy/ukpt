@@ -1,5 +1,6 @@
 package architecture.rules.shared
 
+import architecture.definitions.TestCategories
 import architecture.definitions.isMutable
 import architecture.definitions.typeExpressionResolvesTo
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
@@ -10,6 +11,7 @@ import dev.isaacudy.udytils.architecture.*
 abstract class DomainModelRules<G : RuleGroup>(
     private val side: String,
 ) : Construct<G>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous, TestCategories.Unit),
     requirements = listOf(
         isClassOrInterface,
         oneOf(isSealed, isDataClass, isEnum, isValueClass),

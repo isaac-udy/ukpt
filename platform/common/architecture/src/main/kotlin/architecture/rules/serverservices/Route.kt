@@ -1,5 +1,6 @@
 package architecture.rules.serverservices
 
+import architecture.definitions.TestCategories
 import dev.isaacudy.udytils.architecture.*
 
 import architecture.definitions.isServerModule
@@ -18,6 +19,7 @@ import com.lemonappdev.konsist.api.declaration.KoFunctionDeclaration
     ```
 """)
 object Route : Construct<ServerServices>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous),
     requirements = listOf(
         isFunctionWhere("is a top-level extension of Ktor's `Route`") { it.isTopLevel && it.receiverType?.name == "Route" },
         predicate("resides in `feature.[name].server.services` itself, not in a sub-package") { it.isInServicesRoot() },

@@ -21,6 +21,7 @@ import dev.isaacudy.udytils.architecture.*
     database, for a stored fact the server domain does not expose.
 """)
 object ServerInspection : Construct<Testing>(
+    testedBy = TestExpectation.none("test infrastructure"),
     requirements = listOf(hasServerInspectionReceiver),
 ) {
     @Describe("A Server Inspection must live in a `:feature:[name]:tests` module's `src/commonMain`")

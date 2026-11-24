@@ -109,10 +109,27 @@ correctness: declaration kind, name, package, annotations.
   `[Name]Repository`". The documentation generator prefixes the Construct as the subject
   ("A Repository is a class").
 
+### Test expectations
+
+`testedBy` names the test categories expected to cover a Construct's declarations.
+
+- A test category is a `TestCategory(id, name)` the catalog defines, such as
+  `TestCategory("unit", "Unit")`. The engine does not interpret the id; a coverage tool maps it
+  to the test tasks that run the category.
+- `testedBy = TestExpectation.anyOf(A, B)`: a test in category A or category B covers the
+  Construct.
+- `testedBy = TestExpectation.none("reason")`: no test is expected, for example for test
+  infrastructure or a declaration with no behaviour.
+- A Construct without `testedBy` has no expectation. `requireTestExpectations = true` on the
+  definition fails the integrity tests for such a Construct.
+- `classifyArchitecture` writes every declaration's Constructs and their expectations to
+  `build/reports/architecture/classification.json`.
+
 ### Adding a new Construct
 
 1. Create `<Name>.kt` in the RuleGroup's package: `object <Name> : Construct<Group>(requirements = listOf(…))`,
-   annotated with an object-level `@Describe`.
+   annotated with an object-level `@Describe`. Declare `testedBy` when the catalog uses test
+   expectations.
 2. Add it to the RuleGroup's `constructs = listOf(…)` in the position it should appear in the
    documentation. The tests fail if a Construct is missing from this list.
 3. Optional: add `<Name>.examples.md` beside it, with one context sentence per code block and no

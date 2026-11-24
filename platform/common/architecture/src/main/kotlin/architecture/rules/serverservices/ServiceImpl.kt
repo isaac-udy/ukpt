@@ -1,5 +1,6 @@
 package architecture.rules.serverservices
 
+import architecture.definitions.TestCategories
 import dev.isaacudy.udytils.architecture.*
 
 import architecture.definitions.containingFilePackage
@@ -16,6 +17,7 @@ import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
     contract, so it belongs to this layer, not the top-level feature group.
 """)
 object ServiceImpl : Construct<ServerServices>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous),
     requirements = listOf(
         isClassWhere("is named `[Name]ServiceImpl`, matching its `[Name]Service` contract") { it.name.endsWith("ServiceImpl") },
         predicate("resides in `feature.[name].server.services` itself, beside the contract, not in a sub-package") { it.isInServicesRoot() },

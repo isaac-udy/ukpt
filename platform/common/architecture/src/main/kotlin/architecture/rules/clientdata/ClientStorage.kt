@@ -1,5 +1,6 @@
 package architecture.rules.clientdata
 
+import architecture.definitions.TestCategories
 import dev.isaacudy.udytils.architecture.*
 
 import architecture.definitions.containingFilePackage
@@ -17,6 +18,7 @@ import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
       mechanism is platform-specific, such as Keychain on iOS and SharedPreferences on Android.
 """)
 object ClientStorage : Construct<ClientData>(
+    testedBy = TestExpectation.anyOf(TestCategories.Adapter, TestCategories.Subcutaneous),
     requirements = listOf(
         isClass,
         hasNameEndingWith("Storage"),

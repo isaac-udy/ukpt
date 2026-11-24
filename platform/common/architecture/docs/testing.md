@@ -112,6 +112,10 @@ transport. `given { }` runs [Scenarios](#scenario), before or after a ViewModel 
 * A Subcutaneous Test is a class
 * A Subcutaneous Test is annotated `@SubcutaneousTest`
 
+##### Tested by
+
+* No tests are expected: a test
+
 ##### Rules
 
 * A Subcutaneous Test must live in the `src/commonTest` source set of a `:feature:[name]:tests` module, or of `:platform:common:subcutaneous` for the harness's own tests
@@ -144,6 +148,10 @@ not change when the layers between the ViewModel and the database are restructur
 
 * An Unit Test is a class
 * An Unit Test is annotated `@UnitTest`
+
+##### Tested by
+
+* No tests are expected: a test
 
 ##### Rules
 
@@ -186,6 +194,10 @@ primitive directly: there is no screen, so there is no robot.
 * A Component Test is a class
 * A Component Test is annotated `@ComponentTest`
 
+##### Tested by
+
+* No tests are expected: a test
+
 ##### Rules
 
 * A Component Test must live in the `jsTest`, `jvmTest` or `desktopTest` source set of a `:client`, `:platform:client:*` or `:app:client:common` module
@@ -215,6 +227,10 @@ golden image. A module's `PreviewSnapshotTest` extends `PreviewSnapshotTestCase`
 * A Snapshot Test is a class
 * A Snapshot Test is annotated `@SnapshotTest`
 
+##### Tested by
+
+* No tests are expected: a test
+
 ##### Rules
 
 * A Snapshot Test must live in the `androidHostTest` source set
@@ -234,6 +250,10 @@ module list in `ClientDependencies.kt` or `ServerDependencies.kt` so one test co
 
 * A Wiring Test is a class
 * A Wiring Test is annotated `@WiringTest`
+
+##### Tested by
+
+* No tests are expected: a test
 
 ##### Rules
 
@@ -261,6 +281,10 @@ the only host test set that compiles against it; it runs with that source set's 
 * An Adapter Test is a class
 * An Adapter Test is annotated `@AdapterTest`
 
+##### Tested by
+
+* No tests are expected: a test
+
 ##### Rules
 
 * An Adapter Test must live in the `src/test` source set of a `:platform:server:*` or `:feature:[name]:server` module, of `:app:server` when it spans more than one feature, or a platform test source set of a `:platform:client:*` or `:feature:[name]:client` module
@@ -285,6 +309,10 @@ application behaviour.
 
 * A Check Test is a class
 * A Check Test is annotated `@CheckTest`
+
+##### Tested by
+
+* No tests are expected: a test
 
 ##### Rules
 
@@ -332,6 +360,10 @@ the Koin context `KoinApplication` started. Each step goes through a screen's
 * An End To End Test is a class
 * An End To End Test is annotated `@EndToEndTest`
 
+##### Tested by
+
+* No tests are expected: a test
+
 ##### Rules
 
 * An End To End Test must live in `:app:client:desktop`'s `src/test` source set
@@ -355,6 +387,10 @@ declaration.
 * A Fake is named `Fake[Name]`
 * A Fake declares no `@Test` function
 
+##### Tested by
+
+* No tests are expected: test infrastructure
+
 ##### Rules
 
 * In a `:feature:[name]:tests` module, a Fake must implement only an interface an IntegrationClient provides, `kotlin.time.Clock`, or an interface declared under `platform`
@@ -372,6 +408,10 @@ such as a design-system doc surface, and the frame it renders in.
 * A Snapshot Surface is a function
 * A Snapshot Surface is annotated `@Composable`
 * A Snapshot Surface lives in `androidHostTest`
+
+##### Tested by
+
+* No tests are expected: test infrastructure
 
 ---
 
@@ -394,6 +434,10 @@ Another feature's `:tests` module depends on this one to reuse its scenarios.
 ##### Requirements
 
 * A Scenario has a `Scenario` receiver
+
+##### Tested by
+
+* No tests are expected: test infrastructure
 
 ##### Rules
 
@@ -431,6 +475,10 @@ database, for a stored fact the server domain does not expose.
 
 * A Server Inspection has a `ServerInspection` receiver
 
+##### Tested by
+
+* No tests are expected: test infrastructure
+
 ##### Rules
 
 * A Server Inspection must live in a `:feature:[name]:tests` module's `src/commonMain`
@@ -458,6 +506,10 @@ records its calls in a `Recording`.
 ##### Requirements
 
 * A Client Inspection has a `ClientInspection` receiver
+
+##### Tested by
+
+* No tests are expected: test infrastructure
 
 ##### Rules
 
@@ -498,6 +550,10 @@ val projectsTestGraph = SubcutaneousGraph(
 ##### Requirements
 
 * A Test Graph is a top-level property initialised with `SubcutaneousGraph(`
+
+##### Tested by
+
+* No tests are expected: test infrastructure
 
 ##### Rules
 
@@ -541,6 +597,10 @@ still replace a host binding.
 ##### Requirements
 
 * A Host Edges is a top-level property of type `Edges.() -> Unit`
+
+##### Tested by
+
+* No tests are expected: test infrastructure
 
 ##### Rules
 
@@ -591,6 +651,10 @@ step can't act on a screen behind a dialog.
 * A Robot is a class
 * A Robot extends `ScreenRobot`
 
+##### Tested by
+
+* No tests are expected: test infrastructure
+
 ##### Rules
 
 * A Robot must live in a `:feature:[name]:tests` module's `src/commonMain` source set
@@ -620,3 +684,7 @@ Test Graphs and Host Edges are their own Constructs.
 * A Fixture does not satisfy: has a `ClientInspection` receiver
 * A Fixture does not satisfy: is a top-level property initialised with `SubcutaneousGraph(`
 * A Fixture does not satisfy: is a top-level property of type `Edges.() -> Unit`
+
+##### Tested by
+
+* No tests are expected: test infrastructure

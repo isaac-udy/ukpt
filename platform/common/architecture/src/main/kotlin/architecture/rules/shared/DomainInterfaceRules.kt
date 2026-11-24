@@ -1,5 +1,6 @@
 package architecture.rules.shared
 
+import architecture.definitions.TestCategories
 import architecture.utils.isDomainCompatibleType
 import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
 import dev.isaacudy.udytils.architecture.*
@@ -14,6 +15,7 @@ import dev.isaacudy.udytils.architecture.*
 abstract class DomainInterfaceRules<G : RuleGroup>(
     private val side: String,
 ) : Construct<G>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous, TestCategories.Unit),
     requirements = listOf(
         isInterfaceWhere("is a `fun interface`") { it.hasFunModifier && !it.hasSealedModifier },
         isInterfaceWhere("has a primary function that is an `operator fun invoke`") { decl ->

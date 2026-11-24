@@ -38,6 +38,7 @@ import dev.isaacudy.udytils.architecture.*
     [Robot](#robot), in one `on[Screen] { }` block per screen visit.
 """)
 object EndToEndTest : Construct<Testing>(
+    testedBy = TestExpectation.none("a test"),
     requirements = listOf(isClass, isAnnotatedWith("EndToEndTest")),
 ) {
     @Describe("An End To End Test must live in `:app:client:desktop`'s `src/test` source set")

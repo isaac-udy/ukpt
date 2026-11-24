@@ -1,5 +1,6 @@
 package architecture.rules.feature
 
+import architecture.definitions.TestCategories
 import architecture.definitions.isApiModule
 import architecture.definitions.isFeatureRootPackage
 
@@ -27,6 +28,7 @@ import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
       in the examples below. Otherwise, model them as their own shared domain models.
 """)
 object SharedDomainModel : Construct<FeatureRules>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous, TestCategories.Unit),
     requirements = listOf(
         predicate("resides in the feature root package `feature.[name]`") { it.isFeatureRootPackage() },
         predicate("is declared in the feature's `:api` module") { it.isApiModule() },

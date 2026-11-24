@@ -24,6 +24,7 @@ import dev.isaacudy.udytils.architecture.*
     primitive directly: there is no screen, so there is no robot.
 """)
 object ComponentTest : Construct<Testing>(
+    testedBy = TestExpectation.none("a test"),
     requirements = listOf(isClass, isAnnotatedWith("ComponentTest")),
 ) {
     @Describe("A Component Test must live in the `jsTest`, `jvmTest` or `desktopTest` source set of a `:client`, `:platform:client:*` or `:app:client:common` module")

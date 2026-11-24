@@ -9,6 +9,7 @@ import dev.isaacudy.udytils.architecture.*
     application behaviour.
 """)
 object CheckTest : Construct<Testing>(
+    testedBy = TestExpectation.none("a test"),
     requirements = listOf(isClass, isAnnotatedWith("CheckTest")),
 ) {
     @Describe("A Check Test must live in a JVM test source set: `jvmTest`, `desktopTest` or `src/test`")
