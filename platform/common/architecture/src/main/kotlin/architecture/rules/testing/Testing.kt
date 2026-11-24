@@ -26,7 +26,7 @@ import dev.isaacudy.udytils.architecture.*
     On the JVM and the Android host each annotation declares a JUnit 5 tag and timeout.
     `./gradlew unitTest` runs the unit tests of every module; each category has its task
     (`componentTest`, `wiringTest`, `adapterTest`, `checkTest`, `endToEndTest`, and
-    `snapshotTest`, which needs `--no-configuration-cache`). Subcutaneous Tests have one task per
+    `snapshotTest`). Subcutaneous Tests have one task per
     host listed in the `ukpt.subcutaneousHosts` Gradle property: `subcutaneousJvmTest`,
     `subcutaneousAndroidHostTest`, `subcutaneousIosSimulatorArm64Test`, `subcutaneousWasmJsTest`,
     `subcutaneousJsTest`. kotlin.test has no tags on JS, wasm or iOS, so `componentTest`

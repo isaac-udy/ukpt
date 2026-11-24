@@ -59,9 +59,8 @@ jobs:
           java-version: 21
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
-      # Paparazzi drops the R class from the test classpath under the configuration cache.
       - name: Verify snapshots
-        run: ./gradlew snapshotTest --no-configuration-cache --continue
+        run: ./gradlew snapshotTest --continue
       - name: Upload snapshot failures
         if: failure()
         uses: actions/upload-artifact@v4

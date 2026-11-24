@@ -42,7 +42,7 @@ configurations.consumable("htmlStylesheetElements") {
     outgoing.artifact(stylesheet)
 }
 
-tasks.named<Test>("jvmTest") {
+tasks.withType<Test>().matching { it.name == "jvmTest" || it.name == "checkTest" }.configureEach {
     inputs.file(stylesheet).withPropertyName("stylesheet").withPathSensitivity(PathSensitivity.RELATIVE)
     systemProperty("ukpt.designStylesheet", stylesheet.asFile.relativeTo(projectDir).path)
 }

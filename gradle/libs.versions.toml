@@ -30,6 +30,7 @@ junit5 = "5.11.4"
 kover = "0.9.11"
 
 [libraries]
+asm-tree = { module = "org.ow2.asm:asm-tree", version = "9.9" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 kotlin-testJunit5 = { module = "org.jetbrains.kotlin:kotlin-test-junit5", version.ref = "kotlin" }

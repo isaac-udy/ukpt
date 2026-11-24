@@ -1,5 +1,5 @@
 /**
- * The test coverage report: `./gradlew testCoverageReport --no-configuration-cache`.
+ * The test coverage report: `./gradlew testCoverageReport`.
  *
  * Applied by: the root build.
  * Configures: Kover over the `:feature`, `:platform` and `:app` modules. Kover instruments the test
@@ -7,8 +7,6 @@
  * build runs uninstrumented tests. Each category task writes its own coverage, so the report shows
  * which category ran each line, and counts a line as covered only when a category that the
  * declaration's Construct expects ran the line. End-to-end Tests are not instrumented.
- *
- * Paparazzi requires `--no-configuration-cache`: the Snapshot Tests run in the coverage build.
  */
 
 import kotlinx.kover.gradle.plugin.dsl.KoverProjectExtension

@@ -19,6 +19,7 @@
  * `snapshotTest` (from ukpt.snapshot-testing-base) runs Paparazzi, which uses JUnit 4.
  */
 
+import ukpt.IndexTestCategoryTags
 import ukpt.runAndroidHostTestsOnJUnitPlatform
 
 private val libs = versionCatalogs.named("libs")
@@ -49,6 +50,13 @@ afterEvaluate {
         }
     }
     val base = tasks.named<Test>(baseName) { useJUnitPlatform() }
+    val tagIndex = tasks.register<IndexTestCategoryTags>("indexTestCategoryTags") {
+        testClasses.from(base.get().testClassesDirs.asFileTree.matching { include("**/*.class") })
+        runtimeClasspath.from(base.get().classpath)
+        jupiterOnly.set(baseName == "testAndroidHostTest")
+        indexFile.set(layout.buildDirectory.file("test-categories/tags.txt"))
+    }
+    val explicitTestFilter = gradle.startParameter.taskNames.any { it == "--tests" || it.startsWith("--tests=") }
     val hasJsTests = tasks.names.contains("jsTest") && file("src/jsTest").exists()
     val type = when (baseName) {
         "jvmTest" -> ukpt.JvmCategoryTest::class.java
@@ -59,7 +67,15 @@ afterEvaluate {
         tasks.register(taskName, type) {
             group = "verification"
             description = "Runs the JVM test classes annotated as $tag tests."
-            testClassesDirs = base.get().testClassesDirs
+            val classes = base.get().testClassesDirs
+            testClassesDirs = if (explicitTestFilter) {
+                classes
+            } else {
+                files(tagIndex.flatMap { it.indexFile }.map { index ->
+                    val tags = index.asFile.takeIf { it.isFile }?.readLines().orEmpty()
+                    if (tag in tags || "*" in tags) classes.files else emptySet()
+                })
+            }
             classpath = base.get().classpath
             systemProperties(base.get().systemProperties)
             useJUnitPlatform {

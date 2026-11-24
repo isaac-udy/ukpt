@@ -3,6 +3,7 @@ plugins {
 }
 
 dependencies {
+    implementation(libs.asm.tree)
     implementation(libs.kotlin.gradlePlugin)
     implementation(libs.kotlinx.serialization)
     implementation(libs.kotlinx.serialization.gradlePlugin)

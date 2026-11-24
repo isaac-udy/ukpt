@@ -81,14 +81,11 @@ When a page and the code disagree, **trust the code and fix the page**.
 
 ```bash
 # Re-record after changing a token or a component's appearance
-./gradlew :platform:client:design:recordPaparazzi --no-configuration-cache --max-workers=2
+./gradlew :platform:client:design:recordPaparazzi --max-workers=2
 
 # Verify goldens still match
-./gradlew :platform:client:design:verifyPaparazzi --no-configuration-cache --max-workers=2
+./gradlew :platform:client:design:verifyPaparazzi --max-workers=2
 ```
-
-`--no-configuration-cache` is required: Paparazzi's resource-preparation task cannot be stored in
-the configuration cache.
 
 ## Rules
 

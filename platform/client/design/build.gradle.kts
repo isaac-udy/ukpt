@@ -5,6 +5,11 @@ plugins {
     id("ukpt.html-web")
 }
 
+tasks.withType<Test>().matching { it.name == "jvmTest" || it.name == "checkTest" }.configureEach {
+    inputs.files(fileTree("design-system"), fileTree("src/androidHostTest/snapshots/images"))
+        .withPropertyName("designDocumentation").withPathSensitivity(PathSensitivity.RELATIVE)
+}
+
 kotlin {
     @Suppress("UnstableApiUsage")
     androidLibrary {

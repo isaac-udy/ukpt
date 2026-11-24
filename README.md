@@ -182,13 +182,12 @@ one is discovered and snapshotted. Goldens are grouped by package, for example
 `snapshots/images/feature/ukpt/ui/UkptScreenPreview.png`.
 
 ```bash
-./gradlew :feature:core:client:recordPaparazzi --no-configuration-cache
-./gradlew :feature:core:client:verifyPaparazzi --no-configuration-cache
+./gradlew :feature:core:client:recordPaparazzi
+./gradlew :feature:core:client:verifyPaparazzi
 ```
 
-The Gradle configuration cache is on. Paparazzi record/verify is incompatible with it and needs
-`--no-configuration-cache`. Everything else, including the full compile sweep and the web tasks, is
-cache-clean.
+Run `./gradlew testCoverageReport` for per-category coverage, including snapshots. The report uses
+the project's default Gradle configuration cache.
 
 Template maintainers can validate the marker, migration documents, agent imports, shared skill
 metadata, and Claude compatibility links with:
