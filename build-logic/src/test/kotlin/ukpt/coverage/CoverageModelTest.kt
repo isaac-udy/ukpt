@@ -12,9 +12,9 @@ class CoverageModelTest {
             ConstructInfo("ClientUi.ScreenTags", Expectation.None("test tags")),
         ).associateBy { it.id },
         declarations = listOf(
-            Declaration("feature/a/client/src/Vm.kt", 3, 10, "feature.a.Vm", listOf("ClientUi.ViewModel")),
-            Declaration("feature/a/client/src/Vm.kt", 5, 6, "feature.a.Vm.Nested", emptyList(), group = "ClientUi"),
-            Declaration("feature/a/client/src/Tags.kt", 1, 4, "feature.a.Tags", listOf("ClientUi.ScreenTags")),
+            Declaration("feature/a/client/src/Vm.kt", 3, 10, "feature.a.Vm", listOf("ClientUi.ViewModel"), production = true),
+            Declaration("feature/a/client/src/Vm.kt", 5, 6, "feature.a.Vm.Nested", emptyList(), production = true, group = "ClientUi"),
+            Declaration("feature/a/client/src/Tags.kt", 1, 4, "feature.a.Tags", listOf("ClientUi.ScreenTags"), production = true),
         ),
     )
     private val feature = ModuleInfo(":feature:a:client", "feature/a/client", expectation = null)
@@ -79,9 +79,9 @@ class CoverageModelTest {
     @Test
     fun theClassificationJsonGroupIsOptional() {
         val json = """{"categories": [], "constructs": [], "declarations": [
-            {"path": "a/A.kt", "startLine": 1, "endLine": 2, "name": "a.A", "constructs": [], "group": "ClientDomain"},
-            {"path": "a/B.kt", "startLine": 1, "endLine": 2, "name": "a.B", "constructs": [], "group": null},
-            {"path": "a/C.kt", "startLine": 1, "endLine": 2, "name": "a.C", "constructs": []}
+            {"path": "a/A.kt", "startLine": 1, "endLine": 2, "name": "a.A", "codeScope": "production", "constructs": [], "group": "ClientDomain"},
+            {"path": "a/B.kt", "startLine": 1, "endLine": 2, "name": "a.B", "codeScope": "production", "constructs": [], "group": null},
+            {"path": "a/C.kt", "startLine": 1, "endLine": 2, "name": "a.C", "codeScope": "production", "constructs": []}
         ]}"""
 
         assertEquals(listOf("ClientDomain", null, null), Classification.parse(json).declarations.map { it.group })

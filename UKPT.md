@@ -87,6 +87,15 @@ Kover writes one coverage file per test task. Category tasks share an index of t
 host tests' JUnit tags, so an empty Jupiter category needs no test worker. Plain and
 instrumented test results have separate build-cache entries.
 
+Coverage runs instrument classes under `feature`, `platform`, `app` and `ukpt.projectNamespace`.
+Add other production packages in the root `testCoverage { }` block with
+`instrumentedPackages("ukpt.tools.*")`. The report names a source file for each missing
+package root. After adding a root, rerun `./gradlew testCoverageReport` to measure those classes.
+In a warm UKPT run with two Gradle workers and the build cache disabled,
+`:platform:client:design:testAndroidHostTest` took 4.74 s without Kover, 5.39 s with package
+includes and 7.62 s with unrestricted instrumentation. Both coverage runs produced identical
+`coverage.json` files for the module.
+
 While iterating, run only the tests the change affects: `ukpt-testing`, "Development loop", maps each kind of change to its tasks. Before handing back a feature, run the feature's own categories. Before opening a pull request, compile every platform (client + server) and run every category: the `ukpt-verify` sweep. CI (`.github/workflows/ci.yml`) runs the same sweep on every pull request.
 
 ## Reference

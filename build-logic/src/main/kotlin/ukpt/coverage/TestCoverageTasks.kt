@@ -13,10 +13,21 @@ import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
 
-/** The root `testCoverage { }` block: expectations for modules whose declarations match no Construct. */
+/** Package instrumentation and module expectations for the root `testCoverage { }` block. */
 abstract class TestCoverageExtension {
     /** Module path → expectation, encoded as [Expectation.decode] reads it. */
     abstract val moduleExpectations: MapProperty<String, String>
+
+    internal abstract val instrumentedPackages: SetProperty<String>
+
+    fun instrumentedPackages(vararg patterns: String) {
+        for (pattern in patterns) {
+            require(pattern.length > 2 && pattern.endsWith(".*")) {
+                "instrumentedPackages(\"$pattern\") requires a package pattern ending in .*, for example ukpt.tools.*."
+            }
+        }
+        instrumentedPackages.addAll(*patterns)
+    }
 
     /** Lines in [module] that no Construct claims are covered by a test in any one of [categories] (the ids in `architecture.definitions.TestCategories`). */
     fun testedBy(module: String, vararg categories: String) {
@@ -49,6 +60,9 @@ abstract class CollectTestCoverageTask : DefaultTask() {
     abstract val modules: MapProperty<String, String>
 
     @get:Input
+    abstract val instrumentedPackages: SetProperty<String>
+
+    @get:Input
     abstract val excludedClasses: SetProperty<String>
 
     @get:Internal
@@ -72,7 +86,8 @@ abstract class CollectTestCoverageTask : DefaultTask() {
         val sourceDirs = artifacts.groupBy { it.variant }.mapValues { (_, list) ->
             list.flatMap { it.sourceDirs }.filter { it.isDirectory }.map { it.relativeTo(root).invariantSeparatorsPath }.distinct()
         }
-        CoverageManifest(xmls, modules.get().toList(), sourceDirs, problems).write(output.resolve("manifest.json"), root)
+        CoverageManifest(xmls, modules.get().toList(), sourceDirs, problems, instrumentedPackages.get(), excludedClasses.get())
+            .write(output.resolve("manifest.json"), root)
     }
 }
 
@@ -106,6 +121,7 @@ abstract class TestCoverageReportTask : DefaultTask() {
         val root = repositoryDirectory.get().asFile
         val manifest = CoverageManifest.read(manifest.get().asFile, root)
         val classification = Classification.parse(classification.get().asFile.readText())
+        manifest.checkInstrumentation(classification)
         val problems = manifest.problems.toMutableList()
         val names = categoryNames.get() + classification.categoryNames
         val expectations = moduleExpectations.get().mapValues { Expectation.decode(it.value) }
