@@ -13,12 +13,13 @@ class PivotDataTest {
     private val module = ModuleInfo(":feature:a:client", "feature/a/client", expectation = null)
     private val path = "feature/a/client/src/commonMain/kotlin/feature/a/client/ui/Vm.kt"
 
-    private fun target(name: String?, constructs: List<String>, expectation: Expectation, basis: Basis, startLine: Int) =
-        Target(path, module, name, startLine, startLine + 2, constructs, expectation, basis, mapOf(startLine to setOf("unit"), startLine + 1 to emptySet()))
+    private fun target(name: String?, constructs: List<String>, expectation: Expectation, basis: Basis, startLine: Int, group: String? = null) =
+        Target(path, module, name, startLine, startLine + 2, constructs, expectation, basis, mapOf(startLine to setOf("unit"), startLine + 1 to emptySet()), group)
 
     private val report = CoverageReport(
         targets = listOf(
             target("feature.a.client.ui.Vm.Nested", listOf("ClientUi.ViewModel"), Expectation.AnyOf(listOf("unit")), Basis.Construct, 3),
+            target("feature.a.client.ui.Helper", emptyList(), Expectation.Unspecified, Basis.Unclassified, 12, group = "ClientUi"),
             target(null, emptyList(), Expectation.Unspecified, Basis.Unclassified, 20),
         ),
         classification = Classification(emptyMap(), emptyMap(), emptyList()),
@@ -45,6 +46,12 @@ class PivotDataTest {
         assertEquals("""["unit"]""", row.getValue("expected").toString())
         assertEquals(listOf(1, 1), listOf("covered", "uncovered").map { row.getValue(it).jsonPrimitive.content.toInt() })
         assertEquals("files/vm.html#d3", row.getValue("link").jsonPrimitive.content)
+        assertEquals(listOf(":feature:a", ":feature:a", "client", "ClientUi"), listOf("area", "feature", "affinity", "layer").map { row.getValue(it).jsonPrimitive.content })
+    }
+
+    @Test
+    fun aDeclarationWithoutAConstructTakesItsLayerFromTheClassifierGroup() {
+        assertEquals(listOf("ClientUi", "Unclassified"), rows().drop(1).map { it.getValue("layer").jsonPrimitive.content })
     }
 
     @Test

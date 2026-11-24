@@ -3,6 +3,8 @@ package ukpt.coverage
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -43,7 +45,15 @@ data class ConstructInfo(val id: String, val expectation: Expectation) {
     val group: String get() = id.substringBefore('.')
 }
 
-data class Declaration(val path: String, val startLine: Int, val endLine: Int, val name: String, val constructs: List<String>)
+/** [group] is the id of the rule group the architecture classifier places the declaration in, or null. */
+data class Declaration(
+    val path: String,
+    val startLine: Int,
+    val endLine: Int,
+    val name: String,
+    val constructs: List<String>,
+    val group: String? = null,
+)
 
 class Classification(
     val categoryNames: Map<String, String>,
@@ -74,6 +84,7 @@ class Classification(
                     endLine = declaration.getValue("endLine").jsonPrimitive.int,
                     name = declaration.string("name"),
                     constructs = (declaration["constructs"] as? JsonArray).orEmpty().map { it.jsonPrimitive.content },
+                    group = (declaration["group"] as? JsonPrimitive)?.contentOrNull,
                 )
             }
             return Classification(categories, constructs.associateBy { it.id }, declarations)
@@ -85,7 +96,28 @@ class Classification(
 
 /** A Gradle module in the report. [directory] is relative to the repository root, without a trailing slash. */
 data class ModuleInfo(val path: String, val directory: String, val expectation: Expectation?) {
-    val feature: String? get() = path.split(':').takeIf { it.size >= 3 && it[1] == "feature" }?.get(2)
+    private val segments: List<String> get() = path.split(':').filter(String::isNotEmpty)
+
+    val feature: String? get() = segments.takeIf { it.size >= 2 && it[0] == "feature" }?.get(1)
+
+    /** `:feature:<group or feature>`, `:app` or `:platform`: the report's top-level grouping. */
+    val area: String get() = if (feature != null) ":feature:$feature" else ":${segments.firstOrNull().orEmpty()}"
+
+    /**
+     * The module path without its side: `:feature:gate:auth` for `:feature:gate:auth:client`, and
+     * `:app:client` for `:app:client:android`. A `:platform` module is its own feature path.
+     */
+    val featurePath: String get() = when {
+        feature != null && segments.size >= 3 -> ":" + segments.dropLast(1).joinToString(":")
+        segments.firstOrNull() == "app" && segments.size >= 2 -> ":app:${segments[1]}"
+        else -> path
+    }
+
+    /** The side a module belongs to: the last segment of a feature or app module, the second of a platform module. */
+    val affinity: String get() = when {
+        feature != null || segments.firstOrNull() == "app" -> segments.last()
+        else -> segments.getOrElse(1) { segments.last() }
+    }
 }
 
 enum class LineState { Covered, Incidental, Uncovered, Run, NotRun }
@@ -106,6 +138,8 @@ class Target(
     val basis: Basis,
     /** Measured line → the categories whose tests ran the line. */
     val lines: Map<Int, Set<String>>,
+    /** The rule group the architecture classifier places the declaration in; null for lines outside every declaration. */
+    val group: String? = null,
 ) {
     val assessed: Boolean get() = expectation is Expectation.AnyOf
     val name: String get() = declarationName ?: path.substringAfterLast('/')
@@ -213,6 +247,7 @@ fun buildTargets(
                 expectation = expectation,
                 basis = basis,
                 lines = entries.associate { it.key to it.value }.toSortedMap(),
+                group = declaration?.group,
             )
         }
     }

@@ -13,7 +13,7 @@ class CoverageModelTest {
         ).associateBy { it.id },
         declarations = listOf(
             Declaration("feature/a/client/src/Vm.kt", 3, 10, "feature.a.Vm", listOf("ClientUi.ViewModel")),
-            Declaration("feature/a/client/src/Vm.kt", 5, 6, "feature.a.Vm.Nested", emptyList()),
+            Declaration("feature/a/client/src/Vm.kt", 5, 6, "feature.a.Vm.Nested", emptyList(), group = "ClientUi"),
             Declaration("feature/a/client/src/Tags.kt", 1, 4, "feature.a.Tags", listOf("ClientUi.ScreenTags")),
         ),
     )
@@ -67,6 +67,34 @@ class CoverageModelTest {
         buildTargets(classification, listOf(feature), mapOf("other/C.kt" to mapOf(1 to emptySet())), problems)
 
         assertEquals(1, problems.size)
+    }
+
+    @Test
+    fun aTargetKeepsTheGroupTheClassifierGaveItsDeclaration() {
+        val result = targets(mapOf("feature/a/client/src/Vm.kt" to mapOf(5 to setOf("unit"), 12 to emptySet())))
+
+        assertEquals(listOf("ClientUi", null), result.map { it.group })
+    }
+
+    @Test
+    fun theClassificationJsonGroupIsOptional() {
+        val json = """{"categories": [], "constructs": [], "declarations": [
+            {"path": "a/A.kt", "startLine": 1, "endLine": 2, "name": "a.A", "constructs": [], "group": "ClientDomain"},
+            {"path": "a/B.kt", "startLine": 1, "endLine": 2, "name": "a.B", "constructs": [], "group": null},
+            {"path": "a/C.kt", "startLine": 1, "endLine": 2, "name": "a.C", "constructs": []}
+        ]}"""
+
+        assertEquals(listOf("ClientDomain", null, null), Classification.parse(json).declarations.map { it.group })
+    }
+
+    @Test
+    fun aModulePathSplitsIntoAreaFeatureAndAffinity() {
+        fun parts(path: String) = ModuleInfo(path, "", expectation = null).let { listOf(it.area, it.featurePath, it.affinity) }
+
+        assertEquals(listOf(":feature:core", ":feature:core", "api"), parts(":feature:core:api"))
+        assertEquals(listOf(":feature:gate", ":feature:gate:auth", "client"), parts(":feature:gate:auth:client"))
+        assertEquals(listOf(":app", ":app:client", "android"), parts(":app:client:android"))
+        assertEquals(listOf(":platform", ":platform:client:design", "client"), parts(":platform:client:design"))
     }
 
     @Test
