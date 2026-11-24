@@ -80,7 +80,14 @@ Read more widely when the change is shaped by the rules — a new feature slice 
 
 ## Verification
 
-While iterating, run only the tests the change affects: `ukpt-testing`, "Development loop", maps each kind of change to its tasks. Before handing back a feature, run the feature's own categories. Before opening a pull request, compile every platform (client + server) and run every category: the `ukpt-verify` sweep. CI (`.github/workflows/ci.yml`) runs the same sweep on every pull request. Paparazzi tasks require `--no-configuration-cache`.
+For a combined run of a module's JVM tests, use its `jvmTest` (multiplatform) or `test`
+(plain JVM). Gradle's default worker runs all selected classes in that task. For separate
+category test reports and line coverage, use `testCoverageReport`.
+Kover writes one coverage file per test task. Category tasks share an index of the compiled
+host tests' JUnit tags, so an empty Jupiter category needs no test worker. Plain and
+instrumented test results have separate build-cache entries.
+
+While iterating, run only the tests the change affects: `ukpt-testing`, "Development loop", maps each kind of change to its tasks. Before handing back a feature, run the feature's own categories. Before opening a pull request, compile every platform (client + server) and run every category: the `ukpt-verify` sweep. CI (`.github/workflows/ci.yml`) runs the same sweep on every pull request.
 
 ## Reference
 

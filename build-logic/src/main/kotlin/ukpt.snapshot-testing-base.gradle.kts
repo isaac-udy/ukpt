@@ -1,3 +1,10 @@
+import app.cash.paparazzi.gradle.PrepareResourcesTask
+import com.android.build.api.variant.HostTestBuilder
+import com.android.build.api.variant.KotlinMultiplatformAndroidComponentsExtension
+import com.android.build.gradle.internal.publishing.AndroidArtifacts.ArtifactType
+import com.android.build.gradle.internal.res.GenerateLibraryRFileTask
+import org.gradle.api.artifacts.component.ProjectComponentIdentifier
+import org.gradle.api.artifacts.type.ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE
 import java.time.ZoneId
 import ukpt.runAndroidHostTestsOnJUnitPlatform
 
@@ -17,9 +24,6 @@ import ukpt.runAndroidHostTestsOnJUnitPlatform
  * still declares its own `androidHostTest` dependency on `dev.isaacudy.udytils:snapshot` (the
  * harness) and its own `PreviewSnapshotTest` naming the package tree to scan — those are the
  * module's facts, not boilerplate.
- *
- * Snapshot tasks must be run with `--no-configuration-cache`: Paparazzi's resource-preparation
- * task cannot be stored in the configuration cache.
  *
  * The snapshot test JVM runs in locale `en-US` and time zone `UTC`. A project sets the Gradle
  * properties `ukpt.snapshotLocale` (`language-COUNTRY`) and `ukpt.snapshotTimeZone` (a time zone
@@ -53,31 +57,46 @@ kotlin {
 
 afterEvaluate { runAndroidHostTestsOnJUnitPlatform() }
 
-// The Snapshot test category (see ukpt.test-categories): `./gradlew snapshotTest --no-configuration-cache`.
+extensions.configure<KotlinMultiplatformAndroidComponentsExtension> {
+    onVariants { variant ->
+        val hostTest = variant.hostTests[HostTestBuilder.UNIT_TEST_TYPE] ?: return@onVariants
+        val hostName = hostTest.name.replaceFirstChar(Char::uppercaseChar)
+        hostTest.configureTestTask { test ->
+            // Paparazzi loads each library's R class from the host test's aggregated stub jar.
+            val stubRJar = tasks.named<GenerateLibraryRFileTask>("generate${hostName}StubRFile").flatMap { it.rClassOutputJar }
+            test.classpath += files(stubRJar)
+        }
+        val localAssets = variant.sources.assets?.all
+        val moduleAssets = variant.runtimeConfiguration.incoming.artifactView {
+            attributes.attribute(ARTIFACT_TYPE_ATTRIBUTE, ArtifactType.ASSETS.type)
+            componentFilter { it is ProjectComponentIdentifier }
+        }.files
+        val moduleDir = layout.projectDirectory.asFile
+        val variantName = variant.name.replaceFirstChar(Char::uppercaseChar)
+        tasks.named<PrepareResourcesTask>("preparePaparazzi${variantName}Resources") {
+            // Paparazzi's zipped provider queries generated Compose assets during configuration-cache storage (#2345).
+            projectAssetDirs.empty()
+            localAssets?.let { layers ->
+                projectAssetDirs.addAll(layers.map { directories ->
+                    directories.flatten().asReversed().map { it.asFile.relativeTo(moduleDir).invariantSeparatorsPath }
+                })
+            }
+            projectAssetDirs.addAll(moduleAssets.elements.map { dirs ->
+                dirs.map { it.asFile.relativeTo(moduleDir).invariantSeparatorsPath }
+            })
+        }
+    }
+}
+
+// The Snapshot test category (see ukpt.test-categories): `./gradlew snapshotTest`.
 tasks.register("snapshotTest") {
     group = "verification"
     description = "Verifies the Paparazzi snapshot goldens."
     dependsOn("verifyPaparazzi")
 }
 
-// Paparazzi loads R classes (this module's + every dependency's: dev.enro.R, androidx.*.R, …)
-// reflectively at runtime. The KMP library plugin puts the aggregated host-test stub R jar on the
-// *compile* classpath only, so add it to the test runtime classpath via doFirst (which wins over
-// AGP's lazily-provided AndroidUnitTest classpath); otherwise the tests fail with
-// ClassNotFoundException. Adding it to androidHostTestRuntimeOnly would create a cycle, since the
-// stub-R task consumes the runtime classpath as input.
 tasks.withType<Test>().configureEach {
     if (name == "testAndroidHostTest") {
-        dependsOn("generateAndroidHostTestStubRFile")
-        // Bound outside the doFirst so the closure captures only this FileCollection: capturing
-        // `layout`/`project` would drag the whole script into the task's configuration-cache state.
-        val rJar = files(
-            layout.buildDirectory.file("intermediates/compile_and_runtime_r_class_jar/androidHostTest/generateAndroidHostTestStubRFile/R.jar")
-        )
-        doFirst {
-            classpath = classpath + rJar
-        }
-
         // A golden renders dates, weekday order and times from the JVM's default locale and time
         // zone, so every machine that records or verifies goldens must run with the same pair.
         val snapshotLocale = providers.gradleProperty("ukpt.snapshotLocale").getOrElse("en-US")

@@ -9,8 +9,8 @@ import dev.isaacudy.udytils.architecture.*
     `dev.isaacudy.udytils:snapshot`, which renders every `@Preview` in the package tree it scans.
 
     ```
-    ./gradlew :feature:core:client:recordPaparazzi --no-configuration-cache
-    ./gradlew snapshotTest --no-configuration-cache
+    ./gradlew :feature:core:client:recordPaparazzi
+    ./gradlew snapshotTest
     ```
 """)
 object SnapshotTest : Construct<Testing>(

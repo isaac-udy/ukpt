@@ -29,7 +29,7 @@ of coverage states it with its category.
 On the JVM and the Android host each annotation declares a JUnit 5 tag and timeout.
 `./gradlew unitTest` runs the unit tests of every module; each category has its task
 (`componentTest`, `wiringTest`, `adapterTest`, `checkTest`, `endToEndTest`, and
-`snapshotTest`, which needs `--no-configuration-cache`). Subcutaneous Tests have one task per
+`snapshotTest`). Subcutaneous Tests have one task per
 host listed in the `ukpt.subcutaneousHosts` Gradle property: `subcutaneousJvmTest`,
 `subcutaneousAndroidHostTest`, `subcutaneousIosSimulatorArm64Test`, `subcutaneousWasmJsTest`,
 `subcutaneousJsTest`. kotlin.test has no tags on JS, wasm or iOS, so `componentTest`
@@ -218,8 +218,8 @@ golden image. A module's `PreviewSnapshotTest` extends `PreviewSnapshotTestCase`
 `dev.isaacudy.udytils:snapshot`, which renders every `@Preview` in the package tree it scans.
 
 ```
-./gradlew :feature:core:client:recordPaparazzi --no-configuration-cache
-./gradlew snapshotTest --no-configuration-cache
+./gradlew :feature:core:client:recordPaparazzi
+./gradlew snapshotTest
 ```
 
 ##### Requirements

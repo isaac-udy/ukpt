@@ -225,8 +225,8 @@ Snapshots are preview-driven: `PreviewSnapshotTest` (in `src/androidHostTest/`) 
   `--no-configuration-cache` (the cache drops the R class from the test classpath):
 
   ```
-  ./gradlew :feature:core:client:recordPaparazzi --no-configuration-cache
-  ./gradlew :feature:core:client:verifyPaparazzi --no-configuration-cache
+  ./gradlew :feature:core:client:recordPaparazzi
+  ./gradlew :feature:core:client:verifyPaparazzi
   ```
 
 ##### Requirements
