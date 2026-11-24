@@ -16,6 +16,9 @@ dependencies {
     // Shadow to this classpath.
     implementation(libs.ktor.gradlePlugin)
     implementation(libs.shadow.gradlePlugin)
+    // ukpt.test-coverage applies Kover and builds one coverage report per test category.
+    implementation(libs.kover.gradlePlugin)
+    implementation(libs.kover.featuresJvm)
 
     testImplementation(libs.kotlin.test)
     testImplementation(libs.junit.jupiter)

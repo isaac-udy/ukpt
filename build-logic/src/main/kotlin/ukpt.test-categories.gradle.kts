@@ -38,7 +38,8 @@ afterEvaluate {
     val base = tasks.named<Test>(baseName) { useJUnitPlatform() }
     val hasJsTests = tasks.names.contains("jsTest") && file("src/jsTest").exists()
     categoryTags.forEach { (taskName, tag) ->
-        tasks.register<Test>(taskName) {
+        val type = if (baseName == "jvmTest") ukpt.JvmCategoryTest::class.java else Test::class.java
+        tasks.register(taskName, type) {
             group = "verification"
             description = "Runs the JVM test classes annotated as $tag tests."
             testClassesDirs = base.get().testClassesDirs

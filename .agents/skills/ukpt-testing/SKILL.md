@@ -341,11 +341,17 @@ suspend fun Scenario.projects(vararg names: String): List<Project> =
 graph against it. `server<T>()`, `service<S>()` and `edges = { server { … } }` need a graph with a
 server and fail without one.
 
-**Coverage.** `./gradlew subcutaneousCoverage` writes the feature modules' coverage by Subcutaneous
-Tests alone to `build/reports/kover/html/index.html` and `build/reports/kover/report.xml`. Only the
-`:tests` modules' tests on one host are instrumented: the JVM when the root `ukpt.subcutaneousHosts`
-lists it, otherwise the Android host. A `:tests` module whose own list omits that host reports no
-coverage. It is advisory: there are no bounds.
+**Coverage.** `./gradlew testCoverageReport --no-configuration-cache` runs every category except
+End-to-end with Kover and writes `build/reports/test-coverage/`: `index.html` (by Construct, by
+feature, by module, gaps, and a page per source file with each line marked), `index.md` (the same
+tables with `path:line` gaps) and `coverage.json`. A line is covered when a test from a category its
+Construct's "Tested by" lists runs it, and incidental when only tests from other categories run it.
+Lines that no Construct claims follow the module expectation in the root `testCoverage { }` block
+(`testedBy(":platform:server:postgres", "adapter", "subcutaneous")` or
+`noTests(":platform:common:robots", "test infrastructure")`). Constructs and modules that expect no
+tests are not in the totals. `./gradlew renderTestCoverageReport` rewrites the report from the last
+run without running the tests. Kover measures the JVM and the Android host only. The report is
+advisory: there are no bounds.
 
 **Memory.** Each test JVM with a server starts one embedded Postgres; `ukpt.feature-tests` runs one test JVM at a
 time with a 1 GB heap. The first test in a JVM takes about 2–3 s (Postgres start and migration), the
