@@ -9,6 +9,7 @@ kotlin {
             api(projects.platform.common.robots)
             implementation(projects.feature.core.client)
             implementation(projects.feature.core.server)
+            implementation(projects.platform.server.postgres)
         }
     }
 }

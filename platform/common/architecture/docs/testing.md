@@ -38,9 +38,9 @@ also runs the module's `jsTest`.
 Component Tests and End To End Tests drive Compose UI screens through [Robots](#robot), one
 per screen, named for what the user does: `clickGreetButton()`, `seeGreeting("Hi there")`.
 
-Test-support declarations (fakes, fixtures, snapshot surfaces, scenarios, test graphs, host
-edges, robots)
-are Constructs too: every top-level declaration in test sources matches exactly one.
+Test-support declarations (fakes, fixtures, snapshot surfaces, scenarios, inspections, test
+graphs, host edges, robots) are Constructs too: every top-level declaration in test sources
+matches exactly one.
 
 ##### Constructs
 
@@ -55,6 +55,8 @@ are Constructs too: every top-level declaration in test sources matches exactly 
 * [Fake](#fake)
 * [Snapshot Surface](#snapshot-surface)
 * [Scenario](#scenario)
+* [Server Inspection](#server-inspection)
+* [Client Inspection](#client-inspection)
 * [Test Graph](#test-graph)
 * [Host Edges](#host-edges)
 * [Robot](#robot)
@@ -75,7 +77,9 @@ are Constructs too: every top-level declaration in test sources matches exactly 
 A `@SubcutaneousTest` class: drives a real entry point (a ViewModel, or a `@Urpc` service for
 server behaviour that no screen uses) built from the production DI graph, with the real
 server running in-process against an embedded database. It asserts on what the entry point
-exposes: ViewModel state, navigation results, service responses.
+exposes: ViewModel state, navigation results, service responses. It also checks the other end
+through [Server Inspections](#server-inspection) and [Client Inspections](#client-inspection):
+what the server stored, what a fake at an edge received.
 
 Subcutaneous tests are the main suite. Subcutaneous tests exercise the code a user runs through
 a screen, and do not change when the domain and data layers below the ViewModel are restructured.
@@ -99,7 +103,8 @@ class UkptViewModelTest {
 the [Test Graph](#test-graph)'s server modules in-process on Ktor's test engine, and builds
 the client graph against it. `viewModel<VM, K>(key)` opens a ViewModel from the client graph
 with an enro-test navigation handle; `service<S>()` calls a `@Urpc` service through the client
-transport. `given { }` runs [Scenarios](#scenario), before or after a ViewModel opens.
+transport. `given { }` runs [Scenarios](#scenario), before or after a ViewModel opens;
+`inspectServer { }` and `inspectClient { }` run Inspections until the block passes.
 `awaitMatching` waits up to 10 seconds of real time for the state to match.
 
 ##### Requirements
@@ -113,7 +118,7 @@ transport. `given { }` runs [Scenarios](#scenario), before or after a ViewModel 
     * **Why:** The `:tests` module depends on the feature's `:client` and `:server`, which no other module may combine. The harness's own tests drive fake ViewModels through the harness on every host.
 * A Subcutaneous Test must reference only entry-point vocabulary from production code: ViewModels, their states, Destinations, UI value types, client domain models and their extensions, domain exceptions and constants, shared wire types, and `@Urpc` service interfaces
     * **Why:** The test drives the entry point and reads what it exposes. A reference to a repository, a use case or a storage class fixes that class in place, and the test changes when the layers below the entry point are restructured.
-    * **Note:** Test data comes from Scenarios (`given { }`), which may use the server domain.
+    * **Note:** Test data comes from Scenarios (`given { }`), which may use the server domain. Checks on the server or on a fake go through Inspections (`inspectServer { }`, `inspectClient { }`).
 * A Subcutaneous Test must not construct a ViewModel; it opens one from the client graph with `viewModel<[Name]ViewModel, [Name]Destination>(key)`
     * **Why:** A ViewModel built by hand takes collaborators the test chose, not the ones the application binds.
 * Every `@Test` function of a Subcutaneous Test must be an expression body that calls the harness: `fun `…`() = subcutaneous(graph) { … }`
@@ -403,6 +408,66 @@ Another feature's `:tests` module depends on this one to reuse its scenarios.
 
 ---
 
+## [Server Inspection](../src/main/kotlin/architecture/rules/testing/ServerInspection.kt)
+
+A function with a `ServerInspection` receiver, in a `:feature:[name]:tests` module's
+`src/commonMain`: reads the server's state for a test to assert on. A test calls it inside
+`inspectServer { }`, which retries the block until the block passes or 10 seconds of real
+time pass.
+
+```kotlin
+suspend fun ServerInspection.currentGreetingHistory(): List<Greeting> = server<FlowOfGreetingHistory>()().first()
+
+suspend fun ServerInspection.storedGreetingTexts(): List<String> = database {
+    GreetingsTable.selectAll().map { it[GreetingsTable.text] }
+}
+```
+
+`server<T>()` resolves a server domain read interface, or a Fake bound in
+`edges = { server { … } }`. `database { }` runs a read-only transaction on the test's
+database, for a stored fact the server domain does not expose.
+
+##### Requirements
+
+* A Server Inspection has a `ServerInspection` receiver
+
+##### Rules
+
+* A Server Inspection must live in a `:feature:[name]:tests` module's `src/commonMain`
+    * **Why:** Tests in the same module call the Inspection, and another feature's `:tests` module depends on this one to reuse it.
+* A Server Inspection must only read: server domain interfaces named for a read (`Get…`, `FlowOf…`, `List…`, `Find…`, …), domain models, generated tables through `database { }`, and Exposed queries; no Exposed writes, no SQL, no other server class
+    * **Why:** A test asserts on the state the code under test produced. An Inspection that writes changes that state, and the assertion then covers a state the application did not produce.
+    * **Note:** `database { }` also runs a read-only transaction, so Postgres rejects a write that the rule does not detect.
+
+---
+
+## [Client Inspection](../src/main/kotlin/architecture/rules/testing/ClientInspection.kt)
+
+A function with a `ClientInspection` receiver, in a `:feature:[name]:tests` module's
+`src/commonMain`: reads the client's state for a test to assert on, such as the calls a Fake
+bound in `edges = { client { … } }` received. A test calls it inside `inspectClient { }`,
+which retries the block until the block passes or 10 seconds of real time pass.
+
+```kotlin
+fun ClientInspection.paymentRequests(): List<PaymentRequest> = client<FakePaymentGateway>().requests.calls
+```
+
+`client<T>()` resolves a client domain read interface or a Fake bound at a client edge. A Fake
+records its calls in a `Recording`.
+
+##### Requirements
+
+* A Client Inspection has a `ClientInspection` receiver
+
+##### Rules
+
+* A Client Inspection must live in a `:feature:[name]:tests` module's `src/commonMain`
+    * **Why:** Tests in the same module call the Inspection, and another feature's `:tests` module depends on this one to reuse it.
+* A Client Inspection must only read: client domain interfaces named for a read (`Get…`, `FlowOf…`, `List…`, `Find…`, …), domain models, and Fakes; no other client class
+    * **Why:** A test asserts on the state the code under test produced. An Inspection that writes changes that state, and the assertion then covers a state the application did not produce.
+
+---
+
 ## [Test Graph](../src/main/kotlin/architecture/rules/testing/TestGraph.kt)
 
 A top-level `SubcutaneousGraph` in a `:feature:[name]:tests` module's `src/commonMain`: the production
@@ -543,13 +608,15 @@ step can't act on a screen behind a dialog.
 ## [Fixture](../src/main/kotlin/architecture/rules/testing/Fixture.kt)
 
 A top-level function or property in test sources that builds test data or performs a shared
-test step, such as a builder for a domain model used by several tests. Scenarios, Test Graphs
-and Host Edges are their own Constructs.
+test step, such as a builder for a domain model used by several tests. Scenarios, Inspections,
+Test Graphs and Host Edges are their own Constructs.
 
 ##### Requirements
 
 * A Fixture satisfies one of: {is a function, is a property}
 * A Fixture does not satisfy: is annotated `@Composable`
 * A Fixture does not satisfy: has a `Scenario` receiver
+* A Fixture does not satisfy: has a `ServerInspection` receiver
+* A Fixture does not satisfy: has a `ClientInspection` receiver
 * A Fixture does not satisfy: is a top-level property initialised with `SubcutaneousGraph(`
 * A Fixture does not satisfy: is a top-level property of type `Edges.() -> Unit`

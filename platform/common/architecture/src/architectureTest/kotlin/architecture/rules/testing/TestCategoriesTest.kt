@@ -120,6 +120,25 @@ class TestCategoriesTest {
     }
 
     @Test
+    fun `a client inspection reading a domain interface not named for a read or a data class is reported, one reading a fake is not`() {
+        val violations = violations("Testing.ClientInspection.readsOnly")
+        assertEquals(listOf("WritingInspections.kt", "WritingInspections.kt"), violations.files(), violations.toString())
+        assertTrue(violations.any { "SampleSource" in it.message && "not named for a read" in it.message } && violations.any { "SampleTally" in it.message }, violations.toString())
+    }
+
+    @Test
+    fun `a server inspection writing through Exposed or SQL is reported, one querying a table is not`() {
+        val violations = violations("Testing.ServerInspection.readsOnly")
+        assertTrue(violations.all { "WritingInspections.kt" in it.where }, violations.toString())
+        assertTrue(violations.any { "`deleteAll`" in it.message } && violations.any { "`exec`" in it.message } && violations.any { "SQL" in it.message }, violations.toString())
+    }
+
+    @Test
+    fun `an inspection in commonTest is reported`() {
+        assertEquals(listOf("MisplacedInspection.kt"), violations("Testing.ServerInspection.placement").files())
+    }
+
+    @Test
     fun `scenarios and test graphs are not fixtures`() {
         assertTrue(violations("architecture.everyTestDeclarationBelongsToATestConstruct").none { "Scenarios" in it.where || "TestGraph" in it.where })
     }

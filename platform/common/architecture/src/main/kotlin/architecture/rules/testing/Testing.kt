@@ -35,9 +35,9 @@ import dev.isaacudy.udytils.architecture.*
     Component Tests and End To End Tests drive Compose UI screens through [Robots](#robot), one
     per screen, named for what the user does: `clickGreetButton()`, `seeGreeting("Hi there")`.
 
-    Test-support declarations (fakes, fixtures, snapshot surfaces, scenarios, test graphs, host
-    edges, robots)
-    are Constructs too: every top-level declaration in test sources matches exactly one.
+    Test-support declarations (fakes, fixtures, snapshot surfaces, scenarios, inspections, test
+    graphs, host edges, robots) are Constructs too: every top-level declaration in test sources
+    matches exactly one.
 """)
 object Testing : RuleGroup(
     constructs = listOf(
@@ -52,6 +52,8 @@ object Testing : RuleGroup(
         Fake,
         SnapshotSurface,
         Scenario,
+        ServerInspection,
+        ClientInspection,
         TestGraph,
         HostEdges,
         Robot,
