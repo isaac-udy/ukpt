@@ -149,7 +149,8 @@ afterEvaluate {
     hostTestTasks.forEach { (host, names) ->
         val (baseName, taskName) = names
         val base = tasks.named<Test>(baseName)
-        tasks.register<Test>(taskName) {
+        val type = if (baseName == "jvmTest") ukpt.JvmCategoryTest::class.java else Test::class.java
+        tasks.register(taskName, type) {
             group = "verification"
             description = "Runs the Subcutaneous Tests on the $host host."
             testClassesDirs = base.get().testClassesDirs

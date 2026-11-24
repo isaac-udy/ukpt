@@ -1,6 +1,5 @@
 package architecture.rules.clientui
 
-import architecture.definitions.TestCategories
 import dev.isaacudy.udytils.architecture.*
 
 import architecture.definitions.isHtmlSource
@@ -34,7 +33,7 @@ import com.lemonappdev.konsist.api.provider.KoNameProvider
     a `@Preview`.
 """)
 object Screen : Construct<ClientUi>(
-    testedBy = TestExpectation.anyOf(TestCategories.Snapshot, TestCategories.Component),
+    testedBy = TestExpectation.none("a Screen only connects a Destination and its ViewModel to the screen content"),
     requirements = listOf(
         predicate("is bound to its Destination via the `@NavigationDestination` annotation") { declaration ->
             require(declaration is KoNameProvider)

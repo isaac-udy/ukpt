@@ -31,43 +31,29 @@ plugins {
     alias(libs.plugins.ktor) apply false
     alias(libs.plugins.kotlinKsp) apply false
     alias(libs.plugins.kotlinSerialization) apply false
-    alias(libs.plugins.kover)
+    id("ukpt.test-coverage")
 }
 
-// Advisory coverage of the feature modules by the Subcutaneous Tests alone, on one host: the JVM
-// when `ukpt.subcutaneousHosts` lists it, otherwise the Android host. Only that host's test task in
-// each `:feature:[name]:tests` module is instrumented; a `:tests` module holds only Subcutaneous
-// Tests. Kover measures JVM hosts only, so a `:tests` module without either host reports no
-// coverage. No verification bounds.
-val coverageHostTask = if ("jvm" in providers.gradleProperty("ukpt.subcutaneousHosts").getOrElse("jvm,android")) {
-    "jvmTest"
-} else {
-    "testAndroidHostTest"
-}
-val uninstrumentedTestTasks = listOf(
-    "test", "jvmTest", "testAndroidHostTest", "subcutaneousJvmTest", "subcutaneousAndroidHostTest",
-    "unitTest", "componentTest", "wiringTest", "adapterTest", "checkTest", "endToEndTest",
-) - coverageHostTask
-
-kover {
-    merge {
-        subprojects { it.path.startsWith(":feature:") && it.name in setOf("client", "server", "tests") }
-        instrumentation {
-            disabledForAll.set(!project.path.endsWith(":tests"))
-            disabledForTestTasks.addAll(uninstrumentedTestTasks)
-        }
-    }
-    reports {
-        filters {
-            excludes { packages("feature.*.tests", "enro_generated_bindings", "*.generated.resources") }
-        }
-    }
-}
-
-tasks.register("subcutaneousCoverage") {
-    group = "verification"
-    description = "Writes the feature modules' coverage by Subcutaneous Tests to build/reports/kover (HTML and XML)."
-    dependsOn("koverHtmlReport", "koverXmlReport")
+// Expectations for the lines in each module that no architecture Construct claims, for
+// `./gradlew testCoverageReport`. Category ids are those in architecture.definitions.TestCategories.
+testCoverage {
+    noTests(":app:client:android", "application entry points")
+    testedBy(":app:client:common", "wiring", "subcutaneous")
+    noTests(":app:client:desktop", "application entry point")
+    noTests(":app:client:web", "application entry point")
+    noTests(":app:client:web-html", "application entry point")
+    testedBy(":app:server", "wiring")
+    testedBy(":platform:client:design", "snapshot", "component", "check")
+    testedBy(":platform:client:design-html", "check")
+    testedBy(":platform:client:network", "adapter", "wiring")
+    testedBy(":platform:client:ui", "component", "snapshot")
+    noTests(":platform:common:robots", "test infrastructure")
+    noTests(":platform:common:subcutaneous", "test infrastructure")
+    noTests(":platform:common:subcutaneous-server", "test infrastructure")
+    noTests(":platform:common:testing", "test infrastructure")
+    noTests(":platform:server:development", "development tooling")
+    testedBy(":platform:server:host", "subcutaneous", "adapter")
+    testedBy(":platform:server:postgres", "adapter", "subcutaneous")
 }
 
 // Applied here, not in the plugins block: the root project's plugins block cannot

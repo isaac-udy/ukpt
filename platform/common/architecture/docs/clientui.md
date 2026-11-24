@@ -98,7 +98,7 @@ a `@Preview`.
 
 ##### Tested by
 
-* Snapshot or Component
+* No tests are expected: a Screen only connects a Destination and its ViewModel to the screen content
 
 ##### Rules
 
