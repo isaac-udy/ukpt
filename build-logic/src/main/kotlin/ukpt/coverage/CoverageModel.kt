@@ -52,6 +52,7 @@ data class Declaration(
     val endLine: Int,
     val name: String,
     val constructs: List<String>,
+    val production: Boolean,
     val group: String? = null,
 )
 
@@ -85,6 +86,7 @@ class Classification(
                     name = declaration.string("name"),
                     constructs = (declaration["constructs"] as? JsonArray).orEmpty().map { it.jsonPrimitive.content },
                     group = (declaration["group"] as? JsonPrimitive)?.contentOrNull,
+                    production = declaration.string("codeScope") == "production",
                 )
             }
             return Classification(categories, constructs.associateBy { it.id }, declarations)

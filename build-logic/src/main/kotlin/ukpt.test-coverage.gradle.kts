@@ -51,7 +51,9 @@ if (coverageRun) {
     }
 }
 
-val testCoverage = extensions.create<TestCoverageExtension>("testCoverage")
+val testCoverage = extensions.create<TestCoverageExtension>("testCoverage").apply {
+    instrumentedPackages("feature.*", "platform.*", "app.*", "${providers.gradleProperty("ukpt.projectNamespace").get()}.*")
+}
 
 configure<KoverProjectExtension> {
     merge {
@@ -60,6 +62,7 @@ configure<KoverProjectExtension> {
             if (!coverageRun) {
                 disabledForAll.set(true)
             } else {
+                includedClasses.addAll(testCoverage.instrumentedPackages)
                 disabledForTestTasks.addAll(
                     listOf("test", "jvmTest", "testAndroidHostTest", "endToEndTest", "jvmDevTest")
                         .filter { it !in project.instrumentedTasks() },
@@ -74,6 +77,7 @@ val collectTestCoverage = tasks.register<CollectTestCoverageTask>("collectTestCo
     description = "Runs the test categories with coverage and writes one Kover XML report per category."
     repositoryDirectory.set(layout.projectDirectory)
     outputDirectory.set(layout.buildDirectory.dir("test-coverage"))
+    instrumentedPackages.set(testCoverage.instrumentedPackages)
     excludedClasses.addAll("feature.*.tests.*", "enro_generated_bindings.*", "*.generated.resources.*")
     modules.putAll(provider { reported.associate { it.path to it.projectDir.relativeTo(rootDir).invariantSeparatorsPath } })
     taskCategories.putAll(provider {

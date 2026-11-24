@@ -197,6 +197,8 @@ class CoverageManifest(
     val modules: List<Pair<String, String>>,
     val sourceDirsByVariant: Map<String, List<String>>,
     val problems: List<String>,
+    val instrumentedPackages: Set<String>,
+    val excludedClasses: Set<String>,
 ) {
     fun write(file: File, root: File) {
         fun rel(f: File) = JsonPrimitive(f.relativeTo(root).invariantSeparatorsPath)
@@ -206,6 +208,8 @@ class CoverageManifest(
                 "modules" to JsonArray(modules.map { (path, dir) -> JsonObject(mapOf("path" to JsonPrimitive(path), "directory" to JsonPrimitive(dir))) }),
                 "sourceDirs" to JsonObject(sourceDirsByVariant.mapValues { (_, dirs) -> JsonArray(dirs.map(::JsonPrimitive)) }),
                 "problems" to JsonArray(problems.map(::JsonPrimitive)),
+                "instrumentedPackages" to JsonArray(instrumentedPackages.sorted().map(::JsonPrimitive)),
+                "excludedClasses" to JsonArray(excludedClasses.sorted().map(::JsonPrimitive)),
             ),
         )
         file.parentFile.mkdirs()
@@ -216,11 +220,14 @@ class CoverageManifest(
         fun read(file: File, root: File): CoverageManifest {
             val json = Json.parseToJsonElement(file.readText()).jsonObject
             fun JsonObject.string(key: String) = getValue(key).jsonPrimitive.content
+            fun patterns(key: String) = json[key]?.jsonArray.orEmpty().map { it.jsonPrimitive.content }.toSet()
             return CoverageManifest(
                 xmls = json.getValue("xmls").jsonArray.map { it.jsonObject }.map { CategoryXml(it.string("category"), it.string("variant"), root.resolve(it.string("file"))) },
                 modules = json.getValue("modules").jsonArray.map { it.jsonObject }.map { it.string("path") to it.string("directory") },
                 sourceDirsByVariant = json.getValue("sourceDirs").jsonObject.mapValues { (_, dirs) -> dirs.jsonArray.map { it.jsonPrimitive.content } },
                 problems = json.getValue("problems").jsonArray.map { it.jsonPrimitive.content },
+                instrumentedPackages = patterns("instrumentedPackages"),
+                excludedClasses = patterns("excludedClasses"),
             )
         }
     }

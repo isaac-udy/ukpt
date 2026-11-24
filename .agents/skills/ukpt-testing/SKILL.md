@@ -348,7 +348,7 @@ suspend fun Scenario.projects(vararg names: String): List<Project> =
 graph against it. `server<T>()`, `service<S>()` and `edges = { server { … } }` need a graph with a
 server and fail without one.
 
-**Coverage.** `./gradlew testCoverageReport --no-configuration-cache` runs every category except
+**Coverage.** `./gradlew testCoverageReport` runs every category except
 End-to-end with Kover and writes `build/reports/test-coverage/`: `index.html`, `index.md` (tables
 by Construct, feature and module, with `path:line` gaps) and `coverage.json`. The `index.html` table
 groups every declaration by module (feature group, feature, module, package, then file, Construct or
@@ -365,6 +365,17 @@ build, `testAndroidHostTest` runs only Paparazzi and counts as Snapshot, and
 but wrote no coverage data. Kover identifies a file by its package and file name, so a platform
 file that repeats a `commonMain` file's name is named `[Name].<platform>.kt`
 (`ProjectRules.platformFileNamesDistinctFromCommon`). The report is advisory: there are no bounds.
+
+Kover instruments classes under `feature`, `platform`, `app` and the package named by
+`ukpt.projectNamespace`. For another production package, add `instrumentedPackages("ukpt.tools.*")`
+to the root `testCoverage { }` block, substituting the project's package. Subpackages are included.
+The report fails with an example source path for each missing package root. After adding a root,
+rerun `./gradlew testCoverageReport` to collect new measurements.
+
+In a warm UKPT run with two Gradle workers and the build cache disabled,
+`:platform:client:design:testAndroidHostTest` took 4.74 s without Kover, 5.39 s with package
+includes and 7.62 s with unrestricted instrumentation. Both coverage runs produced identical
+`coverage.json` files for the module.
 
 **Memory.** Each test JVM with a server starts one embedded Postgres; `ukpt.feature-tests` runs one test JVM at a
 time with a 1 GB heap. The first test in a JVM takes about 2–3 s (Postgres start and migration), the
