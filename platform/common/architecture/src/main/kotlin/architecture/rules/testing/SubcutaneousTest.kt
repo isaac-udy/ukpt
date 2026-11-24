@@ -8,7 +8,9 @@ import dev.isaacudy.udytils.architecture.*
     A `@SubcutaneousTest` class: drives a real entry point (a ViewModel, or a `@Urpc` service for
     server behaviour that no screen uses) built from the production DI graph, with the real
     server running in-process against an embedded database. It asserts on what the entry point
-    exposes: ViewModel state, navigation results, service responses.
+    exposes: ViewModel state, navigation results, service responses. It also checks the other end
+    through [Server Inspections](#server-inspection) and [Client Inspections](#client-inspection):
+    what the server stored, what a fake at an edge received.
 
     Subcutaneous tests are the main suite. Subcutaneous tests exercise the code a user runs through
     a screen, and do not change when the domain and data layers below the ViewModel are restructured.
@@ -32,7 +34,8 @@ import dev.isaacudy.udytils.architecture.*
     the [Test Graph](#test-graph)'s server modules in-process on Ktor's test engine, and builds
     the client graph against it. `viewModel<VM, K>(key)` opens a ViewModel from the client graph
     with an enro-test navigation handle; `service<S>()` calls a `@Urpc` service through the client
-    transport. `given { }` runs [Scenarios](#scenario), before or after a ViewModel opens.
+    transport. `given { }` runs [Scenarios](#scenario), before or after a ViewModel opens;
+    `inspectServer { }` and `inspectClient { }` run Inspections until the block passes.
     `awaitMatching` waits up to 10 seconds of real time for the state to match.
 """)
 object SubcutaneousTest : Construct<Testing>(
@@ -63,7 +66,7 @@ object SubcutaneousTest : Construct<Testing>(
             layers below the entry point are restructured.
             """.trimIndent(),
         )
-        note("Test data comes from Scenarios (`given { }`), which may use the server domain.")
+        note("Test data comes from Scenarios (`given { }`), which may use the server domain. Checks on the server or on a fake go through Inspections (`inspectServer { }`, `inspectClient { }`).")
         constrainWithScopes { decl, scopes, _ ->
             scopes.referencesOutside(decl, ENTRY_POINT_CONSTRUCTS)
                 .map { Violation(decl, "references `${it.name}` (${it.constructs.joinToString { c -> c.id }})") }

@@ -203,6 +203,51 @@ fun `confirming the reset dialog clears the history`() = subcutaneous(ukptTestGr
 domain interfaces only and returns what it created (`Testing.Scenario.*`). Another feature's
 `:tests` module depends on this one to reuse them.
 
+**Inspections.** A test checks the other end of the system, besides the ViewModel state, through
+Inspections in the `:tests` module's `src/commonMain`: `suspend fun ServerInspection.<name>()`
+reads the server, `fun ClientInspection.<name>()` reads the client graph. A test calls them inside
+`inspectServer { }` or `inspectClient { }`, which retry the block until the block passes or
+10 s of real time pass, and return the block's result:
+
+```kotlin
+// src/commonMain
+suspend fun ServerInspection.currentGreetingHistory(): List<Greeting> = server<FlowOfGreetingHistory>()().first()
+
+suspend fun ServerInspection.storedGreetingTexts(): List<String> = database {
+    GreetingsTable.selectAll().map { it[GreetingsTable.text] }
+}
+
+// src/commonTest
+screen.viewModel.onGreetClicked()
+screen.viewModel.state.awaitMatching { it.greetingTexts() == listOf("Hello") }
+inspectServer { assertEquals(listOf("Hello"), storedGreetingTexts()) }
+```
+
+- `server<T>()` resolves a server domain interface named for a read (`Get…`, `FlowOf…`, `List…`,
+  `Find…`, …) or a Fake bound in `edges = { server { … } }`.
+- `database { }` (`:platform:common:subcutaneous-server`) runs a read-only transaction on the
+  test's database, for a stored fact the server domain does not expose. A read through `database { }`
+  depends on the schema; prefer a domain read when the domain exposes the fact. The generated
+  tables are in `:platform:server:postgres`, which the `:tests` module declares in `commonMain`.
+- `client<T>()` resolves a client domain read interface or a Fake bound in `edges = { client { … } }`.
+- A Fake records its calls in a `Recording<T>`: the Fake calls `record(call)`, and an Inspection
+  reads `calls`, `assertSingle { … }` or `assertNone { … }`:
+
+```kotlin
+class FakePaymentGateway : PaymentGateway {
+    val requests = Recording<PaymentRequest>()
+    override suspend fun charge(request: PaymentRequest): Receipt { requests.record(request); return Receipt("r-1") }
+}
+
+fun ServerInspection.paymentRequests(): Recording<PaymentRequest> = server<FakePaymentGateway>().requests
+
+inspectServer { paymentRequests().assertSingle { it.amount == 10.00 } }
+```
+
+An Inspection only reads (`Testing.ServerInspection.readsOnly`, `Testing.ClientInspection.readsOnly`):
+no domain interface without a read name, no Exposed write, no SQL, no data or UI class.
+`inspectServer { }` needs a graph with a server and fails without one.
+
 **Edges.** A binding the project does not own (a third-party backend, the clock) is replaced per
 test, loaded after the graph so it overrides:
 
@@ -299,8 +344,9 @@ lists it, otherwise the Android host. A `:tests` module whose own list omits tha
 coverage. It is advisory: there are no bounds.
 
 **Memory.** Each test JVM with a server starts one embedded Postgres; `ukpt.feature-tests` runs one test JVM at a
-time with a 1 GB heap. The first test in a JVM takes about 3 s (Postgres start and migration), the
-rest under 1 s.
+time with a 1 GB heap. The first test in a JVM takes about 2–3 s (Postgres start and migration), the
+rest about 0.05 s plus the test's own work: background threads clone the next tests' databases and
+drop finished ones.
 
 ## End-to-end tests
 
@@ -461,6 +507,11 @@ failure names the rule; its statement and rationale are in
 - `Testing.SubcutaneousTest.noInfrastructureImports` — move the binding to `edges`, the setup to a
   scenario, `runTest` to `awaitMatching`.
 - `Testing.Scenario.seedsThroughServerDomain` — call a server domain interface instead of storage.
+- `Testing.ServerInspection.readsOnly`, `Testing.ClientInspection.readsOnly` — read through a
+  domain interface named for a read, `database { }` queries or a Fake's `Recording`; move a write
+  to a Scenario.
+- `Testing.ServerInspection.placement`, `Testing.ClientInspection.placement` — move the Inspection
+  to the `:tests` module's `src/commonMain`.
 - `ModuleRules.testsModuleShape` — add the feature's `:client`/`:server` to the `:tests` build file.
 - `Testing.EndToEndTest.drivesTheAppRoot` — run the test body in `inProcessServer(…)` and render
   `AppContent()` inside `runComposeUiTest`.

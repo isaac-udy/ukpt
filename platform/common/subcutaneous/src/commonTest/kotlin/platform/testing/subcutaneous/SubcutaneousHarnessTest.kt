@@ -44,6 +44,18 @@ class SubcutaneousHarnessTest {
     }
 
     @Test
+    fun `inspectClient reads the calls a fake at the client edge received`() = subcutaneous(counterGraphWithHostEdges()) {
+        viewModel<FakeCounterViewModel, FakeCounterKey>(FakeCounterKey)
+
+        inspectClient { client<FakeNextCount>().calls.assertSingle() }
+    }
+
+    @Test
+    fun `inspectServer fails without a server`() = subcutaneous(counterGraphWithHostEdges()) {
+        assertFailsWith<IllegalStateException> { inspectServer { } }
+    }
+
+    @Test
     fun `awaitMatching fails after its timeout in real time`() = subcutaneous(counterGraphWithHostEdges()) {
         val screen = viewModel<FakeCounterViewModel, FakeCounterKey>(FakeCounterKey)
         val start = TimeSource.Monotonic.markNow()
@@ -58,7 +70,12 @@ class SubcutaneousHarnessTest {
 internal object FakeCounterKey : NavigationKey
 
 internal class FakeNextCount(private val count: Int) {
-    suspend fun next(): Int = count
+    val calls = Recording<Unit>()
+
+    suspend fun next(): Int {
+        calls.record(Unit)
+        return count
+    }
 }
 
 internal data class FakeCounterState(val count: Int? = null)

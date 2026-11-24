@@ -36,6 +36,7 @@ class UkptViewModelTest {
         screen.viewModel.onGreetClicked()
 
         screen.viewModel.state.awaitMatching { it.greetingTexts() == listOf("Hello", "Hello again") }
+        inspectServer { assertEquals(listOf("Hello", "Hello again"), storedGreetingTexts()) }
     }
 
     @Test
@@ -58,6 +59,7 @@ class UkptViewModelTest {
         screen.navigation.assertOpened<ConfirmResetDestination>().sendCompletedForTest()
 
         screen.viewModel.state.awaitMatching { it.greetingTexts() == emptyList<String>() }
+        inspectServer { assertEquals(emptyList(), currentGreetingHistory()) }
     }
 
     @Test

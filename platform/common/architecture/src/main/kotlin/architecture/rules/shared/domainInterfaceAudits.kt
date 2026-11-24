@@ -3,6 +3,9 @@ package architecture.rules.shared
 import com.lemonappdev.konsist.api.provider.KoNameProvider
 import dev.isaacudy.udytils.architecture.Violation
 
+/** Name prefixes that mark a domain interface as a read. */
+internal val DOMAIN_READ_PREFIXES = listOf("Get", "FlowOf", "List", "Find", "Observe", "Search", "Count", "Has", "Is", "Load", "Fetch", "Query")
+
 /**
  * The advisory audits over a [DomainInterfaceGraph]. Each returns grouped findings: one
  * [Violation] per candidate, its declarations in the evidence lines, and a review question in the
@@ -18,8 +21,6 @@ internal object DomainInterfaceAudits {
     /** Mutations on one noun from one provider. */
     const val OPERATION_FAMILY = 3
 
-    private val readPrefixes = listOf("Get", "FlowOf", "List", "Find", "Observe", "Search", "Count", "Has", "Is", "Load", "Fetch", "Query")
-
     private val mutationVerbs = listOf(
         "Create", "Update", "Delete", "Store", "Save", "Set", "Mark", "Add", "Remove", "Rename", "Insert",
         "Upsert", "Clear", "Reset", "Assign", "Revoke", "Record", "Complete", "Cancel", "Claim", "Release",
@@ -27,7 +28,7 @@ internal object DomainInterfaceAudits {
         "Start", "Finish", "Fail", "Succeed", "Reap", "Consume", "Rotate", "Join", "Leave", "Select",
     )
 
-    private fun DomainInterfaceNode.isRead(): Boolean = readPrefixes.any { name.startsWith(it) }
+    private fun DomainInterfaceNode.isRead(): Boolean = DOMAIN_READ_PREFIXES.any { name.startsWith(it) }
 
     private data class SoleConsumerGroup(val provider: String, val consumer: DomainInterfaceConsumer, val nodes: List<DomainInterfaceNode>)
 
@@ -94,7 +95,7 @@ internal object DomainInterfaceAudits {
         graph.nodes
             .sortedBy { it.name }
             .mapNotNull { node ->
-                val rest = readPrefixes.firstOrNull { node.name.startsWith(it) }?.let { node.name.removePrefix(it) } ?: return@mapNotNull null
+                val rest = DOMAIN_READ_PREFIXES.firstOrNull { node.name.startsWith(it) }?.let { node.name.removePrefix(it) } ?: return@mapNotNull null
                 val model = modelNames
                     .filter { rest.startsWith(it) && rest.length > it.length + 1 && rest[it.length].isUpperCase() }
                     .maxByOrNull { it.length } ?: return@mapNotNull null

@@ -132,7 +132,7 @@ afterEvaluate {
     val serverModules = listOf("commonMainApi", "commonMainImplementation")
         .flatMap { configurations.getByName(it).dependencies.withType<ProjectDependency>() }
         .map { it.path }
-        .filter { it == ":platform:common:subcutaneous-server" || it.endsWith(":server") }
+        .filter { it == ":platform:common:subcutaneous-server" || it.startsWith(":platform:server:") || it.endsWith(":server") }
     require(serverModules.isEmpty() || otherHostTestTasks.isEmpty()) {
         "$path depends on ${serverModules.joinToString()}, which run on the JVM only, and the module's ukpt.subcutaneousHosts lists ${otherHostTestTasks.keys.joinToString()}. Remove ${otherHostTestTasks.keys.joinToString()} from ukpt.subcutaneousHosts, or fake the backend at the client edge and remove the server dependencies."
     }
