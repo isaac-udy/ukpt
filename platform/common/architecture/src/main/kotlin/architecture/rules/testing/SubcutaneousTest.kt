@@ -39,6 +39,7 @@ import dev.isaacudy.udytils.architecture.*
     `awaitMatching` waits up to 10 seconds of real time for the state to match.
 """)
 object SubcutaneousTest : Construct<Testing>(
+    testedBy = TestExpectation.none("a test"),
     requirements = listOf(isClass, isAnnotatedWith("SubcutaneousTest")),
 ) {
     @Describe("A Subcutaneous Test must live in the `src/commonTest` source set of a `:feature:[name]:tests` module, or of `:platform:common:subcutaneous` for the harness's own tests")

@@ -101,6 +101,10 @@ calls outside the process, and the call belongs outside the block entirely.
 * A Domain Interface declares all functions as `suspend` or returning a `Flow<T>`
 * A Domain Interface is prefixed with `FlowOf` when its primary function returns a `Flow`
 
+##### Tested by
+
+* Subcutaneous or Unit
+
 ##### Rules
 
 * A Domain Interface's primary-function parameters must be shared domain models, the layer's own domain models, nested types, primitives, standard date/time value types, collections of those, or a `Flow` of those
@@ -248,6 +252,10 @@ A class that implements a single [domain interface](#domain-interface).
 * An Use Case is a non-sealed/data/enum/value class named `[DomainInterface]Impl`
 * An Use Case implements exactly one domain interface
 
+##### Tested by
+
+* Subcutaneous or Unit
+
 ##### Rules
 
 * A UseCase must not contain mutable state: all properties must be `val`
@@ -347,6 +355,10 @@ belongs in the feature root with the compatibility obligations that come with it
 * A Domain Model is a class or interface
 * A Domain Model satisfies one of: {is `sealed`, is a `data class`, is an `enum class`, is a `value class`}
 
+##### Tested by
+
+* Subcutaneous or Unit
+
 ##### Rules
 
 * A domain model must be immutable — no `var` properties
@@ -436,6 +448,10 @@ receiver.
 * An Extension Function declares an explicit extension receiver
 * An Extension Function has receiver/return/parameter types that are domain models, primitives, or collections of those
 
+##### Tested by
+
+* Unit or Subcutaneous
+
 ---
 
 ## [Extension Property](../src/main/kotlin/architecture/rules/serverdomain/ExtensionProperty.kt)
@@ -453,6 +469,10 @@ A top-level extension property in `server.domain` that exposes derived state on 
 * An Extension Property resides in `feature..server.domain..`
 * An Extension Property declares an explicit extension receiver
 * An Extension Property has a receiver/type that is a domain model, primitive, or collection of those
+
+##### Tested by
+
+* Unit or Subcutaneous
 
 ---
 
@@ -472,6 +492,10 @@ the client and server have to agree on belongs in the feature root instead.
 * A Constants resides in `feature..server.domain..`
 * A Constants is an `object` with only `val` properties and no functions
 * A Constants does not satisfy: is named `[Name]Workflow`
+
+##### Tested by
+
+* No tests are expected: constants
 
 ---
 
@@ -508,6 +532,10 @@ the [UseCase](#use-case) that injects them, calls `resolve`, and runs the plan.
 * A Workflow resides in `feature..server.domain..`
 * A Workflow is an object
 * A Workflow is named `[Name]Workflow`
+
+##### Tested by
+
+* Subcutaneous or Unit
 
 ##### Rules
 
@@ -551,6 +579,10 @@ governs them. The workflow contains the definition; the steps are the behaviour.
 * A Workflow Step is a class
 * A Workflow Step implements a `[Name]Workflow`'s nested `Step` contract
 
+##### Tested by
+
+* Subcutaneous or Unit
+
 ##### Rules
 
 * A WorkflowStep must not inject another step
@@ -587,3 +619,7 @@ a domain exception refactors freely.
 * A Domain Exception resides in `feature..server.domain..`
 * A Domain Exception is named `[Name]Exception`
 * A Domain Exception is a class extending RuntimeException/Exception
+
+##### Tested by
+
+* Subcutaneous or Unit

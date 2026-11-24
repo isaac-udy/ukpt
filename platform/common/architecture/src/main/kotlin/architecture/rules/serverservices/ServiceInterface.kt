@@ -1,5 +1,6 @@
 package architecture.rules.serverservices
 
+import architecture.definitions.TestCategories
 import dev.isaacudy.udytils.architecture.*
 
 import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
@@ -14,6 +15,7 @@ import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
       `ServerServices.ServiceInterface.errorsViaExceptions` below.
 """)
 object ServiceInterface : Construct<ServerServices>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous),
     requirements = listOf(
         isInterfaceWhere("is an `interface` annotated `@Urpc`") { decl -> decl.annotations.any { it.name == "Urpc" } },
         hasNameEndingWith("Service"),

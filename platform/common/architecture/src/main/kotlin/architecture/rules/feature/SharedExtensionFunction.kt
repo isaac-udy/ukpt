@@ -1,5 +1,6 @@
 package architecture.rules.feature
 
+import architecture.definitions.TestCategories
 import architecture.definitions.isApiModule
 import architecture.definitions.isFeatureRootPackage
 
@@ -19,6 +20,7 @@ import dev.isaacudy.udytils.architecture.*
       itself. Extension functions are for adding behavior to shared domain models.
 """)
 object SharedExtensionFunction : Construct<FeatureRules>(
+    testedBy = TestExpectation.anyOf(TestCategories.Unit, TestCategories.Subcutaneous),
     requirements = listOf(
         predicate("resides in the feature root package `feature.[name]`") { it.isFeatureRootPackage() },
         predicate("is declared in the feature's `:api` module") { it.isApiModule() },

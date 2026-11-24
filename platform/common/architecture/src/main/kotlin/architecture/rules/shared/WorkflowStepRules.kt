@@ -1,5 +1,6 @@
 package architecture.rules.shared
 
+import architecture.definitions.TestCategories
 import architecture.definitions.isFeatureModule
 import architecture.definitions.resolveTypeToken
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
@@ -14,6 +15,7 @@ abstract class WorkflowStepRules<G : RuleGroup>(
     side: String,
     outerCaller: String,
 ) : Construct<G>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous, TestCategories.Unit),
     requirements = listOf(
         isClass,
         isClassWhere("implements a `[Name]Workflow`'s nested `Step` contract") { cls ->

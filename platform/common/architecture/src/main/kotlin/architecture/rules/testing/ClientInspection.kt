@@ -16,6 +16,7 @@ import dev.isaacudy.udytils.architecture.*
     records its calls in a `Recording`.
 """)
 object ClientInspection : Construct<Testing>(
+    testedBy = TestExpectation.none("test infrastructure"),
     requirements = listOf(hasClientInspectionReceiver),
 ) {
     @Describe("A Client Inspection must live in a `:feature:[name]:tests` module's `src/commonMain`")

@@ -243,6 +243,10 @@ client, tables on the server.
 * A Repository is named `[Name]Repository`
 * A Repository is declared in a file matching its name
 
+##### Tested by
+
+* Subcutaneous
+
 ##### Rules
 
 * A Repository must be `internal`
@@ -361,6 +365,10 @@ it, so its rules and side effects live in one place and cannot be skipped by goi
 * A Storage Class is not abstract and not a `data class`
 * A Storage Class resides in `feature.[name].server.data.storage`
 
+##### Tested by
+
+* Subcutaneous or Adapter
+
 ##### Rules
 
 * A Storage class must be `internal`
@@ -397,6 +405,10 @@ that lives in a feature's `server.data.storage`, alongside the
 * A Storage Record satisfies one of: {is named `[Name]Row`, is named `[Name]Record`, is named `[Name]Insert`}
 * A Storage Record resides in `feature.[name].server.data.storage`
 
+##### Tested by
+
+* Subcutaneous or Adapter
+
 ---
 
 ## [Codec Object](../src/main/kotlin/architecture/rules/serverdata/CodecObject.kt)
@@ -416,6 +428,10 @@ either an `object` named `[Name]Codec` holding discriminator constants (such as
 * A Codec Object is named `[Name]Codec`
 * A Codec Object resides in `feature.[name].server.data`, outside the `storage` subtree
 
+##### Tested by
+
+* Unit or Adapter
+
 ##### Guidance
 
 * A Codec should stay small and keyed to the column it serves; it encapsulates the read/write asymmetry `setFromRow` can't express
@@ -434,6 +450,10 @@ A plain `internal fun` conversion between the storage `Row` shapes and domain ty
 * A Mapping Function resides in `feature..server.data..`
 * A Mapping Function is a function
 * A Mapping Function resides in `feature.[name].server.data`, outside the `storage` subtree
+
+##### Tested by
+
+* Unit or Subcutaneous
 
 ##### Rules
 
@@ -462,6 +482,10 @@ and nothing else's. Swapping the provider should change one file.
 * An Integration Client is a class
 * An Integration Client is named `[Name]Client` or `[Name]Provider`
 * An Integration Client is not abstract and not a `data class`
+
+##### Tested by
+
+* Adapter
 
 ##### Rules
 
@@ -495,6 +519,10 @@ configuration field.
 * A Configuration is a `data class`
 * A Configuration is named `[Name]Config` or `[Name]Configuration`
 * A Configuration resides in `feature.[name].server.data..`
+
+##### Tested by
+
+* Wiring or Subcutaneous
 
 ##### Rules
 

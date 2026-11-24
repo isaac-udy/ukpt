@@ -1,5 +1,6 @@
 package architecture.rules.clientui
 
+import architecture.definitions.TestCategories
 import dev.isaacudy.udytils.architecture.*
 
 import architecture.definitions.withoutStringsAndComments
@@ -18,6 +19,7 @@ import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
       an action.
 """)
 object ViewModel : Construct<ClientUi>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous, TestCategories.Unit),
     requirements = listOf(
         isClassWhere("extends `androidx.lifecycle.ViewModel`") { declaration ->
             declaration.parents().any { parent -> parent.name == "ViewModel" }

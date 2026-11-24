@@ -8,6 +8,7 @@ import dev.isaacudy.udytils.architecture.*
     Test Graphs and Host Edges are their own Constructs.
 """)
 object Fixture : Construct<Testing>(
+    testedBy = TestExpectation.none("test infrastructure"),
     requirements = listOf(
         oneOf(isFunction, isProperty),
         not(isAnnotatedWith("Composable")),

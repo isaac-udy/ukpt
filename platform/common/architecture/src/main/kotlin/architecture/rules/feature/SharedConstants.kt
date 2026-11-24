@@ -16,6 +16,7 @@ import architecture.definitions.isMutable
       [shared domain model](#shared-domain-model) as a member or extension.
 """)
 object SharedConstants : Construct<FeatureRules>(
+    testedBy = TestExpectation.none("constants"),
     requirements = listOf(
         predicate("resides in the feature root package `feature.[name]`") { it.isFeatureRootPackage() },
         predicate("is declared in the feature's `:api` module") { it.isApiModule() },

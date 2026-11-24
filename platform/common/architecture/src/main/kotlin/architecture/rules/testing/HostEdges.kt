@@ -37,6 +37,7 @@ internal val isHostEdges = isPropertyWhere("is a top-level property of type `Edg
     still replace a host binding.
 """)
 object HostEdges : Construct<Testing>(
+    testedBy = TestExpectation.none("test infrastructure"),
     requirements = listOf(isHostEdges),
 ) {
     @Describe("A Host Edges declaration must live in a `:feature:[name]:tests` module's `src/commonMain` or a host's main source set")

@@ -1,5 +1,6 @@
 package architecture.rules.feature
 
+import architecture.definitions.TestCategories
 import architecture.definitions.isClientModule
 import architecture.definitions.isFeatureModule
 import architecture.definitions.isFeatureRootPackage
@@ -11,6 +12,7 @@ import dev.isaacudy.udytils.architecture.*
     register a group of bindings. Used to split a large module into readable, named chunks.
 """)
 object DependencyModuleHelper : Construct<FeatureRules>(
+    testedBy = TestExpectation.anyOf(TestCategories.Wiring, TestCategories.Subcutaneous),
     requirements = listOf(
         isFunction,
         isInternal,

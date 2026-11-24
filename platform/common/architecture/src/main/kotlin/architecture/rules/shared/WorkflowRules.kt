@@ -1,11 +1,13 @@
 package architecture.rules.shared
 
+import architecture.definitions.TestCategories
 import architecture.definitions.isMutable
 import com.lemonappdev.konsist.api.declaration.KoObjectDeclaration
 import dev.isaacudy.udytils.architecture.*
 
 /** The Workflow definition-object rules, shared by both sided domain groups. */
 abstract class WorkflowRules<G : RuleGroup> : Construct<G>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous, TestCategories.Unit),
     requirements = listOf(
         isObject,
         hasNameEndingWith("Workflow"),

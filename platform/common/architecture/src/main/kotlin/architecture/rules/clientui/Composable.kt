@@ -1,5 +1,6 @@
 package architecture.rules.clientui
 
+import architecture.definitions.TestCategories
 import dev.isaacudy.udytils.architecture.*
 
 import architecture.definitions.isFeatureModule
@@ -50,6 +51,7 @@ import architecture.rules.testing.SnapshotTest
       ```
 """)
 object Composable : Construct<ClientUi>(
+    testedBy = TestExpectation.anyOf(TestCategories.Snapshot, TestCategories.Component),
     requirements = listOf(
         predicate("is not a Screen") { declaration -> !Screen.test(declaration) },
         isAnnotatedWith("Composable"),

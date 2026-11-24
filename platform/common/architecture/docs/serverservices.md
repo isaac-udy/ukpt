@@ -107,6 +107,10 @@ server binding, and the wire descriptors from the annotated interface.
 * A Service Interface is named `[Name]Service`
 * A Service Interface resides in `feature.[name].server.services` itself, not in a sub-package
 
+##### Tested by
+
+* Subcutaneous
+
 ##### Rules
 
 * Every `@Urpc` Service contract must be implemented in the feature's `:server` module; a Service interface must not be used as a client-only abstraction — client-only contracts are domain interfaces in `client.domain`
@@ -157,6 +161,10 @@ contract, so it belongs to this layer, not the top-level feature group.
 * A Service Impl resides in `feature.[name].server.services` itself, beside the contract, not in a sub-package
 * A Service Impl is declared in a `:server` module
 
+##### Tested by
+
+* Subcutaneous
+
 ##### Rules
 
 * A Service implementation must be `internal`
@@ -197,6 +205,10 @@ fun Route.paymentWebhook(configuration: PaymentWebhookConfiguration, applyPaymen
 * A Route is a top-level extension of Ktor's `Route`
 * A Route resides in `feature.[name].server.services` itself, not in a sub-package
 * A Route is declared in a `:server` module
+
+##### Tested by
+
+* Subcutaneous
 
 ##### Rules
 

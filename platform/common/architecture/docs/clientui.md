@@ -96,6 +96,10 @@ a `@Preview`.
 * A Screen is named `[Name]Screen` (property-based screens may end in `Screen` or `Destination`)
 * A Screen has a single parameter — the associated `[Name]ViewModel` (property form exempt)
 
+##### Tested by
+
+* Snapshot or Component
+
 ##### Rules
 
 * A Screen function must be annotated with `@Composable`
@@ -231,6 +235,10 @@ Snapshots are preview-driven: `PreviewSnapshotTest` (in `src/androidHostTest/`) 
 * A Composable is not a Screen
 * A Composable is annotated `@Composable`
 
+##### Tested by
+
+* Snapshot or Component
+
 ##### Rules
 
 * A `[Name]ScreenContent` composable must be called from a `@Preview` composable in the same file
@@ -266,6 +274,10 @@ provided by that screen (if any).
 * A Destination is annotated `@Serializable`
 * A Destination is declared in a file matching its name
 
+##### Tested by
+
+* Subcutaneous or Component
+
 ##### Rules
 
 * A Destination lives in the feature's `:client` module, and in `:api` only when another feature navigates to it
@@ -300,6 +312,10 @@ to load data and perform side effects based on user actions.
 * A View Model declares its `state` property as a `ViewModelState<[Name]State>` (1:1 with the ViewModel's State type)
 * A View Model has a `private val navigation` obtained via `navigationHandle<[Name]Destination>()`
 * A View Model is declared in a file matching its name
+
+##### Tested by
+
+* Subcutaneous or Unit
 
 ##### Rules
 
@@ -346,6 +362,10 @@ The complete, immutable representation of a Screen's data at a single point in t
 * A View Model State is a `data class`
 * A View Model State is named `[Name]State`
 * A View Model State is declared in a file matching its name
+
+##### Tested by
+
+* Subcutaneous or Unit
 
 ##### Rules
 
@@ -534,6 +554,10 @@ to another feature's screen.
 * An Ui Value Type satisfies one of: {is an `enum class`, is `sealed`}
 * An Ui Value Type has no member functions
 
+##### Tested by
+
+* Snapshot or Component or Unit
+
 ---
 
 ## [Composition Local](../src/main/kotlin/architecture/rules/clientui/CompositionLocal.kt)
@@ -550,6 +574,10 @@ value is provided once near the composition root and read by leaf composables.
 * A Composition Local resides in `feature..client.ui..`
 * A Composition Local is a property
 * A Composition Local is a top-level `Local…` val built via `compositionLocalOf` / `staticCompositionLocalOf`
+
+##### Tested by
+
+* No tests are expected: a CompositionLocal declares a key; the composables that read it are tested
 
 ##### Rules
 
@@ -577,3 +605,7 @@ object UkptScreenTags {
 * A Screen Tags resides in `feature..client.ui..`
 * A Screen Tags is named `[Screen]Tags`
 * A Screen Tags is an `object` with only `const val` properties and no functions
+
+##### Tested by
+
+* No tests are expected: test tags are constants

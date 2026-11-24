@@ -1,5 +1,6 @@
 package architecture.rules.clientui
 
+import architecture.definitions.TestCategories
 import dev.isaacudy.udytils.architecture.*
 
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
@@ -16,6 +17,7 @@ import com.lemonappdev.konsist.api.provider.KoContainingFileProvider
       `User`.
 """)
 object Destination : Construct<ClientUi>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous, TestCategories.Component),
     requirements = listOf(
         isClassOrObject,
         predicate("implements `dev.enro.NavigationKey` or `NavigationKey.WithResult<T>`") { d ->

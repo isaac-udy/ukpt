@@ -1,5 +1,6 @@
 package architecture.rules.serverdata
 
+import architecture.definitions.TestCategories
 import architecture.definitions.isInServerDataOutsideStorage
 
 import dev.isaacudy.udytils.architecture.*
@@ -11,6 +12,7 @@ import dev.isaacudy.udytils.architecture.*
       for the inverse.
 """)
 object MappingFunction : Construct<ServerData>(
+    testedBy = TestExpectation.anyOf(TestCategories.Unit, TestCategories.Subcutaneous),
     requirements = listOf(
         isFunction,
         predicate("resides in `feature.[name].server.data`, outside the `storage` subtree") { it.isInServerDataOutsideStorage() },

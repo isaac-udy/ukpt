@@ -31,6 +31,10 @@ the test may use besides the code under test; the `Testing` rules check it
 | `@CheckTest` | Two committed files that must agree (CSS tokens, doc images) | a JVM test set |
 | `@EndToEndTest` | A journey through the desktop app's UI | `:app:client:desktop`, `src/test/` |
 
+Each Construct's documentation page lists the categories expected to cover it under "Tested by"
+(`testedBy` in the catalog): a ViewModel is tested by a Subcutaneous or Unit Test, a Screen by a
+Snapshot or Component Test.
+
 Ask first whether a Subcutaneous Test covers the behaviour. A Unit Test constructs one production
 class (`Testing.UnitTest.oneProductionClass`) and imports no DI, network, database, file or UI-test
 API (`Testing.UnitTest.noInfrastructure`); collaborators are lambdas for `fun interface`s or

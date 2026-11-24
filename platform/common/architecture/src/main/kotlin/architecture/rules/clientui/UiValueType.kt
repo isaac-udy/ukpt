@@ -1,5 +1,6 @@
 package architecture.rules.clientui
 
+import architecture.definitions.TestCategories
 import dev.isaacudy.udytils.architecture.*
 
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
@@ -14,6 +15,7 @@ import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
       State, Destination, or domain object as appropriate.
 """)
 object UiValueType : Construct<ClientUi>(
+    testedBy = TestExpectation.anyOf(TestCategories.Snapshot, TestCategories.Component, TestCategories.Unit),
     requirements = listOf(
         oneOf(isEnum, isSealed),
         predicate("has no member functions") { declaration ->

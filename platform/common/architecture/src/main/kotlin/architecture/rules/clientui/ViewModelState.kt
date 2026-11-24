@@ -1,5 +1,6 @@
 package architecture.rules.clientui
 
+import architecture.definitions.TestCategories
 import dev.isaacudy.udytils.architecture.*
 
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
@@ -13,6 +14,7 @@ import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
       `ProjectRules.noDirectAsyncStateConstruction`.
 """)
 object ViewModelState : Construct<ClientUi>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous, TestCategories.Unit),
     requirements = listOf(
         isClass,
         isDataClass,

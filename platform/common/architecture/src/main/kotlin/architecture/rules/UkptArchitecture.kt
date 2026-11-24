@@ -73,4 +73,5 @@ object UkptArchitecture : ArchitectureDefinition(
     docs = DocsConfig(module = "platform/common/architecture"),
     testScope = { projectTestScope },
     testMembership = { true },
+    requireTestExpectations = true,
 )

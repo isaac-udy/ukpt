@@ -34,6 +34,7 @@ internal val isSubcutaneousGraph = isPropertyWhere("is a top-level property init
     ```
 """)
 object TestGraph : Construct<Testing>(
+    testedBy = TestExpectation.none("test infrastructure"),
     requirements = listOf(isSubcutaneousGraph),
 ) {
     @Describe("A `:feature:[name]:tests` module must declare exactly one Test Graph, and a Test Graph must live in one")

@@ -13,6 +13,7 @@ import dev.isaacudy.udytils.architecture.*
     declaration.
 """)
 object Fake : Construct<Testing>(
+    testedBy = TestExpectation.none("test infrastructure"),
     requirements = listOf(
         oneOf(isClass, isObject),
         predicate("is named `Fake[Name]`") { (it as? KoNameProvider)?.name?.startsWith("Fake") == true },

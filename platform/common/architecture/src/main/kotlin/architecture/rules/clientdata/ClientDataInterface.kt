@@ -1,5 +1,6 @@
 package architecture.rules.clientdata
 
+import architecture.definitions.TestCategories
 import dev.isaacudy.udytils.architecture.*
 
 import architecture.definitions.containingFilePackage
@@ -16,6 +17,7 @@ import architecture.definitions.containsPackageSegment
       feature-specific.
 """)
 object ClientDataInterface : Construct<ClientData>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous),
     requirements = listOf(
         isInterface,
         predicate("resides in `feature.[name].client.data` (not `client.data.storage`)") { decl ->

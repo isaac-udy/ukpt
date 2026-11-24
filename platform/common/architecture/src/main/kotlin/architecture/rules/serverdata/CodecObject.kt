@@ -1,5 +1,6 @@
 package architecture.rules.serverdata
 
+import architecture.definitions.TestCategories
 import architecture.definitions.isInServerDataOutsideStorage
 
 import dev.isaacudy.udytils.architecture.*
@@ -14,6 +15,7 @@ import dev.isaacudy.udytils.architecture.*
       other object the layer contains.
 """)
 object CodecObject : Construct<ServerData>(
+    testedBy = TestExpectation.anyOf(TestCategories.Unit, TestCategories.Adapter),
     requirements = listOf(
         isObject,
         hasNameEndingWith("Codec"),

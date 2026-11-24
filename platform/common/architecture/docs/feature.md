@@ -113,6 +113,10 @@ distinguishes it.
 * A Shared Domain Model satisfies one of: {is `sealed`, is a `data class`, is an `enum class`, is a `value class`}
 * A Shared Domain Model is annotated with `@Serializable`
 
+##### Tested by
+
+* Subcutaneous or Unit
+
 ##### Rules
 
 * A shared domain model must be immutable (val properties only)
@@ -221,6 +225,10 @@ it crosses the wire, it is part of the feature's shared vocabulary and lives in 
 * A Shared Exception is a class extending RuntimeException/Exception/PresentableException
 * A Shared Exception is annotated `@Serializable`
 
+##### Tested by
+
+* Subcutaneous or Unit
+
 ---
 
 ## [Shared Constants](../src/main/kotlin/architecture/rules/feature/SharedConstants.kt)
@@ -237,6 +245,10 @@ numbers, lookup tables, and named tags — values both the client and server nee
 * A Shared Constants resides in the feature root package `feature.[name]`
 * A Shared Constants is declared in the feature's `:api` module
 * A Shared Constants is an `object` with only `val` properties and no functions
+
+##### Tested by
+
+* No tests are expected: constants
 
 ---
 
@@ -259,6 +271,10 @@ from the object's values and touches nothing else.
 * A Shared Extension Function is declared in the feature's `:api` module
 * A Shared Extension Function declares an explicit extension receiver
 * A Shared Extension Function has receiver/return/parameter types that are shared domain models, primitives, or collections of those
+
+##### Tested by
+
+* Unit or Subcutaneous
 
 ##### Rules
 
@@ -283,6 +299,10 @@ derived state.
 * A Shared Extension Property is declared in the feature's `:api` module
 * A Shared Extension Property declares an explicit extension receiver
 * A Shared Extension Property has a receiver/type that is a shared domain model, primitive, or collection of those
+
+##### Tested by
+
+* Unit or Subcutaneous
 
 ---
 
@@ -316,6 +336,10 @@ The configuration for Dependency Injection (DI) that wires the feature together.
 * A Dependency Module resides in the top-level `feature.[name]` package of a `:client` or `:server` module
 * A Dependency Module is a property
 * A Dependency Module is named `[Name]Dependencies`
+
+##### Tested by
+
+* Wiring or Subcutaneous
 
 ##### Rules
 
@@ -391,3 +415,7 @@ register a group of bindings. Used to split a large module into readable, named 
 * A Dependency Module Helper is `internal`
 * A Dependency Module Helper has a Koin `Module` receiver
 * A Dependency Module Helper resides in the top-level `feature.[name]` package of a `:client` or `:server` module, beside the `Dependencies` module it splits
+
+##### Tested by
+
+* Wiring or Subcutaneous
