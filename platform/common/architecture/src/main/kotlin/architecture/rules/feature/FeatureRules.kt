@@ -11,7 +11,7 @@ import architecture.utils.isPlatformSpecificImport
  * Declared WITHOUT `inPackage`: this group governs the top-level `feature.[name]` package *minus*
  * the layer sub-packages (anything with a `data`/`domain`/`services`/`ui` segment), and neither the
  * two-segment package nor the exclusion is expressible as the registry's single-glob `inPackage`
- * (no exclude support) — so there is no exhaustiveness rule, and each Construct carries its own
+ * (no exclude support) — so there is no exhaustiveness rule, and each Construct declares its own
  * package and module boundary instead. ServiceImpls are classified by the services layer
  * (`ServerServices.ServiceImpl`), so there is no ServiceImpl construct here — that would
  * double-classify every ServiceImpl and break the global layer-membership check.
@@ -33,14 +33,14 @@ import architecture.utils.isPlatformSpecificImport
     between features.
 
     The feature **root** is `feature.[name]`, with no `client` or `server` segment. The Gradle
-    module it is compiled into decides what it holds: in `:api` it is the feature's shared
-    vocabulary; in `:client` and `:server` the same package name holds DI wiring.
+    module the root is compiled into decides what the root contains: in `:api` the root is the
+    feature's shared vocabulary; in `:client` and `:server` the same package name contains DI wiring.
 
-    **In `:api`, the root holds the shared vocabulary**: the domain models, exceptions, and
+    **In `:api`, the root contains the shared vocabulary**: the domain models, exceptions, and
     constants that both the client and the server use. It is common Kotlin that compiles for every
     target.
 
-    The root also shows, straight off the package path, how far a change reaches. A
+    The package path of the root also shows which code a change to the root affects. A
     [shared domain model](#shared-domain-model) is used by the client, the server, and potentially
     other features, so renaming a field is a compatibility event. A
     [domain model](clientdomain.md#domain-model) in
@@ -53,19 +53,19 @@ import architecture.utils.isPlatformSpecificImport
     > renaming a field, changing a type, or moving a sealed variant breaks compatibility across
     > features. A PR touching a feature root should be reviewed as one.
 
-    The root holds domain objects and validation only: no interfaces with behaviour, no use cases, no
-    logic beyond validating the values it carries. Anything with behaviour belongs on a side —
+    The root contains domain objects and validation only: no interfaces with behaviour, no use cases,
+    no logic beyond validating the values of the domain objects. Anything with behaviour belongs on a side —
     single-function contracts are [domain interfaces](clientdomain.md#domain-interface) in
     `client.domain` or [`server.domain`](serverdomain.md#domain-interface).
 
-    **In `:client` and `:server`, the same package holds the feature's wiring.** It is reserved for
+    **In `:client` and `:server`, the same package contains the feature's wiring.** It is reserved for
     dependency injection: Koin modules that define the feature's DI bindings, wiring its
     [ViewModels](clientui.md#view-model), Repositories
     ([client](clientdata.md#repository), [server](serverdata.md#repository)),
     [UseCases](clientdomain.md#use-case) ([server](serverdomain.md#use-case)),
     [StorageClasses](serverdata.md#storage-class), and
     [Service](serverservices.md#service-interface) implementations into the graph. Concrete classes
-    (ServiceImpls, helpers, etc.) live in their layer-specific package; nothing else belongs here.
+    (ServiceImpls, helpers, etc.) live in their layer-specific package; no other declaration belongs in the root package.
 """)
 object FeatureRules : RuleGroup(
     constructs = listOf(
@@ -90,7 +90,7 @@ object FeatureRules : RuleGroup(
         )
         note("Other features' roots are importable — real vocabularies reference each other. Keep that graph acyclic.")
         note("Tested as an allow-list: a `feature.` import is a root import when everything between the feature name and the imported declaration is a type name, so anything sitting in a deeper package is client- or server-private whatever that package is called.")
-        note("Scoped to `:api`, where the vocabulary lives; the same package name on `:client`/`:server` holds the feature's DI module, whose job is to name both client and server implementations.")
+        note("Scoped to `:api`, where the vocabulary lives; the same package name on `:client`/`:server` contains the feature's DI module, whose job is to name both client and server implementations.")
         scope { scope, exempt ->
             scope.files
                 .filter { it.isFeatureModule() && it.isFeatureRootPackage() && it.isApiModule() }
@@ -113,7 +113,7 @@ object FeatureRules : RuleGroup(
             into the vocabulary itself.
             """.trimIndent(),
         )
-        note("Scoped to `:api`, where the vocabulary lives; the same package name on `:client`/`:server` holds the feature's [dependency module](#dependency-module), which is out of scope because wiring a client or server necessarily names its platform types.")
+        note("Scoped to `:api`, where the vocabulary lives; the same package name on `:client`/`:server` contains the feature's [dependency module](#dependency-module), which is out of scope because wiring a client or server necessarily names its platform types.")
         scope { scope, exempt ->
             scope.files
                 .filter { it.isFeatureModule() && it.isFeatureRootPackage() && it.isApiModule() }

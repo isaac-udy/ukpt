@@ -1,5 +1,6 @@
 package architecture.rules.serverweb
 
+import architecture.definitions.TestCategories
 import dev.isaacudy.udytils.architecture.*
 
 import architecture.definitions.isServerModule
@@ -18,6 +19,7 @@ import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
     [Event Stream](#event-stream).
 """)
 object Routes : Construct<ServerWeb>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous),
     requirements = listOf(
         isClassWhere("is named `[Name]Routes`") { it.name.endsWith("Routes") },
         predicate("is declared in a `:server` module") { it.isServerModule() },

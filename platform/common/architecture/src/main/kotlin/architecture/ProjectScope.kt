@@ -5,7 +5,7 @@ import java.io.File
 
 /**
  * The root of the build being scanned: the nearest ancestor of the test JVM's working directory
- * that holds a `settings.gradle.kts`, which is how Konsist resolves its own project root.
+ * that contains a `settings.gradle.kts`, which is how Konsist resolves its own project root.
  */
 private val buildRoot: String = generateSequence(File(System.getProperty("user.dir")).absoluteFile) { it.parentFile }
     .firstOrNull { File(it, "settings.gradle.kts").isFile }
@@ -30,8 +30,11 @@ private val nestedWorktrees = "$buildRoot/.claude/"
  */
 private val testSourceSet = Regex("/src/[^/]*[Tt]est/")
 
-/** A `:feature:[name]:tests` module is test code in every source set, including its `src/main`. */
-private val featureTestsModule = Regex("/feature/[^/]+/tests/src/")
+/**
+ * A `:feature:[name]:tests` module is test code in every source set, including its `src/main`. A
+ * grouped feature's name spans several directories (`/feature/capture/insta/tests/src/`).
+ */
+private val featureTestsModule = Regex("/feature/(?:[^/]+/)+tests/src/")
 
 fun isTestSource(path: String) = testSourceSet.containsMatchIn(path) || featureTestsModule.containsMatchIn(path)
 

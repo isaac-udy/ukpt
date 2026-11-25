@@ -12,7 +12,7 @@ description: >-
 # ukpt-feature-slice
 
 Scaffold `:feature:<name>:{api,server,tests}` modeled on the canonical `:feature:core`.
-`templates.md` carries the build files and source skeletons; `:feature:core` is the living
+`templates.md` contains the build files and source skeletons; `:feature:core` is the living
 reference to read when in doubt.
 
 ## Naming (read first — `:feature:core` has a deliberate mismatch)
@@ -25,13 +25,13 @@ reference to read when in doubt.
   per page (`<Name>` = PascalCase).
 
 Do **not** copy the literal `ukpt`/`Ukpt` from core — substitute `<name>`/`<Name>`.
-`ukptLayout` is the project's layout function in `:platform:server:web`; it carries the project's
+`ukptLayout` is the project's layout function in `:platform:server:web`; its name starts with the project's
 prefix, not the feature's. A shell that several features share (navigation, the signed-in user) is
 a Layout of its own over `ukptDocument` (`ServerWeb.Layout`).
 
 ## Domain shape (before writing `server.domain`)
 Interfaces come from consumers, not from storage. Before the first `fun interface`:
-1. List the consumers (route handlers, event streams, UseCases) and the question each one asks.
+1. List the consumers (route handlers, event streams, UseCases) and what each consumer reads or changes.
 2. Write the domain models those answers need; facts one consumer needs together are one model.
 3. Derive one interface per question, provided by the Repository that owns the storage. A UseCase
    exists only where a decision, or a composition of independent capabilities, exists, and it is
@@ -59,9 +59,9 @@ the result.
 7. **Wire it up** (templates.md §8 checklist):
    - `app/server/build.gradle.kts` → `implementation(projects.feature.<name>.server)`.
    - `app/server/.../ServerDependencies.kt` → add `<name>ServerDependencies` to the list + its import.
-     The server installs every `WebRoutes` binding, so nothing else registers the routes.
+     The server installs every `WebRoutes` binding, so no other code registers the routes.
 8. **Verify** — record the HTML goldens (`./gradlew :feature:<name>:server:snapshotTest -PrecordHtmlSnapshots`),
-   review them, then run `./gradlew :feature:<name>:tests:subcutaneousTest verifyArchitecture`. A
+   review them, then run `./gradlew :feature:<name>:tests:subcutaneousJvmTest verifyArchitecture`. A
    page with scripts of its own (Alpine, a static file) needs a step in the app's End To End Test,
    which also fails on content security policy violations.
 
@@ -93,7 +93,7 @@ the result.
   **`ServerWeb.Routes.noPersistenceInjection`** — inject domain interfaces, never a Repository.
 - **`ServerWeb.Page.takesItsViewState`** — a Page takes one `<Page>PageState`;
   **`ServerWeb.Page.rendersThroughLayout`** — and renders through `ukptLayout` or a shared Layout.
-- **`ServerWeb.Form.rawInputProperties`** — a Form holds strings as submitted.
+- **`ServerWeb.Form.rawInputProperties`** — a Form stores strings as submitted.
 - **`ServerWeb.noDataImports`**, **`ServerWeb.noKoinImports`** — the web layer imports neither.
 - **`FeatureRules.DependencyModule`** (construct) — DI is a `val <name>ServerDependencies` module in `feature.<name>`;
   **`ProjectRules.constructorReferenceBindings`** — constructor-reference bindings.

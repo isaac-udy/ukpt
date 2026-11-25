@@ -33,6 +33,7 @@ import dev.isaacudy.udytils.architecture.*
     `ukpt.end-to-end-tests` installs the Chromium headless shell before the tests run.
 """)
 object EndToEndTest : Construct<Testing>(
+    testedBy = TestExpectation.none("a test"),
     requirements = listOf(isClass, isAnnotatedWith("EndToEndTest")),
 ) {
     @Describe("An End To End Test must live in `:app:server`'s `src/test` source set")

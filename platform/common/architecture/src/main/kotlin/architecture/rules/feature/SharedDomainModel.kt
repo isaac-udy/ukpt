@@ -1,5 +1,6 @@
 package architecture.rules.feature
 
+import architecture.definitions.TestCategories
 import architecture.definitions.isApiModule
 import architecture.definitions.isFeatureRootPackage
 
@@ -16,7 +17,7 @@ import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
     field is part of a compatibility surface.
 
     The private counterpart is the [domain model](clientdomain.md#domain-model)
-    ([server](serverdomain.md#domain-model)), which refactors freely because nothing outside its
+    ([server](serverdomain.md#domain-model)), which refactors freely because no code outside its
     client or server can observe the change. `Shared` is what says both the client and server name
     it, and the package is where that is written down. A private model may serialize too — for a
     column or for restored state — so `@Serializable` is what a shared model needs, not what
@@ -27,6 +28,7 @@ import com.lemonappdev.konsist.api.declaration.KoInterfaceDeclaration
       in the examples below. Otherwise, model them as their own shared domain models.
 """)
 object SharedDomainModel : Construct<FeatureRules>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous, TestCategories.Unit),
     requirements = listOf(
         predicate("resides in the feature root package `feature.[name]`") { it.isFeatureRootPackage() },
         predicate("is declared in the feature's `:api` module") { it.isApiModule() },

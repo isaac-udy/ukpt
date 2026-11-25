@@ -11,7 +11,7 @@ description: >-
 
 Update this project to the latest ukpt template. The template lives at
 `https://github.com/isaac-udy/ukpt`; this project has no git relationship with it. All comparison
-happens against a throwaway clone, and changes land as ordinary commits on an update branch.
+happens against a throwaway clone, and changes are added as ordinary commits on an update branch.
 
 Three kinds of change, three mechanisms:
 
@@ -76,6 +76,20 @@ into the project:
 git merge-file <project-file> <translated-base> <translated-new>
 ```
 
+Translate only what `ukpt-new-project` renames (its rename table's `Where` column). Never
+translate:
+
+- Convention plugin IDs and file names (`id("ukpt.…")`, `build-logic/src/main/kotlin/ukpt.*.gradle.kts`).
+  A project that renamed its older plugins keeps those names; a plugin new to the project keeps
+  the `ukpt.` prefix.
+- `build-logic/src/main/kotlin/ukpt/template/`. `validateTemplate` checks the template's own
+  names there.
+- Version-catalog aliases, `.agents/`, `.claude/`, `.ukpt/`, `UKPT.md` and
+  `docs/template-migrations/`.
+
+The `UKPT_` environment-variable prefix in `build-logic/` is translated, as `ukpt-new-project`
+renames it.
+
 File classes:
 
 - **Template-owned (expect clean merges):** `UKPT.md`, `gradle/wrapper/`, `build-logic/`,
@@ -90,7 +104,7 @@ File classes:
   includes stay), app shells (`app/`), platform modules the project has extended,
   `.github/workflows/ci.yml` (project jobs and deploy steps stay).
 - **Example code (do not sync):** `:feature:core` and anything under `feature/` — template
-  changes here are patterns, carried by migrations (§6), not file syncs.
+  changes here are patterns, applied by migrations (§6), not file syncs.
 - **Identity-bearing (sync structure, never values):** `platform/server/web/src/main/resources/static/platform/css/tokens.css`.
   Its token *names* are the template's — `base.css` and feature stylesheets read them. Its values
   are the project's identity: the palette, the type, the spacing. Apply a template change that adds
@@ -100,8 +114,8 @@ File classes:
 - **Generated (do not merge by hand):** `platform/common/architecture/README.md` and `docs/` —
   regenerated in §5.
 
-Resolve conflicts by intent: the template side carries infrastructure changes, the project side
-carries the project's own content. When a conflict is not clearly one or the other, ask the user.
+Resolve conflicts by intent: the template side contains infrastructure changes, the project side
+contains the project's own content. When a conflict is not clearly one or the other, ask the user.
 
 ## 5. Architecture rules — ask, don't overwrite
 
@@ -113,7 +127,7 @@ Projects tweak and extend their rule catalogs. Never treat the catalog as templa
    - Project file identical to template base → apply the template change.
    - Project file was customised → present the template change and the project's customisation
      side by side, and **ask the user** how to combine them. Do not guess.
-   - Project has added its own rules, Constructs, or RuleGroups → they always survive. If a new
+   - Project has added its own rules, Constructs, or RuleGroups → always keep them. If a new
      template rule overlaps or conflicts with a project rule (same concern, different statement,
      colliding IDs), **stop and ask the user** which one wins.
    - Template removed or renamed a rule ID → search the project for references
@@ -129,11 +143,13 @@ Projects tweak and extend their rule catalogs. Never treat the catalog as templa
 ## 6. Submodules and migrations
 
 1. Bump each submodule in the clone's `.gitmodules` to the template's pin at `<new>`
-   (`git -C <clone> ls-tree <new> <path>`), checkout, and record the SHAs for the marker. A
+   (`git -C <clone> ls-tree <new> <path>`), checkout, and record the SHAs for the marker. Run
+   `git add <path>` for each submodule straight after its checkout: until the new pin is staged,
+   `git submodule update --init --recursive` puts the old pin back. A
    submodule the template added or removed is added or removed here too, through the migration
    that introduced the change. API breaks surface in §7; fix them as part of the update.
-2. Apply the migrations listed in §3, in order. Each entry carries its own detection, steps, and
-   verification. These operate on the project's own features — the part no file sync can reach.
+2. Apply the migrations listed in §3, in order. Each entry contains its own detection, steps, and
+   verification. The migrations operate on the project's own features — the part no file sync changes.
 
 ## 7. Verify
 

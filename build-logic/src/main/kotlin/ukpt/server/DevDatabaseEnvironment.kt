@@ -17,10 +17,10 @@ object DevDatabaseEnvironment {
     /** Names the `DevScenarios` entry a brand-new cluster is seeded with. */
     const val SCENARIO: String = "UKPT_DEV_SCENARIO"
 
-    /** A cluster that survives restarts — the default for `run`. */
+    /** A cluster that is kept across restarts — the default for `run`. */
     const val MODE_EMBEDDED: String = "embedded"
 
-    /** A cluster discarded on shutdown — what a test or a one-shot boot wants. */
+    /** A cluster discarded on shutdown — the mode for a test or a one-shot boot. */
     const val MODE_EPHEMERAL: String = "ephemeral"
 
     const val PORT: String = "PORT"

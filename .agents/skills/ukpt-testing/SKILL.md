@@ -14,7 +14,7 @@ description: >-
 
 # ukpt-testing
 
-Every test class carries exactly one annotation from `platform.testing`. The category says what
+Every test class has exactly one annotation from `platform.testing`. The category says what
 the test may use besides the code under test; the `Testing` rules check it
 (`platform/common/architecture/docs/testing.md`).
 
@@ -22,20 +22,25 @@ the test may use besides the code under test; the `Testing` rules check it
 
 | Write a… | When | Where |
 | --- | --- | --- |
-| `@SubcutaneousTest` | Behaviour a user reaches through a page. **The default.** | `:feature:<name>:tests`, `src/test/` |
+| `@SubcutaneousTest` | Behaviour a user exercises through a page. **The default.** | `:feature:<name>:tests`, `src/test/` |
 | `@UnitTest` | Logic with many inputs: parsing, validation, formatting, a branching UseCase | the module's `src/test/` |
 | `@ComponentTest` | Markup with many states, rendered with fixed state: a Component, an event stream's swaps | a `:feature:<name>:server` module's `src/test/` |
 | `@SnapshotTest` | A Page's golden HTML | a `:feature:<name>:server` module's `src/test/` |
 | `@WiringTest` | The server's Koin graph (`verify()`) | `:app:server`, `src/test/` |
-| `@AdapterTest` | One server adapter against real infrastructure, where a Subcutaneous Test reaches poorly | a server module's `src/test/`, or `:platform:common:subcutaneous`'s for the tab |
+| `@AdapterTest` | One server adapter against real infrastructure, where a Subcutaneous Test covers the adapter poorly | a server module's `src/test/`, or `:platform:common:subcutaneous`'s for the tab |
 | `@CheckTest` | Two committed files that must agree | a `src/test/` |
 | `@EndToEndTest` | A journey in a real browser: scripts, Alpine, the content security policy | `:app:server`, `src/test/` |
 
 Ask first whether a Subcutaneous Test covers the behaviour. A Unit Test constructs one production
 class (`Testing.UnitTest.oneProductionClass`) and imports no DI, network, database, file, HTML or
 browser API (`Testing.UnitTest.noInfrastructure`); collaborators are lambdas for `fun interface`s or
-`Fake[Name]` classes. Constructing domain models, View States, Forms and other value types is test
-data and does not count.
+`Fake[Name]` classes. Constructing domain models, View States, Forms and other value types (a
+`data class`, a `value class`, or a class of constructor `val`s only) is test data and does not
+count.
+
+Each Construct's documentation page lists the categories expected to cover the Construct under
+"Tested by" (`testedBy` in the rule catalog); `testCoverageReport` counts a line as covered only
+when a test from one of those categories runs the line.
 
 ## Writing one
 
@@ -43,6 +48,7 @@ Copy the nearest test of the same category:
 
 - Subcutaneous: `feature/core/tests/src/test/kotlin/feature/ukpt/tests/GreetingsPageTest.kt`
 - Robot: `feature/core/tests/src/main/kotlin/feature/ukpt/tests/GreetingsPageRobot.kt`
+- Server Inspection: `feature/core/tests/src/main/kotlin/feature/ukpt/tests/GreetingInspections.kt`
 - Unit: `feature/core/server/src/test/kotlin/feature/ukpt/server/domain/GreetImplTest.kt`
 - Component: `feature/core/server/src/test/kotlin/feature/ukpt/server/web/GreetingEventsTest.kt`
 - Snapshot: `feature/core/server/src/test/kotlin/feature/ukpt/server/web/GreetingsPageSnapshotTest.kt`
@@ -111,8 +117,8 @@ both. A robot covers one page and lives in the feature's `:tests` module, `src/m
 
 The harness is `:platform:common:subcutaneous` (package `platform.testing.subcutaneous`). A
 feature's `:feature:<name>:tests` module applies `ukpt.feature-tests` and depends on the harness,
-the robots and the feature's `:server` (`ukpt-feature-slice` scaffolds it). Its `src/main` holds the
-test graph, the scenarios and the robots; its `src/test` holds the tests.
+the robots and the feature's `:server` (`ukpt-feature-slice` scaffolds it). Its `src/main` contains
+the test graph, the scenarios, the inspections and the robots; its `src/test` contains the tests.
 
 **Graph.** One `SubcutaneousGraph` per `:tests` module, production modules only:
 
@@ -127,7 +133,7 @@ empty database from a template migrated once per JVM (`classpath:db/migration`) 
 server graph with `installServerHost` on Ktor's test engine. It tears all of it down when the block
 returns or throws. `installServerHost` installs the graph's `ServerPlugin` bindings (authentication,
 call logging) and its bound `ContentSecurityPolicy`, so the tests run them as production does; a
-plugin installed in `Server.kt` instead never reaches the tests.
+plugin installed in `Server.kt` instead is not installed in the tests.
 
 ```kotlin
 @Test
@@ -161,14 +167,57 @@ fun `a name greeted before is greeted again`() = subcutaneous(ukptTestGraph) {
 - The tab runs no JavaScript: Alpine and the project's scripts need an End To End Test. An
   attribute that changes what htmx sends or swaps and that the tab does not implement
   (`hx-include`, `hx-select`, `hx-select-oob`, `hx-params`, `hx-encoding`, `hx-prompt`, `ws-send`)
-  fails the step that reaches it.
+  fails the step that encounters the attribute.
 - `given { … }` — runs scenarios, before a page opens or while one is open. A change made mid-test
-  reaches an open page through the server's event stream, as in a browser.
+  is sent to an open page through the server's event stream, as in a browser.
+
+- `awaitAsserted(timeout = 10.seconds) { … }` — retries an assertion until the assertion passes;
+  fails with the last failure after the timeout.
 
 **Scenarios.** `suspend fun Scenario.<name>(…)` in the `:tests` module's `src/main`. Inside,
 `server<T>()` resolves from the running graph. A scenario writes through server domain interfaces
 only and returns what it created (`Testing.Scenario.*`). Another feature's `:tests` module depends
 on this one to reuse them.
+
+**Inspections.** A test checks what the server stored, besides what the page shows, through Server
+Inspections in the `:tests` module's `src/main`: `suspend fun ServerInspection.<name>()`. A test
+calls an Inspection inside `inspectServer { }`, which retries the block until the block passes or
+10 s of real time pass, and returns the block's result:
+
+```kotlin
+// src/main
+suspend fun ServerInspection.currentGreetingHistory(): List<Greeting> = server<FlowOfGreetingHistory>()().first()
+
+suspend fun ServerInspection.storedGreetingTexts(): List<String> = database {
+    GreetingsTable.selectAll().map { it[GreetingsTable.text] }
+}
+
+// src/test
+inspectServer { assertEquals(listOf("Hello, Ada"), storedGreetingTexts()) }
+```
+
+- `server<T>()` resolves a server domain interface named for a read (`Get…`, `FlowOf…`, `List…`,
+  `Find…`, …) or a Fake bound in `edges = { server { … } }`.
+- `database { }` runs a read-only transaction on the test's database, for a stored fact the server
+  domain does not expose. A read through `database { }` depends on the schema; prefer a domain read
+  when the domain exposes the fact. The generated tables are in `:platform:server:postgres`, which
+  the `:tests` module declares.
+- A Fake records its calls in a `Recording<T>`: the Fake calls `record(call)`, and an Inspection
+  reads `calls`, `assertSingle { … }` or `assertNone { … }`:
+
+```kotlin
+class FakePaymentGateway : PaymentGateway {
+    val requests = Recording<PaymentRequest>()
+    override suspend fun charge(request: PaymentRequest): Receipt { requests.record(request); return Receipt("r-1") }
+}
+
+fun ServerInspection.paymentRequests(): Recording<PaymentRequest> = server<FakePaymentGateway>().requests
+
+inspectServer { paymentRequests().assertSingle { it.amount == 10.00 } }
+```
+
+An Inspection only reads (`Testing.ServerInspection.readsOnly`): no domain interface without a read
+name, no Exposed write, no SQL, no data or web class.
 
 **Edges.** A binding the project does not own (a third-party backend, the clock) is replaced per
 test, loaded after the graph so it overrides:
@@ -181,9 +230,26 @@ A Fake in a `:tests` module implements only an IntegrationClient's interface, `k
 or a `platform` interface (`Testing.Fake.subcutaneousEdgesOnly`). Ktor's `MockEngine` is for
 backends the project does not own; the project's own server always runs for real.
 
-**Coverage.** `./gradlew subcutaneousCoverage` writes the feature modules' coverage by Subcutaneous
-Tests alone to `build/reports/kover/html/index.html` and `build/reports/kover/report.xml`. Only the
-`:tests` modules' `subcutaneousTest` tasks are instrumented. It is advisory: there are no bounds.
+**Coverage.** `./gradlew testCoverageReport` runs every category except End-to-end with Kover and
+writes `build/reports/test-coverage/`: `index.html`, `index.md` (tables by Construct, feature and
+module, with `path:line` gaps) and `coverage.json`. The `index.html` table groups every declaration
+by module (feature group, feature, module, package, then file, Construct or none) or by Construct,
+with filters by coverage, expected category, Construct, module type, affinity and source set; each
+declaration links to its source file's page, which marks every measured line. A line is covered
+when a test from a category its Construct's "Tested by" lists runs the line, and incidental when
+only tests from other categories run the line. Lines that no Construct claims follow the module
+expectation in the root `testCoverage { }` block (`testedBy(":platform:server:postgres", "adapter",
+"subcutaneous")` or `noTests(":platform:common:robots", "test infrastructure")`). Constructs and
+modules that expect no tests are not in the totals. `snapshotTest` counts as Snapshot.
+`./gradlew renderTestCoverageReport` rewrites the report from the last run without running the
+tests. The report lists each task that ran tests but wrote no coverage data. The report is
+advisory: there are no bounds.
+
+Kover instruments classes under `feature`, `platform`, `app` and the package named by
+`ukpt.projectNamespace`. For another production package, add `instrumentedPackages("ukpt.tools.*")`
+to the root `testCoverage { }` block, substituting the project's package. Subpackages are included.
+The report fails with an example source path for each missing package root. After adding a root,
+rerun `./gradlew testCoverageReport` to collect new measurements.
 
 **Memory.** Each test JVM starts one embedded Postgres; `ukpt.feature-tests` runs one test JVM at a
 time with a 1 GB heap. The first test in a JVM takes about 3 s (Postgres start and migration), the
@@ -230,12 +296,12 @@ A task name given without a module path runs in every module that has it:
 
 ```
 ./gradlew unitTest
-./gradlew subcutaneousTest
+./gradlew subcutaneousJvmTest
 ./gradlew componentTest snapshotTest
 ./gradlew wiringTest checkTest adapterTest endToEndTest
 ```
 
-One module: `./gradlew :feature:core:server:unitTest`. The category annotations carry JUnit 5 tags
+One module: `./gradlew :feature:core:server:unitTest`. The category annotations declare JUnit 5 tags
 and timeouts (10 s unit; 30 s component, snapshot, wiring, check; 60 s adapter, subcutaneous;
 120 s end-to-end). `test` still runs every category.
 
@@ -248,7 +314,7 @@ request (`ukpt-verify`, "CI"). Run builds one at a time.
 **After each edit:**
 
 - The test class for the code that changed, with a filter:
-  `./gradlew :feature:<name>:tests:subcutaneousTest --tests '*<Page>PageTest'`. Gradle compiles only
+  `./gradlew :feature:<name>:tests:subcutaneousJvmTest --tests '*<Page>PageTest'`. Gradle compiles only
   what that test needs.
 - `./gradlew verifyArchitecture` after adding, moving or renaming a declaration.
 - Not `test`, `check` or a category task without a module path: each runs every module.
@@ -257,15 +323,15 @@ request (`ukpt-verify`, "CI"). Run builds one at a time.
 
 | Changed | Run |
 | --- | --- |
-| A Routes class, a Page, a Component, a Form, or what they call in `server.domain`/`server.data` | `:feature:<name>:tests:subcutaneousTest` |
-| Storage in `server.data.storage`, or a migration | `:feature:<name>:tests:subcutaneousTest`; `adapterTest` in the module whose storage changed |
+| A Routes class, a Page, a Component, a Form, or what they call in `server.domain`/`server.data` | `:feature:<name>:tests:subcutaneousJvmTest` |
+| Storage in `server.data.storage`, or a migration | `:feature:<name>:tests:subcutaneousJvmTest`; `adapterTest` in the module whose storage changed |
 | A Page's markup | `:feature:<name>:server:snapshotTest`, re-recorded with `-PrecordHtmlSnapshots` only after an intended change |
-| A robot | `:feature:<name>:tests:subcutaneousTest` and `:app:server:endToEndTest` |
+| A robot | `:feature:<name>:tests:subcutaneousJvmTest` and `:app:server:endToEndTest` |
 | An event stream or Component with a Component Test | that module's `componentTest` |
 | Logic with a Unit Test | that module's `unitTest` |
 | A Koin module or a constructor | `:app:server:wiringTest` |
 | A script, an Alpine component, `:platform:server:web`'s document or security headers | `:app:server:endToEndTest`; `:platform:server:web:adapterTest` |
-| The Subcutaneous tab or `installServerHost` | `:platform:common:subcutaneous:adapterTest`, `:platform:server:host:adapterTest`, and the `:tests` modules' `subcutaneousTest` |
+| The Subcutaneous tab or `installServerHost` | `:platform:common:subcutaneous:adapterTest`, `:platform:server:host:adapterTest`, and the `:tests` modules' `subcutaneousJvmTest` |
 
 Then `verifyArchitecture` and `validateTemplate`.
 
@@ -276,7 +342,7 @@ forced to run (`--rerun`), in seconds:
 | --- | --- |
 | `validateTemplate` | 2 |
 | `verifyArchitecture` | 5 |
-| `:feature:core:tests:subcutaneousTest`, all 9 tests | 14 |
+| `:feature:core:tests:subcutaneousJvmTest`, all 9 tests | 14 |
 | `:feature:core:server:test` (unit, component, snapshot) | 3 |
 | `:app:server:endToEndTest`, 2 tests | 12 |
 | `:app:server:wiringTest` | 3 |
@@ -288,14 +354,14 @@ tasks in one `./gradlew` call rather than running them one after another.
 
 ### Checking a feature: by hand, a throwaway test, or a kept test
 
-- **By hand** (`ukpt-run`, then a browser): layout, spacing, how a page looks and responds. Nothing
-  re-runs it, so it is not a test of behaviour.
+- **By hand** (`ukpt-run`, then a browser): layout, spacing, how a page looks and responds. No task
+  re-runs the check, so it is not a test of behaviour.
 - **A throwaway End To End Test:** a journey across several pages, or one that needs a script to
   run, that would take many steps to repeat by hand after each change. Write it in `:app:server`'s
   `src/test` with the feature's robots, run it while iterating, and delete it before committing
   unless it meets the next point.
 - **A kept End To End Test:** one per main journey of the app, for what a Subcutaneous Test can't
-  reach: htmx and Alpine running in a browser, the project's scripts, the content security policy.
+  run: htmx and Alpine running in a browser, the project's scripts, the content security policy.
   A behaviour inside one page, even one an End To End Test found, gets a Subcutaneous Test.
 
 ## Rule failures
@@ -314,12 +380,15 @@ failure names the rule; its statement and rationale are in
 - `Testing.Robot.usedBySubcutaneousTests` — add a Subcutaneous Test that calls the robot's
   `on[Page]`.
 - `Testing.SubcutaneousTest.entryPointVocabularyOnly` — replace the Routes class, page function,
-  repository or use case with the path and the robot that reach it, and seed through a scenario.
+  repository or use case with the path and the robot that open the page, and seed through a scenario.
 - `Testing.SubcutaneousTest.runsInTheHarness` — run the body in `subcutaneous(graph) { … }` and use
   the page through `asUser(path) { … }`.
 - `Testing.SubcutaneousTest.noInfrastructureImports` — move the binding to `edges`, the setup to a
   scenario, the request or the jsoup lookup into the page's robot.
 - `Testing.Scenario.seedsThroughServerDomain` — call a server domain interface instead of storage.
+- `Testing.ServerInspection.readsOnly` — read through a domain interface named for a read,
+  `database { }` queries or a Fake's `Recording`; move a write to a Scenario.
+- `Testing.ServerInspection.placement` — move the Inspection to the `:tests` module's `src/main`.
 - `ModuleRules.testsModuleShape` — add the feature's `:server` to the `:tests` build file.
 - `Testing.EndToEndTest.drivesTheServerInABrowser` — run the test body in `inProcessServer(…)` and
   use the pages through `asUserInBrowser(path) { … }`.

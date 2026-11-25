@@ -1,5 +1,6 @@
 package architecture.rules.serverweb
 
+import architecture.definitions.TestCategories
 import dev.isaacudy.udytils.architecture.*
 
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
@@ -14,6 +15,7 @@ import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
     shows exactly what was submitted.
 """)
 object Form : Construct<ServerWeb>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous, TestCategories.Unit),
     requirements = listOf(
         isDataClass,
         hasNameEndingWith("Form"),

@@ -1,5 +1,6 @@
 package architecture.rules.serverdata
 
+import architecture.definitions.TestCategories
 import architecture.definitions.isInServerDataOutsideStorage
 
 import dev.isaacudy.udytils.architecture.*
@@ -11,9 +12,10 @@ import dev.isaacudy.udytils.architecture.*
     `[Name]Mappers.kt` file.
 
     * **Note:** The name is what classifies it: "an `object` in `server.data`" would claim any
-      other object the layer holds.
+      other object the layer contains.
 """)
 object CodecObject : Construct<ServerData>(
+    testedBy = TestExpectation.anyOf(TestCategories.Unit, TestCategories.Adapter),
     requirements = listOf(
         isObject,
         hasNameEndingWith("Codec"),

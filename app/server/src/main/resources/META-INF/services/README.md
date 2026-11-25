@@ -4,7 +4,7 @@
 and `flyway-database-postgresql` both ship one at that path with disjoint contents — 37 core
 entries and 3 Postgres ones — and Flyway assembles itself from the union.
 
-A fat jar can only hold one file per path, and `mergeServiceFiles()` (which `ukpt.server-packaging`
+A fat jar can contain only one file per path, and `mergeServiceFiles()` (which `ukpt.server-packaging`
 calls) does not merge under Shadow 9.1.0 — the Postgres module's 3 entries silently overwrite
 core's 37. Without the core plugins (`CoreMigrationResolver`, `CoreResourceTypeProvider`, …) Flyway
 either throws an NPE while its configuration is being built, or runs, finds zero migrations and
@@ -37,4 +37,5 @@ F=~/.gradle/caches/modules-2/files-2.1/org.flywaydb
 `verifyRuntimeServiceFiles` reports a collision this directory covers instead of failing on it, so
 deleting a file here without deleting the collision turns the build red rather than shipping a
 broken jar. Delete the directory if Shadow's transformer is ever verified fixed — extract the path
-from a jar built without these resources and confirm it holds both artifacts' entries.
+from a jar built without these resources and confirm the extracted file contains both artifacts'
+entries.

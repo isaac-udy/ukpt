@@ -6,4 +6,5 @@ dependencies {
     api(projects.platform.common.subcutaneous)
     api(projects.platform.common.robots)
     implementation(projects.feature.core.server)
+    implementation(projects.platform.server.postgres)
 }

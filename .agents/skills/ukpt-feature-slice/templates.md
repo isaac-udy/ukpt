@@ -22,7 +22,7 @@ dependencies {
 }
 ```
 
-`:api` holds what other features may use: the shared models in `feature.<name>`, and any
+`:api` contains what other features may use: the shared models in `feature.<name>`, and any
 `server.domain` interface another feature injects. It starts with the feature's models only.
 
 ## §2 — `:server` build → `feature/<name>/server/build.gradle.kts`
@@ -295,6 +295,6 @@ class <Thing>sPageSnapshotTest {
 - [ ] `app/server/build.gradle.kts` has `implementation(projects.feature.<name>.server)`, and
       `testImplementation(projects.feature.<name>.tests)` when an End To End Test drives its pages.
 - [ ] `ServerDependencies.kt` lists `<name>ServerDependencies`; `./gradlew :app:server:wiringTest` passes.
-- [ ] Every Page has a `<Page>PageRobot` that a Subcutaneous Test uses; `./gradlew :feature:<name>:tests:subcutaneousTest` passes.
+- [ ] Every Page has a `<Page>PageRobot` that a Subcutaneous Test uses; `./gradlew :feature:<name>:tests:subcutaneousJvmTest` passes.
 - [ ] Goldens recorded with `-PrecordHtmlSnapshots` and reviewed.
 - [ ] `./gradlew verifyArchitecture` passes.

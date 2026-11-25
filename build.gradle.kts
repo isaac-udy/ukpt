@@ -21,28 +21,19 @@ plugins {
     alias(libs.plugins.kotlinJvm) apply false
     alias(libs.plugins.ktor) apply false
     alias(libs.plugins.kotlinSerialization) apply false
-    alias(libs.plugins.kover)
+    id("ukpt.test-coverage")
 }
 
-// Advisory coverage of the feature modules by the Subcutaneous Tests alone: only each
-// `:feature:[name]:tests` module's `subcutaneousTest` task is instrumented. No verification bounds.
-kover {
-    merge {
-        subprojects { it.path.startsWith(":feature:") && it.name in setOf("client", "server", "tests") }
-        instrumentation {
-            disabledForAll.set(!project.path.endsWith(":tests"))
-            disabledForTestTasks.addAll("test", "unitTest", "componentTest", "wiringTest", "adapterTest", "checkTest", "endToEndTest")
-        }
-    }
-    reports {
-        filters {
-            excludes { packages("feature.*.tests", "enro_generated_bindings", "*.generated.resources") }
-        }
-    }
-}
-
-tasks.register("subcutaneousCoverage") {
-    group = "verification"
-    description = "Writes the feature modules' coverage by Subcutaneous Tests to build/reports/kover (HTML and XML)."
-    dependsOn("koverHtmlReport", "koverXmlReport")
+// Expectations for the lines in each module that no architecture Construct claims, for
+// `./gradlew testCoverageReport`. Category ids are those in architecture.definitions.TestCategories.
+testCoverage {
+    testedBy(":app:server", "wiring")
+    noTests(":platform:common:browser", "test infrastructure")
+    noTests(":platform:common:robots", "test infrastructure")
+    noTests(":platform:common:subcutaneous", "test infrastructure")
+    noTests(":platform:common:testing", "test infrastructure")
+    noTests(":platform:server:development", "development tooling")
+    testedBy(":platform:server:host", "subcutaneous", "adapter")
+    testedBy(":platform:server:postgres", "adapter", "subcutaneous")
+    testedBy(":platform:server:web", "adapter", "subcutaneous")
 }

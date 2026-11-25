@@ -87,13 +87,14 @@ git submodule update --init --recursive
 
 ```bash
 ./gradlew test verifyArchitecture validateTemplate     # the whole sweep
-./gradlew subcutaneousTest                             # pages through robots, against the real server and database
+./gradlew subcutaneousJvmTest                          # pages through robots, against the real server and database
 ./gradlew endToEndTest                                 # the same robots in headless Chromium
 ./gradlew :feature:core:server:snapshotTest -PrecordHtmlSnapshots   # re-record HTML goldens
 ./gradlew :app:server:smokeTestFatJar                  # build and boot the fat jar
+./gradlew testCoverageReport                           # per-category coverage, snapshots included
 ```
 
-Every test class carries a category annotation; the
+Every test class has a category annotation; the
 [`ukpt-testing`](.agents/skills/ukpt-testing) skill says which to write and which to run. HTML
 goldens live in each module's `src/test/snapshots/html/`, normalised so a golden changes only when
 the markup does. The first End To End run downloads the Chromium headless shell.
@@ -112,8 +113,8 @@ the markup does. The first End To End run downloads the Chromium headless shell.
 ## Coding agents
 
 The repository works with [Codex](https://developers.openai.com/codex/) and
-[Claude Code](https://claude.com/claude-code). [`AGENTS.md`](AGENTS.md) holds project-owned guidance,
-[`UKPT.md`](UKPT.md) holds template-owned operational guidance, and [`CLAUDE.md`](CLAUDE.md) imports
+[Claude Code](https://claude.com/claude-code). [`AGENTS.md`](AGENTS.md) contains project-owned guidance,
+[`UKPT.md`](UKPT.md) contains template-owned operational guidance, and [`CLAUDE.md`](CLAUDE.md) imports
 both for Claude Code. Skills live in `.agents/skills/`, with links in `.claude/skills/`:
 
 | Skill | Use it to |

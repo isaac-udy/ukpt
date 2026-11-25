@@ -8,6 +8,7 @@ import dev.isaacudy.udytils.architecture.*
     module list in `ServerDependencies.kt` so one test covers it.
 """)
 object WiringTest : Construct<Testing>(
+    testedBy = TestExpectation.none("a test"),
     requirements = listOf(isClass, isAnnotatedWith("WiringTest")),
 ) {
     @Describe("A Wiring Test must live in an `:app` module's test source set")

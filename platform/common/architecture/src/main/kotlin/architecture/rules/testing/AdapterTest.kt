@@ -9,6 +9,7 @@ import dev.isaacudy.udytils.architecture.*
     harness's tab is checked the same way, against a server on Ktor's test engine.
 """)
 object AdapterTest : Construct<Testing>(
+    testedBy = TestExpectation.none("a test"),
     requirements = listOf(isClass, isAnnotatedWith("AdapterTest")),
 ) {
     @Describe("An Adapter Test must live in the `src/test` source set of a `:platform:server:*` or `:feature:[name]:server` module, or of `:platform:common:subcutaneous`")
@@ -20,7 +21,7 @@ object AdapterTest : Construct<Testing>(
                 decl.sourceSet() == "test" && (
                     "/platform/server/" in module ||
                         module.endsWith("/platform/common/subcutaneous") ||
-                        Regex("/feature/[^/]+/server$").containsMatchIn(module)
+                        Regex("/feature/(?:[^/]+/)+server$").containsMatchIn(module)
                     )
             },
         )

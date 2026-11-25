@@ -37,6 +37,7 @@ import dev.isaacudy.udytils.architecture.*
     seconds of real time.
 """)
 object SubcutaneousTest : Construct<Testing>(
+    testedBy = TestExpectation.none("a test"),
     requirements = listOf(isClass, isAnnotatedWith("SubcutaneousTest")),
 ) {
     @Describe("A Subcutaneous Test must live in the `src/test` source set of a `:feature:[name]:tests` module")

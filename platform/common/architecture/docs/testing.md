@@ -26,16 +26,16 @@ Subcutaneous tests are the main suite: most behaviour is covered by using a page
 does and reading what it shows. A unit test is for logic with many inputs. A test that needs
 another kind of coverage states it with its category.
 
-Each annotation carries a JUnit 5 tag and timeout. `./gradlew unitTest` runs the unit tests of
-every module; each category has its task (`subcutaneousTest`, `componentTest`, `snapshotTest`,
+Each annotation declares a JUnit 5 tag and timeout. `./gradlew unitTest` runs the unit tests of
+every module; each category has its task (`subcutaneousJvmTest`, `componentTest`, `snapshotTest`,
 `wiringTest`, `adapterTest`, `checkTest`, `endToEndTest`).
 
 Subcutaneous Tests and End To End Tests drive pages through [Robots](#robot), one per page,
 named for what the user does: `clickGreetButton()`, `seeGreetings("Hello, Ada")`. The same
 robot runs in both.
 
-Test-support declarations (fakes, fixtures, scenarios, test graphs, robots) are Constructs too:
-every top-level declaration in test sources matches exactly one.
+Test-support declarations (fakes, fixtures, scenarios, server inspections, test graphs,
+robots) are Constructs too: every top-level declaration in test sources matches exactly one.
 
 ##### Constructs
 
@@ -49,13 +49,14 @@ every top-level declaration in test sources matches exactly one.
 * [End To End Test](#end-to-end-test)
 * [Fake](#fake)
 * [Scenario](#scenario)
+* [Server Inspection](#server-inspection)
 * [Test Graph](#test-graph)
 * [Robot](#robot)
 * [Fixture](#fixture)
 
 ##### Rules
 
-* Every test class (a class declaring a `@Test` function) must carry exactly one test category annotation
+* Every test class (a class declaring a `@Test` function) must have exactly one test category annotation
     * **Why:** The category decides which task runs the test and which rules check it.
 * Every `@Test` function must assert: call an `assert*`, `fail`, `verify`, `expect*` or `await*` function, or a Robot's `see*` function, directly or through a function declared in the same file
     * **Why:** A test without an assertion passes whatever the code does. It reports coverage that does not exist.
@@ -101,6 +102,10 @@ seconds of real time.
 * A Subcutaneous Test is a class
 * A Subcutaneous Test is annotated `@SubcutaneousTest`
 
+##### Tested by
+
+* No tests are expected: a test
+
 ##### Rules
 
 * A Subcutaneous Test must live in the `src/test` source set of a `:feature:[name]:tests` module
@@ -129,6 +134,10 @@ the layers between the page and the database are restructured.
 
 * An Unit Test is a class
 * An Unit Test is annotated `@UnitTest`
+
+##### Tested by
+
+* No tests are expected: a test
 
 ##### Rules
 
@@ -164,6 +173,10 @@ covered by a [Subcutaneous Test](#subcutaneous-test).
 * A Component Test is a class
 * A Component Test is annotated `@ComponentTest`
 
+##### Tested by
+
+* No tests are expected: a test
+
 ##### Rules
 
 * A Component Test must live in the `src/test` source set of a `:feature:[name]:server` module or `:platform:server:web`
@@ -189,6 +202,10 @@ module applies `ukpt.html-snapshot`; goldens live in `src/test/snapshots/html`.
 * A Snapshot Test is a class
 * A Snapshot Test is annotated `@SnapshotTest`
 
+##### Tested by
+
+* No tests are expected: a test
+
 ##### Rules
 
 * A Snapshot Test must live in the `src/test` source set of a `:feature:[name]:server` module or `:platform:server:web`
@@ -208,6 +225,10 @@ module list in `ServerDependencies.kt` so one test covers it.
 
 * A Wiring Test is a class
 * A Wiring Test is annotated `@WiringTest`
+
+##### Tested by
+
+* No tests are expected: a test
 
 ##### Rules
 
@@ -229,6 +250,10 @@ harness's tab is checked the same way, against a server on Ktor's test engine.
 
 * An Adapter Test is a class
 * An Adapter Test is annotated `@AdapterTest`
+
+##### Tested by
+
+* No tests are expected: a test
 
 ##### Rules
 
@@ -252,6 +277,10 @@ and the Kotlin constants that name them. It tests the project, not application b
 
 * A Check Test is a class
 * A Check Test is annotated `@CheckTest`
+
+##### Tested by
+
+* No tests are expected: a test
 
 ##### Rules
 
@@ -294,6 +323,10 @@ Each step goes through a page's [Robot](#robot), the same one the Subcutaneous T
 * An End To End Test is a class
 * An End To End Test is annotated `@EndToEndTest`
 
+##### Tested by
+
+* No tests are expected: a test
+
 ##### Rules
 
 * An End To End Test must live in `:app:server`'s `src/test` source set
@@ -316,6 +349,10 @@ declaration.
 * A Fake satisfies one of: {is a class, is an object}
 * A Fake is named `Fake[Name]`
 * A Fake declares no `@Test` function
+
+##### Tested by
+
+* No tests are expected: test infrastructure
 
 ##### Rules
 
@@ -344,16 +381,57 @@ Another feature's `:tests` module depends on this one to reuse its scenarios.
 
 * A Scenario has a `Scenario` receiver
 
+##### Tested by
+
+* No tests are expected: test infrastructure
+
 ##### Rules
 
 * A Scenario must write through server domain interfaces: no server data classes, generated tables, Exposed, JDBC or SQL
-    * **Why:** A row written past the domain skips the invariants the server enforces, and the test then covers a state the application cannot reach. A Scenario that calls the domain also stays valid when the storage below it changes.
+    * **Why:** A row written past the domain skips the invariants the server enforces, and the test then covers a state the application cannot produce. A Scenario that calls the domain also stays valid when the storage below it changes.
 
 ##### Guidance
 
 * A Scenario should return what it created, such as the seeded domain models
     * **Why:** The test refers to seeded records by the returned values instead of reading them back through the screen.
     * **Audited:** a test reports non-conforming code without ever failing.
+
+---
+
+## [Server Inspection](../src/main/kotlin/architecture/rules/testing/ServerInspection.kt)
+
+A function with a `ServerInspection` receiver, in a `:feature:[name]:tests` module's
+`src/main`: reads the server's state for a test to assert on. A test calls it inside
+`inspectServer { }`, which retries the block until the block passes or 10 seconds of real
+time pass.
+
+```kotlin
+suspend fun ServerInspection.currentGreetingHistory(): List<Greeting> = server<FlowOfGreetingHistory>()().first()
+
+suspend fun ServerInspection.storedGreetingTexts(): List<String> = database {
+    GreetingsTable.selectAll().map { it[GreetingsTable.text] }
+}
+```
+
+`server<T>()` resolves a server domain read interface, or a Fake bound in
+`edges = { server { … } }`. `database { }` runs a read-only transaction on the test's
+database, for a stored fact the server domain does not expose.
+
+##### Requirements
+
+* A Server Inspection has a `ServerInspection` receiver
+
+##### Tested by
+
+* No tests are expected: test infrastructure
+
+##### Rules
+
+* A Server Inspection must live in a `:feature:[name]:tests` module's `src/main`
+    * **Why:** Tests in the same module call the Inspection, and another feature's `:tests` module depends on this one to reuse it.
+* A Server Inspection must only read: server domain interfaces named for a read (`Get…`, `FlowOf…`, `List…`, `Find…`, …), domain models, generated tables through `database { }`, and Exposed queries; no Exposed writes, no SQL, no other server class
+    * **Why:** A test asserts on the state the code under test produced. An Inspection that writes changes that state, and the assertion then covers a state the application did not produce.
+    * **Note:** `database { }` also runs a read-only transaction, so Postgres rejects a write that the rule does not detect.
 
 ---
 
@@ -375,6 +453,10 @@ replaces a binding at the system's edges (a backend the project does not own, a 
 ##### Requirements
 
 * A Test Graph is a top-level property initialised with `SubcutaneousGraph(`
+
+##### Tested by
+
+* No tests are expected: test infrastructure
 
 ##### Rules
 
@@ -414,6 +496,10 @@ page visit.
 * A Robot is a class
 * A Robot extends `PageRobot`
 
+##### Tested by
+
+* No tests are expected: test infrastructure
+
 ##### Rules
 
 * A Robot must live in a `:feature:[name]:tests` module's `src/main` source set
@@ -430,12 +516,17 @@ page visit.
 ## [Fixture](../src/main/kotlin/architecture/rules/testing/Fixture.kt)
 
 A top-level function or property in test sources that builds test data or performs a shared
-test step, such as a builder for a domain model used by several tests. Scenarios and Test
-Graphs are their own Constructs.
+test step, such as a builder for a domain model used by several tests. Scenarios, Server Inspections
+and Test Graphs are their own Constructs.
 
 ##### Requirements
 
 * A Fixture satisfies one of: {is a function, is a property}
 * A Fixture does not satisfy: is annotated `@Composable`
 * A Fixture does not satisfy: has a `Scenario` receiver
+* A Fixture does not satisfy: has a `ServerInspection` receiver
 * A Fixture does not satisfy: is a top-level property initialised with `SubcutaneousGraph(`
+
+##### Tested by
+
+* No tests are expected: test infrastructure

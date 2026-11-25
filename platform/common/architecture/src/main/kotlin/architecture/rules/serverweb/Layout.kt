@@ -1,5 +1,6 @@
 package architecture.rules.serverweb
 
+import architecture.definitions.TestCategories
 import dev.isaacudy.udytils.architecture.*
 
 import com.lemonappdev.konsist.api.declaration.KoFunctionDeclaration
@@ -15,6 +16,7 @@ import com.lemonappdev.konsist.api.declaration.KoFunctionDeclaration
     Layouts nest, and every chain ends at the platform, which alone renders `<head>` and `<body>`.
 """)
 object Layout : Construct<ServerWeb>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous, TestCategories.Snapshot),
     requirements = listOf(
         isFunctionWhere("has an `HTML` receiver and is named `[name]Layout`") { it.receiverType?.name == "HTML" && it.name.endsWith("Layout") },
     ),

@@ -13,7 +13,7 @@ kotlin {
 dependencies {
     api(projects.platform.server.postgres)
 
-    // Zonky's ~150 MB of native Postgres binaries reach the runtime classpath of anything that
+    // Zonky's ~150 MB of native Postgres binaries are on the runtime classpath of every module that
     // depends on this module, so ONLY `:app:server` may, and only for its dev-database path.
     // `api`, because the app names DevServer/DevServerConfig directly.
     api(libs.udytils.postgres.embedded)

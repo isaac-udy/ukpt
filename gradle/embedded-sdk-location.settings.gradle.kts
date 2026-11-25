@@ -8,7 +8,7 @@
 // build and then fails to find an SDK inside the submodules.
 //
 // Values are copied in the escaped form a properties file stores them in, so a Windows `sdk.dir`
-// arrives exactly as the IDE wrote it. Both submodules gitignore local.properties.
+// is copied exactly as the IDE wrote it. Both submodules gitignore local.properties.
 //
 // Applied from settings.gradle.kts rather than living in build-logic: applying a build-logic plugin
 // here would put its whole runtime classpath, AGP included, on the settings classpath, and the root

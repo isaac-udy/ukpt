@@ -1,5 +1,6 @@
 package architecture.rules.serverweb
 
+import architecture.definitions.TestCategories
 import dev.isaacudy.udytils.architecture.*
 
 import architecture.definitions.isMutable
@@ -12,6 +13,7 @@ import com.lemonappdev.konsist.api.provider.KoPropertyProvider
     built by a handler from domain models and form input.
 """)
 object ViewState : Construct<ServerWeb>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous, TestCategories.Unit),
     requirements = listOf(
         isClassOrInterface,
         hasNameEndingWith("State"),

@@ -1,5 +1,6 @@
 package architecture.rules.serverweb
 
+import architecture.definitions.TestCategories
 import dev.isaacudy.udytils.architecture.*
 
 import architecture.rules.shared.isDomainInterfaceOnSide
@@ -17,6 +18,7 @@ import com.lemonappdev.konsist.api.declaration.KoFunctionDeclaration
     same function.
 """)
 object Component : Construct<ServerWeb>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous, TestCategories.Component, TestCategories.Snapshot),
     requirements = listOf(
         isFunctionWhere("has a kotlinx.html tag or content receiver other than `HTML`") { fn ->
             val receiver = fn.receiverType?.name ?: return@isFunctionWhere false

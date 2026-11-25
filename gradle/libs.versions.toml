@@ -31,6 +31,7 @@ junit5 = "5.11.4"
 kover = "0.9.11"
 
 [libraries]
+asm-tree = { module = "org.ow2.asm:asm-tree", version = "9.9" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 kotlin-testJunit5 = { module = "org.jetbrains.kotlin:kotlin-test-junit5", version.ref = "kotlin" }
@@ -38,6 +39,8 @@ junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "jun
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit5" }
 junit-jupiterApi = { module = "org.junit.jupiter:junit-jupiter-api" }
 junit-platformLauncher = { module = "org.junit.platform:junit-platform-launcher" }
+junit-jupiterEngine = { module = "org.junit.jupiter:junit-jupiter-engine" }
+junit-vintageEngine = { module = "org.junit.vintage:junit-vintage-engine" }
 composablePreviewScanner-android = { module = "io.github.sergio-sastre.ComposablePreviewScanner:android", version.ref = "composablePreviewScanner" }
 kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
@@ -136,6 +139,8 @@ compose-compiler-gradlePlugin = { module = "org.jetbrains.kotlin:compose-compile
 # `shadowJar` task ukpt.server-packaging configures.
 ktor-gradlePlugin = { module = "io.ktor.plugin:plugin", version.ref = "ktor" }
 shadow-gradlePlugin = { module = "com.gradleup.shadow:shadow-gradle-plugin", version.ref = "shadow" }
+kover-gradlePlugin = { module = "org.jetbrains.kotlinx:kover-gradle-plugin", version.ref = "kover" }
+kover-featuresJvm = { module = "org.jetbrains.kotlinx:kover-features-jvm", version.ref = "kover" }
 paparazzi-gradlePlugin = { module = "app.cash.paparazzi:paparazzi-gradle-plugin", version.ref = "paparazzi" }
 
 [plugins]
@@ -149,7 +154,6 @@ ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
 kotlinKsp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 paparazzi = { id = "app.cash.paparazzi", version.ref = "paparazzi" }
-kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 # Version-less: resolved from the root buildscript classpath (composite-substituted), not a repository.
 udytilsArchitecture = { id = "dev.isaacudy.udytils.architecture" }

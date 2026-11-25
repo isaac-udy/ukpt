@@ -11,7 +11,7 @@ import dev.isaacudy.udytils.architecture.*
 
 /**
  * Base for the two sided domain groups (`ClientDomain`, `ServerDomain`): derives the layer's
- * `inPackage` gate from the side and carries the mechanics of the checks both sides run. The rule
+ * `inPackage` gate from the side and implements the checks both sides run. The rule
  * *declarations* stay on the concrete group objects — their statements, rationales, and notes are
  * genuinely side-specific — and end in the check factories declared here, so the logic of what
  * "pure" means has one home while each side keeps its own prose.
@@ -50,7 +50,7 @@ abstract class DomainGroupRules(
             }
     }
 
-    /** The platform-dependency check; [violation] carries the side's own framing of what leaked in. */
+    /** The platform-dependency check; [violation] states the side's own framing of what leaked in. */
     protected fun noPlatformDepsCheck(violation: String): ScopeCheck = ScopeCheck { scope, exempt ->
         scope.files
             .filter { it.isFeatureModule() && it.isInLayer() }

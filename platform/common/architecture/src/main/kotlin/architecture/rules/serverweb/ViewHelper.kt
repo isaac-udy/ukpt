@@ -1,5 +1,6 @@
 package architecture.rules.serverweb
 
+import architecture.definitions.TestCategories
 import dev.isaacudy.udytils.architecture.*
 
 import com.lemonappdev.konsist.api.declaration.KoFunctionDeclaration
@@ -9,6 +10,7 @@ import com.lemonappdev.konsist.api.declaration.KoFunctionDeclaration
     formatter, or a mapper such as `GreetingSummary.toPageState()`.
 """)
 object ViewHelper : Construct<ServerWeb>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous, TestCategories.Unit),
     requirements = listOf(
         isFunctionWhere("returns a value, has no kotlinx.html receiver, and is not an Event Stream") { fn ->
             val receiver = fn.receiverType?.name

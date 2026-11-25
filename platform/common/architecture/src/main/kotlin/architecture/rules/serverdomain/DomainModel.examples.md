@@ -1,4 +1,4 @@
-A domain model that holds domain interfaces — a violation:
+A domain model that contains domain interfaces — a violation:
 
 ```kotlin
 // feature/shop/server/domain/CheckoutInputs.kt

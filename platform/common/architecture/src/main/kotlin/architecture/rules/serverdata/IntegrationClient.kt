@@ -1,5 +1,6 @@
 package architecture.rules.serverdata
 
+import architecture.definitions.TestCategories
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
 import dev.isaacudy.udytils.architecture.*
 
@@ -15,6 +16,7 @@ import dev.isaacudy.udytils.architecture.*
     and nothing else's. Swapping the provider should change one file.
 """)
 object IntegrationClient : Construct<ServerData>(
+    testedBy = TestExpectation.anyOf(TestCategories.Adapter),
     requirements = listOf(
         isClass,
         isClassWhere("is named `[Name]Client` or `[Name]Provider`") { it.name.endsWith("Client") || it.name.endsWith("Provider") },

@@ -8,7 +8,7 @@ import dev.isaacudy.udytils.architecture.*
 import architecture.definitions.isMutable
 
 @Describe("""
-    An `object` declaration whose only members are `val` constants. It holds the feature's magic
+    An `object` declaration whose only members are `val` constants. The object contains the feature's magic
     numbers, lookup tables, and named tags — values both the client and server need to agree on.
 
     * **Note:** A constants object is the right home for values such as `val MAX_PARTY_SIZE = 6`
@@ -16,6 +16,7 @@ import architecture.definitions.isMutable
       [shared domain model](#shared-domain-model) as a member or extension.
 """)
 object SharedConstants : Construct<FeatureRules>(
+    testedBy = TestExpectation.none("constants"),
     requirements = listOf(
         predicate("resides in the feature root package `feature.[name]`") { it.isFeatureRootPackage() },
         predicate("is declared in the feature's `:api` module") { it.isApiModule() },
