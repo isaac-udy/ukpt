@@ -28,3 +28,8 @@ extensions.getByName("mutation").withGroovyBuilder {
 tasks.named("runMutants") {
     dependsOn("$architecture:classifyArchitecture")
 }
+
+// The coverage report reads the runMutants results file.
+tasks.matching { it.name == "testCoverageReport" || it.name == "renderTestCoverageReport" }.configureEach {
+    mustRunAfter("runMutants")
+}

@@ -102,8 +102,11 @@ class MutationResults(val mutants: List<Mutant>, val stale: Int, val hosts: List
 
         private fun startsOnLine(mutant: Mutant, lines: List<String>): Boolean {
             if (mutant.line !in 1..lines.size) return false
-            val following = lines.subList(mutant.line - 1, minOf(lines.size, mutant.line + 20)).joinToString(" ")
-            return WHITESPACE.replace(following, " ").contains(mutant.text)
+            val firstLine = WHITESPACE.replace(lines[mutant.line - 1] + " ", " ")
+            val following = WHITESPACE.replace(lines.subList(mutant.line - 1, minOf(lines.size, mutant.line + 20)).joinToString(" "), " ")
+            return generateSequence(following.indexOf(mutant.text)) { following.indexOf(mutant.text, it + 1) }
+                .takeWhile { it in 0 until firstLine.length }
+                .any()
         }
 
         private val WHITESPACE = Regex("\\s+")

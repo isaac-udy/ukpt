@@ -13,11 +13,11 @@ description: >-
 
 # Test audit
 
-`./gradlew runMutants` compiles mutants into the JVM code, runs each selected mutant against the
-JVM tests that execute it, and reports whether a test failed. A **survived** mutant is a change to
+`./gradlew runMutants` compiles mutants into the code, runs each selected mutant against the
+module's JVM or Android host tests that execute it, and reports whether a test failed. A **survived** mutant is a change to
 the code that no test of an expected category detects.
 
-Mutation mode compiles every JVM module again (the build cache stores the result), so a first run
+Mutation mode compiles every module again (the build cache stores the result), so a first run
 takes minutes. Later runs reuse the compiled classes.
 
 ## Run

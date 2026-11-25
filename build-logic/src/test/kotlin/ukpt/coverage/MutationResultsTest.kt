@@ -40,9 +40,9 @@ class MutationResultsTest {
 
     @Test
     fun aMutantWhoseTextNoLongerStartsOnItsLineIsStale() {
-        val results = results(mutant("a", 4, "history.isEmpty()"), mutant("b", 6, "history .isEmpty()"), mutant("c", 5, "history.isEmpty()"))
+        val results = results(mutant("a", 4, "history.isEmpty()"), mutant("b", 6, "history .isEmpty()"), mutant("c", 5, "history.isEmpty()"), mutant("d", 3, "history.isEmpty()"))
         assertEquals(listOf("a", "b"), results.mutants.map { it.id })
-        assertEquals(1, results.stale)
+        assertEquals(2, results.stale)
         assertEquals(listOf("jvm"), results.hosts)
         assertEquals(1200L, results.millis)
     }
