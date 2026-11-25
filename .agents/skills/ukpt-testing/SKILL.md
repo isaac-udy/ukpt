@@ -214,7 +214,7 @@ domain interfaces only and returns what it created (`Testing.Scenario.*`). Anoth
 Inspections in the `:tests` module's `src/commonMain`: `suspend fun ServerInspection.<name>()`
 reads the server, `fun ClientInspection.<name>()` reads the client graph. A test calls them inside
 `inspectServer { }` or `inspectClient { }`, which retry the block until the block passes or
-10 s of real time pass, and return the block's result:
+30 s of real time pass, and return the block's result:
 
 ```kotlin
 // src/commonMain
