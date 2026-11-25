@@ -26,9 +26,11 @@ import architecture.rules.serverweb.ServerWeb
     `:app:server` application module. Module-graph rules keep the slices independent.
 
     A declaration's **package** says what it is; the Gradle **module** it lives in says who may see
-    it. A feature is rooted at `feature.[name]`, which holds its shared vocabulary — the domain
-    models its layers and other features use. One level down is `server`; two levels down is a
-    layer within it. The deeper the package, the more private the code.
+    it. A feature is rooted at `feature.[name]`, which contains the feature's shared vocabulary — the
+    domain models that the feature's layers and other features use. Below the whole name is
+    `server`, and below that a layer. The deeper the package, the more private the code. A feature
+    may be grouped (`:feature:capture:insta`), in which case the group is part of the name and the
+    packages nest with it: `feature.capture.insta.server.domain` is one such layer.
 
     ```
     server.web → server.domain ← server.data
@@ -48,8 +50,8 @@ import architecture.rules.serverweb.ServerWeb
     are not tested. `:feature:core` is the worked example the rules describe: it keeps its feature
     code in `feature.[name]` package namespaces so each slice stays liftable into its own module.
 
-    Rules land enforced from their first commit, never as audits, and no declaration carries an
-    `@ArchitectureException`. A rule that cannot be met is a design question, not a setting.
+    Each rule is enforced from its first commit, never added as an audit, and no declaration is
+    annotated with `@ArchitectureException`. A rule that cannot be met is a design question, not a setting.
 """)
 object UkptArchitecture : ArchitectureDefinition(
     groups = listOf(
@@ -69,4 +71,5 @@ object UkptArchitecture : ArchitectureDefinition(
     ),
     testScope = { projectTestScope },
     testMembership = { true },
+    requireTestExpectations = true,
 )

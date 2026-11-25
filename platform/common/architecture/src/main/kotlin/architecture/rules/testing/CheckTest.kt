@@ -7,6 +7,7 @@ import dev.isaacudy.udytils.architecture.*
     and the Kotlin constants that name them. It tests the project, not application behaviour.
 """)
 object CheckTest : Construct<Testing>(
+    testedBy = TestExpectation.none("a test"),
     requirements = listOf(isClass, isAnnotatedWith("CheckTest")),
 ) {
     @Describe("A Check Test must live in a `src/test` source set")

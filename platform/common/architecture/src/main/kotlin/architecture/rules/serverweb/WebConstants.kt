@@ -13,6 +13,7 @@ import com.lemonappdev.konsist.api.declaration.KoObjectDeclaration
     attribute that requests it.
 """)
 object WebConstants : Construct<ServerWeb>(
+    testedBy = TestExpectation.none("constants"),
     requirements = listOf(
         isObjectWhere("is named `[Name]Paths` or `[Name]Ids`") { it.name.endsWith("Paths") || it.name.endsWith("Ids") },
     ),

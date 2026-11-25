@@ -1,5 +1,6 @@
 package architecture.rules.serverweb
 
+import architecture.definitions.TestCategories
 import dev.isaacudy.udytils.architecture.*
 
 import architecture.definitions.isServerModule
@@ -16,6 +17,7 @@ import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
     a plugin that installs `WebSockets` first sets its configuration.
 """)
 object Plugin : Construct<ServerWeb>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous, TestCategories.Adapter),
     requirements = listOf(
         isClassWhere("is named `[Name]Plugin`") { it.name.endsWith("Plugin") },
         predicate("is declared in a `:server` module") { it.isServerModule() },

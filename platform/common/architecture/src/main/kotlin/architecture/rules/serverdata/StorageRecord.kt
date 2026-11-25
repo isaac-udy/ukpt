@@ -1,5 +1,6 @@
 package architecture.rules.serverdata
 
+import architecture.definitions.TestCategories
 import architecture.definitions.isInServerDataStoragePackage
 
 import dev.isaacudy.udytils.architecture.*
@@ -12,6 +13,7 @@ import dev.isaacudy.udytils.architecture.*
     [generated `Table`/`Row` sources](serverdata.md).
 """)
 object StorageRecord : Construct<ServerData>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous, TestCategories.Adapter),
     requirements = listOf(
         isClassWhere("is a `data class`") { it.hasDataModifier },
         oneOf(hasNameEndingWith("Row"), hasNameEndingWith("Record"), hasNameEndingWith("Insert")),

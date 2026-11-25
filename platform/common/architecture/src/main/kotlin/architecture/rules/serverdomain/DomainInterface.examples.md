@@ -61,7 +61,7 @@ class UserNotFoundException : RuntimeException()
 
 ---
 
-A read whose result has lifecycle states returns a sealed domain model; each variant carries the values that state requires, so no consumer checks nullable properties against Booleans.
+A read whose result has lifecycle states returns a sealed domain model; each variant declares the values that state requires, so no consumer checks nullable properties against Booleans.
 
 ```kotlin
 sealed interface OrderState {

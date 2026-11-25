@@ -29,6 +29,7 @@ import dev.isaacudy.udytils.architecture.*
     page visit.
 """)
 object Robot : Construct<Testing>(
+    testedBy = TestExpectation.none("test infrastructure"),
     requirements = listOf(
         isClass,
         predicate("extends `PageRobot`") { decl -> (decl as KoParentProvider).parents().any { it.name == "PageRobot" } },

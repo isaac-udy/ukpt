@@ -12,11 +12,13 @@
     "feature/*/api/src/wasmJsMain/**",
     "feature/*/api/src/commonTest/**",
     "feature/*/server/src/main/kotlin/feature/*/server/services/**",
-    "feature/core/tests/src/main/kotlin/feature/ukpt/tests/{UkptScreenRobot,ConfirmResetDialogRobot}.kt",
-    "feature/core/tests/src/test/kotlin/feature/ukpt/tests/{UkptViewModelTest,ConfirmResetViewModelTest,GreetingServiceTest}.kt",
     "platform/common/testing/src/{commonMain,androidMain,iosMain,jvmMain,webMain}/**",
-    "platform/common/robots/src/main/kotlin/platform/testing/robots/ScreenRobot.kt",
-    "platform/common/subcutaneous/src/main/kotlin/platform/testing/subcutaneous/{Screen,awaitMatching}.kt",
+    "feature/*/tests/src/{commonMain,commonTest}/**",
+    "platform/common/robots/src/commonMain/**",
+    "platform/common/subcutaneous/src/{commonMain,commonTest,androidMain,iosMain,jvmMain,webMain}/**",
+    "platform/common/subcutaneous-server/**",
+    "build-logic/src/main/kotlin/ukpt.subcutaneous-web-tests.gradle.kts",
+    "platform/common/architecture/src/main/kotlin/architecture/rules/testing/{ClientInspection,HostEdges}.kt",
     "embedded-enro",
     "kotlin-js-store/**",
     ".mcp.json",
@@ -39,20 +41,20 @@
     ".agents/skills/ukpt-testing/**": "Page robots, the htmx tab and browser End To End Tests instead of ViewModels and Compose UI tests. Carry over changes to categories, scenarios, edges, coverage, the development loop and the shared rule failures.",
     ".github/workflows/ci.yml": "One job: rules, every test category and the fat jar. Carry over changes to the rules, test and server steps.",
     "platform/common/robots/**": "Page robots over a PageDriver, not Compose UI test nodes. Carry over changes to step naming and waiting.",
-    "platform/common/subcutaneous/**": "The server graph and the htmx tab, with no client graph or ViewModels; inProcessServer serves on a real port. Carry over changes to the database, teardown, edges and scenarios.",
+    "platform/common/subcutaneous/**": "The server graph and the htmx tab, with no client graph or ViewModels; inProcessServer serves on a real port. main's :platform:common:subcutaneous-server is merged into this module. Carry over changes to the database, teardown, edges, scenarios and inspections in both of main's harness modules.",
     "platform/server/host/**": "Installs the web platform instead of urpc and WebSockets. Carry over changes to Koin and the notification bus.",
     "platform/common/architecture/src/main/kotlin/architecture/rules/testing/**": "Rules for pages, robots, the htmx tab and the browser. Carry over changes to the category, assertion, Unit, Scenario, TestGraph, Fake, Fixture, Wiring, Adapter and Check rules.",
     "platform/common/architecture/src/architectureTest/fixtures/test-categories/**": "Server-web fixtures for this branch's Testing rules.",
-    "platform/common/architecture/src/architectureTest/kotlin/architecture/rules/testing/TestCategoriesTest.kt": "Tests this branch's Testing rules over its own fixtures."
+    "platform/common/architecture/src/architectureTest/kotlin/architecture/rules/testing/TestCategoriesTest.kt": "Tests this branch's Testing rules over its own fixtures.",
+    "build-logic/src/main/kotlin/ukpt.feature-tests.gradle.kts": "A plain JVM module that registers subcutaneousJvmTest; no multiplatform hosts. Carry over changes to the test JVM settings and the subcutaneousJvmTest task."
   },
   "diverged": {
     "UKPT.md": "The introduction, Architecture orientation, Toolchain, Submodules, Verification and Reference sections describe this branch. Take main's changes elsewhere.",
     "AGENTS.md": "Names only the embedded-udytils submodule.",
     "settings.gradle.kts": "No client or Enro includes; includes :platform:server:web and :platform:common:browser.",
-    "build.gradle.kts": "No Android, Compose, KSP or atlas plugins.",
+    "build.gradle.kts": "No Android, Compose, KSP or atlas plugins; testCoverage lists this branch's modules.",
     "build-logic/build.gradle.kts": "No Android, Compose or Paparazzi plugins on the convention classpath.",
     "build-logic/src/main/kotlin/ukpt.test-categories.gradle.kts": "Registers snapshotTest for the HTML goldens; main's comes from the Paparazzi convention.",
-    "build-logic/src/main/kotlin/ukpt.feature-tests.gradle.kts": "Adds udytils htmx for the ElementIds robots locate by; :tests depends on :server only.",
     "gradle.properties": "No Android, wasm or native properties; no wasm or Paparazzi configuration-cache notes.",
     "gradle/libs.versions.toml": "Adds Playwright.",
     ".claude/settings.json": "No hot-reload MCP or web bundle-check permissions.",
@@ -72,7 +74,8 @@
     "feature/core/server/src/main/kotlin/feature/ukpt/server/data/storage/GreetingStorage.kt": "Adds delete(id).",
     "feature/core/tests/build.gradle.kts": "Depends on :server only.",
     "feature/core/tests/src/main/kotlin/feature/ukpt/tests/UkptTestGraph.kt": "A server graph only.",
-    "app/server/build.gradle.kts": "Web dependencies; no WebSockets or auth; the End To End Test convention and dependencies."
+    "app/server/build.gradle.kts": "Web dependencies; no WebSockets or auth; the End To End Test convention and dependencies.",
+    "build-logic/src/main/kotlin/ukpt.test-coverage.gradle.kts": "Counts snapshotTest as Snapshot: the HTML goldens run on the JVM."
   },
   "generated": {
     "paths": [
@@ -87,14 +90,23 @@
       "2026-10-16-both-web-clients-by-default.md": "Changes how the Compose HTML web client is included.",
       "2026-10-16.1-udytils-html-dialogs.md": "Adds udytils dialogs to the Compose HTML web client. The udytils bump arrives with the merge.",
       "2026-10-19-compose-1-12-2-focus-fixes.md": "Removes Compose text-field focus workarounds; this branch has no Compose.",
-      "2026-11-04-web-development-bundle-fixes.md": "Fixes the wasm and Compose HTML web bundles, which this branch does not have."
+      "2026-11-04-web-development-bundle-fixes.md": "Fixes the wasm and Compose HTML web bundles, which this branch does not have.",
+      "2026-11-12.1-enro-3-0-0.md": "Updates Enro, which this branch does not have.",
+      "2026-11-12.2-snapshot-locale-and-time-zone.md": "Sets the locale and time zone of the Paparazzi test JVM; this branch has no Paparazzi.",
+      "2026-11-24.4-android-host-test-categories.md": "Moves Android host tests to JUnit 5; this branch has no Android target. The readsOnly change is in 2026-11-24.1."
     },
     "adapted": {
       "2026-11-04.1-test-categories.md": "JVM-only annotations, HTML snapshots on snapshotTest, and the Component and Snapshot categories for server.web; no commonTest, Paparazzi or androidHostTest.",
       "2026-11-04.2-client-network-and-urpc-host.md": "Only the server host, which installs the web platform, and the Postgres-backed greetings; no client network module or urpc.",
       "2026-11-04.3-subcutaneous-tests.md": "Pages through robots and the htmx tab instead of ViewModels; ServerWeb.Page.hasARobot and the Robot rules instead of the ClientUi.ViewModel rules.",
       "2026-11-04.4-desktop-end-to-end.md": "Browser End To End Tests in :app:server through Playwright instead of desktop Compose UI tests.",
-      "2026-11-10-ci-and-development-loop.md": "One CI job with no client or iOS builds; push trigger on htmx."
+      "2026-11-10-ci-and-development-loop.md": "One CI job with no client or iOS builds; push trigger on htmx.",
+      "2026-11-11-shared-ui-tests-and-routes.md": "Only the Unit Test data-class change, grouped :tests paths and awaitAsserted; no ServerServices.Route, ScreenRobot or client adapter tests.",
+      "2026-11-11.1-client-only-harness-and-grouped-features.md": "Grouped features only; this branch keeps one harness module and has no client graph.",
+      "2026-11-24-subcutaneous-test-hosts.md": "Only the subcutaneousJvmTest task name; the :tests modules stay JVM modules with src/main and src/test.",
+      "2026-11-24.1-subcutaneous-inspections.md": "Server Inspections in src/main only; no ClientInspection, inspectClient or host lists.",
+      "2026-11-24.3-test-coverage-report.md": "No ClientUi.Screen or client modules; snapshotTest counts as Snapshot.",
+      "2026-11-25-category-test-cache-inputs.md": "JVM tasks and the HTML goldens instead of Paparazzi and Android host tasks."
     }
   }
 }

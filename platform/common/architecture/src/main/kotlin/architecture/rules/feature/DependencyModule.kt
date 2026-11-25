@@ -1,5 +1,6 @@
 package architecture.rules.feature
 
+import architecture.definitions.TestCategories
 import dev.isaacudy.udytils.architecture.*
 
 import architecture.definitions.featureName
@@ -7,6 +8,7 @@ import architecture.definitions.isClientModule
 import architecture.definitions.isFeatureModule
 import architecture.definitions.isFeatureRootPackage
 import architecture.definitions.isServerModule
+import architecture.definitions.withoutStringsAndComments
 import architecture.projectScope
 import com.lemonappdev.konsist.api.declaration.KoPropertyDeclaration
 import com.lemonappdev.konsist.api.provider.KoContainingFileProvider
@@ -16,7 +18,9 @@ import com.lemonappdev.konsist.api.provider.KoContainingFileProvider
 
     * **Note:** The naming convention is `[name]ClientDependencies` in `:client` and
       `[name]ServerDependencies` in `:server`. The Construct enforces the `Dependencies` suffix;
-      the `Client`/`Server` infix is convention.
+      the `Client`/`Server` infix is convention. `[name]` is the feature's whole name, so a grouped
+      feature's name includes its group: `:feature:capture:device-camera:client` names
+      `captureDeviceCameraClientDependencies`.
     * **Note:** The `:app` modules (application shells) are responsible for collecting the DI
       modules provided by feature modules into the final dependency graph. A `:client` dependency
       module is registered in every client shell's `ClientDependencies.kt` (`:app:client:common`
@@ -34,11 +38,12 @@ import com.lemonappdev.konsist.api.provider.KoContainingFileProvider
       against the graph without booting the application.
 """)
 object DependencyModule : Construct<FeatureRules>(
+    testedBy = TestExpectation.anyOf(TestCategories.Wiring, TestCategories.Subcutaneous),
     requirements = listOf(
         predicate("resides in the top-level `feature.[name]` package of a `:client` or `:server` module") { decl ->
             // Exactly the feature root — a `Dependencies` property anywhere deeper would let an
-            // undeclared layer package slip past the taxonomy by holding only DI code — and on a
-            // side module: DI wiring binds implementations, which `:api` never holds.
+            // undeclared layer package slip past the taxonomy by containing only DI code — and on a
+            // side module: DI wiring binds implementations, which `:api` never contains.
             decl.isFeatureModule() && decl.isFeatureRootPackage() &&
                 (decl.isClientModule() || decl.isServerModule())
         },
@@ -81,10 +86,12 @@ object DependencyModule : Construct<FeatureRules>(
             from one list fails only when that client first resolves a ViewModel from it.
             """.trimIndent(),
         )
-        note("Reads every `app/client/*/src/**/ClientDependencies.kt`, including shells the current build doesn't include.")
+        note("Reads every `app/client/*/src/**/ClientDependencies.kt`, including shells the current build doesn't include. With one shell, `ClientDependenciesTest` covers the list and the rule checks no file.")
+        note("A module another `:client` module installs through `includes(…)` is registered through that module.")
         constrain { decl, _ ->
             val property = decl as? KoPropertyDeclaration ?: return@constrain emptyList()
-            if (!property.isClientModule()) return@constrain emptyList()
+            if (!property.isClientModule() || clientShellDependencyFiles.size < 2) return@constrain emptyList()
+            if (property.name in includedClientModules) return@constrain emptyList()
             val reference = Regex("""\b${Regex.escape(property.name)}\b""")
             clientShellDependencyFiles
                 .filterNot { file ->
@@ -116,3 +123,29 @@ object DependencyModule : Construct<FeatureRules>(
 private val clientShellDependencyFiles by lazy {
     projectScope.files.filter { it.path.contains("/app/client/") && it.nameWithExtension == "ClientDependencies.kt" }
 }
+
+/** Every identifier passed to an `includes(…)` call in a feature's `:client` module. */
+private val includedClientModules by lazy {
+    projectScope.files
+        .filter { "/feature/" in it.path && "/client/src/" in it.path }
+        .flatMap { file -> includesArguments(file.text.withoutStringsAndComments()) }
+        .flatMap { arguments -> IDENTIFIER.findAll(arguments).map { it.value } }
+        .toSet()
+}
+
+private fun includesArguments(code: String): List<String> =
+    INCLUDES_CALL.findAll(code).map { call ->
+        var depth = 1
+        var end = call.range.last + 1
+        while (end < code.length && depth > 0) {
+            when (code[end]) {
+                '(' -> depth++
+                ')' -> depth--
+            }
+            end++
+        }
+        code.substring(call.range.last + 1, end - 1)
+    }.toList()
+
+private val INCLUDES_CALL = Regex("""\bincludes\s*\(""")
+private val IDENTIFIER = Regex("""\b[A-Za-z_]\w*\b""")

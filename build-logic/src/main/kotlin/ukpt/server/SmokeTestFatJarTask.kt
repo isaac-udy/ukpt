@@ -30,7 +30,7 @@ import java.util.zip.ZipFile
  * this task asserts the jar left the development subgraph out, then proves a jar in that state
  * still migrates a database and answers.
  *
- * The database comes from [developmentClasspath], which carries exactly what the jar excluded.
+ * The database comes from [developmentClasspath], which contains exactly what the jar excluded.
  * Adding anything more would defeat the point: a second copy of a dependency re-supplies whatever
  * the jar is missing, and ServiceLoader in particular reads every copy it can see.
  */
@@ -183,7 +183,7 @@ abstract class SmokeTestFatJarTask : DefaultTask() {
             connection.disconnect()
         }
     } catch (_: Exception) {
-        // Nothing is listening yet, which is the normal state for most of the boot.
+        // The server is not listening yet, which is the normal state for most of the boot.
         false
     }
 

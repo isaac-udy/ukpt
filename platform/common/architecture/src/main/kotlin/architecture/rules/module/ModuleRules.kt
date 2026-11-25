@@ -6,6 +6,7 @@ import architecture.definitions.containingFilePackage
 import architecture.definitions.containingFilePath
 import architecture.definitions.featureLayerPath
 import architecture.definitions.featureName
+import architecture.definitions.featureNameOfPackage
 import architecture.definitions.isApiModule
 import architecture.definitions.isClientModule
 import architecture.definitions.isFeatureModule
@@ -27,7 +28,7 @@ import com.lemonappdev.konsist.api.provider.KoFullyQualifiedNameProvider
     * **Purpose**: Final executable entry points and dependency injection (DI) wiring.
     * **Structure**: May contain sub-groups (e.g., `:app:admin`, `:app:customer`) if multiple applications are built from the same codebase.
     * **Child Modules**: Each app contains a `:client` (Mobile/Desktop/Web) and/or a `:server` (Ktor executable).
-        * **Client structure (AGP 9.0)**: AGP 9.0 does not allow one module to be both a KMP library and a `com.android.application`, so `:app:client` is a group: `:app:client:common` is a KMP library holding the shared UI, navigation, DI wiring, and the iOS framework entry point; `:app:client:android`, `:app:client:desktop`, and `:app:client:web` are thin application modules holding only an entry point and platform packaging, each depending on `:app:client:common`. `:app:client:web-html`, the Compose HTML web client, does not depend on `:app:client:common`: it holds its own navigation component and `ClientDependencies.kt`, and depends on the feature clients directly.
+        * **Client structure (AGP 9.0)**: AGP 9.0 does not allow one module to be both a KMP library and a `com.android.application`, so `:app:client` is a group: `:app:client:common` is a KMP library containing the shared UI, navigation, DI wiring, and the iOS framework entry point; `:app:client:android`, `:app:client:desktop`, and `:app:client:web` are thin application modules containing only an entry point and platform packaging, each depending on `:app:client:common`. `:app:client:web-html`, the Compose HTML web client, does not depend on `:app:client:common`: `:app:client:web-html` contains its own navigation component and `ClientDependencies.kt`, and depends on the feature clients directly.
     * **Constraints**: Must not contain business logic. Limited to infrastructure configuration and DI module aggregation.
 
     ## `:feature` (Vertical slices of functionality)
@@ -65,7 +66,7 @@ object ModuleRules : RuleGroup() {
 
     @Describe("A `:feature:[name]:client` module must never depend on another `:client`/`:server` module")
     val clientApiOnly by rule {
-        rationale("A feature's client may only reach other features through their `:api` contract, or `:platform`.")
+        rationale("A feature's client may only depend on other features through their `:api` contract, or on `:platform`.")
         note("A `:client` module's tests may depend on its own feature's `:tests` module, for its Robots.")
         moduleGraph { graph, exempt ->
             graph.edges
@@ -83,7 +84,7 @@ object ModuleRules : RuleGroup() {
 
     @Describe("A `:feature:[name]:server` module must never depend on another `:client`/`:server` module")
     val serverApiOnly by rule {
-        rationale("A feature's server may only reach other features through their `:api` contract, or `:platform`.")
+        rationale("A feature's server may only depend on other features through their `:api` contract, or on `:platform`.")
         moduleGraph { graph, exempt ->
             graph.edges
                 .filter { featureSubmoduleType(it.from) == "server" }
@@ -109,7 +110,7 @@ object ModuleRules : RuleGroup() {
         )
         note("Between modules this is already enforced by `ModuleRules.clientApiOnly` and `ModuleRules.serverApiOnly`; this Rule adds the same guarantee within a module that hosts several feature namespaces.")
         note("Imports that don't resolve to project source, such as KSP-generated bindings, are not tested.")
-        note("The one sanctioned cross-feature namespace is shared UI: `feature.common.client.ui` holds composite Compose components several features render, which can't live in Compose-free `:api`. It is UI-only — nothing outside `..common.client.ui..` is shareable this way. That carve-out answers a cross-*feature* question and is not the subsystem question: a subsystem package groups one feature's own code and is never shared at all (`ModuleRules.subsystemsNotPublished`).")
+        note("The one sanctioned cross-feature namespace is shared UI: `feature.common.client.ui` contains composite Compose components several features render, which can't live in Compose-free `:api`. The namespace is UI-only — no package outside `..common.client.ui..` is shareable this way. That carve-out answers a cross-*feature* question and is not the subsystem question: a subsystem package groups one feature's own code and is never shared at all (`ModuleRules.subsystemsNotPublished`).")
         scope { scope, exempt ->
             // Index of project declarations by fully-qualified name, so imports resolve to the
             // module that declares them (nested types resolve via longest matching prefix).
@@ -139,7 +140,7 @@ object ModuleRules : RuleGroup() {
                     file.imports
                         .filter { it.name.startsWith("feature.") }
                         .filter { it.featureName().isNotBlank() && it.featureName() != ownFeature }
-                        // Shared-UI carve-out: `feature.common.client.ui` holds composite UI
+                        // Shared-UI carve-out: `feature.common.client.ui` contains composite UI
                         // components (e.g. `EventCard`, `EntityRichTextField`) that several features
                         // render. A Compose composite can't live in `:api` (which is Compose-free and
                         // consumed by `:server`), so this is the one sanctioned cross-feature
@@ -163,8 +164,9 @@ object ModuleRules : RuleGroup() {
             code, so the module-graph rules and the package rules stop describing the same boundary.
             """.trimIndent(),
         )
-        note("The feature root — `feature.[name]`, two segments — is allowed in every module: it is the shared vocabulary in `:api` and the feature's DI module in `:client`/`:server`.")
+        note("The feature root — `feature.[name]`, the package the name itself ends at — is allowed in every module: it is the shared vocabulary in `:api` and the feature's DI module in `:client`/`:server`.")
         note("`:api` may declare both client and server packages, because publishing a client or server type is what the module is for.")
+        note("A grouped feature's name spans its group, so the side is the segment after the whole name: `:feature:capture:insta:client` declares `feature.capture.insta.client.**`. A package segment can't be kebab-case, so a hyphenated directory drops its dashes — `:feature:capture:device-camera` declares `feature.capture.devicecamera.**`.")
         note("`platform.**` packages inside a feature module are platform code that has not been lifted into its own module yet; the platform rules govern them, so they are out of scope here.")
         scope { scope, exempt ->
             scope.files
@@ -173,7 +175,11 @@ object ModuleRules : RuleGroup() {
                 .mapNotNull { file ->
                     val pkg = file.packagee?.name.orEmpty()
                     if (!pkg.startsWith("feature.")) return@mapNotNull null
-                    val withinFeature = pkg.removePrefix("feature.").substringAfter('.', missingDelimiterValue = "")
+                    // The side is the segment right after the feature's whole name, and the module
+                    // path is what settles how many segments that name spans.
+                    val withinFeature = pkg
+                        .removePrefix("feature.${file.featureNameOfPackage()}")
+                        .removePrefix(".")
                     if (withinFeature.isEmpty()) return@mapNotNull null // the feature root, allowed everywhere
                     val declaredSide = withinFeature.substringBefore('.')
                     val (module, allowedSides) = when {
@@ -200,10 +206,10 @@ object ModuleRules : RuleGroup() {
             Publishing is moving a file between modules without changing its package, so a published
             subsystem declaration would put `feature.shop.client.domain.checkout` in `:api` and make
             another feature's compiler aware of one feature's internal decomposition. A subsystem
-            exists because nothing outside the feature depends on it.
+            exists because no code outside the feature depends on the subsystem.
 
             When another feature does need what a subsystem computes, the capability is restated as a
-            layer-root contract that the subsystem satisfies. That costs one declaration and makes
+            layer-root contract that the subsystem satisfies. The restatement adds one declaration and makes
             publication the visible act `:api` placement is meant to be.
             """.trimIndent(),
         )
@@ -267,7 +273,7 @@ object ModuleRules : RuleGroup() {
             A class in `:api` that implements a domain interface would ship the implementation
             across the same channel as the interface, which is exactly what the `client.domain` /
             `server.domain` purity rules and the `:api` publication channel (D27) are there to
-            prevent — the channel carries interfaces and models only.
+            prevent — the channel contains interfaces and models only.
             """.trimIndent(),
         )
         note("A supertype counts only when it is both shaped like a Domain Interface — a `fun interface` with an `operator fun invoke` — and declared in a `client.domain`/`server.domain` package.")
@@ -435,6 +441,8 @@ object ModuleRules : RuleGroup() {
     @Describe("A `:feature` module may be grouped (`:feature:[group]:[name]:…`)")
     val featuresMayBeGrouped by guidance {
         note("A module that serves as a group should exist only as a group, and should not itself contain `:api`, `:server` or `:client` modules.")
+        note("The group is part of every nested feature's name, and its packages nest with it: `:feature:capture:insta:client` declares `feature.capture.insta.client.**`, and `:feature:capture:device-camera:client` declares `feature.capture.devicecamera.client.**` — a package segment can't be kebab-case, so the directory's dashes are dropped.")
+        note("Grouping is naming, not kinship: two features in one group are two features, reaching each other through `:api` like any other pair (`ModuleRules.crossFeatureCodeViaApi`), and each edge between them counts towards `ModuleRules.apiGraphAcyclic`.")
         auditModuleGraph { graph, _ ->
             val featureParents = graph.edges
                 .flatMap { listOf(it.from, it.to) }
@@ -506,8 +514,13 @@ object ModuleRules : RuleGroup() {
 private fun isApp(path: String) = path.startsWith(":app:") || path == ":app"
 private fun isFeature(path: String) = path.startsWith(":feature:") || path == ":feature"
 private fun isPlatform(path: String) = path.startsWith(":platform:") || path == ":platform"
-private val TESTS_MODULE = Regex("^:feature:[^:]+:tests$")
-private val TEST_SUPPORT_MODULES = setOf(":platform:common:testing", ":platform:common:subcutaneous", ":platform:common:robots", ":platform:common:browser")
+private val TESTS_MODULE = Regex("^:feature:(?:[^:]+:)+tests$")
+private val TEST_SUPPORT_MODULES = setOf(
+    ":platform:common:testing",
+    ":platform:common:subcutaneous",
+    ":platform:common:robots",
+    ":platform:common:browser",
+)
 private fun isTestSupport(path: String) = path in TEST_SUPPORT_MODULES || TESTS_MODULE.matches(path)
 
 /** `:feature:core:server` → "server"; null if [path] isn't a `:feature:…:{api,client,server}` module. */

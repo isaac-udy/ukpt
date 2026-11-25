@@ -19,6 +19,7 @@ import dev.isaacudy.udytils.architecture.*
     covered by a [Subcutaneous Test](#subcutaneous-test).
 """)
 object ComponentTest : Construct<Testing>(
+    testedBy = TestExpectation.none("a test"),
     requirements = listOf(isClass, isAnnotatedWith("ComponentTest")),
 ) {
     @Describe("A Component Test must live in the `src/test` source set of a `:feature:[name]:server` module or `:platform:server:web`")

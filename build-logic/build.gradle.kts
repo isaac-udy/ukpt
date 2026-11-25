@@ -3,13 +3,18 @@ plugins {
 }
 
 dependencies {
+    implementation(libs.asm.tree)
     implementation(libs.kotlin.gradlePlugin)
     implementation(libs.kotlinx.serialization)
     implementation(libs.kotlinx.serialization.gradlePlugin)
     // ukpt.server-packaging types the `shadowJar` task, so both must be on this classpath. Shadow
-    // is named separately: Ktor depends on it at runtime only, so it never arrives transitively.
+    // is named separately: Ktor depends on Shadow at runtime only, so the Ktor plugin does not add
+    // Shadow to this classpath.
     implementation(libs.ktor.gradlePlugin)
     implementation(libs.shadow.gradlePlugin)
+    // ukpt.test-coverage applies Kover and builds one coverage report per test category.
+    implementation(libs.kover.gradlePlugin)
+    implementation(libs.kover.featuresJvm)
 
     testImplementation(libs.kotlin.test)
     testImplementation(libs.junit.jupiter)

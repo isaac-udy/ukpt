@@ -205,7 +205,7 @@ object ProjectRenamePlanner {
         val contents = try {
             file.readText(StandardCharsets.UTF_8)
         } catch (_: IOException) {
-            // Unreadable or non-UTF-8 (CharacterCodingException) files carry no occurrences.
+            // Unreadable or non-UTF-8 (CharacterCodingException) files are treated as having no occurrences.
             return
         }
         if ('\u0000' in contents) return

@@ -23,16 +23,16 @@ import dev.isaacudy.udytils.architecture.*
     does and reading what it shows. A unit test is for logic with many inputs. A test that needs
     another kind of coverage states it with its category.
 
-    Each annotation carries a JUnit 5 tag and timeout. `./gradlew unitTest` runs the unit tests of
-    every module; each category has its task (`subcutaneousTest`, `componentTest`, `snapshotTest`,
+    Each annotation declares a JUnit 5 tag and timeout. `./gradlew unitTest` runs the unit tests of
+    every module; each category has its task (`subcutaneousJvmTest`, `componentTest`, `snapshotTest`,
     `wiringTest`, `adapterTest`, `checkTest`, `endToEndTest`).
 
     Subcutaneous Tests and End To End Tests drive pages through [Robots](#robot), one per page,
     named for what the user does: `clickGreetButton()`, `seeGreetings("Hello, Ada")`. The same
     robot runs in both.
 
-    Test-support declarations (fakes, fixtures, scenarios, test graphs, robots) are Constructs too:
-    every top-level declaration in test sources matches exactly one.
+    Test-support declarations (fakes, fixtures, scenarios, server inspections, test graphs,
+    robots) are Constructs too: every top-level declaration in test sources matches exactly one.
 """)
 object Testing : RuleGroup(
     constructs = listOf(
@@ -46,13 +46,14 @@ object Testing : RuleGroup(
         EndToEndTest,
         Fake,
         Scenario,
+        ServerInspection,
         TestGraph,
         Robot,
         Fixture,
     ),
     codeScope = CodeScope.Test,
 ) {
-    @Describe("Every test class (a class declaring a `@Test` function) must carry exactly one test category annotation")
+    @Describe("Every test class (a class declaring a `@Test` function) must have exactly one test category annotation")
     val oneCategoryPerTestClass by rule {
         rationale("The category decides which task runs the test and which rules check it.")
         scope { scope, exempt ->

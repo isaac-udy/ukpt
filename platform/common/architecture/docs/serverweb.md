@@ -84,6 +84,10 @@ with a [Page](#page), a fragment rendered by a [Component](#component), a redire
 * A Routes is named `[Name]Routes`
 * A Routes is declared in a `:server` module
 
+##### Tested by
+
+* Subcutaneous
+
 ##### Rules
 
 * A Routes class must be `internal`
@@ -162,6 +166,10 @@ a plugin that installs `WebSockets` first sets its configuration.
 * A Plugin is named `[Name]Plugin`
 * A Plugin is declared in a `:server` module
 
+##### Tested by
+
+* Subcutaneous or Adapter
+
 ##### Rules
 
 * A Plugin class must be `internal`
@@ -213,6 +221,10 @@ Component it replaces, not the Page.
 
 * A Page resides in `feature..server.web..`
 * A Page has an `HTML` receiver and is named `[name]Page`
+
+##### Tested by
+
+* Subcutaneous or Component or Snapshot
 
 ##### Rules
 
@@ -279,6 +291,10 @@ Layouts nest, and every chain ends at the platform, which alone renders `<head>`
 * A Layout resides in `feature..server.web..`
 * A Layout has an `HTML` receiver and is named `[name]Layout`
 
+##### Tested by
+
+* Subcutaneous or Snapshot
+
 ##### Rules
 
 * A Layout must take exactly two parameters: its View State, then the content it renders around
@@ -333,6 +349,10 @@ same function.
 * A Component resides in `feature..server.web..`
 * A Component has a kotlinx.html tag or content receiver other than `HTML`
 
+##### Tested by
+
+* Subcutaneous or Component or Snapshot
+
 ##### Rules
 
 * A Component must render only the values it is given: no parameter may be a domain interface or a Routes class
@@ -351,6 +371,10 @@ built by a handler from domain models and form input.
 * A View State is a class or interface
 * A View State is named `[Name]State`
 * A View State satisfies one of: {is a `data class`, is `sealed`, is an `enum class`}
+
+##### Tested by
+
+* Subcutaneous or Unit
 
 ##### Rules
 
@@ -375,6 +399,10 @@ shows exactly what was submitted.
 * A Form resides in `feature..server.web..`
 * A Form is a `data class`
 * A Form is named `[Name]Form`
+
+##### Tested by
+
+* Subcutaneous or Unit
 
 ##### Rules
 
@@ -432,6 +460,10 @@ out-of-band swaps rendered by the same [Component](#component) the page uses for
 * An Event Stream resides in `feature..server.web..`
 * An Event Stream is named `[name]Events` and returns `Flow<ServerSentEvent>`
 
+##### Tested by
+
+* Subcutaneous or Component
+
 ##### Guidance
 
 * An Event Stream should send the whole of what it keeps current as its first event, then only the changes
@@ -448,6 +480,10 @@ formatter, or a mapper such as `GreetingSummary.toPageState()`.
 
 * A View Helper resides in `feature..server.web..`
 * A View Helper returns a value, has no kotlinx.html receiver, and is not an Event Stream
+
+##### Tested by
+
+* Subcutaneous or Unit
 
 ##### Rules
 
@@ -469,6 +505,10 @@ attribute that requests it.
 
 * A Web Constants resides in `feature..server.web..`
 * A Web Constants is named `[Name]Paths` or `[Name]Ids`
+
+##### Tested by
+
+* No tests are expected: constants
 
 ##### Rules
 

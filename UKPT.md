@@ -6,7 +6,7 @@ projects — project-specific guidance belongs in AGENTS.md.
 
 UKPT is a Kotlin project **template**. This is its `htmx` branch: a Ktor server that renders HTML with kotlinx.html and updates it with htmx, server-sent events and Alpine.js, with Koin DI and Postgres. There are no client apps; the server is the application. It starts minimal; build features out from the documented patterns — `:feature:core` is the worked example to copy.
 
-This file holds operational guidance (commands, toolchain, submodules) and pointers to the rules. The architecture rules are the source of truth in [`platform/common/architecture/README.md`](./platform/common/architecture/README.md) — don't restate them here. The embedded builds carry their own repository guidance.
+This file contains operational guidance (commands, toolchain, submodules) and pointers to the rules. The architecture rules are the source of truth in [`platform/common/architecture/README.md`](./platform/common/architecture/README.md) — don't restate the rules here. Each embedded build has its own repository guidance.
 
 ## Template versioning
 
@@ -18,10 +18,10 @@ This branch follows `main` by merging it. [`.ukpt/flavour.json`](./.ukpt/flavour
 
 Follow the rules in [`platform/common/architecture/README.md`](./platform/common/architecture/README.md), enforced by Konsist tests. Orientation:
 
-- **Module groups**: `:app` (the `:app:server` shell + DI wiring), `:feature` (vertical slices — `:api` for what other features may use, `:server` for everything else, `:tests` Subcutaneous Tests), `:platform` (reusable infrastructure; `:platform:server:web` holds the page layout, `WebRoutes`, and the static assets).
-- **Feature packages**: `feature.<name>` holds the shared vocabulary; below it `server`, then a layer — `server.web` (routes, pages, components, forms, event streams), `server.domain`, `server.data`. Publication to `:api` is a module move that never changes the package.
+- **Module groups**: `:app` (the `:app:server` shell + DI wiring), `:feature` (vertical slices — `:api` for what other features may use, `:server` for everything else, `:tests` Subcutaneous Tests), `:platform` (reusable infrastructure; `:platform:server:web` contains the page layout, `WebRoutes`, and the static assets).
+- **Feature packages**: `feature.<name>` contains the shared vocabulary; below it `server`, then a layer — `server.web` (routes, pages, components, forms, event streams), `server.domain`, `server.data`. Publication to `:api` is a module move that never changes the package.
 - **Markup is typed and script-free.** `hx-*`, `sse-*` and Alpine attributes come from the `dev.isaacudy.udytils.htmx` builders; JavaScript lives in files under a module's `static/` resources, loaded from this origin under a `script-src 'self'` content security policy. Every form also works without JavaScript. Rules: the `ServerWeb` group in the rule catalog.
-- **Domain interfaces name capabilities.** A `fun interface` in `server.domain` is a capability a consumer asks for or a domain model it needs, never one storage call, one field, or one implementation step; facts a consumer needs together come back as one model from the Repository that owns the storage. Guidance: `ServerDomain.DomainInterface.namesACapability`, `.readProjections`, `.collapsedUpdateFamilies`.
+- **Domain interfaces name capabilities.** A `fun interface` in `server.domain` is a capability a consumer calls or a domain model a consumer reads, never one storage call, one field, or one implementation step; the Repository that owns the storage returns facts a consumer reads together as one model. Guidance: `ServerDomain.DomainInterface.namesACapability`, `.readProjections`, `.collapsedUpdateFamilies`.
 - **No `_[name]` backing properties.** A read-only property whose stored type is narrower than its exposed type declares an explicit backing field (`val items: StateFlow<T>` over `field = MutableStateFlow(…)`; Stable in Kotlin 2.4, no flag); a value the class reassigns is a `var` with a `private set`. Rule: `ProjectRules.noBackingProperties`.
 - **Injectable constructors have no defaults.** A class a Koin module registers is bound by constructor reference (`singleOf`, `factoryOf`, `scopedOf`, `viewModelOf`) and takes every dependency as a required parameter; a fixed setting is a private property, a setting that varies is a typed `[Name]Config` the dependency module assembles. `:app:server` keeps its module list in `ServerDependencies.kt`, which `ServerDependenciesTest` verifies. Rules: `ProjectRules.constructorReferenceBindings`, `ProjectRules.injectableConstructorsHaveNoDefaults`.
 - The rules are a machine-readable **object catalog** in [`platform/common/architecture/src/main/kotlin/architecture/rules/`](./platform/common/architecture/src/main/kotlin/architecture/rules) (a `RuleGroup` object per layer in its own sub-package; one top-level `Construct<Group>` object per construct in its own file, listed in the group's `constructs`; a rule per property; the engine is the `dev.isaacudy.udytils:architecture-core` artifact from `embedded-udytils`). Rules shared by the client/server twins of one construct are declared once on abstract base classes in [`rules/shared/`](./platform/common/architecture/src/main/kotlin/architecture/rules/shared) and instantiated per side. Every rule has a stable **path ID** — the object/property path, e.g. `ServerDomain.UseCase.noOverridingDefaults` — and an enforcement tag; [`docs/rule-index.md`](./platform/common/architecture/docs/rule-index.md) lists them all.
@@ -45,7 +45,9 @@ New code may rely on APIs that only exist in a newer submodule commit. For a new
 
 ## Working as an agent
 
-**Comments.** Write none by default: a clearer name, a `require(...)` message, or a restructured flow usually carries the point instead. A comment that earns its place is one line, two at most, and states a constraint, invariant or trap that the names cannot. It addresses the next reader of the file, not the reviewer of the change, and describes the code as it is; history belongs in the commit message. Detail and examples: [docs/code-comments.md](./docs/code-comments.md).
+**Comments.** Write none by default: a clearer name, a `require(...)` message, or a restructured flow usually states the point instead. A comment is one line, two at most, and states a constraint, invariant or trap that the names cannot. A comment addresses the next reader of the file, not the reviewer of the change, and describes the code as the code is now; history belongs in the commit message. Detail and examples: [docs/code-comments.md](./docs/code-comments.md).
+
+**Wording.** Comments, docs, commit messages and PR descriptions state the component, the action and the condition, with literal verbs ("the parser requires a terminator", not "the parser wants a terminator") and the noun repeated in place of "it" or "this". The rules: [docs/code-comments.md](./docs/code-comments.md#wording).
 
 **Before handing off a change**, re-read every comment the diff adds, including in work delegated to subagents, and delete each one that narrates the change, argues with the reviewer, or restates a name or type.
 
@@ -53,19 +55,19 @@ New code may rely on APIs that only exist in a newer submodule commit. For a new
 
 ## Building as an agent
 
-Agents often run several at a time — subagents in one session, plus other sessions and other projects on the same machine. Nothing coordinates them, so each build has to be a good citizen on its own. The failure mode isn't a slow build, it's a machine that stops being usable: once memory is oversubscribed the box swaps, and swapping stalls everything, not just Gradle.
+Agents often run several at a time — subagents in one session, plus other sessions and other projects on the same machine. No process coordinates these builds, so each build has to limit its own memory and worker use. The failure is not a slow build but an unusable machine: once memory is oversubscribed the machine swaps, and swapping stalls every process, not only Gradle.
 
 **Memory is the binding constraint, not CPU.** Each concurrent build needs its own daemon pair — the Gradle daemon (`org.gradle.jvmargs`) and the *separate* Kotlin compile daemon (`kotlin.daemon.jvmargs`), both 3 GB in [`gradle.properties`](./gradle.properties) — plus a test JVM, an embedded Postgres for the schema codegen, the dev database and each test JVM, and headless Chromium for the End To End Tests. A daemon serves one build at a time, so a second concurrent build forks a second pair instead of sharing the first. At roughly 6 GB a build, a 16 GB machine tops out near two.
 
 In order of leverage:
 
-1. **Don't build what you don't need.** A docs, comment, or guidance-only change has no runtime surface — there is nothing a compile would verify. Skip it.
+1. **Don't build what you don't need.** A docs, comment, or guidance-only change has no runtime surface, so a compile verifies no part of the change. Skip the build.
 2. **Scope the build to the change.** Prefer one module's task (`:feature:core:server:test`) over the full sweep (see `ukpt-verify`). `verifyArchitecture` and `validateTemplate` are cheap; the full sweep and `smokeTestFatJar` are not. Never `clean` unless the task genuinely depends on it — the configuration and build caches are on, and `clean` discards exactly what makes a rebuild cheap.
 3. **Don't run heavy builds concurrently.** When orchestrating subagents, let them read, analyse, and edit in parallel — that part is cheap — then run compilation and verification one at a time. Parallelism belongs in the editing phase, not the build phase.
 4. **Throttle a background build** with `--max-workers=2`. Use a small *fixed* cap rather than a fraction of the core count: you can't know how many agents are running, and a per-agent fraction still multiplies by the number of agents, whereas a fixed cap bounds what each one contributes. A **foreground** build — one the user is waiting on — should not be throttled; it should finish fast.
 5. **Never override daemon memory on an invocation.** Passing `org.gradle.jvmargs` or `kotlin.daemon.jvmargs` on the command line means the running daemon no longer matches, so a new one is forked — asking for less memory gets you more of it. Those belong in `gradle.properties`, one value shared by everyone. For the same reason keep flags identical across agents doing the same kind of work: daemons are matched on their JVM args, so inconsistent flags fragment the daemon pool.
 
-**Fresh worktrees.** A new git worktree starts without the gitignored `local.properties`, and unless whoever created it ran it, without the submodule checked out (`git submodule status` shows a leading `-` and `embedded-udytils` is empty). Before the first build in a worktree, run `git submodule update --init --recursive`. This branch needs no `local.properties`. Never copy the main checkout's `local.properties` into a worktree — besides `sdk.dir` it may hold tokens or signing secrets.
+**Fresh worktrees.** A new git worktree starts without the gitignored `local.properties`, and unless whoever created it ran it, without the submodule checked out (`git submodule status` shows a leading `-` and `embedded-udytils` is empty). Before the first build in a worktree, run `git submodule update --init --recursive`. This branch needs no `local.properties`. Never copy the main checkout's `local.properties` into a worktree — besides `sdk.dir`, `local.properties` may contain tokens or signing secrets.
 
 ## Checking architecture rules as an agent
 
@@ -80,6 +82,16 @@ For most changes, don't start in the rule catalog. `./gradlew verifyArchitecture
 Read more widely when the change is shaped by the rules — a new feature slice or subsystem, a Construct the catalog does not have yet, a refactor that moves declarations between layers — and stop once the shape is clear. For small and medium edits it does not pay: the index states rules, while only the engine states how they are tested, so a front-to-back read can still miss the answer (`ServerWeb.exhaustive` reads "every top-level declaration must match exactly one Construct"; that `private` declarations are exempt appears only in the engine's classification code).
 
 ## Verification
+
+For a combined run of a module's JVM tests, use its `test` task. For separate category test
+reports and line coverage, use `testCoverageReport`. Kover writes one coverage file per test task.
+Category tasks share an index of the compiled tests' JUnit tags, so an empty category needs no test
+worker. Plain and instrumented test results have separate build-cache entries.
+
+Coverage runs instrument classes under `feature`, `platform`, `app` and `ukpt.projectNamespace`.
+Add other production packages in the root `testCoverage { }` block with
+`instrumentedPackages("ukpt.tools.*")`. The report names a source file for each missing
+package root. After adding a root, rerun `./gradlew testCoverageReport` to measure those classes.
 
 While iterating, run only the tests the change affects: `ukpt-testing`, "Development loop", maps each kind of change to its tasks. Before handing back a feature, run the feature's own categories. Before opening a pull request, run the `ukpt-verify` sweep. CI (`.github/workflows/ci.yml`) runs the same sweep on every pull request.
 

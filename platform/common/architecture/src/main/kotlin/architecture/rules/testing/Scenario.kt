@@ -21,6 +21,7 @@ internal val hasScenarioReceiver = isFunctionWhere("has a `Scenario` receiver") 
     Another feature's `:tests` module depends on this one to reuse its scenarios.
 """)
 object Scenario : Construct<Testing>(
+    testedBy = TestExpectation.none("test infrastructure"),
     requirements = listOf(hasScenarioReceiver),
 ) {
     @Describe("A Scenario must write through server domain interfaces: no server data classes, generated tables, Exposed, JDBC or SQL")
@@ -28,7 +29,7 @@ object Scenario : Construct<Testing>(
         rationale(
             """
             A row written past the domain skips the invariants the server enforces, and the test
-            then covers a state the application cannot reach. A Scenario that calls the domain also
+            then covers a state the application cannot produce. A Scenario that calls the domain also
             stays valid when the storage below it changes.
             """.trimIndent(),
         )

@@ -13,6 +13,7 @@ import dev.isaacudy.udytils.architecture.*
     the layers between the page and the database are restructured.
 """)
 object UnitTest : Construct<Testing>(
+    testedBy = TestExpectation.none("a test"),
     requirements = listOf(isClass, isAnnotatedWith("UnitTest")),
 ) {
     @Describe("A Unit Test must live in a `src/test` source set outside a `:feature:[name]:tests` module")

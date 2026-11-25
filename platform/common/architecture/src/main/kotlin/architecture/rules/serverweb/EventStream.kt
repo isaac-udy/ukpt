@@ -1,5 +1,6 @@
 package architecture.rules.serverweb
 
+import architecture.definitions.TestCategories
 import dev.isaacudy.udytils.architecture.*
 
 import com.lemonappdev.konsist.api.declaration.KoFunctionDeclaration
@@ -13,6 +14,7 @@ import com.lemonappdev.konsist.api.declaration.KoFunctionDeclaration
     out-of-band swaps rendered by the same [Component](#component) the page uses for each item.
 """)
 object EventStream : Construct<ServerWeb>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous, TestCategories.Component),
     requirements = listOf(
         isFunctionWhere("is named `[name]Events` and returns `Flow<ServerSentEvent>`") { it.isEventStream() },
     ),

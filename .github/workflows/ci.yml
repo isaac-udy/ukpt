@@ -33,7 +33,7 @@ jobs:
         run: ./gradlew -p build-logic test
       # endToEndTest installs the Chromium headless shell and its system libraries first.
       - name: Tests by category
-        run: ./gradlew unitTest componentTest snapshotTest checkTest wiringTest adapterTest subcutaneousTest endToEndTest --continue
+        run: ./gradlew unitTest componentTest snapshotTest checkTest wiringTest adapterTest subcutaneousJvmTest endToEndTest --continue
       - name: Server fat jar
         run: ./gradlew :app:server:smokeTestFatJar
       - name: Upload test reports

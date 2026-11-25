@@ -118,7 +118,7 @@ Then commit everything as the project's initial commit.
 
 ## 6. Next: the design tokens
 
-The stylesheets in `platform/server/web/src/main/resources/static/platform/css/` carry the
+The stylesheets in `platform/server/web/src/main/resources/static/platform/css/` contain the
 template's **neutral placeholder** tokens — deliberately anonymous, not an identity. Point the user
 at `tokens.css` to set the project's palette, type and spacing; `base.css` and every feature
 stylesheet read the token names, which stay.

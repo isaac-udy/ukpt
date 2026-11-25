@@ -4,6 +4,7 @@ import feature.ukpt.server.web.UkptPaths
 import platform.testing.SubcutaneousTest
 import platform.testing.subcutaneous.subcutaneous
 import kotlin.test.Test
+import kotlin.test.assertEquals
 
 @SubcutaneousTest
 class GreetingsPageTest {
@@ -28,6 +29,7 @@ class GreetingsPageTest {
                 seeName("")
             }
         }
+        inspectServer { assertEquals(listOf("Hello, Ada"), storedGreetingTexts()) }
     }
 
     @Test
@@ -65,6 +67,7 @@ class GreetingsPageTest {
                 seeGreetings("Hello, Grace")
             }
         }
+        inspectServer { assertEquals(listOf("Hello, Grace"), currentGreetingHistory().map { it.text }) }
     }
 
     @Test

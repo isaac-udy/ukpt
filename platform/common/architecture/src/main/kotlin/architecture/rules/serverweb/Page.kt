@@ -1,5 +1,6 @@
 package architecture.rules.serverweb
 
+import architecture.definitions.TestCategories
 import dev.isaacudy.udytils.architecture.*
 
 import architecture.rules.testing.Robot
@@ -15,6 +16,7 @@ import com.lemonappdev.konsist.api.declaration.KoFunctionDeclaration
     Component it replaces, not the Page.
 """)
 object Page : Construct<ServerWeb>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous, TestCategories.Component, TestCategories.Snapshot),
     requirements = listOf(
         isFunctionWhere("has an `HTML` receiver and is named `[name]Page`") { it.receiverType?.name == "HTML" && it.name.endsWith("Page") },
     ),

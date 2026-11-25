@@ -18,6 +18,9 @@ internal fun KoBaseDeclaration.moduleDirectory(): String = containingFilePath().
 
 internal fun KoBaseDeclaration.isInFeatureTestsModule(): Boolean = FEATURE_TESTS_MODULE.containsMatchIn(containingFilePath())
 
+/** `:platform:common:subcutaneous`, whose own tests run the harness against fakes. */
+internal fun KoBaseDeclaration.isInSubcutaneousHarnessModule(): Boolean = moduleDirectory().endsWith("/platform/common/subcutaneous")
+
 internal val KoBaseDeclaration.file: KoFileDeclaration
     get() = (this as KoContainingFileProvider).containingFile
 
@@ -25,17 +28,17 @@ internal val KoBaseDeclaration.file: KoFileDeclaration
 internal fun KoBaseDeclaration.fileCode(): String = file.text.withoutStringsAndComments()
 
 private val SOURCE_SET = Regex("/src/([^/]+)/")
-private val FEATURE_TESTS_MODULE = Regex("/feature/[^/]+/tests/src/")
+private val FEATURE_TESTS_MODULE = Regex("/feature/(?:[^/]+/)+tests/src/")
 
 /** A placement check: the declaration's module and source set must satisfy [allowed]. */
 internal fun placement(where: String, allowed: (KoBaseDeclaration) -> Boolean) = ConstructCheck { decl, _ ->
     if (allowed(decl)) emptyList() else listOf(Violation(decl, "lives in `${decl.moduleDirectory()}/src/${decl.sourceSet()}/`; belongs in $where"))
 }
 
-/** A check that the declaration's file imports nothing under [prefixes]. */
-internal fun noImportsOf(prefixes: List<String>) = ConstructCheck { decl, _ ->
+/** A check that the declaration's file imports nothing under [prefixes], other than the names in [except]. */
+internal fun noImportsOf(prefixes: List<String>, except: List<String> = emptyList()) = ConstructCheck { decl, _ ->
     decl.file.imports
-        .filter { import -> prefixes.any { import.name.startsWith(it) } }
+        .filter { import -> prefixes.any { import.name.startsWith(it) } && import.name !in except }
         .map { Violation(decl, "imports `${it.name}`") }
 }
 

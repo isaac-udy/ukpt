@@ -1,5 +1,6 @@
 package architecture.rules.shared
 
+import architecture.definitions.TestCategories
 import architecture.definitions.resolveTypeToken
 import architecture.definitions.typeExpressionResolvesTo
 import com.lemonappdev.konsist.api.declaration.KoClassDeclaration
@@ -14,6 +15,7 @@ import dev.isaacudy.udytils.architecture.*
 abstract class RepositoryRules<G : RuleGroup>(
     private val side: String,
 ) : Construct<G>(
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous),
     requirements = listOf(
         isClass,
         hasNameEndingWith("Repository"),

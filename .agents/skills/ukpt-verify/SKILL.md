@@ -38,11 +38,11 @@ adds its own jobs and deploy steps to the same file.
 
 ## By category
 
-Every test class carries one category annotation (the `ukpt-testing` skill). A category task
+Every test class has one category annotation (the `ukpt-testing` skill). A category task
 given without a module path runs in every module that has it:
 ```
 ./gradlew unitTest componentTest snapshotTest wiringTest checkTest adapterTest
-./gradlew subcutaneousTest endToEndTest
+./gradlew subcutaneousJvmTest endToEndTest
 ```
 
 ## HTML snapshots
