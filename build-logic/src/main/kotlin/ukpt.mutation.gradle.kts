@@ -3,8 +3,9 @@
  *
  * Applied by: the root build, after ukpt.test-coverage.
  * Configures: the udytils mutation plugin with the coverage report's package scope, the
- * architecture `classification.json`, and the `testCoverage { }` module expectations. The catalog
- * rules are in the root build's `mutation { }` block.
+ * architecture `classification.json`, and the `testCoverage { }` module expectations. Snapshot
+ * Tests never run against mutants: the Snapshot category and the JUnit Vintage engine, which runs
+ * Paparazzi, are excluded. The catalog rules are in the root build's `mutation { }` block.
  */
 
 import ukpt.coverage.TestCoverageExtension
@@ -17,6 +18,8 @@ private val architecture = ":platform:common:architecture"
 extensions.getByName("mutation").withGroovyBuilder {
     getProperty("packages").withGroovyBuilder { "set"(testCoverage.instrumentedPackages) }
     getProperty("moduleExpectations").withGroovyBuilder { "set"(testCoverage.moduleExpectations) }
+    getProperty("excludedCategories").withGroovyBuilder { "add"("snapshot") }
+    getProperty("excludedEngines").withGroovyBuilder { "add"("junit-vintage") }
     getProperty("classification").withGroovyBuilder {
         "set"(project(architecture).layout.buildDirectory.file("reports/architecture/classification.json"))
     }
