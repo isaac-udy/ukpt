@@ -83,6 +83,10 @@ includeBuild("embedded-udytils") {
     name = "embedded-udytils"
     dependencySubstitution {
         substitute(module("dev.isaacudy.udytils:core")).using(project(":core"))
+        substitute(module("dev.isaacudy.udytils:mutation-runtime")).using(project(":mutation-runtime"))
+        substitute(module("dev.isaacudy.udytils:mutation-compiler-plugin")).using(project(":mutation-compiler-plugin"))
+        substitute(module("dev.isaacudy.udytils:mutation-junit-driver")).using(project(":mutation-junit-driver"))
+        substitute(module("dev.isaacudy.udytils:mutation-gradle-plugin")).using(project(":mutation-gradle-plugin"))
         substitute(module("dev.isaacudy.udytils:viewmodel")).using(project(":viewmodel"))
         substitute(module("dev.isaacudy.udytils:ui")).using(project(":ui"))
         substitute(module("dev.isaacudy.udytils:ui-html")).using(project(":ui-html"))
