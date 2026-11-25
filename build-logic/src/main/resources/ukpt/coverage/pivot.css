@@ -107,5 +107,5 @@ details.section > summary { list-style:none; cursor:pointer; color:var(--fg); di
 details.section > summary::-webkit-details-marker { display:none; }
 details.section > summary::before { content:"▶"; font-size:10px; color:var(--muted); transition:transform .12s; }
 details.section[open] > summary::before { transform:rotate(90deg); }
-details.section > summary h2 { margin:0; font-size:17px; }
+details.section > summary h2 { margin:0; font-size:17px; white-space:nowrap; }
 details.section > summary .muted { font-size:13px; }

@@ -8,7 +8,7 @@ import kotlinx.serialization.json.JsonPrimitive
 /** The columns of each row in [pivotData], in order. */
 internal val PIVOT_FIELDS = listOf(
     "path", "short", "package", "module", "area", "feature", "affinity", "construct", "layer", "basis", "expected", "line", "link",
-    "covered", "incidental", "uncovered", "run", "notRun",
+    "covered", "incidental", "uncovered", "run", "notRun", "mKilled", "mSurvived", "mUncovered",
 )
 
 /**
@@ -26,6 +26,7 @@ internal fun pivotData(report: CoverageReport, packageOf: (String) -> String, li
             Expectation.Unspecified -> JsonPrimitive("unspecified")
         }
         val tally = target.tally
+        val mutants = MutantTally.of(report.mutantsByTarget[target].orEmpty())
         JsonArray(
             listOf(
                 JsonPrimitive(target.path), JsonPrimitive(short), JsonPrimitive(pkg), JsonPrimitive(target.module.path),
@@ -34,11 +35,17 @@ internal fun pivotData(report: CoverageReport, packageOf: (String) -> String, li
                 JsonPrimitive(target.startLine), JsonPrimitive(linkOf(target)),
                 JsonPrimitive(tally.covered), JsonPrimitive(tally.incidental), JsonPrimitive(tally.uncovered),
                 JsonPrimitive(tally.run), JsonPrimitive(tally.notRun),
+                JsonPrimitive(mutants.killed), JsonPrimitive(mutants.survived), JsonPrimitive(mutants.uncovered),
             ),
         )
     }
     val categories = JsonObject(report.categoryNames.mapValues { JsonPrimitive(it.value) })
-    val json = JsonObject(mapOf("categories" to categories, "fields" to JsonArray(PIVOT_FIELDS.map(::JsonPrimitive)), "rows" to JsonArray(rows)))
+    val json = JsonObject(
+        mapOf(
+            "categories" to categories, "fields" to JsonArray(PIVOT_FIELDS.map(::JsonPrimitive)), "rows" to JsonArray(rows),
+            "mutation" to JsonPrimitive(report.mutations != null),
+        ),
+    )
     // The JSON sits inside a <script> element, which a literal `</` would close.
     return json.toString().replace("</", "<\\/")
 }

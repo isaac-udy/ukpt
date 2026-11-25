@@ -58,6 +58,8 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
         append("</script>")
         append("</div>")
 
+        report.mutations?.let { append(mutantSection(it)) }
+
         val gaps = assessed.filter { it.tally.covered < it.tally.assessed }.sortedByDescending { it.tally.assessed - it.tally.covered }.take(20)
         append(collapsed("Gaps", "Declarations with the most lines that no expected test runs, most first. Untested lines opens the first such line.", gapTable(gaps, depth = 0)))
         if (report.notMeasured.isNotEmpty() || report.generatedFiles.isNotEmpty() || report.objectHeaderLines > 0) {
@@ -75,6 +77,45 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
         if (report.problems.isNotEmpty()) {
             append(collapsed("Report problems (${report.problems.size})", "Coverage data the report could not attribute.", "<ul class=\"problems\">${report.problems.joinToString("") { "<li>${inlineCode(it)}</li>" }}</ul>"))
         }
+    }
+
+    private fun mutantSection(results: MutationResults): String {
+        val tally = MutantTally.of(results.mutants)
+        val targetOf = report.mutantsByTarget.flatMap { (target, mutants) -> mutants.map { it to target } }.toMap()
+        val gaps = results.mutants.filter { !it.status.detected }
+            .sortedWith(compareBy({ it.status != MutantStatus.Survived }, { it.path }, { it.line }))
+        val description = "${tally.total} mutants from the last <code>./gradlew runMutants</code> on ${results.hosts.joinToString()}: " +
+            "${tally.killed} killed, ${tally.survived} survived, ${tally.uncovered} uncovered. A mutant counts as killed only by a test " +
+            "from a category its Construct expects." +
+            if (results.stale > 0) " ${results.stale} mutants are left out because their line changed after the run; run <code>./gradlew runMutants</code> again." else ""
+        val body = if (gaps.isEmpty()) {
+            "<p class=\"muted\">Every mutant is killed.</p>"
+        } else {
+            val rows = gaps.joinToString("") { mutant ->
+                val target = targetOf[mutant]
+                val name = target?.let { esc(it.shortName) } ?: esc(mutant.path.substringAfterLast('/'))
+                "<tr><td><a href=\"${filePage(mutant.path)}#L${mutant.line}\">$name</a><div class=\"path\" title=\"${esc(mutant.path)}\">" +
+                    "${esc(mutant.path.substringAfterLast('/'))}:${mutant.line}</div></td>" +
+                    "<td>${target?.let { ownerCell(it) }.orEmpty()}</td><td>${target?.let { expectationCell(it.expectation) }.orEmpty()}</td>" +
+                    "<td>${mutationCell(mutant)}</td><td>${statusChip(mutant)}</td>" +
+                    "<td class=\"n\">${if (mutant.status == MutantStatus.Survived) mutant.candidateTests else ""}</td></tr>"
+            }
+            "<table><thead><tr><th>Declaration</th><th>Construct or module</th><th>Expected</th><th>Mutation</th><th>Status</th>" +
+                "<th class=\"n\" title=\"Tests from an expected category that ran the mutant\">Tests</th></tr></thead><tbody>$rows</tbody></table>"
+        }
+        return collapsed("Mutants not killed (${gaps.size})", description, body)
+    }
+
+    private fun mutationCell(mutant: Mutant) =
+        "<span class=\"muted\">${esc(OPERATOR_LABELS[mutant.operator] ?: mutant.operator)}</span> ${code(mutant.text)}"
+
+    private fun statusChip(mutant: Mutant): String {
+        val title = when (mutant.status) {
+            MutantStatus.Survived -> "${mutant.candidateTests} expected tests ran the mutant and passed"
+            MutantStatus.Uncovered -> "No test from an expected category runs the mutant"
+            else -> listOfNotNull(mutant.killedBy, mutant.failure).joinToString(": ")
+        }
+        return "<span class=\"mchip ${mutant.status.id}\" title=\"${esc(title)}\">${mutant.status.label}</span>"
     }
 
     private fun packageOf(path: String): String = packages.getOrPut(path) {
@@ -122,7 +163,11 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
         append("<h1>${esc(path.substringAfterLast('/'))}</h1>")
         append("<p class=\"path\">${esc(path)} · <code>${esc(targets.first().module.path)}</code></p>")
         append("<ul class=\"legend\"><li><i class=\"c\"></i>Covered</li><li><i class=\"i\"></i>Incidental</li><li><i class=\"u\"></i>Uncovered</li><li><i class=\"r\"></i>Run, not in the totals</li><li><i class=\"n\"></i>Not run, not in the totals</li>")
-        append("<li><span class=\"chip x\">Unit</span> expected category</li><li><span class=\"chip\">Unit</span> other category</li></ul>")
+        append("<li><span class=\"chip x\">Unit</span> expected category</li><li><span class=\"chip\">Unit</span> other category</li>")
+        if (report.mutations != null) {
+            append("<li><span class=\"mchip killed\">K</span> mutant killed</li><li><span class=\"mchip survived\">S</span> survived</li><li><span class=\"mchip timed-out\">T</span> timed out</li><li><span class=\"mchip uncovered\">U</span> uncovered</li>")
+        }
+        append("</ul>")
         append(declarationTable(targets, showPath = false).replace("href=\"../${filePage(path)}#", "href=\"#"))
 
         append("<table class=\"src\"><tbody>")
@@ -140,7 +185,17 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
                 "<span class=\"chip${if (expected) " x" else ""}\" title=\"${esc(report.categoryName(category))}\">${esc(chip(category))}</span>"
             }
             append("<tr id=\"L$line\"${state?.let { " class=\"${stateClass(it)}\"" } ?: ""}><td class=\"ln\"><a href=\"#L$line\">$line</a></td>")
-            append("<td class=\"mark\"></td><td class=\"chips\">$chips</td><td class=\"code\">${esc(text)}</td></tr>")
+            val mutants = report.mutations?.onLine(path, line).orEmpty().joinToString("") { mutant ->
+                val detail = listOfNotNull(
+                    "${OPERATOR_LABELS[mutant.operator] ?: mutant.operator}: ${mutant.text}",
+                    mutant.status.label,
+                    mutant.killedBy?.let { "by $it" },
+                    mutant.failure,
+                    "id ${mutant.id}",
+                ).joinToString(" · ")
+                "<span class=\"mchip ${mutant.status.id}\" title=\"${esc(detail)}\">${mutant.status.label.first()}</span>"
+            }
+            append("<td class=\"mark\"></td><td class=\"chips\">$chips$mutants</td><td class=\"code\">${esc(text)}</td></tr>")
         }
         append("</tbody></table>")
     }
@@ -214,6 +269,8 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
     private fun inlineCode(text: String) = esc(text).replace(Regex("`([^`]+)`"), "<code>$1</code>")
 
     companion object {
+        private val OPERATOR_LABELS = mapOf("negate-condition" to "negated", "negate-boolean-return" to "negated return")
+
         fun filePage(path: String) = "files/${path.replace('/', '~')}.html"
 
         private fun resource(name: String): String =
@@ -274,7 +331,7 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
                   <li><i class="u"></i>Uncovered</li>
                   <li><i class="r"></i>Ran, not expected to be tested</li>
                   <li><i class="n"></i>Not run, not expected to be tested</li>
-                </ul></div></details></th><th class="n" data-sort="covered">Covered</th><th class="n" data-sort="incidental">Incidental</th><th class="n" data-sort="uncovered">Uncovered</th></tr></thead>
+                </ul></div></details></th><th class="n" data-sort="covered">Covered</th><th class="n" data-sort="incidental">Incidental</th><th class="n" data-sort="uncovered">Uncovered</th><th class="n" data-sort="mutants" id="mutantsHead" title="Mutants killed of all mutants; S survived, U uncovered" hidden>Mutants</th></tr></thead>
                 <tbody id="body"></tbody>
               </table>
             </div>
@@ -331,6 +388,9 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
             .src tr:target td.code { outline:2px solid var(--link); }
             details summary { cursor:pointer; color:var(--muted); }
             ul.problems li { margin:4px 0; }
+            .mchip { display:inline-block; white-space:nowrap; font-size:11px; padding:0 5px; border-radius:3px; line-height:16px; margin-right:3px; color:#fff; cursor:help; }
+            .mchip.killed, .mchip.timed-out { background:var(--c); } .mchip.survived { background:var(--u); } .mchip.uncovered { background:var(--i); color:#1d1f23; }
+            td.mut { white-space:nowrap; } td.mut .ms { color:var(--u); } td.mut .mu { color:var(--i); }
         """.trimIndent()
     }
 }
