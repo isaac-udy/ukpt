@@ -27,13 +27,24 @@ takes minutes. Later runs reuse the compiled classes.
 | A branch's changed lines | `./gradlew runMutants -Pmutation.changedSince=origin/main` |
 | One or more modules | `./gradlew runMutants -Pmutation.modules=:feature:<name>:client,:feature:<name>:server` |
 | The whole catalog | `./gradlew runMutants` |
+| Android host tests in place of JVM tests | add `-Pmutation.hosts=android,jvm` |
 
 Run in the background with `--max-workers=2`, and run no other heavy build at the same time
 (see `UKPT.md`, "Building as an agent"). An interrupted run resumes when its inputs are unchanged.
 
 The run prints `build/reports/mutation/summary.txt`. The full data is in
-`build/reports/mutation/results.json`. The test coverage report (`./gradlew testCoverageReport`)
-shows the same results per file and per Construct when `results.json` exists.
+`build/reports/mutation/results.json`. When `results.json` exists, `./gradlew testCoverageReport`
+adds the results to `build/reports/test-coverage/index.html`:
+
+- a **Mutants** column (killed of all mutants, then the survived `S` and uncovered `U` counts) and
+  a Mutants filter in the pivot table;
+- a **Mutants not killed** section listing each survived and uncovered mutant with its
+  Construct, expected categories and the negated expression;
+- a `K`, `S`, `T` or `U` badge on each mutated line of a file page; the badge's tooltip names
+  the killing test and the failure.
+
+The report leaves out a mutant whose source text no longer starts on its line, because the code
+changed after the run.
 
 ## What runs
 
@@ -45,7 +56,12 @@ shows the same results per file and per Construct when `results.json` exists.
 - **Tests:** only tests in a category that the mutant's Construct lists in "Tested by" count. A
   ServiceImpl mutant killed only by a Unit Test is reported as survived, because the Construct
   expects a Subcutaneous Test.
-- **Hosts:** JVM test tasks only.
+- **Snapshot Tests never count.** `ukpt.mutation` excludes the `snapshot` category and the JUnit
+  Vintage engine that runs Paparazzi. A mutant whose Construct expects only Snapshot Tests is not
+  run.
+- **Hosts:** each module runs its mutants on one host. A module with a JVM target uses its JVM
+  tests; a module with only an Android target uses its Android host tests. `-Pmutation.hosts=android,jvm`
+  selects the Android host for every module with an Android target.
 
 ## Triage
 
@@ -92,7 +108,8 @@ rules that select the site; use it to check what a new rule selects before runni
 
 ## Limits
 
-- Mutants in iOS, JS, wasm or Android-only source sets are not compiled or reported.
+- Mutants in iOS, JS or wasm source sets are not compiled or reported. Mutants in `androidMain` of
+  a module with a JVM target are reported only with `-Pmutation.hosts=android,jvm`.
 - A mutant in a top-level or `object` property initialiser runs in its own JVM (a few seconds
   each).
 - `baselineFailures` in `results.json` lists tests that failed with no mutant active; fix those

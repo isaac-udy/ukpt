@@ -372,6 +372,10 @@ to the root `testCoverage { }` block, substituting the project's package. Subpac
 The report fails with an example source path for each missing package root. After adding a root,
 rerun `./gradlew testCoverageReport` to collect new measurements.
 
+Coverage shows which lines a test runs, not whether a test fails when the line is wrong. To check
+that, run mutation testing with `./gradlew runMutants` (`ukpt-test-audit`). The coverage report
+shows the mutation results when `build/reports/mutation/results.json` exists.
+
 In a warm UKPT run with two Gradle workers and the build cache disabled,
 `:platform:client:design:testAndroidHostTest` took 4.74 s without Kover, 5.39 s with package
 includes and 7.62 s with unrestricted instrumentation. Both coverage runs produced identical
