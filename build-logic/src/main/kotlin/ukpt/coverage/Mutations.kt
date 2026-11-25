@@ -28,12 +28,17 @@ class Mutant(
     val path: String,
     val line: Int,
     val operator: String,
+    /** The change the operator made, for example `< → <=`. */
+    val variant: String,
     val text: String,
     val status: MutantStatus,
     val killedBy: String?,
     val failure: String?,
     val candidateTests: Int,
-)
+) {
+    /** The operator and its change, for example `conditionals-boundary < → <=`. */
+    val label: String get() = if (variant.isEmpty()) operator else "$operator $variant"
+}
 
 data class MutantTally(val killed: Int = 0, val survived: Int = 0, val uncovered: Int = 0) {
     val total: Int get() = killed + survived + uncovered
@@ -86,6 +91,7 @@ class MutationResults(val mutants: List<Mutant>, val stale: Int, val hosts: List
                     path = m.string("path"),
                     line = m.getValue("line").jsonPrimitive.int,
                     operator = m.string("operator"),
+                    variant = m["variant"]?.jsonPrimitive?.contentOrNull.orEmpty(),
                     text = m.string("text"),
                     status = MutantStatus.of(m.string("status")),
                     killedBy = m["killedBy"]?.jsonPrimitive?.contentOrNull,

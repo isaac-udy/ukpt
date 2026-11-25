@@ -107,7 +107,7 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
     }
 
     private fun mutationCell(mutant: Mutant) =
-        "<span class=\"muted\">${esc(OPERATOR_LABELS[mutant.operator] ?: mutant.operator)}</span> ${code(mutant.text)}"
+        "<span class=\"muted\">${esc(mutant.label)}</span> ${code(mutant.text)}"
 
     private fun statusChip(mutant: Mutant): String {
         val title = when (mutant.status) {
@@ -187,7 +187,7 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
             append("<tr id=\"L$line\"${state?.let { " class=\"${stateClass(it)}\"" } ?: ""}><td class=\"ln\"><a href=\"#L$line\">$line</a></td>")
             val mutants = report.mutations?.onLine(path, line).orEmpty().joinToString("") { mutant ->
                 val detail = listOfNotNull(
-                    "${OPERATOR_LABELS[mutant.operator] ?: mutant.operator}: ${mutant.text}",
+                    "${mutant.label}: ${mutant.text}",
                     mutant.status.label,
                     mutant.killedBy?.let { "by $it" },
                     mutant.failure,
@@ -269,7 +269,6 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
     private fun inlineCode(text: String) = esc(text).replace(Regex("`([^`]+)`"), "<code>$1</code>")
 
     companion object {
-        private val OPERATOR_LABELS = mapOf("negate-condition" to "negated", "negate-boolean-return" to "negated return")
 
         fun filePage(path: String) = "files/${path.replace('/', '~')}.html"
 

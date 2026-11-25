@@ -35,6 +35,18 @@ class MutationResultsTest {
     private fun mutant(id: String, line: Int, text: String, status: String = "survived") =
         """{"id": "$id", "path": "$path", "line": $line, "operator": "negate-condition", "text": "$text", "status": "$status"}"""
 
+    @Test
+    fun aLongCallKeepsItsMutantWhenTheManifestCapsTheText() {
+        val call = "scope.launch {\n" + (1..30).joinToString("\n") { "    step$it()" } + "\n}"
+        File(root, "Long.kt").writeText("package feature.a\nfun run() {\n$call\n}\n")
+        val text = call.replace(Regex("\\s+"), " ").take(160)
+        val file = File(root, "long.json")
+        file.writeText("""{"mutants": [{"id": "l", "path": "Long.kt", "line": 3, "operator": "remove-call", "variant": "removed", "text": "$text", "status": "survived"}]}""")
+        val results = MutationResults.read(file, root)
+        assertEquals(listOf("remove-call removed"), results.mutants.map { it.label })
+        assertEquals(0, results.stale)
+    }
+
     private fun target(name: String?, startLine: Int, endLine: Int) =
         Target(path, module, name, startLine, endLine, emptyList(), Expectation.Unspecified, Basis.Unclassified, emptyMap())
 

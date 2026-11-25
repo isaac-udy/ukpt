@@ -39,7 +39,7 @@ adds the results to `build/reports/test-coverage/index.html`:
 - a **Mutants** column (killed of all mutants, then the survived `S` and uncovered `U` counts) and
   a Mutants filter in the pivot table;
 - a **Mutants not killed** section listing each survived and uncovered mutant with its
-  Construct, expected categories and the negated expression;
+  Construct, expected categories, operator, change and mutated expression;
 - a `K`, `S`, `T` or `U` badge on each mutated line of a file page; the badge's tooltip names
   the killing test and the failure.
 
@@ -51,8 +51,20 @@ changed after the run.
 - **Catalog:** the rules in the root `build.gradle.kts` `mutation { }` block select mutants by
   Construct, package or file. The template's rules select the domain, data, ViewModel and server
   service Constructs.
-- **Operators:** `negate-condition` (an `if`, a `when` branch, a `while`) and
-  `negate-boolean-return`.
+- **Operators:** every operator below is compiled in. `-Pmutation.operators=remove-call` runs the
+  mutants of the named operators only; a rule's `operators()` limits that rule. An unknown ID fails
+  the build.
+
+  | ID | Change |
+  |---|---|
+  | `negate-condition` | negates an `if`, `when` branch, `while` or `do-while` condition |
+  | `boolean-return` | a `Boolean` function returns `true`, and `false` |
+  | `empty-return` | a function returns `null`, an empty collection, `""` or `0` |
+  | `remove-call` | removes an unused call, a property assignment, or a compound assignment or increment |
+  | `conditionals-boundary` | `<` ↔ `<=`, `>` ↔ `>=` |
+  | `logical-connector` | `&&` ↔ `\|\|`, and each operand alone |
+  | `elvis` | `a ?: b` → `b` |
+
 - **Tests:** only tests in a category that the mutant's Construct lists in "Tested by" count. A
   ServiceImpl mutant killed only by a Unit Test is reported as survived, because the Construct
   expects a Subcutaneous Test.
@@ -66,11 +78,12 @@ changed after the run.
 ## Triage
 
 Handle each `survived` and `uncovered` entry in `results.json`. The fields that matter:
-`path`, `line`, `operator`, `text` (the mutated expression), `constructs`, `expected` (the
+`path`, `line`, `operator`, `variant` (the change, for example `< → <=`), `text` (the mutated expression), `constructs`, `expected` (the
 categories that count) and `candidateTests` (the expected tests that executed the mutant).
 
-1. **Read the code at `path:line`** and state what the negated `text` changes in behaviour, for
-   example "a reset with an empty history now runs the delete".
+1. **Read the code at `path:line`** and state what the `variant` applied to `text` changes in
+   behaviour, for example "a reset with an empty history now runs the delete". A survived
+   `remove-call` usually means no test checks the call's effect.
 2. **Decide which case applies:**
    - **Missing assertion:** the behaviour is reachable and observable, but no expected test
      asserts on it. For `survived`, the `candidateTests` run the line without checking the
@@ -78,9 +91,9 @@ categories that count) and `candidateTests` (the expected tests that executed th
      run the scoped `runMutants` again to confirm the kill.
    - **Uncovered:** no expected test executes the line. Write a test in an expected category that
      reaches the line. A test in another category does not count.
-   - **Equivalent mutant:** the negation does not change observable behaviour, for example a
-     guard that a caller already guarantees, or a cache check whose miss path computes the same
-     value. Add `ignore("<id>", "<reason>")` to the `mutation { }` block. The reason names the fact
+   - **Equivalent mutant:** the change does not alter observable behaviour, for example a guard
+     that a caller already guarantees, a cache check whose miss path computes the same value, or a
+     removed logging call. Add `ignore("<id>", "<reason>")` to the `mutation { }` block. The reason names the fact
      that makes the mutant equivalent.
    - **Dead code:** no caller reaches the branch. Report the branch to the user. Remove the branch
      only when the user asks.
