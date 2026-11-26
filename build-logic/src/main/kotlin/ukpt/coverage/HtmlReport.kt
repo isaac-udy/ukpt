@@ -222,6 +222,7 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
         append(section("Declarations", "Line coverage of each declaration in the file.", declarations))
         append(fileMutants(path, targets))
 
+        append("<div class=\"box source\"><div class=\"box-head\"><code>${esc(path.substringAfterLast('/'))}</code><span class=\"muted\">${source.size} lines</span></div>")
         append("<table class=\"src\"><tbody>")
         source.forEachIndexed { index, text ->
             val line = index + 1
@@ -242,7 +243,7 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
             }
             append("<td class=\"mark\"></td><td class=\"chips\">$chips$mutants</td><td class=\"code\">${esc(text)}</td></tr>")
         }
-        append("</tbody></table>")
+        append("</tbody></table></div>")
     }
 
     private fun fileKey(): String {
@@ -510,7 +511,9 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
             h3 { font-size:14px; margin:20px 0 4px; }
             details.sub > summary h3 { display:inline-block; margin:20px 0 4px; }
             .box { border:1px solid var(--line); border-radius:8px; overflow-x:auto; margin:8px 0; }
-            .box table { margin:0; } .box thead th { background:var(--head); } .box tbody tr:last-child td { border-bottom:0; }
+            .box table { margin:0; }
+            .box-head { display:flex; justify-content:space-between; gap:12px; padding:8px 12px; background:var(--head); border-bottom:1px solid var(--line); font-size:12px; }
+            .box-head code { font-weight:600; color:var(--fg); } .box.source { margin-top:20px; } .box.source .src { margin:4px 0; } .box thead th { background:var(--head); } .box tbody tr:last-child td { border-bottom:0; }
             .location { margin:4px 0 12px; display:flex; flex-direction:column; gap:2px; }
             details.key { margin:8px 0 12px; font-size:12.5px; } details.key > summary { color:var(--muted); }
             .keygroups { display:flex; flex-wrap:wrap; gap:8px 40px; padding:8px 0 4px 14px; }
