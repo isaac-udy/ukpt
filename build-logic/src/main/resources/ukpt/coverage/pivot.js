@@ -1,16 +1,88 @@
-// The index page's coverage table: groups the declarations in #coverage-data by module or by Construct.
+// The index page's tables: each `.pivot[data-pivot]` element groups the declarations in its
+// `[data-p="data"]` JSON by module or by Construct, with the measure that `data-pivot` names.
 (() => {
+  const STATE_LABELS = { full: "Fully covered", partial: "Partly covered", none: "No expected test runs it", unassessed: "Not expected to be tested" };
+  const MUTANT_LABELS = { survived: "Has survived mutants", uncovered: "Has uncovered mutants", killed: "Every mutant killed" };
+  const mutants = (n) => `${n} ${n === 1 ? "mutant" : "mutants"}`;
+  const pct = (x, total) => (total ? Math.round((100 * x) / total) : 0) + "%";
+  const tile = (cls, value, label) => `<div class="tile ${cls}"><div class="value">${value}</div><div class="label">${label}</div></div>`;
+
+  // Each measure: its facet, its counts, the cells after Decls, and the tiles above the table.
+  const MEASURES = {
+    coverage: {
+      noun: "declarations",
+      facet: { id: "state", name: "Coverage", value: (r) => [r.coverageState], label: (v) => STATE_LABELS[v], order: Object.keys(STATE_LABELS) },
+      derive(o) {
+        o.assessed = o.covered + o.incidental + o.uncovered;
+        o.coverageState = o.assessed === 0 ? "unassessed" : o.covered === o.assessed ? "full" : o.covered === 0 ? "none" : "partial";
+        o.faded = o.assessed === 0;
+      },
+      zero: () => ({ covered: 0, incidental: 0, uncovered: 0, run: 0, notRun: 0 }),
+      add(t, r) { t.covered += r.covered; t.incidental += r.incidental; t.uncovered += r.uncovered; t.run += r.run; t.notRun += r.notRun; },
+      // Percentages compare by share of assessed lines; a row with no assessed lines sorts last in either direction.
+      sortValue(t, key) {
+        const a = t.covered + t.incidental + t.uncovered;
+        return key === "size" ? a || t.run + t.notRun : a ? t[key] / a : null;
+      },
+      cells(t) {
+        const a = t.covered + t.incidental + t.uncovered;
+        const v = (x) => `<span class="v">${x}</span>`;
+        if (a === 0) {
+          const tot = t.run + t.notRun;
+          const w = (x) => (tot ? (100 * x) / tot : 0).toFixed(1);
+          return `<td class="n num">${v(tot)}</td><td class="barcol"><span class="bar" title="Not expected to be tested: ${t.run} of ${tot} lines ran"><i class="r" style="width:${w(t.run)}%"></i></span></td><td class="n num muted" colspan="3">${v("not assessed")}</td>`;
+        }
+        const p = (x) => Math.round((100 * x) / a), w = (x) => ((100 * x) / a).toFixed(1);
+        return `<td class="n num">${v(a)}</td><td class="barcol"><span class="bar" title="${p(t.covered)}% covered, ${p(t.incidental)}% incidental, ${p(t.uncovered)}% uncovered of ${a} lines"><i class="c" style="width:${w(t.covered)}%"></i><i class="i" style="width:${w(t.incidental)}%"></i><i class="u" style="width:${w(t.uncovered)}%"></i></span></td>` +
+          `<td class="n num c">${v(p(t.covered) + "%")}</td><td class="n num i">${v(p(t.incidental) + "%")}</td><td class="n num u">${v(p(t.uncovered) + "%")}</td>`;
+      },
+      tiles(t) {
+        const a = t.covered + t.incidental + t.uncovered;
+        return tile("c", pct(t.covered, a), `Covered · ${t.covered} lines`) + tile("i", pct(t.incidental, a), `Incidental · ${t.incidental} lines`) +
+          tile("u", pct(t.uncovered, a), `Uncovered · ${t.uncovered} lines`);
+      },
+    },
+    mutation: {
+      noun: "declarations with mutants",
+      facet: { id: "mutants", name: "Mutants", value: (r) => r.mutantStates, label: (v) => MUTANT_LABELS[v], order: Object.keys(MUTANT_LABELS) },
+      derive(o) {
+        o.mutantStates = o.survived + o.uncovered === 0 ? ["killed"] : [].concat(o.survived ? ["survived"] : [], o.uncovered ? ["uncovered"] : []);
+        o.faded = false;
+      },
+      zero: () => ({ killed: 0, survived: 0, uncovered: 0 }),
+      add(t, r) { t.killed += r.killed; t.survived += r.survived; t.uncovered += r.uncovered; },
+      sortValue(t, key) {
+        const m = t.killed + t.survived + t.uncovered;
+        return key === "size" ? m : m ? t[key] / m : null;
+      },
+      cells(t) {
+        const m = t.killed + t.survived + t.uncovered;
+        const v = (x) => `<span class="v">${x}</span>`;
+        const p = (x) => Math.round((100 * x) / m), w = (x) => ((100 * x) / m).toFixed(1);
+        return `<td class="n num">${v(m)}</td><td class="barcol"><span class="bar" title="${t.killed} killed, ${t.uncovered} uncovered, ${t.survived} survived of ${m} mutants"><i class="c" style="width:${w(t.killed)}%"></i><i class="i" style="width:${w(t.uncovered)}%"></i><i class="u" style="width:${w(t.survived)}%"></i></span></td>` +
+          `<td class="n num c" title="${t.killed} mutants">${v(p(t.killed) + "%")}</td><td class="n num i" title="${t.uncovered} mutants">${v(p(t.uncovered) + "%")}</td><td class="n num u" title="${t.survived} mutants">${v(p(t.survived) + "%")}</td>`;
+      },
+      tiles(t) {
+        const m = t.killed + t.survived + t.uncovered;
+        return tile("c", pct(t.killed, m), `Killed · ${mutants(t.killed)}`) + tile("i", pct(t.uncovered, m), `Uncovered · ${mutants(t.uncovered)}`) +
+          tile("u", pct(t.survived, m), `Survived · ${mutants(t.survived)}`);
+      },
+    },
+  };
+
+  document.querySelectorAll(".pivot[data-pivot]").forEach((root) => createPivot(root, MEASURES[root.dataset.pivot], root.dataset.pivot === "coverage"));
+
+  function createPivot(root, measure, useHash) {
   const VIEWS = {
     modules: { inner: [["", "Flat"], ["construct", "Construct"], ["file", "File"]], opts: ["affinity", "nested"] },
     constructs: { inner: [["", "Flat"], ["feature", "Module"]], opts: ["affinity"] },
   };
   const OPT_LABELS = { affinity: "Affinity", nested: "Nested packages" };
   const MODULE_DIMS = new Set(["area", "feature", "module"]);
-  const STATE_LABELS = { full: "Fully covered", partial: "Partly covered", none: "No expected test runs it", unassessed: "Not expected to be tested" };
 
   // Every option starts included; unticking one excludes it. A declaration passes a facet when any of its values is included.
   const FACETS = [
-    { id: "state", name: "Coverage", value: (r) => [r.coverageState], label: (v) => STATE_LABELS[v], order: Object.keys(STATE_LABELS) },
+    measure.facet,
     { id: "expected", name: "Expected test category", value: (r) => (Array.isArray(r.expected) ? r.expected : [r.expected]),
       label: (v) => (v === "none" ? "Not expected" : v === "unspecified" ? "No expectation" : categories[v] || v) },
     { id: "construct", name: "Construct", value: (r) => [r.construct], parent: (r) => r.layer, label: (v) => (v.includes(".") ? v.split(".").slice(1).join(".") : v) },
@@ -25,7 +97,7 @@
     open: new Set(), facetOpen: new Set(), excluded: Object.fromEntries(FACETS.map((f) => [f.id, new Set()])),
   };
   let rows = [], categories = {}, lastTree = [], facetValues = {};
-  const $ = (id) => document.getElementById(id);
+  const $ = (id) => root.querySelector(`[data-p="${id}"]`);
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   const splitBy = (list, keyOf) => { const m = new Map(); list.forEach((r) => { const k = keyOf(r); if (!m.has(k)) m.set(k, []); m.get(k).push(r); }); return m; };
 
@@ -37,8 +109,7 @@
     o.sourceSet = (o.path.match(/\/src\/([^/]+)\//) || [, "?"])[1];
     o.construct = o.construct || (o.basis === "module" ? "Module expectation" : o.basis === "noexpectation" ? "No expectation" : "Unclassified");
     o.constructShort = o.construct.includes(".") ? o.construct.split(".").slice(1).join(".") : o.construct;
-    o.assessed = o.covered + o.incidental + o.uncovered;
-    o.coverageState = o.assessed === 0 ? "unassessed" : o.covered === o.assessed ? "full" : o.covered === 0 ? "none" : "partial";
+    measure.derive(o);
     o.haystack = [o.package, o.short, o.path, o.module, o.construct].join(" ").toLowerCase();
     return o;
   }
@@ -50,8 +121,8 @@
   function matchesSearch(r) { const q = state.search.trim().toLowerCase(); return !q || q.split(/\s+/).every((t) => r.haystack.includes(t)); }
   const filtered = () => rows.filter((r) => matchesSearch(r) && matchesFacets(r));
 
-  const zero = () => ({ covered: 0, incidental: 0, uncovered: 0, run: 0, notRun: 0, decls: 0 });
-  const add = (t, r) => { t.covered += r.covered; t.incidental += r.incidental; t.uncovered += r.uncovered; t.run += r.run; t.notRun += r.notRun; t.decls += 1; };
+  const zero = () => ({ ...measure.zero(), decls: 0 });
+  const add = (t, r) => { measure.add(t, r); t.decls += 1; };
   const tallyOf = (list) => { const t = zero(); list.forEach((r) => add(t, r)); return t; };
   const leaves = (list, id) => sortNodes(list.map((r) => ({ leaf: true, r, id: id + "|" + r.path + "#" + r.line })));
 
@@ -111,15 +182,12 @@
     return state.shortPkg ? nodes.filter((n) => n.key === baseName).concat(nodes.filter((n) => n.key !== baseName)) : nodes;
   }
 
-  // Percentages compare by share of assessed lines; a row with no assessed lines sorts last in either direction.
   function sortValue(n, key) {
     const t = n.leaf ? n.r : n.tally;
-    const a = t.covered + t.incidental + t.uncovered;
     switch (key) {
       case "name": return (n.leaf ? (state.qualified ? n.r.fullPackage + "." + n.r.short : n.r.short) : n.label).toLowerCase();
       case "decls": return n.leaf ? 1 : t.decls;
-      case "lines": return a || t.run + t.notRun;
-      default: return a ? t[key] / a : null;
+      default: return measure.sortValue(t, key);
     }
   }
   function sortNodes(nodes) {
@@ -137,18 +205,7 @@
     return `<span class="chip none">${r.expected === "none" ? "Not expected" : "No expectation"}</span>`;
   }
 
-  function cells(t) {
-    const a = t.covered + t.incidental + t.uncovered;
-    const v = (x) => `<span class="v">${x}</span>`;
-    if (a === 0) {
-      const tot = t.run + t.notRun;
-      const w = (x) => (tot ? (100 * x) / tot : 0).toFixed(1);
-      return `<td class="n num">${v(tot)}</td><td class="barcol"><span class="bar" title="Not expected to be tested: ${t.run} of ${tot} lines ran"><i class="r" style="width:${w(t.run)}%"></i></span></td><td class="n num muted" colspan="3">${v("not assessed")}</td>`;
-    }
-    const p = (x) => Math.round((100 * x) / a), w = (x) => ((100 * x) / a).toFixed(1);
-    return `<td class="n num">${v(a)}</td><td class="barcol"><span class="bar" title="${p(t.covered)}% covered, ${p(t.incidental)}% incidental, ${p(t.uncovered)}% uncovered of ${a} lines"><i class="c" style="width:${w(t.covered)}%"></i><i class="i" style="width:${w(t.incidental)}%"></i><i class="u" style="width:${w(t.uncovered)}%"></i></span></td>` +
-      `<td class="n num c">${v(p(t.covered) + "%")}</td><td class="n num i">${v(p(t.incidental) + "%")}</td><td class="n num u">${v(p(t.uncovered) + "%")}</td>`;
-  }
+  const cells = (t) => measure.cells(t);
 
   function leafHtml(r, depth) {
     const lv = levels();
@@ -156,7 +213,7 @@
     if (!lv.includes("construct") && r.basis !== "module") tags.push(`<span class="tag construct" title="${esc(r.construct)}">${esc(r.constructShort)}</span>`);
     tags.push(`<span class="tag" title="${esc(r.module)}">${esc(r.affinity)}</span>`);
     if (r.sourceSet !== "commonMain") tags.push(`<span class="tag">${esc(r.sourceSet)}</span>`);
-    return `<tr class="leaf${r.assessed === 0 ? " faded" : ""}"><td style="padding-left:${8 + depth * 18}px"><div class="name"><span class="tw-spacer"></span><div class="decl">` +
+    return `<tr class="leaf${r.faded ? " faded" : ""}"><td style="padding-left:${8 + depth * 18}px"><div class="name"><span class="tw-spacer"></span><div class="decl">` +
       `<div class="l1"><a class="main" href="${esc(r.link)}" title="${esc(r.fullPackage + "." + r.short)}">${esc(r.short)}</a>${tags.join("")}</div>` +
       `<div class="l2" title="${esc(r.path)}">${esc(fileId(r))}:${r.line}</div></div></div></td>` +
       `<td class="exp">${expectedHtml(r)}</td><td class="n num"></td>${cells(r)}</tr>`;
@@ -164,13 +221,7 @@
 
   function render() {
     const list = filtered();
-    const tot = tallyOf(list);
-    const a = tot.covered + tot.incidental + tot.uncovered;
-    const pct = (x) => (a ? Math.round((100 * x) / a) : 0) + "%";
-    $("tiles").innerHTML =
-      `<div class="tile c"><div class="value">${pct(tot.covered)}</div><div class="label">Covered · ${tot.covered} lines</div></div>` +
-      `<div class="tile i"><div class="value">${pct(tot.incidental)}</div><div class="label">Incidental · ${tot.incidental} lines</div></div>` +
-      `<div class="tile u"><div class="value">${pct(tot.uncovered)}</div><div class="label">Uncovered · ${tot.uncovered} lines</div></div>`;
+    $("tiles").innerHTML = measure.tiles(tallyOf(list));
 
     lastTree = build(list, levels(), 0, state.view, null);
     const searching = state.search.trim() !== "";
@@ -188,14 +239,14 @@
     };
     walk(lastTree, 0);
     $("body").innerHTML = out.length ? out.join("") : `<tr><td colspan="8" class="empty">No declarations match. Clear the search or tick more options under Filter.</td></tr>`;
-    $("status").textContent = `${list.length} of ${rows.length} declarations`;
+    $("status").textContent = `${list.length} of ${rows.length} ${measure.noun}`;
     renderAxes();
     renderActive();
     renderFacets();
   }
 
   function renderAxes() {
-    document.querySelectorAll("#views button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === state.view)));
+    $("views").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === state.view)));
     $("inner").innerHTML = VIEWS[state.view].inner.map(([k, label]) => `<button data-inner="${k}" aria-pressed="${state.inner[state.view] === k}">${label}</button>`).join("");
     const inert = (k) => k === "affinity" && state.view === "constructs" && state.inner.constructs !== "feature";
     $("axisOpts").innerHTML = VIEWS[state.view].opts.map((k) =>
@@ -242,7 +293,7 @@
       return `<div class="facet"><div class="frow head"><button class="chev" data-toggle="${f.id}" aria-expanded="${open}" aria-label="Show ${esc(f.name)} options"><span>▶</span></button>` +
         `<label>${checkbox(`data-facet="${f.id}" data-all="1"`, included, values.length)}<span class="k">${esc(f.name)}</span><span class="num">${summary}</span></label></div>${body}</div>`;
     }).join("");
-    document.querySelectorAll('#facets input[data-indeterminate="true"]').forEach((b) => (b.indeterminate = true));
+    $("facets").querySelectorAll('input[data-indeterminate="true"]').forEach((b) => (b.indeterminate = true));
     if (focused && (focused.facet || focused.toggle)) {
       const sel = focused.toggle ? `[data-toggle="${CSS.escape(focused.toggle)}"]`
         : `input[data-facet="${CSS.escape(focused.facet)}"]` + (focused.value ? `[data-value="${CSS.escape(focused.value)}"]` : focused.parent ? `[data-parent="${CSS.escape(focused.parent)}"]` : "[data-all]");
@@ -281,7 +332,7 @@
     renderFacets();
   });
   document.addEventListener("click", (e) => {
-    const b = e.target.closest("[data-clear]");
+    const b = root.contains(e.target) && e.target.closest("[data-clear]");
     if (b) { e.preventDefault(); (b.dataset.clear === "*" ? FACETS.map((f) => f.id) : [b.dataset.clear]).forEach((id) => state.excluded[id].clear()); render(); return; }
     const path = e.composedPath();
     ["filterMenu", "displayMenu", "keyMenu"].forEach((id) => { const m = $(id); if (m.open && !path.includes(m)) m.open = false; });
@@ -313,10 +364,10 @@
 
   // ---- Axes, display, tree
   function setView(v) { if (!VIEWS[v]) return; state.view = v; render(); }
-  document.querySelectorAll("#views button").forEach((b) => b.addEventListener("click", () => {
-    if (location.hash === "#" + b.dataset.view) setView(b.dataset.view); else location.hash = b.dataset.view;
+  $("views").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
+    if (!useHash || location.hash === "#" + b.dataset.view) setView(b.dataset.view); else location.hash = b.dataset.view;
   }));
-  window.addEventListener("hashchange", () => setView(location.hash.slice(1)));
+  if (useHash) window.addEventListener("hashchange", () => setView(location.hash.slice(1)));
   $("inner").addEventListener("click", (e) => { const b = e.target.closest("[data-inner]"); if (!b) return; state.inner[state.view] = b.dataset.inner; render(); });
   $("axisOpts").addEventListener("click", (e) => { const b = e.target.closest("[data-opt]"); if (!b) return; state[b.dataset.opt] = !state[b.dataset.opt]; render(); });
   $("optCollapseFiles").addEventListener("change", (e) => { state.collapseFiles = e.target.checked; render(); });
@@ -327,11 +378,11 @@
     const id = tr.dataset.id;
     state.open.has(id) ? state.open.delete(id) : state.open.add(id);
     render();
-    const again = document.querySelector(`tr.group[data-id="${CSS.escape(id)}"] .tw`); if (again) again.focus({ preventScroll: true });
+    const again = $("body").querySelector(`tr.group[data-id="${CSS.escape(id)}"] .tw`); if (again) again.focus({ preventScroll: true });
   });
 
   function renderHeads() {
-    document.querySelectorAll("#heads th[data-sort]").forEach((th) => {
+    $("heads").querySelectorAll("th[data-sort]").forEach((th) => {
       const k = th.dataset.sort, on = state.sort.key === k;
       const label = th.dataset.label || (th.dataset.label = th.textContent);
       if (on) th.setAttribute("aria-sort", state.sort.dir > 0 ? "ascending" : "descending"); else th.removeAttribute("aria-sort");
@@ -373,12 +424,13 @@
   });
   $("collapseAll").addEventListener("click", () => { state.open.clear(); render(); });
 
-  const data = JSON.parse($("coverage-data").textContent);
+  const data = JSON.parse($("data").textContent);
   categories = data.categories;
   rows = data.rows.map((r) => derive(data.fields, r));
   computeFacetValues();
-  const start = location.hash.slice(1);
+  const start = useHash ? location.hash.slice(1) : "";
   state.view = VIEWS[start] ? start : "modules";
   renderHeads();
   render();
+  }
 })();

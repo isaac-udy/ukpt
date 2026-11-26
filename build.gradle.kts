@@ -13,6 +13,9 @@ buildscript {
 
         // The atlas plugin, same story.
         classpath(libs.udytils.atlasGradlePlugin)
+
+        // The mutation testing plugin, applied by ukpt.mutation.
+        classpath(libs.udytils.mutationGradlePlugin)
     }
 }
 
@@ -32,6 +35,7 @@ plugins {
     alias(libs.plugins.kotlinKsp) apply false
     alias(libs.plugins.kotlinSerialization) apply false
     id("ukpt.test-coverage")
+    id("ukpt.mutation")
 }
 
 // Expectations for the lines in each module that no architecture Construct claims, for
@@ -54,6 +58,16 @@ testCoverage {
     noTests(":platform:server:development", "development tooling")
     testedBy(":platform:server:host", "subcutaneous", "adapter")
     testedBy(":platform:server:postgres", "adapter", "subcutaneous")
+}
+
+// Catalog rules for `./gradlew runMutants`. A mutant runs when a rule selects it; it is killed only
+// by a test in a category that its Construct expects. Rule selectors: constructs(), packages(),
+// files(); ignore("<id>", "<reason>") excludes an equivalent mutant by the id in the report.
+mutation {
+    rule("domain") { constructs("ClientDomain.*", "ServerDomain.*", "FeatureRules.Shared*") }
+    rule("data") { constructs("ClientData.*", "ServerData.*") }
+    rule("view-models") { constructs("ClientUi.ViewModel", "ClientUi.ViewModelState") }
+    rule("server-services") { constructs("ServerServices.*") }
 }
 
 // Applied here, not in the plugins block: the root project's plugins block cannot
