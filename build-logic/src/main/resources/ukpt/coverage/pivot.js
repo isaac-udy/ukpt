@@ -6,7 +6,6 @@
   };
   const OPT_LABELS = { affinity: "Affinity", nested: "Nested packages" };
   const MODULE_DIMS = new Set(["area", "feature", "module"]);
-  const MUTANT_LABELS = { survived: "Has survived mutants", uncovered: "Has uncovered mutants", killed: "Every mutant killed", none: "No mutants" };
   const STATE_LABELS = { full: "Fully covered", partial: "Partly covered", none: "No expected test runs it", unassessed: "Not expected to be tested" };
 
   // Every option starts included; unticking one excludes it. A declaration passes a facet when any of its values is included.
@@ -18,7 +17,6 @@
     { id: "moduleType", name: "Module type", value: (r) => [r.area.startsWith(":feature") ? ":feature" : r.area], mono: true },
     { id: "affinity", name: "Affinity", value: (r) => [r.affinity], mono: true },
     { id: "sourceSet", name: "Source set", value: (r) => [r.sourceSet], mono: true },
-    { id: "mutants", name: "Mutants", value: (r) => r.mutantStates, label: (v) => MUTANT_LABELS[v], order: Object.keys(MUTANT_LABELS), mutation: true },
   ];
 
   const state = {
@@ -26,8 +24,7 @@
     search: "", sort: { key: "name", dir: 1 }, shortPkg: false, qualified: true, collapseFiles: true,
     open: new Set(), facetOpen: new Set(), excluded: Object.fromEntries(FACETS.map((f) => [f.id, new Set()])),
   };
-  let rows = [], categories = {}, lastTree = [], facetValues = {}, mutation = false;
-  const facets = () => FACETS.filter((f) => !f.mutation || mutation);
+  let rows = [], categories = {}, lastTree = [], facetValues = {};
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   const splitBy = (list, keyOf) => { const m = new Map(); list.forEach((r) => { const k = keyOf(r); if (!m.has(k)) m.set(k, []); m.get(k).push(r); }); return m; };
@@ -42,9 +39,6 @@
     o.constructShort = o.construct.includes(".") ? o.construct.split(".").slice(1).join(".") : o.construct;
     o.assessed = o.covered + o.incidental + o.uncovered;
     o.coverageState = o.assessed === 0 ? "unassessed" : o.covered === o.assessed ? "full" : o.covered === 0 ? "none" : "partial";
-    const mTotal = o.mKilled + o.mSurvived + o.mUncovered;
-    o.mutantStates = mTotal === 0 ? ["none"] : o.mSurvived + o.mUncovered === 0 ? ["killed"]
-      : [].concat(o.mSurvived ? ["survived"] : [], o.mUncovered ? ["uncovered"] : []);
     o.haystack = [o.package, o.short, o.path, o.module, o.construct].join(" ").toLowerCase();
     return o;
   }
@@ -52,15 +46,12 @@
   const relativeTo = (full, base) => (base && full.startsWith(base + ".") ? full.slice(base.length + 1) : full);
 
   function passesFacet(r, f) { const ex = state.excluded[f.id]; return !ex.size || f.value(r).some((v) => !ex.has(v)); }
-  function matchesFacets(r, except) { return facets().every((f) => f.id === except || passesFacet(r, f)); }
+  function matchesFacets(r, except) { return FACETS.every((f) => f.id === except || passesFacet(r, f)); }
   function matchesSearch(r) { const q = state.search.trim().toLowerCase(); return !q || q.split(/\s+/).every((t) => r.haystack.includes(t)); }
   const filtered = () => rows.filter((r) => matchesSearch(r) && matchesFacets(r));
 
-  const zero = () => ({ covered: 0, incidental: 0, uncovered: 0, run: 0, notRun: 0, decls: 0, mKilled: 0, mSurvived: 0, mUncovered: 0 });
-  const add = (t, r) => {
-    t.covered += r.covered; t.incidental += r.incidental; t.uncovered += r.uncovered; t.run += r.run; t.notRun += r.notRun; t.decls += 1;
-    t.mKilled += r.mKilled; t.mSurvived += r.mSurvived; t.mUncovered += r.mUncovered;
-  };
+  const zero = () => ({ covered: 0, incidental: 0, uncovered: 0, run: 0, notRun: 0, decls: 0 });
+  const add = (t, r) => { t.covered += r.covered; t.incidental += r.incidental; t.uncovered += r.uncovered; t.run += r.run; t.notRun += r.notRun; t.decls += 1; };
   const tallyOf = (list) => { const t = zero(); list.forEach((r) => add(t, r)); return t; };
   const leaves = (list, id) => sortNodes(list.map((r) => ({ leaf: true, r, id: id + "|" + r.path + "#" + r.line })));
 
@@ -128,7 +119,6 @@
       case "name": return (n.leaf ? (state.qualified ? n.r.fullPackage + "." + n.r.short : n.r.short) : n.label).toLowerCase();
       case "decls": return n.leaf ? 1 : t.decls;
       case "lines": return a || t.run + t.notRun;
-      case "mutants": return t.mKilled + t.mSurvived + t.mUncovered ? t.mSurvived + t.mUncovered : null;
       default: return a ? t[key] / a : null;
     }
   }
@@ -147,18 +137,7 @@
     return `<span class="chip none">${r.expected === "none" ? "Not expected" : "No expectation"}</span>`;
   }
 
-  // Killed of all mutants, then the survived (S) and uncovered (U) counts.
-  function mutantCell(t) {
-    if (!mutation) return "";
-    const total = t.mKilled + t.mSurvived + t.mUncovered;
-    if (!total) return `<td class="n num mut"></td>`;
-    const gaps = [t.mSurvived ? `<span class="ms">${t.mSurvived} S</span>` : "", t.mUncovered ? `<span class="mu">${t.mUncovered} U</span>` : ""].filter(Boolean).join(" ");
-    return `<td class="n num mut" title="${t.mKilled} killed, ${t.mSurvived} survived, ${t.mUncovered} uncovered of ${total} mutants"><span class="v">${t.mKilled}/${total}</span> ${gaps}</td>`;
-  }
-
-  function cells(t) { return coverageCells(t) + mutantCell(t); }
-
-  function coverageCells(t) {
+  function cells(t) {
     const a = t.covered + t.incidental + t.uncovered;
     const v = (x) => `<span class="v">${x}</span>`;
     if (a === 0) {
@@ -208,7 +187,7 @@
       }
     };
     walk(lastTree, 0);
-    $("body").innerHTML = out.length ? out.join("") : `<tr><td colspan="${mutation ? 9 : 8}" class="empty">No declarations match. Clear the search or tick more options under Filter.</td></tr>`;
+    $("body").innerHTML = out.length ? out.join("") : `<tr><td colspan="8" class="empty">No declarations match. Clear the search or tick more options under Filter.</td></tr>`;
     $("status").textContent = `${list.length} of ${rows.length} declarations`;
     renderAxes();
     renderActive();
@@ -237,7 +216,7 @@
 
   function renderFacets() {
     const focused = document.activeElement && document.activeElement.dataset ? { ...document.activeElement.dataset } : null;
-    $("facets").innerHTML = facets().map((f) => {
+    $("facets").innerHTML = FACETS.map((f) => {
       const { values, parents } = facetValues[f.id];
       const ex = state.excluded[f.id];
       const counts = new Map();
@@ -269,12 +248,12 @@
         : `input[data-facet="${CSS.escape(focused.facet)}"]` + (focused.value ? `[data-value="${CSS.escape(focused.value)}"]` : focused.parent ? `[data-parent="${CSS.escape(focused.parent)}"]` : "[data-all]");
       const el = $("facets").querySelector(sel); if (el) el.focus({ preventScroll: true });
     }
-    const total = facets().filter((f) => state.excluded[f.id].size).length;
+    const total = FACETS.filter((f) => state.excluded[f.id].size).length;
     $("filterCount").hidden = total === 0; $("filterCount").textContent = total;
   }
 
   function renderActive() {
-    const chips = facets().filter((f) => state.excluded[f.id].size).map((f) => {
+    const chips = FACETS.filter((f) => state.excluded[f.id].size).map((f) => {
       const { values } = facetValues[f.id];
       const ex = state.excluded[f.id];
       const name = (v) => String(f.label ? f.label(v) : v);
@@ -396,8 +375,6 @@
 
   const data = JSON.parse($("coverage-data").textContent);
   categories = data.categories;
-  mutation = data.mutation === true;
-  $("mutantsHead").hidden = !mutation;
   rows = data.rows.map((r) => derive(data.fields, r));
   computeFacetValues();
   const start = location.hash.slice(1);

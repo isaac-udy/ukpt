@@ -80,42 +80,117 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
     }
 
     private fun mutantSection(results: MutationResults): String {
+        val run = listOfNotNull(
+            results.startedAt?.let { "last <code>./gradlew runMutants</code> started ${esc(RUN_TIME.format(it))}" } ?: "last <code>./gradlew runMutants</code>",
+            results.hosts.takeIf { it.isNotEmpty() }?.let { "on ${esc(it.joinToString())}" },
+            "${results.millis / 1000} s",
+        ).joinToString(" · ")
+        if (results.outdated) {
+            val body = "<p class=\"warn\">The mutation results are out of date: ${esc(results.outdatedReason!!)}. " +
+                "Run <code>./gradlew runMutants</code> again.</p>"
+            return section("Mutation testing", "Results of the $run.", body)
+        }
         val tally = MutantTally.of(results.mutants)
         val targetOf = report.mutantsByTarget.flatMap { (target, mutants) -> mutants.map { it to target } }.toMap()
-        val gaps = results.mutants.filter { !it.status.detected }
-            .sortedWith(compareBy({ it.status != MutantStatus.Survived }, { it.path }, { it.line }))
-        val description = "${tally.total} mutants from the last <code>./gradlew runMutants</code> on ${results.hosts.joinToString()}: " +
-            "${tally.killed} killed, ${tally.survived} survived, ${tally.uncovered} uncovered. A mutant counts as killed only by a test " +
-            "from a category its Construct expects." +
-            if (results.stale > 0) " ${results.stale} mutants are left out because their line changed after the run; run <code>./gradlew runMutants</code> again." else ""
-        val body = if (gaps.isEmpty()) {
-            "<p class=\"muted\">Every mutant is killed.</p>"
-        } else {
-            val rows = gaps.joinToString("") { mutant ->
-                val target = targetOf[mutant]
-                val name = target?.let { esc(it.shortName) } ?: esc(mutant.path.substringAfterLast('/'))
-                "<tr><td><a href=\"${filePage(mutant.path)}#L${mutant.line}\">$name</a><div class=\"path\" title=\"${esc(mutant.path)}\">" +
-                    "${esc(mutant.path.substringAfterLast('/'))}:${mutant.line}</div></td>" +
-                    "<td>${target?.let { ownerCell(it) }.orEmpty()}</td><td>${target?.let { expectationCell(it.expectation) }.orEmpty()}</td>" +
-                    "<td>${mutationCell(mutant)}</td><td>${statusChip(mutant)}</td>" +
-                    "<td class=\"n\">${if (mutant.status == MutantStatus.Survived) mutant.candidateTests else ""}</td></tr>"
+        val notes = listOfNotNull(
+            results.droppedMutants.takeIf { it > 0 }?.let {
+                "$it mutants in ${results.changedProductionFiles} production files that changed after the run are left out."
+            },
+            results.notSampled.takeIf { it > 0 }?.let {
+                "Sampling left out $it mutants (seed ${results.sampleSeed}; <code>-Pmutation.sampleSeed=${results.sampleSeed}</code> runs the same sample)."
+            },
+            results.excludedCalls.takeIf { it > 0 }?.let { "<code>excludeCalls</code> left out $it mutants." },
+        )
+        val body = buildString {
+            append("<div class=\"tiles\">")
+            append(mutantTile("Killed", tally.killed, tally.total, "c"))
+            append(mutantTile("Survived", tally.survived, tally.total, "u"))
+            append(mutantTile("Uncovered", tally.uncovered, tally.total, "i"))
+            append("<div class=\"tile\"><div class=\"value\">${tally.score?.let { percentOf(it) } ?: "–"}</div>" +
+                "<div class=\"label\">Score · killed of the mutants a test runs</div></div>")
+            append("</div>")
+            notes.forEach { append("<p class=\"muted\">$it</p>") }
+            val gaps = results.mutants.filter { !it.status.detected }
+                .sortedWith(compareBy({ it.status != MutantStatus.Survived }, { it.path }, { it.line }))
+            append("<h3>Not killed (${gaps.size})</h3>")
+            if (gaps.isEmpty()) {
+                append("<p class=\"muted\">Every mutant is killed.</p>")
+            } else {
+                val rows = gaps.joinToString("") { mutant ->
+                    val target = targetOf[mutant]
+                    val name = target?.let { esc(it.shortName) } ?: esc(mutant.path.substringAfterLast('/'))
+                    "<tr><td><a href=\"${filePage(mutant.path)}#L${mutant.line}\">$name</a><div class=\"path\" title=\"${esc(mutant.path)}\">" +
+                        "${esc(mutant.path.substringAfterLast('/'))}:${mutant.line}</div></td>" +
+                        "<td>${target?.let { ownerCell(it) }.orEmpty()}</td>" +
+                        "<td><span class=\"muted\">${esc(mutant.label)}</span> ${code(mutant.text)}</td>" +
+                        "<td>${mutantChip(mutant, target, depth = 0, short = false)}</td></tr>"
+                }
+                append("<table><thead><tr><th>Declaration</th><th>Construct or module</th><th>Mutation</th><th>Status</th></tr></thead><tbody>$rows</tbody></table>")
             }
-            "<table><thead><tr><th>Declaration</th><th>Construct or module</th><th>Expected</th><th>Mutation</th><th>Status</th>" +
-                "<th class=\"n\" title=\"Tests from an expected category that ran the mutant\">Tests</th></tr></thead><tbody>$rows</tbody></table>"
+            append("<div class=\"split\"><div><h3>By module</h3>")
+            append(tallyTable("Module", results.mutants.groupBy { mutant -> targetOf[mutant]?.module?.path ?: "Other" }))
+            append("</div><div><h3>By operator</h3>")
+            append(tallyTable("Operator", results.mutants.groupBy { it.operator }))
+            append("</div></div>")
         }
-        return collapsed("Mutants not killed (${gaps.size})", description, body)
+        val description = "Results of the $run. A mutant counts as killed only by a test from a category its Construct expects."
+        return section("Mutation testing", description, body)
     }
 
-    private fun mutationCell(mutant: Mutant) =
-        "<span class=\"muted\">${esc(mutant.label)}</span> ${code(mutant.text)}"
-
-    private fun statusChip(mutant: Mutant): String {
-        val title = when (mutant.status) {
-            MutantStatus.Survived -> "${mutant.candidateTests} expected tests ran the mutant and passed"
-            MutantStatus.Uncovered -> "No test from an expected category runs the mutant"
-            else -> listOfNotNull(mutant.killedBy, mutant.failure).joinToString(": ")
+    private fun tallyTable(heading: String, groups: Map<String, List<Mutant>>): String {
+        val rows = groups.entries.sortedBy { it.key }.joinToString("") { (name, mutants) ->
+            val t = MutantTally.of(mutants)
+            "<tr><td>${code(name)}</td><td class=\"n\">${t.total}</td><td class=\"n c\">${t.killed}</td>" +
+                "<td class=\"n u\">${t.survived}</td><td class=\"n i\">${t.uncovered}</td><td class=\"n\">${t.score?.let { percentOf(it) } ?: "–"}</td></tr>"
         }
-        return "<span class=\"mchip ${mutant.status.id}\" title=\"${esc(title)}\">${mutant.status.label}</span>"
+        return "<table><thead><tr><th>${esc(heading)}</th><th class=\"n\">Mutants</th><th class=\"n\">Killed</th><th class=\"n\">Survived</th>" +
+            "<th class=\"n\">Uncovered</th><th class=\"n\">Score</th></tr></thead><tbody>$rows</tbody></table>"
+    }
+
+    private fun mutantTile(label: String, count: Int, total: Int, cls: String) =
+        "<div class=\"tile $cls\"><div class=\"value\">$count</div><div class=\"label\">$label · ${percent(count, total)} of $total mutants</div></div>"
+
+    private fun percentOf(fraction: Double) = "%.0f%%".format(fraction * 100)
+
+    /** A status chip that opens a popup with the mutant's details. */
+    private fun mutantChip(mutant: Mutant, target: Target?, depth: Int, short: Boolean): String {
+        val id = "m-${mutant.id}"
+        val text = if (short) mutant.status.label.first().toString() else mutant.status.label
+        return "<button type=\"button\" class=\"mchip ${mutant.status.id}\" popovertarget=\"$id\" title=\"${esc(mutant.status.label)}: ${esc(mutant.label)}\">$text</button>" +
+            mutantPopup(id, mutant, target, depth)
+    }
+
+    private fun mutantPopup(id: String, mutant: Mutant, target: Target?, depth: Int): String {
+        val up = "../".repeat(depth)
+        val outcome = when (mutant.status) {
+            MutantStatus.Survived -> "${mutant.candidateTests} ${if (mutant.candidateTests == 1) "test" else "tests"} from an expected category ran the mutant and passed."
+            MutantStatus.Uncovered -> "No test from an expected category runs the mutant."
+            MutantStatus.Killed -> "Killed by ${mutant.killedBy?.let(::code) ?: "a test"}."
+            MutantStatus.TimedOut -> "${mutant.killedBy?.let(::code) ?: "A test"} exceeded its timeout, which counts as a kill."
+        }
+        val rows = listOfNotNull(
+            mutant.variant.takeIf { it.isNotEmpty() }?.let { "Change" to esc(it) },
+            mutant.callee?.let { "Removed call" to code(it) },
+            "Declaration" to (target?.let { esc(it.shortName) } ?: code(mutant.declaration)),
+            "Location" to "<a href=\"$up${filePage(mutant.path)}#L${mutant.line}\">${esc(mutant.path)}:${mutant.line}</a>",
+            mutant.constructs.takeIf { it.isNotEmpty() }?.let { "Construct" to it.joinToString(", ") { c -> code(c) } },
+            "Expected" to (mutant.expected.takeIf { it.isNotEmpty() }?.joinToString(" ") { "<span class=\"chip x\">${esc(report.categoryName(it))}</span>" } ?: "Any category"),
+            "Mutant ID" to code(mutant.id),
+        )
+        return buildString {
+            append("<div popover id=\"$id\" class=\"mpop\">")
+            append("<div class=\"mpop-head\"><span class=\"mchip ${mutant.status.id}\">${mutant.status.label}</span><b>${esc(mutant.operator)}</b>")
+            append("<button type=\"button\" class=\"mpop-close\" popovertarget=\"$id\" popovertargetaction=\"hide\" aria-label=\"Close\">×</button></div>")
+            append("<pre class=\"mpop-code\">${esc(mutant.text)}</pre>")
+            append("<p>$outcome</p>")
+            // The driver interrupts a timed-out test, so its failure is always an InterruptedException.
+            mutant.failure?.takeIf { mutant.status == MutantStatus.Killed }?.let { append("<pre class=\"mpop-failure\">${esc(it)}</pre>") }
+            append("<dl>${rows.joinToString("") { (k, v) -> "<dt>${esc(k)}</dt><dd>$v</dd>" }}</dl>")
+            if (mutant.status == MutantStatus.Survived) {
+                append("<p class=\"muted\">An equivalent mutant is excluded with <code>ignore(\"${esc(mutant.id)}\", \"&lt;reason&gt;\")</code> in the root <code>mutation { }</code> block.</p>")
+            }
+            append("</div>")
+        }
     }
 
     private fun packageOf(path: String): String = packages.getOrPut(path) {
@@ -164,7 +239,7 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
         append("<p class=\"path\">${esc(path)} · <code>${esc(targets.first().module.path)}</code></p>")
         append("<ul class=\"legend\"><li><i class=\"c\"></i>Covered</li><li><i class=\"i\"></i>Incidental</li><li><i class=\"u\"></i>Uncovered</li><li><i class=\"r\"></i>Run, not in the totals</li><li><i class=\"n\"></i>Not run, not in the totals</li>")
         append("<li><span class=\"chip x\">Unit</span> expected category</li><li><span class=\"chip\">Unit</span> other category</li>")
-        if (report.mutations != null) {
+        if (report.mutations?.mutants?.isNotEmpty() == true) {
             append("<li><span class=\"mchip killed\">K</span> mutant killed</li><li><span class=\"mchip survived\">S</span> survived</li><li><span class=\"mchip timed-out\">T</span> timed out</li><li><span class=\"mchip uncovered\">U</span> uncovered</li>")
         }
         append("</ul>")
@@ -186,14 +261,7 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
             }
             append("<tr id=\"L$line\"${state?.let { " class=\"${stateClass(it)}\"" } ?: ""}><td class=\"ln\"><a href=\"#L$line\">$line</a></td>")
             val mutants = report.mutations?.onLine(path, line).orEmpty().joinToString("") { mutant ->
-                val detail = listOfNotNull(
-                    "${mutant.label}: ${mutant.text}",
-                    mutant.status.label,
-                    mutant.killedBy?.let { "by $it" },
-                    mutant.failure,
-                    "id ${mutant.id}",
-                ).joinToString(" · ")
-                "<span class=\"mchip ${mutant.status.id}\" title=\"${esc(detail)}\">${mutant.status.label.first()}</span>"
+                mutantChip(mutant, lineOwner, depth = 1, short = true)
             }
             append("<td class=\"mark\"></td><td class=\"chips\">$chips$mutants</td><td class=\"code\">${esc(text)}</td></tr>")
         }
@@ -247,6 +315,9 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
     private fun tile(label: String, count: Int, total: Int, cls: String) =
         "<div class=\"tile $cls\"><div class=\"value\">${percent(count, total)}</div><div class=\"label\">$label · $count lines</div></div>"
 
+    private fun section(title: String, description: String, body: String) =
+        "<details class=\"section\" open><summary><h2>${esc(title)}</h2><span class=\"muted\">$description</span></summary>$body</details>"
+
     private fun collapsed(title: String, description: String, body: String) =
         "<details class=\"section\"><summary><h2>${esc(title)}</h2><span class=\"muted\">$description</span></summary>$body</details>"
 
@@ -271,6 +342,8 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
     companion object {
 
         fun filePage(path: String) = "files/${path.replace('/', '~')}.html"
+
+        private val RUN_TIME = java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm").withZone(java.time.ZoneId.systemDefault())
 
         private fun resource(name: String): String =
             requireNotNull(HtmlReport::class.java.getResource("/ukpt/coverage/$name")) { "The build-logic jar contains no ukpt/coverage/$name resource." }.readText()
@@ -330,7 +403,7 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
                   <li><i class="u"></i>Uncovered</li>
                   <li><i class="r"></i>Ran, not expected to be tested</li>
                   <li><i class="n"></i>Not run, not expected to be tested</li>
-                </ul></div></details></th><th class="n" data-sort="covered">Covered</th><th class="n" data-sort="incidental">Incidental</th><th class="n" data-sort="uncovered">Uncovered</th><th class="n" data-sort="mutants" id="mutantsHead" title="Mutants killed of all mutants; S survived, U uncovered" hidden>Mutants</th></tr></thead>
+                </ul></div></details></th><th class="n" data-sort="covered">Covered</th><th class="n" data-sort="incidental">Incidental</th><th class="n" data-sort="uncovered">Uncovered</th></tr></thead>
                 <tbody id="body"></tbody>
               </table>
             </div>
@@ -387,9 +460,21 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
             .src tr:target td.code { outline:2px solid var(--link); }
             details summary { cursor:pointer; color:var(--muted); }
             ul.problems li { margin:4px 0; }
-            .mchip { display:inline-block; white-space:nowrap; font-size:11px; padding:0 5px; border-radius:3px; line-height:16px; margin-right:3px; color:#fff; cursor:help; }
+            .mchip { display:inline-block; white-space:nowrap; font:11px/16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding:0 5px; border:0; border-radius:3px; margin-right:3px; color:#fff; }
+            button.mchip { cursor:pointer; } button.mchip:hover { filter:brightness(1.1); } button.mchip:focus-visible { outline:2px solid var(--link); outline-offset:1px; }
+            h3 { font-size:14px; margin:20px 0 4px; }
+            .split { display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:0 24px; }
+            .mpop { white-space:normal; font:14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color:var(--fg); background:var(--bg);
+              border:1px solid var(--line); border-radius:8px; padding:14px 16px; width:min(560px, calc(100vw - 32px)); box-shadow:0 8px 32px rgb(0 0 0 / .18); text-align:left; }
+            .mpop::backdrop { background:rgb(0 0 0 / .15); }
+            .mpop-head { display:flex; align-items:center; gap:8px; } .mpop-head b { font-size:15px; }
+            .mpop-close { margin-left:auto; border:0; background:none; color:var(--muted); font-size:20px; line-height:1; cursor:pointer; padding:0 4px; }
+            .mpop pre { font:12px/1.5 ui-monospace, Menlo, monospace; background:var(--head); border-radius:4px; padding:8px 10px; margin:10px 0; white-space:pre-wrap; word-break:break-word; }
+            .mpop pre.mpop-failure { color:var(--u); max-height:160px; overflow:auto; }
+            .mpop p { margin:8px 0; }
+            .mpop dl { display:grid; grid-template-columns:auto 1fr; gap:4px 12px; margin:10px 0 4px; font-size:13px; }
+            .mpop dt { color:var(--muted); } .mpop dd { margin:0; word-break:break-word; }
             .mchip.killed, .mchip.timed-out { background:var(--c); } .mchip.survived { background:var(--u); } .mchip.uncovered { background:var(--i); color:#1d1f23; }
-            td.mut { white-space:nowrap; } td.mut .ms { color:var(--u); } td.mut .mu { color:var(--i); }
         """.trimIndent()
     }
 }

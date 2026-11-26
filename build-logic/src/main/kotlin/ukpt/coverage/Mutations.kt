@@ -8,6 +8,8 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
+import java.security.MessageDigest
+import java.time.Instant
 
 enum class MutantStatus(val id: String, val label: String) {
     Killed("killed", "Killed"),
@@ -35,6 +37,11 @@ class Mutant(
     val killedBy: String?,
     val failure: String?,
     val candidateTests: Int,
+    val declaration: String = "",
+    val constructs: List<String> = emptyList(),
+    val expected: List<String> = emptyList(),
+    /** The function or property a `remove-call` mutant removes. */
+    val callee: String? = null,
 ) {
     /** The operator and its change, for example `conditionals-boundary < → <=`. */
     val label: String get() = if (variant.isEmpty()) operator else "$operator $variant"
@@ -42,6 +49,9 @@ class Mutant(
 
 data class MutantTally(val killed: Int = 0, val survived: Int = 0, val uncovered: Int = 0) {
     val total: Int get() = killed + survived + uncovered
+
+    /** Killed of the mutants that a test runs; null when no test runs any mutant. */
+    val score: Double? get() = (killed + survived).takeIf { it > 0 }?.let { killed.toDouble() / it }
 
     companion object {
         fun of(mutants: List<Mutant>) = MutantTally(
@@ -53,12 +63,27 @@ data class MutantTally(val killed: Int = 0, val survived: Int = 0, val uncovered
 }
 
 /**
- * The last `runMutants` results, from `build/reports/mutation/results.json`. A mutant whose source
- * text no longer starts on its line is stale: the code changed after the run, and the report leaves
- * the mutant out.
+ * The last `runMutants` results, from `build/reports/mutation/results.json`, checked against the
+ * Kotlin sources the run recorded:
+ * - a test file added, changed or deleted after the run makes every result out of date, because a
+ *   test in one module can kill mutants in another; [mutants] is then empty and [outdatedReason] says why;
+ * - a production file changed after the run drops the file's mutants, counted in [droppedMutants].
  */
-class MutationResults(val mutants: List<Mutant>, val stale: Int, val hosts: List<String>, val millis: Long) {
+class MutationResults(
+    val mutants: List<Mutant>,
+    val startedAt: Instant?,
+    val hosts: List<String>,
+    val millis: Long,
+    val notSampled: Int = 0,
+    val sampleSeed: Long? = null,
+    val excludedCalls: Int = 0,
+    val droppedMutants: Int = 0,
+    val changedProductionFiles: Int = 0,
+    val outdatedReason: String? = null,
+) {
     private val byPath = mutants.groupBy { it.path }
+
+    val outdated: Boolean get() = outdatedReason != null
 
     /** Assigns each mutant to the narrowest target of its file whose range contains its line. */
     fun byTarget(targets: List<Target>): Map<Target, List<Mutant>> {
@@ -82,41 +107,74 @@ class MutationResults(val mutants: List<Mutant>, val stale: Int, val hosts: List
     companion object {
         fun read(file: File, root: File): MutationResults {
             val json = Json.parseToJsonElement(file.readText()).jsonObject
-            val sources = mutableMapOf<String, List<String>>()
-            var stale = 0
-            val mutants = json.getValue("mutants").jsonArray.mapNotNull { element ->
+            val mutants = json.getValue("mutants").jsonArray.map { element ->
                 val m = element.jsonObject
-                val mutant = Mutant(
+                Mutant(
                     id = m.string("id"),
                     path = m.string("path"),
                     line = m.getValue("line").jsonPrimitive.int,
                     operator = m.string("operator"),
-                    variant = m["variant"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                    variant = m.optional("variant").orEmpty(),
                     text = m.string("text"),
                     status = MutantStatus.of(m.string("status")),
-                    killedBy = m["killedBy"]?.jsonPrimitive?.contentOrNull,
-                    failure = m["failure"]?.jsonPrimitive?.contentOrNull,
+                    killedBy = m.optional("killedBy"),
+                    failure = m.optional("failure"),
                     candidateTests = m["candidateTests"]?.jsonPrimitive?.int ?: 0,
+                    declaration = m.optional("declaration").orEmpty(),
+                    constructs = m.strings("constructs"),
+                    expected = m.strings("expected"),
+                    callee = m.optional("callee"),
                 )
-                val lines = sources.getOrPut(mutant.path) { root.resolve(mutant.path).takeIf { it.isFile }?.readLines().orEmpty() }
-                if (startsOnLine(mutant, lines)) mutant else { stale++; null }
             }
+            val summary = json["summary"]?.jsonObject
+            fun summaryLong(key: String) = summary?.get(key)?.jsonPrimitive?.contentOrNull?.toLongOrNull()
+            val startedAt = json.optional("startedAt")?.let { runCatching { Instant.parse(it) }.getOrNull() }
             val hosts = json["hosts"]?.jsonArray?.map { it.jsonPrimitive.content }.orEmpty()
-            val millis = json["summary"]?.jsonObject?.get("millis")?.jsonPrimitive?.content?.toLongOrNull() ?: 0
-            return MutationResults(mutants, stale, hosts, millis)
+            fun results(kept: List<Mutant>, dropped: Int = 0, changed: Int = 0, outdated: String? = null) = MutationResults(
+                mutants = kept, startedAt = startedAt, hosts = hosts, millis = summaryLong("millis") ?: 0,
+                notSampled = summaryLong("notSampled")?.toInt() ?: 0, sampleSeed = summaryLong("sampleSeed"),
+                excludedCalls = summaryLong("excludedCalls")?.toInt() ?: 0,
+                droppedMutants = dropped, changedProductionFiles = changed, outdatedReason = outdated,
+            )
+
+            val sources = json["sources"]?.jsonObject
+                ?: return results(emptyList(), outdated = "the results record no source digest, because an earlier version of runMutants wrote them")
+            val roots = sources.getValue("roots").jsonArray.map { it.jsonPrimitive.content }
+            val then = sources.getValue("files").jsonObject.mapValues { it.value.jsonPrimitive.content }
+            val now = digest(root, roots)
+            val changed = (then.keys + now.keys).filter { then[it] != now[it] }
+            val (production, tests) = changed.partition(::isProductionSource)
+            if (tests.isNotEmpty()) {
+                return results(emptyList(), outdated = "${tests.size} test ${if (tests.size == 1) "file" else "files"} changed after the run, for example ${tests.first()}")
+            }
+            val changedFiles = production.toSet()
+            val kept = mutants.filter { it.path !in changedFiles }
+            return results(kept, dropped = mutants.size - kept.size, changed = production.size)
         }
 
-        private fun startsOnLine(mutant: Mutant, lines: List<String>): Boolean {
-            if (mutant.line !in 1..lines.size) return false
-            val firstLine = WHITESPACE.replace(lines[mutant.line - 1] + " ", " ")
-            val following = WHITESPACE.replace(lines.subList(mutant.line - 1, minOf(lines.size, mutant.line + 20)).joinToString(" "), " ")
-            return generateSequence(following.indexOf(mutant.text)) { following.indexOf(mutant.text, it + 1) }
-                .takeWhile { it in 0 until firstLine.length }
-                .any()
+        /** The same files and hashes as the mutation plugin's `SourceDigest`. */
+        private fun digest(root: File, roots: List<String>): Map<String, String> {
+            val files = mutableMapOf<String, String>()
+            for (dir in roots) {
+                root.resolve(dir).walkTopDown()
+                    .onEnter { it.name != "build" && !it.name.startsWith(".") }
+                    .filter { it.isFile && it.extension == "kt" }
+                    .forEach { file ->
+                        files[file.relativeTo(root).invariantSeparatorsPath] =
+                            MessageDigest.getInstance("SHA-256").digest(file.readBytes()).take(8).joinToString("") { "%02x".format(it) }
+                    }
+            }
+            return files
         }
 
-        private val WHITESPACE = Regex("\\s+")
+        /** A file in a `main` or `<name>Main` source set; every other source set holds tests. */
+        internal fun isProductionSource(path: String): Boolean {
+            val sourceSet = path.substringAfter("/src/", "").substringBefore('/')
+            return sourceSet == "main" || sourceSet.endsWith("Main")
+        }
 
         private fun JsonObject.string(key: String) = getValue(key).jsonPrimitive.content
+        private fun JsonObject.optional(key: String) = get(key)?.jsonPrimitive?.contentOrNull
+        private fun JsonObject.strings(key: String) = get(key)?.jsonArray?.map { it.jsonPrimitive.content }.orEmpty()
     }
 }

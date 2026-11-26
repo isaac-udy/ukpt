@@ -2,71 +2,106 @@ package ukpt.coverage
 
 import java.io.File
 import java.nio.file.Files
+import java.security.MessageDigest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class MutationResultsTest {
 
     private val root: File = Files.createTempDirectory("repository").toFile()
-    private val path = "feature/a/server/src/main/kotlin/Greet.kt"
+    private val main = "feature/a/server/src/main/kotlin/Greet.kt"
+    private val other = "feature/a/server/src/main/kotlin/Other.kt"
+    private val test = "feature/a/server/src/test/kotlin/GreetTest.kt"
     private val module = ModuleInfo(":feature:a:server", "feature/a/server", expectation = null)
 
     init {
-        File(root, path).apply { parentFile.mkdirs() }.writeText(
-            """
-            package feature.a
-            class Greet {
-                fun greet(history: List<String>) =
-                    if (history.isEmpty()) "Hello"
-                    else "Hello again"
-                fun isNew(history: List<String>) = history
-                    .isEmpty()
-            }
-            """.trimIndent(),
-        )
+        write(main, "class Greet")
+        write(other, "class Other")
+        write(test, "class GreetTest")
     }
 
-    private fun results(vararg mutants: String): MutationResults {
-        val file = File(root, "results.json")
-        file.writeText("""{"hosts": ["jvm"], "summary": {"millis": 1200}, "mutants": [${mutants.joinToString()}]}""")
-        return MutationResults.read(file, root)
-    }
+    private fun write(path: String, text: String) = File(root, path).apply { parentFile.mkdirs(); writeText(text) }
 
-    private fun mutant(id: String, line: Int, text: String, status: String = "survived") =
-        """{"id": "$id", "path": "$path", "line": $line, "operator": "negate-condition", "text": "$text", "status": "$status"}"""
+    private fun hash(path: String) =
+        MessageDigest.getInstance("SHA-256").digest(File(root, path).readBytes()).take(8).joinToString("") { "%02x".format(it) }
+
+    private fun mutant(id: String, path: String, status: String = "survived") =
+        """{"id": "$id", "path": "$path", "line": 1, "operator": "remove-call", "variant": "removed", "text": "x()", "status": "$status",
+           "callee": "org.slf4j.Logger.info", "constructs": ["ServerDomain.UseCase"], "expected": ["unit"]}"""
+
+    /** Results whose digest records the files as they are now. */
+    private fun results(vararg mutants: String, withSources: Boolean = true): File {
+        val files = listOf(main, other, test).joinToString { "\"$it\": \"${hash(it)}\"" }
+        val sources = if (withSources) """, "sources": {"roots": ["feature/a"], "files": {$files}}""" else ""
+        return File(root, "results.json").apply {
+            writeText(
+                """{"startedAt": "2026-11-26T01:52:00Z", "hosts": ["jvm"], "summary": {"millis": 1200, "notSampled": 4, "sampleSeed": 77},
+                   "mutants": [${mutants.joinToString()}]$sources}""",
+            )
+        }
+    }
 
     @Test
-    fun aLongCallKeepsItsMutantWhenTheManifestCapsTheText() {
-        val call = "scope.launch {\n" + (1..30).joinToString("\n") { "    step$it()" } + "\n}"
-        File(root, "Long.kt").writeText("package feature.a\nfun run() {\n$call\n}\n")
-        val text = call.replace(Regex("\\s+"), " ").take(160)
-        val file = File(root, "long.json")
-        file.writeText("""{"mutants": [{"id": "l", "path": "Long.kt", "line": 3, "operator": "remove-call", "variant": "removed", "text": "$text", "status": "survived"}]}""")
-        val results = MutationResults.read(file, root)
-        assertEquals(listOf("remove-call removed"), results.mutants.map { it.label })
-        assertEquals(0, results.stale)
-    }
-
-    private fun target(name: String?, startLine: Int, endLine: Int) =
-        Target(path, module, name, startLine, endLine, emptyList(), Expectation.Unspecified, Basis.Unclassified, emptyMap())
-
-    @Test
-    fun aMutantWhoseTextNoLongerStartsOnItsLineIsStale() {
-        val results = results(mutant("a", 4, "history.isEmpty()"), mutant("b", 6, "history .isEmpty()"), mutant("c", 5, "history.isEmpty()"), mutant("d", 3, "history.isEmpty()"))
+    fun resultsWithUnchangedSourcesKeepEveryMutant() {
+        val results = MutationResults.read(results(mutant("a", main), mutant("b", other, "killed")), root)
+        assertFalse(results.outdated)
         assertEquals(listOf("a", "b"), results.mutants.map { it.id })
-        assertEquals(2, results.stale)
-        assertEquals(listOf("jvm"), results.hosts)
-        assertEquals(1200L, results.millis)
+        assertEquals("org.slf4j.Logger.info", results.mutants.first().callee)
+        assertEquals(listOf("unit"), results.mutants.first().expected)
+        assertEquals(77L, results.sampleSeed)
+        assertEquals(4, results.notSampled)
+        assertEquals("2026-11-26T01:52:00Z", results.startedAt.toString())
+    }
+
+    @Test
+    fun aChangedProductionFileDropsOnlyThatFilesMutants() {
+        val file = results(mutant("a", main), mutant("b", other))
+        write(main, "class Greet2")
+        val results = MutationResults.read(file, root)
+        assertFalse(results.outdated)
+        assertEquals(listOf("b"), results.mutants.map { it.id })
+        assertEquals(1, results.droppedMutants)
+        assertEquals(1, results.changedProductionFiles)
+    }
+
+    @Test
+    fun anAddedOrChangedTestFileMakesEveryResultOutOfDate() {
+        val file = results(mutant("a", main))
+        write("feature/a/server/src/test/kotlin/NewTest.kt", "class NewTest")
+        val added = MutationResults.read(file, root)
+        assertTrue(added.outdated)
+        assertTrue(added.mutants.isEmpty())
+        assertTrue("NewTest.kt" in added.outdatedReason!!, added.outdatedReason)
+    }
+
+    @Test
+    fun resultsWithoutASourceDigestAreOutOfDate() {
+        val results = MutationResults.read(results(mutant("a", main), withSources = false), root)
+        assertTrue(results.outdated)
+        assertTrue(results.mutants.isEmpty())
+    }
+
+    @Test
+    fun productionSourceSetsEndInMain() {
+        assertTrue(MutationResults.isProductionSource("feature/a/client/src/commonMain/kotlin/A.kt"))
+        assertTrue(MutationResults.isProductionSource("feature/a/server/src/main/kotlin/A.kt"))
+        assertFalse(MutationResults.isProductionSource("feature/a/client/src/jvmTest/kotlin/A.kt"))
+        assertFalse(MutationResults.isProductionSource("feature/a/tests/src/commonTest/kotlin/A.kt"))
     }
 
     @Test
     fun aMutantBelongsToTheNarrowestDeclarationThatContainsItsLine() {
-        val outer = target("feature.a.Greet", 2, 8)
-        val greet = target("feature.a.Greet.greet", 3, 5)
-        val results = results(mutant("a", 4, "history.isEmpty()", "killed"), mutant("b", 6, "history .isEmpty()"))
+        fun target(name: String?, startLine: Int, endLine: Int) =
+            Target(main, module, name, startLine, endLine, emptyList(), Expectation.Unspecified, Basis.Unclassified, emptyMap())
+        val outer = target("feature.a.Greet", 1, 8)
+        val greet = target("feature.a.Greet.greet", 1, 1)
+        val results = MutationResults.read(results(mutant("a", main, "killed")), root)
         val byTarget = results.byTarget(listOf(outer, greet))
         assertEquals(listOf("a"), byTarget.getValue(greet).map { it.id })
-        assertEquals(listOf("b"), byTarget.getValue(outer).map { it.id })
         assertEquals(MutantTally(killed = 1), MutantTally.of(byTarget.getValue(greet)))
+        assertNull(MutantTally().score)
     }
 }

@@ -37,15 +37,16 @@ The run prints `build/reports/mutation/summary.txt`. The full data is in
 `build/reports/mutation/results.json`. When `results.json` exists, `./gradlew testCoverageReport`
 adds the results to `build/reports/test-coverage/index.html`:
 
-- a **Mutants** column (killed of all mutants, then the survived `S` and uncovered `U` counts) and
-  a Mutants filter in the pivot table;
-- a **Mutants not killed** section listing each survived and uncovered mutant with its
-  Construct, expected categories, operator, change and mutated expression;
-- a `K`, `S`, `T` or `U` badge on each mutated line of a file page; the badge's tooltip names
-  the killing test and the failure.
+- a **Mutation testing** section: the run's start time, killed, survived and uncovered counts,
+  the score, a **Not killed** table, and counts by module and by operator;
+- a `K`, `S`, `T` or `U` button on each mutated line of a file page. The button, and each status in
+  the Not killed table, opens a popup with the mutated expression, the change, the removed call, the
+  Construct, the expected categories, the killing test and its failure, and the mutant ID.
 
-The report leaves out a mutant whose source text no longer starts on its line, because the code
-changed after the run.
+`results.json` records the Kotlin sources at the start of the run. When a test file changed after
+the run, the report shows no mutation results and asks for a new run, because a test in one module
+can kill mutants in another. When a production file changed, the report leaves out that file's
+mutants.
 
 ## What runs
 
