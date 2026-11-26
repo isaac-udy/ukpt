@@ -108,7 +108,8 @@
       "2026-11-24.1-subcutaneous-inspections.md": "Server Inspections in src/main only; no ClientInspection, inspectClient or host lists.",
       "2026-11-24.3-test-coverage-report.md": "No ClientUi.Screen or client modules; snapshotTest counts as Snapshot.",
       "2026-11-25-category-test-cache-inputs.md": "JVM tasks and the HTML goldens instead of Paparazzi and Android host tasks.",
-      "2026-11-26-mutation-testing.md": "The catalog selects ServerDomain, ServerData and the ServerWeb Constructs that hold logic; no client rules."
+      "2026-11-26-mutation-testing.md": "The catalog selects ServerDomain, ServerData and the ServerWeb Constructs that hold logic; no client rules.",
+      "2026-11-26.1-mutation-excluded-calls.md": "No urpc pattern; this branch has no urpc."
     }
   }
 }

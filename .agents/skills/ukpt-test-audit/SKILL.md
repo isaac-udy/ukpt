@@ -97,13 +97,36 @@ categories that count) and `candidateTests` (the expected tests that executed th
      removed logging call. Add `ignore("<id>", "<reason>")` to the `mutation { }` block. The reason names the fact
      that makes the mutant equivalent. When every `remove-call` mutant of one function or library is
      equivalent (logging, metrics), add an `excludeCalls()` pattern for the `callee` field instead
-     and report the pattern to the user.
+     and report the pattern to the user (see "Excluded calls").
    - **Dead code:** no caller reaches the branch. Report the branch to the user. Remove the branch
      only when the user asks.
 3. **Report** per mutant: `path:line`, the behaviour change, the case, and the action taken.
 
 `timed-out` counts as a kill: the mutant made a test exceed its baseline duration × 2 + 1 s,
 usually because a wait in the test never matched.
+
+## Excluded calls
+
+`excludeCalls()` in the `mutation { }` block leaves out every `remove-call` mutant whose `callee`
+matches a pattern. The template starts with console output (`kotlin.io.println`,
+`kotlin.io.print`, `printStackTrace`), Koin bindings (`org.koin.*`), SLF4J loggers
+(`org.slf4j.Logger.*`) and Ktor client timeouts. Before a project's first run, add the project's own calls of the same kinds:
+
+- the project's logging facade, for example `platform.log.Logger.*`;
+- metrics, tracing and analytics clients;
+- other configuration that no test can observe, such as connection or retry timeouts.
+
+Do not exclude calls whose removal changes behaviour, even when many of their mutants survive.
+Survivors there are missing tests:
+
+- `require`, `check` and other validation, authorization and permission checks;
+- audit records and other writes a user or operator reads;
+- serialization settings, such as `ignoreUnknownKeys`;
+- HTTP client settings other than timeouts, such as `followRedirects` and plugin installation.
+
+After a run, group the survived `remove-call` mutants by `callee` to find further candidates. A
+pattern removes a mutant from every rule, so prefer `ignore("<id>", "<reason>")` for one
+equivalent call site of a call that matters elsewhere.
 
 ## Catalog rules
 
