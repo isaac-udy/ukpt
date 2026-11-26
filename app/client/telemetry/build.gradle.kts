@@ -27,6 +27,8 @@ kotlin {
             implementation(libs.koin.core)
             implementation(libs.kotlinx.serialization)
             implementation(libs.androidx.lifecycle.viewmodel)
+            // Aligns the Compose runtime that lifecycle and Enro bring with the version the clients use.
+            implementation(libs.compose.runtime)
             implementation(projects.feature.core.client)
         }
     }
