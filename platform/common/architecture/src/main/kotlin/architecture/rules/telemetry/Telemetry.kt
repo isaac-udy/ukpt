@@ -15,6 +15,8 @@ import dev.isaacudy.udytils.architecture.*
     `construct(Constructs.ClientData.Repository)`, or a screen's visits, `onScreen(HomeKey::class)`. The telemetry module's build generates
     `TraceSiteTable` and `Constructs` from the features' site manifests and the architecture
     classification.
+
+    The rule API and the telemetry modules are a beta: a later template version can change them.
 """)
 object Telemetry : RuleGroup(
     constructs = listOf(TraceRules, AnalyticsEvent, Metric),

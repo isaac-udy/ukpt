@@ -4,7 +4,7 @@ plugins {
     id("dev.isaacudy.udytils.trace-site-table")
 }
 
-// The trace plugin rewrites the on(…) references of the rules; it instruments no telemetry code.
+// The trace plugin rewrites the onCalled and onConstructed references of the rules; it instruments no telemetry code.
 apply(plugin = "dev.isaacudy.udytils.trace")
 configure<dev.isaacudy.udytils.trace.gradle.TraceExtension> {
     packages.add("feature")

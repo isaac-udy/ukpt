@@ -1,6 +1,8 @@
 package com.isaacudy.ukpt.telemetry
 
 import dev.isaacudy.udytils.state.getOrNull
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineScope
 import dev.isaacudy.udytils.trace.Trace
 import dev.isaacudy.udytils.trace.rules.InMemoryAnalyticsSink
 import dev.isaacudy.udytils.trace.rules.InMemoryMetricsSink
@@ -29,8 +31,8 @@ class GreetingEventsTest {
     private val analytics = InMemoryAnalyticsSink<AnalyticsEvent>()
     private val metrics = InMemoryMetricsSink<Metric>()
     private val registrations = listOf(
-        Trace.addSink(clientAnalyticsRules.sink(TraceSiteTable, analytics)),
-        Trace.addSink(clientMetricRules.sink(TraceSiteTable, metrics)),
+        Trace.addSink(clientAnalyticsRules.sink(TraceSiteTable, analytics, CoroutineScope(Dispatchers.Unconfined))),
+        Trace.addSink(clientMetricRules.sink(TraceSiteTable, metrics, CoroutineScope(Dispatchers.Unconfined))),
     )
 
     @AfterTest

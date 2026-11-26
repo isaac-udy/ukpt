@@ -9,7 +9,9 @@ import dev.isaacudy.udytils.architecture.*
     [Metrics](#metric). Each rule starts from a selector — `onCalled(Ref::fn)`,
     `onConstructed(Type::class)`, `onScreen(Key::class)` or `construct(Constructs.X)` — and its
     lambda receives the instance as `it`: the call's receiver, the constructed instance or the
-    screen's key. `span` is available in the lambda.
+    screen's key. `span` is available in the lambda. An `onCalled` rule also reads the call's
+    arguments, `val (query, page) = args`, and `result`, which is null unless the call returned.
+    No exporter sends arguments or results.
 
     - `event` records an analytics event; `timing` the duration of a call or construction;
       `firstValue` the time from the start of a Flow's collection to its first value.
@@ -32,8 +34,9 @@ import dev.isaacudy.udytils.architecture.*
     }
     ```
 
-    `rules.sink(TraceSiteTable, sink)` applies the rules as a span sink; the telemetry module's
-    Koin module registers both sinks when the app starts.
+    `rules.sink(TraceSiteTable, sink, delivery)` applies the rules as a span sink. A rule runs on
+    the thread that ends the span; the sink receives its result in a coroutine of `delivery`. The
+    telemetry module's Koin module registers both sinks when the app starts.
 """)
 object TraceRules : Construct<Telemetry>(
     testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous),

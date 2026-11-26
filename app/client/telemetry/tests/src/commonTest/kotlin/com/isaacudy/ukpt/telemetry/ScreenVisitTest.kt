@@ -1,6 +1,8 @@
 package com.isaacudy.ukpt.telemetry
 
 import dev.isaacudy.udytils.trace.InMemorySpanSink
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineScope
 import dev.isaacudy.udytils.trace.Trace
 import dev.isaacudy.udytils.trace.enro.TraceNavigationPlugin
 import dev.isaacudy.udytils.trace.rules.InMemoryAnalyticsSink
@@ -22,7 +24,7 @@ class ScreenVisitTest {
     private val spans = InMemorySpanSink()
     private val plugin = TraceNavigationPlugin()
     private val registrations = listOf(
-        Trace.addSink(clientAnalyticsRules.sink(TraceSiteTable, analytics)),
+        Trace.addSink(clientAnalyticsRules.sink(TraceSiteTable, analytics, CoroutineScope(Dispatchers.Unconfined))),
         Trace.addSink(spans),
         Trace.linkRoots(plugin::visitOf),
     )
