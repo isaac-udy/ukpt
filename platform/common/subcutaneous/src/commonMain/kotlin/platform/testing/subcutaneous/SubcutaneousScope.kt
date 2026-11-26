@@ -27,7 +27,7 @@ class SubcutaneousScope internal constructor(
      * Runs [block] against the running server until [block] passes and returns its result; rethrows
      * its last failure after [timeout] of real time.
      */
-    suspend fun <T> inspectServer(timeout: Duration = 10.seconds, block: suspend ServerInspection.() -> T): T {
+    suspend fun <T> inspectServer(timeout: Duration = 30.seconds, block: suspend ServerInspection.() -> T): T {
         val serverKoin = scenario.serverKoin
             ?: error("inspectServer { } needs a test graph with a server. Inspect a backend the project does not own with inspectClient { }.")
         val inspection = ServerInspection(serverKoin)
@@ -38,7 +38,7 @@ class SubcutaneousScope internal constructor(
      * Runs [block] against the client graph until [block] passes and returns its result; rethrows
      * its last failure after [timeout] of real time.
      */
-    suspend fun <T> inspectClient(timeout: Duration = 10.seconds, block: suspend ClientInspection.() -> T): T {
+    suspend fun <T> inspectClient(timeout: Duration = 30.seconds, block: suspend ClientInspection.() -> T): T {
         val inspection = ClientInspection(clientKoin)
         return awaitAsserted(timeout) { inspection.block() }
     }

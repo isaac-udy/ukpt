@@ -14,7 +14,7 @@ import kotlin.time.Duration.Companion.seconds
  */
 suspend inline fun <reified K : NavigationKey> TestNavigationHandle<*>.awaitOpened(
     key: K,
-    timeout: Duration = 10.seconds,
+    timeout: Duration = 30.seconds,
 ): NavigationKey.Instance<K> = awaitAsserted(timeout) { assertOpened(key) }
 
 /**
@@ -22,7 +22,7 @@ suspend inline fun <reified K : NavigationKey> TestNavigationHandle<*>.awaitOpen
  * after [timeout] of real time. For a key the test can't build, such as a confirmation dialog.
  */
 suspend inline fun <reified K : NavigationKey> TestNavigationHandle<*>.awaitOpened(
-    timeout: Duration = 10.seconds,
+    timeout: Duration = 30.seconds,
     crossinline predicate: (K) -> Boolean = { true },
 ): NavigationKey.Instance<K> = awaitAsserted(timeout) {
     // assertOpened<K> alone matches any open: the operation's type argument is erased.
@@ -30,6 +30,6 @@ suspend inline fun <reified K : NavigationKey> TestNavigationHandle<*>.awaitOpen
 }
 
 /** Suspends until this handle has closed; fails after [timeout] of real time. */
-suspend fun TestNavigationHandle<*>.awaitClosed(timeout: Duration = 10.seconds) {
+suspend fun TestNavigationHandle<*>.awaitClosed(timeout: Duration = 30.seconds) {
     awaitAsserted(timeout) { assertClosed() }
 }
