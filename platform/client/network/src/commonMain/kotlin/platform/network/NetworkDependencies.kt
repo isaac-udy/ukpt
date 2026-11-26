@@ -20,6 +20,6 @@ val networkDependencies: Module = module {
     } onClose { it?.close() }
 
     single {
-        get<HttpClient>().urpcClient(baseUrl = get<ServerEndpointConfig>().baseUrl)
+        get<HttpClient>().urpcClient(baseUrl = get<ServerEndpointConfig>().baseUrl, interceptors = listOf(traceparentInterceptor))
     } onClose { it?.close() }
 }
