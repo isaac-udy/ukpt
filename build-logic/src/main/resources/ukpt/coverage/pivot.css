@@ -60,7 +60,10 @@
 .pivot .link:hover { text-decoration:underline; background:var(--chip-bg); }
 
 .pivot .tablewrap { overflow-x:auto; border:1px solid var(--line); border-radius:8px; }
-.pivot table { margin:0; min-width:820px; }
+.pivot table { margin:0; min-width:960px; table-layout:fixed; }
+.pivot col.w-exp { width:180px; } .pivot col.w-decls { width:64px; } .pivot col.w-size { width:80px; }
+.pivot col.w-bar { width:166px; } .pivot col.w-pct { width:96px; }
+.pivot td { overflow:hidden; }
 .pivot th, .pivot td { padding:4px 8px; vertical-align:middle; }
 .pivot thead th { background:var(--head); }
 .pivot thead th button { border:0; background:none; padding:0; font:inherit; color:inherit; display:inline-flex; gap:4px; align-items:center; }
@@ -103,9 +106,10 @@
 @media (max-width:640px) { .pivot .searchwrap.open input { width:150px; } }
 
 details.section { margin-top:28px; border-top:1px solid var(--line); padding-top:4px; }
-details.section > summary { list-style:none; cursor:pointer; color:var(--fg); display:flex; gap:8px; align-items:baseline; padding:8px 0; }
+details.section > summary { list-style:none; cursor:pointer; color:var(--fg); display:flex; flex-wrap:wrap; gap:2px 8px; align-items:baseline; padding:8px 0; }
 details.section > summary::-webkit-details-marker { display:none; }
 details.section > summary::before { content:"▶"; font-size:10px; color:var(--muted); transition:transform .12s; }
 details.section[open] > summary::before { transform:rotate(90deg); }
-details.section > summary h2 { margin:0; font-size:17px; }
-details.section > summary .muted { font-size:13px; }
+details.section > summary h2 { margin:0; font-size:17px; white-space:nowrap; }
+details.section > summary .muted { font-size:13px; flex-basis:100%; padding-left:18px; }
+details.section > :not(summary), details.sub > :not(summary) { margin-left:18px; }

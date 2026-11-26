@@ -1,0 +1,4 @@
+interface:
+  display_name: "Audit UKPT Tests"
+  short_description: "Run mutation testing and triage surviving mutants"
+  default_prompt: "Use $ukpt-test-audit to run mutation testing and triage the survived and uncovered mutants."

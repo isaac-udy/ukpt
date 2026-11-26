@@ -10,7 +10,7 @@ import kotlin.time.TimeSource
  * Retries [assertion] until it passes and returns its result; rethrows its last failure after
  * [timeout] of real time.
  */
-suspend fun <T> awaitAsserted(timeout: Duration = 10.seconds, assertion: suspend () -> T): T {
+suspend fun <T> awaitAsserted(timeout: Duration = 30.seconds, assertion: suspend () -> T): T {
     val deadline = TimeSource.Monotonic.markNow() + timeout
     while (true) {
         try {

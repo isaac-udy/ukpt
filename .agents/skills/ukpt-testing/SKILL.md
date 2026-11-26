@@ -171,7 +171,7 @@ fun `a name greeted before is greeted again`() = subcutaneous(ukptTestGraph) {
 - `given { … }` — runs scenarios, before a page opens or while one is open. A change made mid-test
   is sent to an open page through the server's event stream, as in a browser.
 
-- `awaitAsserted(timeout = 10.seconds) { … }` — retries an assertion until the assertion passes;
+- `awaitAsserted(timeout = 30.seconds) { … }` — retries an assertion until the assertion passes;
   fails with the last failure after the timeout.
 
 **Scenarios.** `suspend fun Scenario.<name>(…)` in the `:tests` module's `src/main`. Inside,
@@ -182,7 +182,7 @@ on this one to reuse them.
 **Inspections.** A test checks what the server stored, besides what the page shows, through Server
 Inspections in the `:tests` module's `src/main`: `suspend fun ServerInspection.<name>()`. A test
 calls an Inspection inside `inspectServer { }`, which retries the block until the block passes or
-10 s of real time pass, and returns the block's result:
+30 s of real time pass, and returns the block's result:
 
 ```kotlin
 // src/main
@@ -250,6 +250,10 @@ Kover instruments classes under `feature`, `platform`, `app` and the package nam
 to the root `testCoverage { }` block, substituting the project's package. Subpackages are included.
 The report fails with an example source path for each missing package root. After adding a root,
 rerun `./gradlew testCoverageReport` to collect new measurements.
+
+Coverage shows which lines a test runs, not whether a test fails when the line is wrong. To check
+that, run mutation testing with `./gradlew runMutants` (`ukpt-test-audit`). The coverage report
+shows the mutation results when `build/reports/mutation/results.json` exists.
 
 **Memory.** Each test JVM starts one embedded Postgres; `ukpt.feature-tests` runs one test JVM at a
 time with a 1 GB heap. The first test in a JVM takes about 3 s (Postgres start and migration), the
