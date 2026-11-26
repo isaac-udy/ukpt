@@ -1,6 +1,9 @@
 package com.isaacudy.ukpt
 
 import androidx.compose.ui.window.application
+import dev.isaacudy.udytils.trace.otlp.exportTraces
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
 import dev.enro.platform.desktop.GenericRootWindow
 import dev.enro.platform.desktop.RootWindow
 import dev.enro.platform.desktop.openWindow
@@ -19,6 +22,7 @@ import dev.enro.ui.EnroApplicationContent
  * ends the application once the last root window is gone.
  */
 fun main() {
+    System.getenv(TRACE_EXPORT)?.let { exportTraces(it, "ukpt-desktop", HttpClient(CIO)) }
     val controller = UkptNavigation.installNavigationController(Unit)
     controller.openWindow(
         GenericRootWindow(
@@ -33,3 +37,6 @@ fun main() {
         EnroApplicationContent(controller)
     }
 }
+
+/** Set to an OTLP/HTTP traces endpoint, such as http://localhost:4318/v1/traces, to export spans. */
+private const val TRACE_EXPORT = "UKPT_TRACE_EXPORT"

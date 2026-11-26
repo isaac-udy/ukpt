@@ -1,6 +1,9 @@
 package com.isaacudy.ukpt
 
 import dev.isaacudy.udytils.postgres.PostgresConfig
+import dev.isaacudy.udytils.trace.otlp.exportTraces
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
 import dev.isaacudy.udytils.postgres.PostgresMigrator
 import dev.isaacudy.udytils.postgres.buildHikariDataSource
 import dev.isaacudy.udytils.postgres.embedded.DevServer
@@ -10,6 +13,7 @@ import platform.server.development.UkptDevDatabase
 import platform.server.host.installServerHost
 
 fun main() {
+    System.getenv(TRACE_EXPORT)?.let { exportTraces(it, "ukpt-server", HttpClient(CIO)) }
     // Resolved before the server is built: the schema has to be migrated — and a dev database
     // booted and seeded — before anything can serve.
     val postgresConfig = resolvePostgresConfig()
@@ -36,3 +40,6 @@ private fun resolvePostgresConfig(): PostgresConfig {
     buildHikariDataSource(postgresConfig).use { PostgresMigrator(it).migrate() }
     return postgresConfig
 }
+
+/** Set to an OTLP/HTTP traces endpoint, such as http://localhost:4318/v1/traces, to export spans. */
+private const val TRACE_EXPORT = "UKPT_TRACE_EXPORT"

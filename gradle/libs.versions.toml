@@ -129,6 +129,7 @@ udytils-atlasGradlePlugin = { module = "dev.isaacudy.udytils:atlas-gradle-plugin
 udytils-mutationGradlePlugin = { module = "dev.isaacudy.udytils:mutation-gradle-plugin" }
 udytils-traceGradlePlugin = { module = "dev.isaacudy.udytils:trace-gradle-plugin" }
 udytils-traceRuntime = { module = "dev.isaacudy.udytils:trace-runtime" }
+udytils-traceOtlp = { module = "dev.isaacudy.udytils:trace-otlp" }
 
 # Build-logic dependencies (gradle plugin classpath artifacts)
 kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
