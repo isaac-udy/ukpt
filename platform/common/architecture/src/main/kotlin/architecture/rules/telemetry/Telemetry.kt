@@ -10,7 +10,8 @@ import dev.isaacudy.udytils.architecture.*
     [Trace Rules](#trace-rules) select spans and turn them into [Analytics Events](#analytics-event)
     and [Metrics](#metric).
 
-    A rule selects sites by declaration, `on(Greet::invoke)`, or by Construct,
+    A rule selects the calls of a declaration, `onCalled(Greet::invoke)`, the constructions of a class,
+    `onConstructed(HomeViewModel::class)`, the sites of a Construct,
     `construct(Constructs.ClientData.Repository)`, or a screen's visits, `onScreen(HomeKey::class)`. The telemetry module's build generates
     `TraceSiteTable` and `Constructs` from the features' site manifests and the architecture
     classification.

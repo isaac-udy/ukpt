@@ -22,6 +22,7 @@ class LoggingMetricsSink : MetricsSink<Metric> {
         val (name, tags) = when (metric) {
             is Metric.GreetDuration -> "greet.duration" to mapOf("succeeded" to metric.succeeded.toString())
             Metric.GreetingSummaryLoad -> "greeting_summary.load" to emptyMap()
+            Metric.UkptScreenLoaded -> "ukpt_screen.loaded" to emptyMap()
         }
         println("metric $name ${durationNanos / 1_000_000.0} ms $tags")
     }

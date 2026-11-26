@@ -22,6 +22,8 @@ kotlin {
         commonMain.dependencies {
             api(libs.udytils.traceRuntime)
             implementation(libs.udytils.traceEnro)
+            implementation(libs.udytils.core)
+            implementation(libs.udytils.viewmodel)
             implementation(libs.koin.core)
             implementation(libs.kotlinx.serialization)
             implementation(libs.androidx.lifecycle.viewmodel)

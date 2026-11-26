@@ -48,7 +48,7 @@ class GreetingEventsTest {
     }
 
     @Test
-    fun `the greeting and the summary's first value are timed`() = subcutaneous(ukptTestGraph) {
+    fun `the screen's load, the greeting and the summary's first value are timed`() = subcutaneous(ukptTestGraph) {
         val screen = viewModel<UkptViewModel, UkptDestination>(UkptDestination)
         screen.viewModel.state.awaitMatching { it.greetingTexts() == emptyList<String>() }
         screen.viewModel.onGreetClicked()
@@ -56,7 +56,7 @@ class GreetingEventsTest {
 
         val timings = metrics.timings.awaitMatching { timings -> timings.any { it.metric is Metric.GreetDuration } }
         assertEquals(
-            setOf(Metric.GreetingSummaryLoad, Metric.GreetDuration(succeeded = true)),
+            setOf(Metric.UkptScreenLoaded, Metric.GreetingSummaryLoad, Metric.GreetDuration(succeeded = true)),
             timings.map { it.metric }.toSet(),
         )
     }

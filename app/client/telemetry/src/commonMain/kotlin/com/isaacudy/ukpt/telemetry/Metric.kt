@@ -12,4 +12,8 @@ sealed interface Metric {
     @Serializable
     @SerialName("Metric.GreetingSummaryLoad")
     data object GreetingSummaryLoad : Metric
+
+    @Serializable
+    @SerialName("Metric.UkptScreenLoaded")
+    data object UkptScreenLoaded : Metric
 }

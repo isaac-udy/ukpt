@@ -39,6 +39,7 @@ class ConstructSelectionTest {
 
         assertEquals(
             setOf(
+                "feature.ukpt.client.data.GreetingRepository.<init>" to SpanKind.Construction,
                 "feature.ukpt.client.data.GreetingRepository.flowOfGreetingSummary" to SpanKind.FirstValue,
                 "feature.ukpt.client.data.GreetingRepository.greet" to SpanKind.Call,
             ),

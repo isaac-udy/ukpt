@@ -1,20 +1,25 @@
 package com.isaacudy.ukpt.telemetry
 
+import androidx.lifecycle.viewModelScope
+import dev.isaacudy.udytils.state.isSuccess
 import dev.isaacudy.udytils.trace.Outcome
 import dev.isaacudy.udytils.trace.enro.onScreen
 import dev.isaacudy.udytils.trace.rules.Trigger
 import dev.isaacudy.udytils.trace.rules.analyticsRules
 import dev.isaacudy.udytils.trace.rules.metricRules
-import dev.isaacudy.udytils.trace.rules.on
+import dev.isaacudy.udytils.trace.rules.onCalled
+import dev.isaacudy.udytils.trace.rules.onConstructed
+import dev.isaacudy.udytils.trace.rules.scoped
 import feature.ukpt.client.domain.FlowOfGreetingSummary
 import feature.ukpt.client.domain.Greet
 import feature.ukpt.client.ui.UkptDestination
 import feature.ukpt.client.ui.UkptViewModel
+import kotlinx.coroutines.flow.first
 
 val clientAnalyticsRules = analyticsRules<AnalyticsEvent> {
-    event(onScreen(UkptDestination::class), Trigger.Start) { AnalyticsEvent.UkptScreenViewed }
-    event(on(UkptViewModel::onGreetClicked), Trigger.Start) { AnalyticsEvent.GreetClicked }
-    event(on(Greet::invoke)) { span ->
+    onScreen(UkptDestination::class).event(Trigger.Start) { AnalyticsEvent.UkptScreenViewed }
+    onCalled(UkptViewModel::onGreetClicked).event(Trigger.Start) { AnalyticsEvent.GreetClicked }
+    onCalled(Greet::invoke).event {
         when (span.outcome) {
             Outcome.Returned -> AnalyticsEvent.GreetingSent
             is Outcome.Threw -> AnalyticsEvent.GreetingFailed
@@ -24,6 +29,10 @@ val clientAnalyticsRules = analyticsRules<AnalyticsEvent> {
 }
 
 val clientMetricRules = metricRules<Metric> {
-    timing(on(Greet::invoke)) { span -> Metric.GreetDuration(succeeded = span.outcome == Outcome.Returned) }
-    firstValue(on(FlowOfGreetingSummary::invoke)) { Metric.GreetingSummaryLoad }
+    onCalled(Greet::invoke).timing { Metric.GreetDuration(succeeded = span.outcome == Outcome.Returned) }
+    onCalled(FlowOfGreetingSummary::invoke).firstValue { Metric.GreetingSummaryLoad }
+    onConstructed(UkptViewModel::class).scoped { it.viewModelScope }.timing { viewModel ->
+        viewModel.state.asStateFlow().first { it.greetingSummary.isSuccess() }
+        Metric.UkptScreenLoaded
+    }
 }
