@@ -9,12 +9,15 @@ import feature.ukpt.client.ui.UkptDestination
 import feature.ukpt.client.ui.UkptState
 import feature.ukpt.client.ui.UkptViewModel
 import feature.ukpt.tests.ukptTestGraph
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 import platform.testing.SubcutaneousTest
 import platform.testing.subcutaneous.awaitMatching
 import platform.testing.subcutaneous.subcutaneous
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.time.Duration.Companion.seconds
 
 private fun UkptState.greetingTexts(): List<String>? = greetingSummary.getOrNull()?.greetings?.map { it.text }
 
@@ -32,6 +35,7 @@ class ConstructSelectionTest {
         screen.viewModel.state.awaitMatching { it.greetingTexts() == emptyList<String>() }
         screen.viewModel.onGreetClicked()
         screen.viewModel.state.awaitMatching { it.greetingTexts() == listOf("Hello") }
+        withTimeoutOrNull(10.seconds) { while (sink.spans.none { it.site.name.endsWith(".greet") }) delay(10) }
 
         assertEquals(
             setOf(
