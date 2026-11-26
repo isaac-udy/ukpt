@@ -20,6 +20,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(libs.udytils.traceRuntime)
+            implementation(libs.udytils.traceEnro)
             implementation(libs.kotlinx.serialization)
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(projects.feature.core.client)

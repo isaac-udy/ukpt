@@ -43,6 +43,7 @@ kotlin {
             // (the @NavigationComponent object and the generated installNavigationController).
             api(libs.enro.core)
             implementation(libs.udytils.ui)
+            implementation(libs.udytils.traceEnro)
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.composeViewmodel)

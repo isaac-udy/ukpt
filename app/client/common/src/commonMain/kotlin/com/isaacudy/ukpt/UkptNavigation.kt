@@ -15,12 +15,15 @@ import dev.enro.controller.createNavigationModule
 import dev.enro.navigationHandle
 import dev.enro.ui.decorators.NavigationDestinationDecorator
 import dev.enro.viewmodel.withNavigationHandle
+import dev.isaacudy.udytils.trace.enro.TraceNavigationPlugin
 import org.koin.compose.currentKoinScope
 import kotlin.reflect.KClass
 
 @NavigationComponent
 object UkptNavigation : NavigationComponentConfiguration(
     module = createNavigationModule {
+        plugin(TraceNavigationPlugin())
+
         // Install a ViewModelProvider.Factory that creates ViewModels via Koin.
         //
         // `viewModel()` resolves a ViewModel through the LocalViewModelStoreOwner's

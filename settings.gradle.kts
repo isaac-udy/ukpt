@@ -91,6 +91,7 @@ includeBuild("embedded-udytils") {
         substitute(module("dev.isaacudy.udytils:mutation-gradle-plugin")).using(project(":mutation-gradle-plugin"))
         substitute(module("dev.isaacudy.udytils:trace-runtime")).using(project(":trace-runtime"))
         substitute(module("dev.isaacudy.udytils:trace-otlp")).using(project(":trace-otlp"))
+        substitute(module("dev.isaacudy.udytils:trace-enro")).using(project(":trace-enro"))
         substitute(module("dev.isaacudy.udytils:trace-compiler-plugin")).using(project(":trace-compiler-plugin"))
         substitute(module("dev.isaacudy.udytils:trace-gradle-plugin")).using(project(":trace-gradle-plugin"))
         substitute(module("dev.isaacudy.udytils:viewmodel")).using(project(":viewmodel"))

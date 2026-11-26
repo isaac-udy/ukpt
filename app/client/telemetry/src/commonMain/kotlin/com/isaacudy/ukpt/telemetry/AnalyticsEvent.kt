@@ -6,6 +6,10 @@ import kotlinx.serialization.Serializable
 @Serializable
 sealed interface AnalyticsEvent {
     @Serializable
+    @SerialName("AnalyticsEvent.UkptScreenViewed")
+    data object UkptScreenViewed : AnalyticsEvent
+
+    @Serializable
     @SerialName("AnalyticsEvent.GreetClicked")
     data object GreetClicked : AnalyticsEvent
 
