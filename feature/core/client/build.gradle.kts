@@ -77,7 +77,9 @@ dependencies {
     add("kspIosSimulatorArm64", libs.enro.processor)
 }
 
-apply(plugin = "dev.isaacudy.udytils.trace")
-configure<dev.isaacudy.udytils.trace.gradle.TraceExtension> {
-    packages.add("feature")
+if (providers.gradleProperty("ukpt.trace").orNull != "false") {
+    apply(plugin = "dev.isaacudy.udytils.trace")
+    configure<dev.isaacudy.udytils.trace.gradle.TraceExtension> {
+        packages.add("feature")
+    }
 }
