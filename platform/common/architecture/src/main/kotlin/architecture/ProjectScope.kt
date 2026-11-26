@@ -1,6 +1,7 @@
 package architecture
 
 import com.lemonappdev.konsist.api.Konsist
+import dev.isaacudy.udytils.architecture.useKonsistTypeIndex
 import java.io.File
 
 /**
@@ -38,9 +39,26 @@ private val featureTestsModule = Regex("/feature/(?:[^/]+/)+tests/src/")
 
 fun isTestSource(path: String) = testSourceSet.containsMatchIn(path) || featureTestsModule.containsMatchIn(path)
 
+/**
+ * The `src` directory of every module in the build root, embedded builds included, relative to the
+ * build root. Konsist parses these directories once: the governed scope is a slice of them, and
+ * Konsist resolves types against all of them instead of walking every file under the root.
+ */
+private val sourceDirectories: List<String> by lazy {
+    val root = File(buildRoot)
+    root.walkTopDown()
+        .onEnter { it == root || (it.name != "build" && it.name != "src" && it.name != "node_modules" && !it.name.startsWith(".")) }
+        .filter { it.isDirectory && File(it, "src").isDirectory && (File(it, "build.gradle.kts").isFile || File(it, "build.gradle").isFile) }
+        .map { File(it, "src").relativeTo(root).path }
+        .toList()
+}
+
+private val sourceScope by lazy {
+    Konsist.scopeFromDirectories(sourceDirectories).also { useKonsistTypeIndex(it) }
+}
+
 private val governedScope by lazy {
-    Konsist
-        .scopeFromProject()
+    sourceScope
         .slice {
             // The architecture module itself (the rule catalog + definition) is meta-code,
             // not governed code — scanning it would classify the catalog's own objects.
