@@ -60,7 +60,7 @@ changed after the run.
   | `negate-condition` | negates an `if`, `when` branch, `while` or `do-while` condition |
   | `boolean-return` | a `Boolean` function returns `true`, and `false` |
   | `empty-return` | a function returns `null`, an empty collection, `""` or `0` |
-  | `remove-call` | removes an unused call, a property assignment, or a compound assignment or increment |
+  | `remove-call` | removes an unused call, a property assignment, or a compound assignment or increment; not a safe call (`a?.save()`) |
   | `conditionals-boundary` | `<` ↔ `<=`, `>` ↔ `>=` |
   | `logical-connector` | `&&` ↔ `\|\|`, and each operand alone |
   | `elvis` | `a ?: b` → `b` |
