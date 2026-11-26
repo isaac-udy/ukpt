@@ -42,6 +42,7 @@ include(":app:client:desktop")
 include(":app:client:web")
 include(":app:client:web-html")
 include(":app:client:telemetry")
+include(":app:client:telemetry:tests")
 include(":app:server")
 
 include(":feature:core:api")

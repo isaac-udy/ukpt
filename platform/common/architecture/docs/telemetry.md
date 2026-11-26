@@ -57,9 +57,17 @@ val clientTraceRules = traceRules<AnalyticsEvent> {
 ## [Analytics Event](../src/main/kotlin/architecture/rules/telemetry/AnalyticsEvent.kt)
 
 A `@Serializable sealed interface` in a telemetry module whose nested classes and objects are
-the analytics events that the [Trace Rules](#trace-rules) build. Each event's `@SerialName`,
-such as `"AnalyticsEvent.GreetClicked"`, names the event; an analytics sink derives the
-vendor's event name from the serial name.
+the analytics events that the [Trace Rules](#trace-rules) build. No event reaches a vendor
+directly: the project's analytics sink maps each event to the vendor's event name and
+properties in hand-written code.
+
+```kotlin
+val name = when (event) {
+    AnalyticsEvent.GreetClicked -> "greet_clicked"
+    AnalyticsEvent.GreetingSent -> "greeting_sent"
+    AnalyticsEvent.GreetingFailed -> "greeting_failed"
+}
+```
 
 ##### Requirements
 
@@ -75,5 +83,5 @@ vendor's event name from the serial name.
 ##### Rules
 
 * Every event of an Analytics Event hierarchy must be `@Serializable`
-    * **Why:** An analytics sink sends each event as its serial name and its serialized properties.
+    * **Why:** A sink that forwards events to the project's server serializes each event over urpc.
     * **Note:** `ProjectRules.serialNamePinnedOnPolymorphicTypes` requires each event's `@SerialName`.

@@ -18,8 +18,11 @@ internal fun KoBaseDeclaration.moduleDirectory(): String = containingFilePath().
 
 internal fun KoBaseDeclaration.isInFeatureTestsModule(): Boolean = FEATURE_TESTS_MODULE.containsMatchIn(containingFilePath())
 
-/** `:app:client:telemetry` or `:app:server:telemetry`, whose tests assert on what the telemetry rules record. */
+/** `:app:client:telemetry` or `:app:server:telemetry`, which declare the trace rules. */
 internal fun KoBaseDeclaration.isInTelemetryModule(): Boolean = TELEMETRY_MODULE.containsMatchIn(moduleDirectory())
+
+/** `:app:client:telemetry:tests` or `:app:server:telemetry:tests`, whose tests assert on what the trace rules record. */
+internal fun KoBaseDeclaration.isInTelemetryTestsModule(): Boolean = TELEMETRY_TESTS_MODULE.containsMatchIn(moduleDirectory())
 
 /** `:platform:common:subcutaneous`, whose own tests run the harness against fakes. */
 internal fun KoBaseDeclaration.isInSubcutaneousHarnessModule(): Boolean = moduleDirectory().endsWith("/platform/common/subcutaneous")
@@ -39,6 +42,7 @@ internal fun KoBaseDeclaration.fileCode(): String = file.text.withoutStringsAndC
 private val SOURCE_SET = Regex("/src/([^/]+)/")
 private val FEATURE_TESTS_MODULE = Regex("/feature/(?:[^/]+/)+tests/src/")
 private val TELEMETRY_MODULE = Regex("/app/(?:client|server)/telemetry$")
+private val TELEMETRY_TESTS_MODULE = Regex("/app/(?:client|server)/telemetry/tests$")
 
 /** A placement check: the declaration's module and source set must satisfy [allowed]. */
 internal fun placement(where: String, allowed: (KoBaseDeclaration) -> Boolean) = ConstructCheck { decl, _ ->

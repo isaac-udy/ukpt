@@ -118,9 +118,9 @@ transport. `given { }` runs [Scenarios](#scenario), before or after a ViewModel 
 
 ##### Rules
 
-* A Subcutaneous Test must live in the `src/commonTest` source set of a `:feature:[name]:tests` module, of an `:app:[side]:telemetry` module for the telemetry rules' tests, or of `:platform:common:subcutaneous` for the harness's own tests
-    * **Why:** The `:tests` module depends on the feature's `:client` and `:server`, which no other module may combine. A telemetry module's tests drive the features through the harness and assert on the analytics events and spans that the module's rules record. The harness's own tests drive fake ViewModels through the harness on every host.
-* A Subcutaneous Test must reference only entry-point vocabulary from production code: ViewModels, their states, Destinations, UI value types, client domain models and their extensions, domain exceptions and constants, shared wire types, and `@Urpc` service interfaces; in a telemetry module, also Trace Rules and Analytics Events
+* A Subcutaneous Test must live in the `src/commonTest` source set of a `:feature:[name]:tests` module, of an `:app:[side]:telemetry:tests` module for the trace rules' tests, or of `:platform:common:subcutaneous` for the harness's own tests
+    * **Why:** The `:tests` module depends on the feature's `:client` and `:server`, which no other module may combine. A telemetry `:tests` module's tests drive the features through the harness and assert on the analytics events and spans that the trace rules record. The harness's own tests drive fake ViewModels through the harness on every host.
+* A Subcutaneous Test must reference only entry-point vocabulary from production code: ViewModels, their states, Destinations, UI value types, client domain models and their extensions, domain exceptions and constants, shared wire types, and `@Urpc` service interfaces; in a telemetry `:tests` module, also Trace Rules and Analytics Events
     * **Why:** The test drives the entry point and reads what it exposes. A reference to a repository, a use case or a storage class fixes that class in place, and the test changes when the layers below the entry point are restructured.
     * **Note:** Test data comes from Scenarios (`given { }`), which may use the server domain. Checks on the server or on a fake go through Inspections (`inspectServer { }`, `inspectClient { }`).
 * A Subcutaneous Test must not construct a ViewModel; it opens one from the client graph with `viewModel<[Name]ViewModel, [Name]Destination>(key)`

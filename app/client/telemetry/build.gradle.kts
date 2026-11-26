@@ -24,11 +24,6 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(projects.feature.core.client)
         }
-        commonTest.dependencies {
-            implementation(projects.feature.core.tests)
-            implementation(projects.platform.common.testing)
-            implementation(libs.kotlin.test)
-        }
     }
 }
 
