@@ -110,7 +110,7 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
                         "<td><span class=\"muted\">${esc(mutant.label)}</span> ${code(mutant.text)}</td>" +
                         "<td>${mutantChip(mutant, target, depth = 0, short = false)}</td></tr>"
                 }
-                append("<table><thead><tr><th>Declaration</th><th>Construct or module</th><th>Mutation</th><th>Status</th></tr></thead><tbody>$rows</tbody></table>")
+                append("<div class=\"box\"><table><thead><tr><th>Declaration</th><th>Construct or module</th><th>Mutation</th><th>Status</th></tr></thead><tbody>$rows</tbody></table></div>")
             }
             append("</details>")
             append("<details class=\"sub\"><summary><h3>By operator</h3></summary>")
@@ -127,8 +127,8 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
             "<tr><td>${code(name)}</td><td class=\"n\">${t.total}</td><td class=\"n c\">${t.killed}</td>" +
                 "<td class=\"n i\">${t.uncovered}</td><td class=\"n u\">${t.survived}</td></tr>"
         }
-        return "<table><thead><tr><th>${esc(heading)}</th><th class=\"n\">Mutants</th><th class=\"n\">Killed</th><th class=\"n\">Uncovered</th>" +
-            "<th class=\"n\">Survived</th></tr></thead><tbody>$rows</tbody></table>"
+        return "<div class=\"box\"><table><thead><tr><th>${esc(heading)}</th><th class=\"n\">Mutants</th><th class=\"n\">Killed</th><th class=\"n\">Uncovered</th>" +
+            "<th class=\"n\">Survived</th></tr></thead><tbody>$rows</tbody></table></div>"
     }
 
 
@@ -191,8 +191,8 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
                 "<td class=\"barcol\">${bar(tally)}</td>" +
                 "<td class=\"muted\">${if (incidental.isEmpty()) "" else "${incidental.size} run only by $runBy"}</td></tr>"
         }
-        return "<table><thead><tr><th>Declaration</th><th>Construct or module</th><th>Expected</th><th class=\"n\">Untested lines</th><th class=\"barcol\"></th>" +
-            "<th>Note</th></tr></thead><tbody>${rows.joinToString("")}</tbody></table>"
+        return "<div class=\"box\"><table><thead><tr><th>Declaration</th><th>Construct or module</th><th>Expected</th><th class=\"n\">Untested lines</th><th class=\"barcol\"></th>" +
+            "<th>Note</th></tr></thead><tbody>${rows.joinToString("")}</tbody></table></div>"
     }
 
     private fun declarationTable(targets: List<Target>, showPath: Boolean = true): String {
@@ -203,8 +203,8 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
                 tallyCells(shown(tally)) +
                 "</tr>"
         }
-        return "<table><thead><tr><th>Declaration</th><th>Construct or module</th><th>Expected</th><th class=\"n\">Lines</th><th class=\"barcol\"></th>" +
-            "<th class=\"n\">Covered</th><th class=\"n\">Incidental</th><th class=\"n\">Uncovered</th></tr></thead><tbody>${rows.joinToString("")}</tbody></table>"
+        return "<div class=\"box\"><table><thead><tr><th>Declaration</th><th>Construct or module</th><th>Expected</th><th class=\"n\">Lines</th><th class=\"barcol\"></th>" +
+            "<th class=\"n\">Covered</th><th class=\"n\">Incidental</th><th class=\"n\">Uncovered</th></tr></thead><tbody>${rows.joinToString("")}</tbody></table></div>"
     }
 
     // File pages
@@ -218,7 +218,8 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
         append("<h1>${esc(path.substringAfterLast('/'))}</h1>")
         append("<p class=\"location\"><code>${esc(targets.first().module.path)}</code><span class=\"path\">${esc(path)}</span></p>")
         append(fileKey())
-        append(declarationTable(targets, showPath = false).replace("href=\"../${filePage(path)}#", "href=\"#"))
+        val declarations = declarationTable(targets, showPath = false).replace("href=\"../${filePage(path)}#", "href=\"#")
+        append(section("Declarations", "Line coverage of each declaration in the file.", declarations))
         append(fileMutants(path, targets))
 
         append("<table class=\"src\"><tbody>")
@@ -271,9 +272,9 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
                 "<td><span class=\"muted\">${esc(mutant.label)}</span> ${code(mutant.text)}</td>" +
                 "<td>${mutantChip(mutant, targetOf[mutant], depth = 1, short = false, popup = false)}</td></tr>"
         }
-        val title = "Mutants · ${tally.killed} killed, ${tally.uncovered} uncovered, ${tally.survived} survived"
-        return "<details class=\"sub\" open><summary><h3>${esc(title)}</h3></summary>" +
-            "<table class=\"mutants\"><thead><tr><th class=\"n\">Line</th><th>Declaration</th><th>Mutation</th><th>Status</th></tr></thead><tbody>$rows</tbody></table></details>"
+        val description = "${tally.killed} killed, ${tally.uncovered} uncovered, ${tally.survived} survived. Mutants not killed come first; each status opens the mutant's details."
+        return collapsed("Mutants (${mutants.size})", description,
+            "<div class=\"box\"><table class=\"mutants\"><thead><tr><th class=\"n\">Line</th><th>Declaration</th><th>Mutation</th><th>Status</th></tr></thead><tbody>$rows</tbody></table></div>")
     }
 
     private fun statusOrder(status: MutantStatus) = when (status) {
@@ -357,8 +358,8 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
         "<details class=\"section\"><summary><h2>${esc(title)}</h2><span class=\"muted\">$description</span></summary>$body</details>"
 
     private fun table(headers: List<String>, rows: List<List<String>>): String =
-        "<table><thead><tr>${headers.joinToString("") { "<th>${esc(it)}</th>" }}</tr></thead><tbody>" +
-            rows.joinToString("") { row -> "<tr>${row.joinToString("") { "<td>$it</td>" }}</tr>" } + "</tbody></table>"
+        "<div class=\"box\"><table><thead><tr>${headers.joinToString("") { "<th>${esc(it)}</th>" }}</tr></thead><tbody>" +
+            rows.joinToString("") { row -> "<tr>${row.joinToString("") { "<td>$it</td>" }}</tr>" } + "</tbody></table></div>"
 
     private fun chip(category: String) = report.categoryName(category).take(4)
 
@@ -508,6 +509,8 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
             button.mchip { cursor:pointer; } button.mchip:hover { filter:brightness(1.1); } button.mchip:focus-visible { outline:2px solid var(--link); outline-offset:1px; }
             h3 { font-size:14px; margin:20px 0 4px; }
             details.sub > summary h3 { display:inline-block; margin:20px 0 4px; }
+            .box { border:1px solid var(--line); border-radius:8px; overflow-x:auto; margin:8px 0; }
+            .box table { margin:0; } .box thead th { background:var(--head); } .box tbody tr:last-child td { border-bottom:0; }
             .location { margin:4px 0 12px; display:flex; flex-direction:column; gap:2px; }
             details.key { margin:8px 0 12px; font-size:12.5px; } details.key > summary { color:var(--muted); }
             .keygroups { display:flex; flex-wrap:wrap; gap:8px 40px; padding:8px 0 4px 14px; }
