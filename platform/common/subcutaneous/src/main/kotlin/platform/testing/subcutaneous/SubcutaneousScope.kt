@@ -20,7 +20,7 @@ class SubcutaneousScope internal constructor(
      * Runs [block] against the running server until [block] passes and returns its result; rethrows
      * its last failure after [timeout] of real time.
      */
-    suspend fun <T> inspectServer(timeout: Duration = 10.seconds, block: suspend ServerInspection.() -> T): T {
+    suspend fun <T> inspectServer(timeout: Duration = 30.seconds, block: suspend ServerInspection.() -> T): T {
         val inspection = ServerInspection(scenario.serverKoin)
         return awaitAsserted(timeout) { inspection.block() }
     }

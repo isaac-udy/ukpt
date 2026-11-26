@@ -46,13 +46,14 @@
     "platform/common/architecture/src/main/kotlin/architecture/rules/testing/**": "Rules for pages, robots, the htmx tab and the browser. Carry over changes to the category, assertion, Unit, Scenario, TestGraph, Fake, Fixture, Wiring, Adapter and Check rules.",
     "platform/common/architecture/src/architectureTest/fixtures/test-categories/**": "Server-web fixtures for this branch's Testing rules.",
     "platform/common/architecture/src/architectureTest/kotlin/architecture/rules/testing/TestCategoriesTest.kt": "Tests this branch's Testing rules over its own fixtures.",
-    "build-logic/src/main/kotlin/ukpt.feature-tests.gradle.kts": "A plain JVM module that registers subcutaneousJvmTest; no multiplatform hosts. Carry over changes to the test JVM settings and the subcutaneousJvmTest task."
+    "build-logic/src/main/kotlin/ukpt.feature-tests.gradle.kts": "A plain JVM module that registers subcutaneousJvmTest; no multiplatform hosts. Carry over changes to the test JVM settings and the subcutaneousJvmTest task.",
+    ".agents/skills/ukpt-test-audit/**": "Names the server modules, the web Constructs and the JVM host only. Carry over changes to running, operators, triage, catalog rules and the report."
   },
   "diverged": {
     "UKPT.md": "The introduction, Architecture orientation, Toolchain, Submodules, Verification and Reference sections describe this branch. Take main's changes elsewhere.",
     "AGENTS.md": "Names only the embedded-udytils submodule.",
     "settings.gradle.kts": "No client or Enro includes; includes :platform:server:web and :platform:common:browser.",
-    "build.gradle.kts": "No Android, Compose, KSP or atlas plugins; testCoverage lists this branch's modules.",
+    "build.gradle.kts": "No Android, Compose, KSP or atlas plugins; testCoverage lists this branch's modules; the mutation catalog selects server and web Constructs.",
     "build-logic/build.gradle.kts": "No Android, Compose or Paparazzi plugins on the convention classpath.",
     "build-logic/src/main/kotlin/ukpt.test-categories.gradle.kts": "Registers snapshotTest for the HTML goldens; main's comes from the Paparazzi convention.",
     "gradle.properties": "No Android, wasm or native properties; no wasm or Paparazzi configuration-cache notes.",
@@ -106,7 +107,8 @@
       "2026-11-24-subcutaneous-test-hosts.md": "Only the subcutaneousJvmTest task name; the :tests modules stay JVM modules with src/main and src/test.",
       "2026-11-24.1-subcutaneous-inspections.md": "Server Inspections in src/main only; no ClientInspection, inspectClient or host lists.",
       "2026-11-24.3-test-coverage-report.md": "No ClientUi.Screen or client modules; snapshotTest counts as Snapshot.",
-      "2026-11-25-category-test-cache-inputs.md": "JVM tasks and the HTML goldens instead of Paparazzi and Android host tasks."
+      "2026-11-25-category-test-cache-inputs.md": "JVM tasks and the HTML goldens instead of Paparazzi and Android host tasks.",
+      "2026-11-26-mutation-testing.md": "The catalog selects ServerDomain, ServerData and the ServerWeb Constructs that hold logic; no client rules."
     }
   }
 }

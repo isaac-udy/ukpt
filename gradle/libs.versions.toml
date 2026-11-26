@@ -128,6 +128,7 @@ udytils-architectureCore = { module = "dev.isaacudy.udytils:architecture-core" }
 udytils-architectureAnnotations = { module = "dev.isaacudy.udytils:architecture-annotations" }
 udytils-architectureGradlePlugin = { module = "dev.isaacudy.udytils:architecture-gradle-plugin" }
 udytils-atlasGradlePlugin = { module = "dev.isaacudy.udytils:atlas-gradle-plugin" }
+udytils-mutationGradlePlugin = { module = "dev.isaacudy.udytils:mutation-gradle-plugin" }
 
 # Build-logic dependencies (gradle plugin classpath artifacts)
 kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }

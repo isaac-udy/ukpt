@@ -202,7 +202,11 @@ class CoverageReport(
     /** Lines that open an `object` body, which the report leaves out. */
     val objectHeaderLines: Int,
     val problems: List<String>,
+    /** The last `runMutants` results, when `build/reports/mutation/results.json` exists. */
+    val mutations: MutationResults? = null,
 ) {
+    val mutantsByTarget: Map<Target, List<Mutant>> by lazy { mutations?.byTarget(targets).orEmpty() }
+
     fun categoryName(id: String): String = categoryNames[id] ?: id
 
     fun describe(expectation: Expectation): String = when (expectation) {

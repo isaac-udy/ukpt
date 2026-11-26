@@ -10,6 +10,9 @@ buildscript {
         // The Postgres codegen plugin, on the classpath for the same reason: resolving it through
         // pluginManagement instead would lose the substitutions above.
         classpath(libs.udytils.postgres.gradlePlugin)
+
+        // The mutation testing plugin, applied by ukpt.mutation.
+        classpath(libs.udytils.mutationGradlePlugin)
     }
 }
 
@@ -22,6 +25,7 @@ plugins {
     alias(libs.plugins.ktor) apply false
     alias(libs.plugins.kotlinSerialization) apply false
     id("ukpt.test-coverage")
+    id("ukpt.mutation")
 }
 
 // Expectations for the lines in each module that no architecture Construct claims, for
@@ -36,4 +40,13 @@ testCoverage {
     testedBy(":platform:server:host", "subcutaneous", "adapter")
     testedBy(":platform:server:postgres", "adapter", "subcutaneous")
     testedBy(":platform:server:web", "adapter", "subcutaneous")
+}
+
+// Catalog rules for `./gradlew runMutants`. A mutant runs when a rule selects it; it is killed only
+// by a test in a category that its Construct expects. Rule selectors: constructs(), packages(),
+// files(); ignore("<id>", "<reason>") excludes an equivalent mutant by the id in the report.
+mutation {
+    rule("domain") { constructs("ServerDomain.*", "FeatureRules.Shared*") }
+    rule("data") { constructs("ServerData.*") }
+    rule("web") { constructs("ServerWeb.Routes", "ServerWeb.Form", "ServerWeb.ViewState", "ServerWeb.ViewHelper", "ServerWeb.EventStream") }
 }

@@ -99,5 +99,6 @@ While iterating, run only the tests the change affects: `ukpt-testing`, "Develop
 
 - `ukpt-run` — run the server, dev database setup and env switches.
 - `ukpt-testing` — test categories and their annotations, where each test lives, per-category tasks, which tests to run while iterating, the Subcutaneous Test harness and coverage, page robots, the browser End To End Tests, `Testing.*` rule failures.
+- `ukpt-test-audit` — mutation testing: `./gradlew runMutants`, the `mutation { }` catalog, and triage of survived and uncovered mutants.
 - `ukpt-server-packaging` — fat jar build, service-file checks, smoke test.
 - `ukpt-feature-slice` — scaffold `:feature:<name>:{api,server,tests}` with a web layer and page robots.

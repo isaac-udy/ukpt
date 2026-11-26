@@ -104,6 +104,7 @@ tasks.register<TestCoverageReportTask>("testCoverageReport") {
     manifest.set(layout.buildDirectory.file("test-coverage/manifest.json"))
     classification.set(project(":platform:common:architecture").layout.buildDirectory.file("reports/architecture/classification.json"))
     moduleExpectations.set(testCoverage.moduleExpectations)
+    mutationResults.from(layout.buildDirectory.file("reports/mutation/results.json"))
     categoryNames.putAll(
         mapOf(
             "subcutaneous" to "Subcutaneous", "unit" to "Unit", "component" to "Component", "snapshot" to "Snapshot",
@@ -120,6 +121,7 @@ tasks.register<TestCoverageReportTask>("renderTestCoverageReport") {
     manifest.set(report.manifest)
     classification.set(report.classification)
     moduleExpectations.set(report.moduleExpectations)
+    mutationResults.from(report.mutationResults)
     categoryNames.set(report.categoryNames)
     repositoryDirectory.set(report.repositoryDirectory)
     outputDirectory.set(report.outputDirectory)

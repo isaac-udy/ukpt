@@ -45,18 +45,11 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
             "<p class=\"lede\">Each line counts as <b>covered</b> when a test from a category its Construct expects runs it, and " +
                 "<b>incidental</b> when only tests from other categories run it. End-to-end Tests are not measured.</p>",
         )
-        append("<div class=\"pivot\">")
-        append("<div class=\"tiles\" id=\"tiles\">")
-        append(tile("Covered", total.covered, total.assessed, "c"))
-        append(tile("Incidental", total.incidental, total.assessed, "i"))
-        append(tile("Uncovered", total.uncovered, total.assessed, "u"))
-        append("</div>")
-        append(PIVOT_CONTROLS)
-        append("<noscript><p class=\"warn\">The coverage table requires JavaScript. Each source file's page under <code>files/</code> works without it.</p></noscript>")
-        append("<script type=\"application/json\" id=\"coverage-data\">")
-        append(pivotData(report, ::packageOf) { filePage(it.path) + "#d" + it.startLine })
-        append("</script>")
-        append("</div>")
+        val tiles = tile("Covered", total.covered, total.assessed, "c") + tile("Incidental", total.incidental, total.assessed, "i") +
+            tile("Uncovered", total.uncovered, total.assessed, "u")
+        append(pivot("coverage", tiles, pivotData(report, ::packageOf, ::declarationLink)))
+
+        report.mutations?.let { append(mutantSection(it)) }
 
         val gaps = assessed.filter { it.tally.covered < it.tally.assessed }.sortedByDescending { it.tally.assessed - it.tally.covered }.take(20)
         append(collapsed("Gaps", "Declarations with the most lines that no expected test runs, most first. Untested lines opens the first such line.", gapTable(gaps, depth = 0)))
@@ -74,6 +67,109 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
         }
         if (report.problems.isNotEmpty()) {
             append(collapsed("Report problems (${report.problems.size})", "Coverage data the report could not attribute.", "<ul class=\"problems\">${report.problems.joinToString("") { "<li>${inlineCode(it)}</li>" }}</ul>"))
+        }
+    }
+
+    private fun mutantSection(results: MutationResults): String {
+        val run = listOfNotNull(
+            results.startedAt?.let { "last <code>./gradlew runMutants</code> started ${esc(RUN_TIME.format(it))}" } ?: "last <code>./gradlew runMutants</code>",
+            results.hosts.takeIf { it.isNotEmpty() }?.let { "on ${esc(it.joinToString())}" },
+            "${results.millis / 1000} s",
+        ).joinToString(" · ")
+        if (results.outdated) {
+            val body = "<p class=\"warn\">The mutation results are out of date: ${esc(results.outdatedReason!!)}. " +
+                "Run <code>./gradlew runMutants</code> again.</p>"
+            return section("Mutation testing", "Results of the $run.", body)
+        }
+        val tally = MutantTally.of(results.mutants)
+        val targetOf = report.mutantsByTarget.flatMap { (target, mutants) -> mutants.map { it to target } }.toMap()
+        val notes = listOfNotNull(
+            results.droppedMutants.takeIf { it > 0 }?.let {
+                "$it mutants in ${results.changedProductionFiles} production files that changed after the run are left out."
+            },
+            results.notSampled.takeIf { it > 0 }?.let {
+                "Sampling left out $it mutants (seed ${results.sampleSeed}; <code>-Pmutation.sampleSeed=${results.sampleSeed}</code> runs the same sample)."
+            },
+            results.excludedCalls.takeIf { it > 0 }?.let { "<code>excludeCalls</code> left out $it mutants." },
+        )
+        val body = buildString {
+            append(pivot("mutation", "", mutationPivotData(report, ::packageOf, ::declarationLink)))
+            notes.forEach { append("<p class=\"muted\">$it</p>") }
+            val gaps = results.mutants.filter { !it.status.detected }
+                .sortedWith(compareBy({ it.status != MutantStatus.Survived }, { it.path }, { it.line }))
+            append("<details class=\"sub\"><summary><h3>Not killed (${gaps.size})</h3></summary>")
+            if (gaps.isEmpty()) {
+                append("<p class=\"muted\">Every mutant is killed.</p>")
+            } else {
+                val rows = gaps.joinToString("") { mutant ->
+                    val target = targetOf[mutant]
+                    val name = target?.let { esc(it.shortName) } ?: esc(mutant.path.substringAfterLast('/'))
+                    "<tr><td><a href=\"${filePage(mutant.path)}#L${mutant.line}\">$name</a><div class=\"path\" title=\"${esc(mutant.path)}\">" +
+                        "${esc(mutant.path.substringAfterLast('/'))}:${mutant.line}</div></td>" +
+                        "<td>${target?.let { ownerCell(it) }.orEmpty()}</td>" +
+                        "<td><span class=\"muted\">${esc(mutant.label)}</span> ${code(mutant.text)}</td>" +
+                        "<td>${mutantChip(mutant, target, depth = 0, short = false)}</td></tr>"
+                }
+                append("<div class=\"box\"><table><thead><tr><th>Declaration</th><th>Construct or module</th><th>Mutation</th><th>Status</th></tr></thead><tbody>$rows</tbody></table></div>")
+            }
+            append("</details>")
+            append("<details class=\"sub\"><summary><h3>By operator</h3></summary>")
+            append(tallyTable("Operator", results.mutants.groupBy { it.operator }))
+            append("</details>")
+        }
+        val description = "Results of the $run. A mutant counts as killed only by a test from a category its Construct expects."
+        return section("Mutation testing", description, body)
+    }
+
+    private fun tallyTable(heading: String, groups: Map<String, List<Mutant>>): String {
+        val rows = groups.entries.sortedBy { it.key }.joinToString("") { (name, mutants) ->
+            val t = MutantTally.of(mutants)
+            "<tr><td>${code(name)}</td><td class=\"n\">${t.total}</td><td class=\"n c\">${t.killed}</td>" +
+                "<td class=\"n i\">${t.uncovered}</td><td class=\"n u\">${t.survived}</td></tr>"
+        }
+        return "<div class=\"box\"><table><thead><tr><th>${esc(heading)}</th><th class=\"n\">Mutants</th><th class=\"n\">Killed</th><th class=\"n\">Uncovered</th>" +
+            "<th class=\"n\">Survived</th></tr></thead><tbody>$rows</tbody></table></div>"
+    }
+
+
+    /** A status chip that opens a popup with the mutant's details. */
+    private fun mutantChip(mutant: Mutant, target: Target?, depth: Int, short: Boolean, popup: Boolean = true): String {
+        val id = "m-${mutant.id}"
+        val text = if (short) mutant.status.label.first().toString() else mutant.status.label
+        return "<button type=\"button\" class=\"mchip ${mutant.status.id}\" popovertarget=\"$id\" title=\"${esc(mutant.status.label)}: ${esc(mutant.label)}\">$text</button>" +
+            if (popup) mutantPopup(id, mutant, target, depth) else ""
+    }
+
+    private fun mutantPopup(id: String, mutant: Mutant, target: Target?, depth: Int): String {
+        val up = "../".repeat(depth)
+        val outcome = when (mutant.status) {
+            MutantStatus.Survived -> "${mutant.candidateTests} ${if (mutant.candidateTests == 1) "test" else "tests"} from an expected category ran the mutant and passed."
+            MutantStatus.Uncovered -> "No test from an expected category runs the mutant."
+            MutantStatus.Killed -> "Killed by ${mutant.killedBy?.let(::code) ?: "a test"}."
+            MutantStatus.TimedOut -> "${mutant.killedBy?.let(::code) ?: "A test"} exceeded its timeout, which counts as a kill."
+        }
+        val rows = listOfNotNull(
+            mutant.variant.takeIf { it.isNotEmpty() }?.let { "Change" to esc(it) },
+            mutant.callee?.let { "Removed call" to code(it) },
+            "Declaration" to (target?.let { esc(it.shortName) } ?: code(mutant.declaration)),
+            "Location" to "<a href=\"$up${filePage(mutant.path)}#L${mutant.line}\">${esc(mutant.path)}:${mutant.line}</a>",
+            mutant.constructs.takeIf { it.isNotEmpty() }?.let { "Construct" to it.joinToString(", ") { c -> code(c) } },
+            "Expected" to (mutant.expected.takeIf { it.isNotEmpty() }?.joinToString(" ") { "<span class=\"chip x\">${esc(report.categoryName(it))}</span>" } ?: "Any category"),
+            "Mutant ID" to code(mutant.id),
+        )
+        return buildString {
+            append("<div popover id=\"$id\" class=\"mpop\">")
+            append("<div class=\"mpop-head\"><span class=\"mchip ${mutant.status.id}\">${mutant.status.label}</span><b>${esc(mutant.operator)}</b>")
+            append("<button type=\"button\" class=\"mpop-close\" popovertarget=\"$id\" popovertargetaction=\"hide\" aria-label=\"Close\">×</button></div>")
+            append("<pre class=\"mpop-code\">${esc(mutant.text)}</pre>")
+            append("<p>$outcome</p>")
+            // The driver interrupts a timed-out test, so its failure is always an InterruptedException.
+            mutant.failure?.takeIf { mutant.status == MutantStatus.Killed }?.let { append("<pre class=\"mpop-failure\">${esc(it)}</pre>") }
+            append("<dl>${rows.joinToString("") { (k, v) -> "<dt>${esc(k)}</dt><dd>$v</dd>" }}</dl>")
+            if (mutant.status == MutantStatus.Survived) {
+                append("<p class=\"muted\">An equivalent mutant is excluded with <code>ignore(\"${esc(mutant.id)}\", \"&lt;reason&gt;\")</code> in the root <code>mutation { }</code> block.</p>")
+            }
+            append("</div>")
         }
     }
 
@@ -95,8 +191,8 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
                 "<td class=\"barcol\">${bar(tally)}</td>" +
                 "<td class=\"muted\">${if (incidental.isEmpty()) "" else "${incidental.size} run only by $runBy"}</td></tr>"
         }
-        return "<table><thead><tr><th>Declaration</th><th>Construct or module</th><th>Expected</th><th class=\"n\">Untested lines</th><th class=\"barcol\"></th>" +
-            "<th>Note</th></tr></thead><tbody>${rows.joinToString("")}</tbody></table>"
+        return "<div class=\"box\"><table><thead><tr><th>Declaration</th><th>Construct or module</th><th>Expected</th><th class=\"n\">Untested lines</th><th class=\"barcol\"></th>" +
+            "<th>Note</th></tr></thead><tbody>${rows.joinToString("")}</tbody></table></div>"
     }
 
     private fun declarationTable(targets: List<Target>, showPath: Boolean = true): String {
@@ -107,8 +203,8 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
                 tallyCells(shown(tally)) +
                 "</tr>"
         }
-        return "<table><thead><tr><th>Declaration</th><th>Construct or module</th><th>Expected</th><th class=\"n\">Lines</th><th class=\"barcol\"></th>" +
-            "<th class=\"n\">Covered</th><th class=\"n\">Incidental</th><th class=\"n\">Uncovered</th></tr></thead><tbody>${rows.joinToString("")}</tbody></table>"
+        return "<div class=\"box\"><table><thead><tr><th>Declaration</th><th>Construct or module</th><th>Expected</th><th class=\"n\">Lines</th><th class=\"barcol\"></th>" +
+            "<th class=\"n\">Covered</th><th class=\"n\">Incidental</th><th class=\"n\">Uncovered</th></tr></thead><tbody>${rows.joinToString("")}</tbody></table></div>"
     }
 
     // File pages
@@ -120,11 +216,13 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
         targets.forEach { target -> target.lines.keys.forEach { owner[it] = target } }
 
         append("<h1>${esc(path.substringAfterLast('/'))}</h1>")
-        append("<p class=\"path\">${esc(path)} · <code>${esc(targets.first().module.path)}</code></p>")
-        append("<ul class=\"legend\"><li><i class=\"c\"></i>Covered</li><li><i class=\"i\"></i>Incidental</li><li><i class=\"u\"></i>Uncovered</li><li><i class=\"r\"></i>Run, not in the totals</li><li><i class=\"n\"></i>Not run, not in the totals</li>")
-        append("<li><span class=\"chip x\">Unit</span> expected category</li><li><span class=\"chip\">Unit</span> other category</li></ul>")
-        append(declarationTable(targets, showPath = false).replace("href=\"../${filePage(path)}#", "href=\"#"))
+        append("<p class=\"location\"><code>${esc(targets.first().module.path)}</code><span class=\"path\">${esc(path)}</span></p>")
+        append(fileKey())
+        val declarations = declarationTable(targets, showPath = false).replace("href=\"../${filePage(path)}#", "href=\"#")
+        append(section("Declarations", "Line coverage of each declaration in the file.", declarations))
+        append(fileMutants(path, targets))
 
+        append("<div class=\"box source\"><div class=\"box-head\"><code>${esc(path.substringAfterLast('/'))}</code><span class=\"muted\">${source.size} lines</span></div>")
         append("<table class=\"src\"><tbody>")
         source.forEachIndexed { index, text ->
             val line = index + 1
@@ -140,9 +238,51 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
                 "<span class=\"chip${if (expected) " x" else ""}\" title=\"${esc(report.categoryName(category))}\">${esc(chip(category))}</span>"
             }
             append("<tr id=\"L$line\"${state?.let { " class=\"${stateClass(it)}\"" } ?: ""}><td class=\"ln\"><a href=\"#L$line\">$line</a></td>")
-            append("<td class=\"mark\"></td><td class=\"chips\">$chips</td><td class=\"code\">${esc(text)}</td></tr>")
+            val mutants = report.mutations?.onLine(path, line).orEmpty().joinToString("") { mutant ->
+                mutantChip(mutant, lineOwner, depth = 1, short = true)
+            }
+            append("<td class=\"mark\"></td><td class=\"chips\">$chips$mutants</td><td class=\"code\">${esc(text)}</td></tr>")
         }
-        append("</tbody></table>")
+        append("</tbody></table></div>")
+    }
+
+    private fun fileKey(): String {
+        fun group(title: String, items: String) = "<div><h4>$title</h4><ul class=\"legend vertical\">$items</ul></div>"
+        val groups = buildString {
+            append(group("Lines", "<li><i class=\"c\"></i>Covered</li><li><i class=\"i\"></i>Incidental</li><li><i class=\"u\"></i>Uncovered</li>" +
+                "<li><i class=\"r\"></i>Run, not in the totals</li><li><i class=\"n\"></i>Not run, not in the totals</li>"))
+            append(group("Test categories", "<li><span class=\"chip x\">Unit</span> expected category</li><li><span class=\"chip\">Unit</span> other category</li>"))
+            if (report.mutations?.mutants?.isNotEmpty() == true) {
+                append(group("Mutants", "<li><span class=\"mchip killed\">K</span> killed</li><li><span class=\"mchip timed-out\">T</span> timed out, counts as killed</li>" +
+                    "<li><span class=\"mchip uncovered\">U</span> uncovered</li><li><span class=\"mchip survived\">S</span> survived</li>"))
+            }
+        }
+        return "<details class=\"key\"><summary>Key</summary><div class=\"keygroups\">$groups</div></details>"
+    }
+
+    /** The file's mutants, not killed first; each status opens the popup of the mutant's source line. */
+    private fun fileMutants(path: String, targets: List<Target>): String {
+        val results = report.mutations ?: return ""
+        if (results.outdated) return "<p class=\"warn\">The mutation results are out of date: ${esc(results.outdatedReason!!)}.</p>"
+        val mutants = results.mutants.filter { it.path == path }.takeIf { it.isNotEmpty() } ?: return ""
+        val targetOf = report.mutantsByTarget.filterKeys { it in targets }.flatMap { (target, list) -> list.map { it to target } }.toMap()
+        val tally = MutantTally.of(mutants)
+        val rows = mutants.sortedWith(compareBy({ statusOrder(it.status) }, { it.line })).joinToString("") { mutant ->
+            "<tr class=\"m-${mutant.status.id}\"><td class=\"n\"><a href=\"#L${mutant.line}\">${mutant.line}</a></td>" +
+                "<td>${targetOf[mutant]?.let { esc(it.shortName) }.orEmpty()}</td>" +
+                "<td><span class=\"muted\">${esc(mutant.label)}</span> ${code(mutant.text)}</td>" +
+                "<td>${mutantChip(mutant, targetOf[mutant], depth = 1, short = false, popup = false)}</td></tr>"
+        }
+        val description = "${tally.killed} killed, ${tally.uncovered} uncovered, ${tally.survived} survived. Mutants not killed come first; each status opens the mutant's details."
+        return collapsed("Mutants (${mutants.size})", description,
+            "<div class=\"box\"><table class=\"mutants\"><thead><tr><th class=\"n\">Line</th><th>Declaration</th><th>Mutation</th><th>Status</th></tr></thead><tbody>$rows</tbody></table></div>")
+    }
+
+    private fun statusOrder(status: MutantStatus) = when (status) {
+        MutantStatus.Survived -> 0
+        MutantStatus.Uncovered -> 1
+        MutantStatus.TimedOut -> 2
+        MutantStatus.Killed -> 3
     }
 
     // Pieces
@@ -189,15 +329,38 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
         "${tally.run} of ${tally.unassessed} lines run by a test"
     }
 
+    private fun declarationLink(target: Target) = filePage(target.path) + "#d" + target.startLine
+
+    /** A pivot table that `pivot.js` fills from [json]: the `coverage` or the `mutation` measure. */
+    private fun pivot(measure: String, tiles: String, json: String): String {
+        val heads = when (measure) {
+            "coverage" -> listOf("Lines" to "size", "Covered" to "covered", "Incidental" to "incidental", "Uncovered" to "uncovered")
+            else -> listOf("Mutants" to "size", "Killed" to "killed", "Uncovered" to "uncovered", "Survived" to "survived")
+        }
+        val legend = when (measure) {
+            "coverage" -> COVERAGE_KEY
+            else -> MUTATION_KEY
+        }
+        val columns = heads.drop(1).joinToString("") { (label, key) -> "<th class=\"n\" data-sort=\"$key\">$label</th>" }
+        return "<div class=\"pivot\" data-pivot=\"$measure\"><div class=\"tiles\" data-p=\"tiles\">$tiles</div>" +
+            PIVOT_CONTROLS.replace("{{size}}", "<th class=\"n\" data-sort=\"size\">${heads.first().first}</th>")
+                .replace("{{columns}}", columns).replace("{{key}}", legend) +
+            "<noscript><p class=\"warn\">The table requires JavaScript. Each source file's page under <code>files/</code> works without it.</p></noscript>" +
+            "<script type=\"application/json\" data-p=\"data\">$json</script></div>"
+    }
+
     private fun tile(label: String, count: Int, total: Int, cls: String) =
         "<div class=\"tile $cls\"><div class=\"value\">${percent(count, total)}</div><div class=\"label\">$label · $count lines</div></div>"
+
+    private fun section(title: String, description: String, body: String) =
+        "<details class=\"section\" open><summary><h2>${esc(title)}</h2><span class=\"muted\">$description</span></summary>$body</details>"
 
     private fun collapsed(title: String, description: String, body: String) =
         "<details class=\"section\"><summary><h2>${esc(title)}</h2><span class=\"muted\">$description</span></summary>$body</details>"
 
     private fun table(headers: List<String>, rows: List<List<String>>): String =
-        "<table><thead><tr>${headers.joinToString("") { "<th>${esc(it)}</th>" }}</tr></thead><tbody>" +
-            rows.joinToString("") { row -> "<tr>${row.joinToString("") { "<td>$it</td>" }}</tr>" } + "</tbody></table>"
+        "<div class=\"box\"><table><thead><tr>${headers.joinToString("") { "<th>${esc(it)}</th>" }}</tr></thead><tbody>" +
+            rows.joinToString("") { row -> "<tr>${row.joinToString("") { "<td>$it</td>" }}</tr>" } + "</tbody></table></div>"
 
     private fun chip(category: String) = report.categoryName(category).take(4)
 
@@ -214,73 +377,85 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
     private fun inlineCode(text: String) = esc(text).replace(Regex("`([^`]+)`"), "<code>$1</code>")
 
     companion object {
+
         fun filePage(path: String) = "files/${path.replace('/', '~')}.html"
+
+        private val RUN_TIME = java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm").withZone(java.time.ZoneId.systemDefault())
 
         private fun resource(name: String): String =
             requireNotNull(HtmlReport::class.java.getResource("/ukpt/coverage/$name")) { "The build-logic jar contains no ukpt/coverage/$name resource." }.readText()
 
         fun esc(text: String) = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
 
-        /** The index page's table and its controls; `pivot.js` fills them from `#coverage-data`. */
+        /** A pivot table's controls; [pivot] fills in the size heading, the measure columns and the colour key. */
         private val PIVOT_CONTROLS = """
             <div class="controls">
               <div class="axes">
-                <div class="seg" role="group" aria-label="Group by" id="views">
+                <div class="seg" role="group" aria-label="Group by" data-p="views">
                   <button data-view="modules" aria-pressed="true">By module</button>
                   <button data-view="constructs" aria-pressed="false">By Construct</button>
                 </div>
-                <div class="seg sub" role="group" aria-label="Then group by" id="inner"></div>
-                <div class="seg opts" role="group" aria-label="Grouping options" id="axisOpts"></div>
+                <div class="seg sub" role="group" aria-label="Then group by" data-p="inner"></div>
+                <div class="seg opts" role="group" aria-label="Grouping options" data-p="axisOpts"></div>
               </div>
               <div class="right">
               <div class="expanders">
-                <span class="lbl">Expand</span><button class="link" id="expandOne">one</button><button class="link" id="expandAll">all</button>
-                <span class="lbl">Collapse</span><button class="link" id="collapseOne">one</button><button class="link" id="collapseAll">all</button>
+                <span class="lbl">Expand</span><button class="link" data-p="expandOne">one</button><button class="link" data-p="expandAll">all</button>
+                <span class="lbl">Collapse</span><button class="link" data-p="collapseOne">one</button><button class="link" data-p="collapseAll">all</button>
               </div>
               <div class="tools">
-                <div class="searchwrap" id="searchWrap">
-                  <button class="iconbtn" id="searchBtn" aria-label="Search declarations" aria-expanded="false">
+                <div class="searchwrap" data-p="searchWrap">
+                  <button class="iconbtn" data-p="searchBtn" aria-label="Search declarations" aria-expanded="false">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.2" y2="16.2"/></svg>
                   </button>
-                  <input type="search" id="search" placeholder="Search names, packages, files…" aria-label="Search declarations" tabindex="-1">
+                  <input type="search" data-p="search" placeholder="Search names, packages, files…" aria-label="Search declarations" tabindex="-1">
                 </div>
-                <details class="menu" id="filterMenu">
+                <details class="menu" data-p="filterMenu">
                   <summary class="iconbtn" aria-label="Filter">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="21 4 3 4 10 12.5 10 19 14 21 14 12.5 21 4"/></svg>
-                    <span class="badge" id="filterCount" hidden></span>
+                    <span class="badge" data-p="filterCount" hidden></span>
                   </summary>
-                  <div class="panel filters" id="facets"></div>
+                  <div class="panel filters" data-p="facets"></div>
                 </details>
-                <details class="menu" id="displayMenu">
+                <details class="menu" data-p="displayMenu">
                   <summary class="iconbtn" aria-label="Display options">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                   </summary>
                   <div class="panel display">
-                    <label><input type="checkbox" id="optCollapseFiles" checked><span>Collapse single-declaration files<span class="hint">A file with one declaration shows that declaration in place of a file row.</span></span></label>
-                    <label><input type="checkbox" id="optQualified" checked><span>Sort names by package<span class="hint">Sort declarations by package, then name, so declarations from one package stay together.</span></span></label>
-                    <label><input type="checkbox" id="optShortPkg"><span>Short package names<span class="hint">Name each package relative to the package row above it. The first package row always shows the full name.</span></span></label>
+                    <label><input type="checkbox" data-p="optCollapseFiles" checked><span>Collapse single-declaration files<span class="hint">A file with one declaration shows that declaration in place of a file row.</span></span></label>
+                    <label><input type="checkbox" data-p="optQualified" checked><span>Sort names by package<span class="hint">Sort declarations by package, then name, so declarations from one package stay together.</span></span></label>
+                    <label><input type="checkbox" data-p="optShortPkg"><span>Short package names<span class="hint">Name each package relative to the package row above it. The first package row always shows the full name.</span></span></label>
                   </div>
                 </details>
               </div>
               </div>
             </div>
-            <div class="active" id="active"></div>
+            <div class="active" data-p="active"></div>
 
             <div class="tablewrap">
               <table>
-                <thead><tr id="heads"><th data-sort="name">Name</th><th>Expected</th><th class="n" data-sort="decls">Decls</th><th class="n" data-sort="lines">Lines</th><th class="barcol"><details class="menu key" id="keyMenu"><summary class="keybtn" aria-label="Colour key" title="Colour key">?</summary><div class="panel keypanel"><ul class="legend vertical">
-                  <li><i class="c"></i>Covered: an expected test category runs the line</li>
-                  <li><i class="i"></i>Incidental: only other categories run the line</li>
-                  <li><i class="u"></i>Uncovered</li>
-                  <li><i class="r"></i>Ran, not expected to be tested</li>
-                  <li><i class="n"></i>Not run, not expected to be tested</li>
-                </ul></div></details></th><th class="n" data-sort="covered">Covered</th><th class="n" data-sort="incidental">Incidental</th><th class="n" data-sort="uncovered">Uncovered</th></tr></thead>
-                <tbody id="body"></tbody>
+                <colgroup><col><col class="w-exp"><col class="w-decls"><col class="w-size"><col class="w-bar"><col class="w-pct"><col class="w-pct"><col class="w-pct"></colgroup>
+                <thead><tr data-p="heads"><th data-sort="name">Name</th><th>Expected</th><th class="n" data-sort="decls">Decls</th>{{size}}<th class="barcol"><details class="menu key" data-p="keyMenu"><summary class="keybtn" aria-label="Colour key" title="Colour key">?</summary><div class="panel keypanel"><ul class="legend vertical">{{key}}</ul></div></details></th>{{columns}}</tr></thead>
+                <tbody data-p="body"></tbody>
               </table>
             </div>
             <div class="foot">
-              <span class="status" id="status"></span>
+              <span class="status" data-p="status"></span>
             </div>
+        """.trimIndent()
+
+        private val COVERAGE_KEY = """
+            <li><i class="c"></i>Covered: an expected test category runs the line</li>
+            <li><i class="i"></i>Incidental: only other categories run the line</li>
+            <li><i class="u"></i>Uncovered</li>
+            <li><i class="r"></i>Ran, not expected to be tested</li>
+            <li><i class="n"></i>Not run, not expected to be tested</li>
+        """.trimIndent()
+
+        private val MUTATION_KEY = """
+            <li><i class="c"></i>Killed: an expected test fails or times out with the mutant</li>
+            <li><i class="i"></i>Uncovered: no expected test runs the mutant</li>
+            <li><i class="u"></i>Survived: every expected test that runs the mutant passes</li>
         """.trimIndent()
 
         private val CSS = """
@@ -331,6 +506,31 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
             .src tr:target td.code { outline:2px solid var(--link); }
             details summary { cursor:pointer; color:var(--muted); }
             ul.problems li { margin:4px 0; }
+            .mchip { display:inline-block; white-space:nowrap; font:11px/16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding:0 5px; border:0; border-radius:3px; margin-right:3px; color:#fff; }
+            button.mchip { cursor:pointer; } button.mchip:hover { filter:brightness(1.1); } button.mchip:focus-visible { outline:2px solid var(--link); outline-offset:1px; }
+            h3 { font-size:14px; margin:20px 0 4px; }
+            details.sub > summary h3 { display:inline-block; margin:20px 0 4px; }
+            .box { border:1px solid var(--line); border-radius:8px; overflow-x:auto; margin:8px 0; }
+            .box table { margin:0; }
+            .box-head { display:flex; justify-content:space-between; gap:12px; padding:8px 12px; background:var(--head); border-bottom:1px solid var(--line); font-size:12px; }
+            .box-head code { font-weight:600; color:var(--fg); } .box.source { margin-top:20px; } .box.source .src { margin:4px 0; } .box thead th { background:var(--head); } .box tbody tr:last-child td { border-bottom:0; }
+            .location { margin:4px 0 12px; display:flex; flex-direction:column; gap:2px; }
+            details.key { margin:8px 0 12px; font-size:12.5px; } details.key > summary { color:var(--muted); }
+            .keygroups { display:flex; flex-wrap:wrap; gap:8px 40px; padding:8px 0 4px 14px; }
+            .keygroups h4 { margin:0 0 6px; font-size:12px; color:var(--muted); font-weight:600; }
+            .keygroups .legend.vertical { flex-direction:column; gap:5px; margin:0; color:var(--fg); }
+            table.mutants td.n { width:56px; }
+            .mpop { white-space:normal; font:14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color:var(--fg); background:var(--bg);
+              border:1px solid var(--line); border-radius:8px; padding:14px 16px; width:min(560px, calc(100vw - 32px)); box-shadow:0 8px 32px rgb(0 0 0 / .18); text-align:left; }
+            .mpop::backdrop { background:rgb(0 0 0 / .15); }
+            .mpop-head { display:flex; align-items:center; gap:8px; } .mpop-head b { font-size:15px; }
+            .mpop-close { margin-left:auto; border:0; background:none; color:var(--muted); font-size:20px; line-height:1; cursor:pointer; padding:0 4px; }
+            .mpop pre { font:12px/1.5 ui-monospace, Menlo, monospace; background:var(--head); border-radius:4px; padding:8px 10px; margin:10px 0; white-space:pre-wrap; word-break:break-word; }
+            .mpop pre.mpop-failure { color:var(--u); max-height:160px; overflow:auto; }
+            .mpop p { margin:8px 0; }
+            .mpop dl { display:grid; grid-template-columns:auto 1fr; gap:4px 12px; margin:10px 0 4px; font-size:13px; }
+            .mpop dt { color:var(--muted); } .mpop dd { margin:0; word-break:break-word; }
+            .mchip.killed, .mchip.timed-out { background:var(--c); } .mchip.survived { background:var(--u); } .mchip.uncovered { background:var(--i); color:#1d1f23; }
         """.trimIndent()
     }
 }

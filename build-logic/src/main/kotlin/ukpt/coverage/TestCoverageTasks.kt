@@ -11,6 +11,8 @@ import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 
 /** Package instrumentation and module expectations for the root `testCoverage { }` block. */
@@ -102,6 +104,11 @@ abstract class TestCoverageReportTask : DefaultTask() {
     @get:Input
     abstract val moduleExpectations: MapProperty<String, String>
 
+    /** The `runMutants` results file; the report shows mutants when the file exists. */
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val mutationResults: ConfigurableFileCollection
+
     /** Category id → display name, for categories that the classification does not name. */
     @get:Input
     abstract val categoryNames: MapProperty<String, String>
@@ -137,7 +144,8 @@ abstract class TestCoverageReportTask : DefaultTask() {
         val (hits, objectHeaders) = dropObjectHeaders(lineHits(manifest.xmls, sourceDirs, root, problems, generated), root)
         val targets = buildTargets(classification, modules, hits, problems)
         val notMeasured = notMeasured(modules, sourceDirs.values.flatten().toSet(), root)
-        val report = CoverageReport(targets, classification, modules, names, notMeasured, generated.toList(), objectHeaders, problems)
+        val mutations = mutationResults.files.firstOrNull { it.isFile }?.let { MutationResults.read(it, root) }
+        val report = CoverageReport(targets, classification, modules, names, notMeasured, generated.toList(), objectHeaders, problems, mutations)
 
         val output = outputDirectory.get().asFile
         output.deleteRecursively()
