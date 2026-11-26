@@ -44,10 +44,15 @@ class GreetingTraceTest {
         assertEquals(client.traceId, server.traceId)
         assertTrue(server.parent!!.isRemote, "the server span's parent arrived in the call's metadata")
         assertEquals(client.spanId, server.parentSpanId)
+
+        val serverSpans = sink.spans.filter { it.traceId == client.traceId && it.site.name.startsWith("feature.ukpt.server.") }
+        assertEquals(listOf(SERVER_GREET), serverSpans.filter { it.parent?.isRemote == true }.map { it.site.name })
+        assertTrue(serverSpans.any { it.site.name == SERVER_LIST }, "the trace contains the server's storage read")
     }
 
     private companion object {
         const val CLIENT_GREET = "feature.ukpt.client.data.GreetingRepository.greet"
         const val SERVER_GREET = "feature.ukpt.server.services.GreetingServiceImpl.greet"
+        const val SERVER_LIST = "feature.ukpt.server.data.storage.GreetingStorage.list"
     }
 }
