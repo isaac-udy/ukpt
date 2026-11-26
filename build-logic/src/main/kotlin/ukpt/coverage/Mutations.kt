@@ -50,9 +50,6 @@ class Mutant(
 data class MutantTally(val killed: Int = 0, val survived: Int = 0, val uncovered: Int = 0) {
     val total: Int get() = killed + survived + uncovered
 
-    /** Killed of the mutants that a test runs; null when no test runs any mutant. */
-    val score: Double? get() = (killed + survived).takeIf { it > 0 }?.let { killed.toDouble() / it }
-
     companion object {
         fun of(mutants: List<Mutant>) = MutantTally(
             killed = mutants.count { it.status.detected },

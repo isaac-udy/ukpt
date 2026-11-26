@@ -39,10 +39,11 @@ adds the results to `build/reports/test-coverage/index.html`:
 
 - a **Mutation testing** section: the run's start time; a table of the declarations with mutants
   that groups, filters, searches and sorts like the coverage table, with killed, uncovered and
-  survived shares and the score; a **Not killed** table; and counts by operator;
-- a `K`, `S`, `T` or `U` button on each mutated line of a file page. The button, and each status in
-  the Not killed table, opens a popup with the mutated expression, the change, the removed call, the
-  Construct, the expected categories, the killing test and its failure, and the mutant ID.
+  survived shares; and collapsed **Not killed** and **By operator** tables;
+- on each file page, a **Mutants** table of the file's mutants, not killed first, and a `K`, `S`,
+  `T` or `U` button on each mutated line. Each status button opens a popup with the mutated
+  expression, the change, the removed call, the Construct, the expected categories, the killing
+  test and its failure, and the mutant ID.
 
 `results.json` records the Kotlin sources at the start of the run. When a test file changed after
 the run, the report shows no mutation results and asks for a new run, because a test in one module

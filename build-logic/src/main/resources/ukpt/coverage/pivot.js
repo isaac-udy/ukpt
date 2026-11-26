@@ -63,9 +63,9 @@
           `<td class="n num c" title="${t.killed} mutants">${v(p(t.killed) + "%")}</td><td class="n num i" title="${t.uncovered} mutants">${v(p(t.uncovered) + "%")}</td><td class="n num u" title="${t.survived} mutants">${v(p(t.survived) + "%")}</td>`;
       },
       tiles(t) {
-        const m = t.killed + t.survived + t.uncovered, run = t.killed + t.survived;
+        const m = t.killed + t.survived + t.uncovered;
         return tile("c", pct(t.killed, m), `Killed · ${mutants(t.killed)}`) + tile("i", pct(t.uncovered, m), `Uncovered · ${mutants(t.uncovered)}`) +
-          tile("u", pct(t.survived, m), `Survived · ${mutants(t.survived)}`) + tile("", run ? pct(t.killed, run) : "–", "Score · killed of the mutants a test runs");
+          tile("u", pct(t.survived, m), `Survived · ${mutants(t.survived)}`);
       },
     },
   };

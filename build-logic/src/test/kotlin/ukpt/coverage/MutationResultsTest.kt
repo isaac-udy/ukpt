@@ -6,7 +6,6 @@ import java.security.MessageDigest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class MutationResultsTest {
@@ -102,6 +101,5 @@ class MutationResultsTest {
         val byTarget = results.byTarget(listOf(outer, greet))
         assertEquals(listOf("a"), byTarget.getValue(greet).map { it.id })
         assertEquals(MutantTally(killed = 1), MutantTally.of(byTarget.getValue(greet)))
-        assertNull(MutantTally().score)
     }
 }

@@ -97,7 +97,7 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
             notes.forEach { append("<p class=\"muted\">$it</p>") }
             val gaps = results.mutants.filter { !it.status.detected }
                 .sortedWith(compareBy({ it.status != MutantStatus.Survived }, { it.path }, { it.line }))
-            append("<h3>Not killed (${gaps.size})</h3>")
+            append("<details class=\"sub\"><summary><h3>Not killed (${gaps.size})</h3></summary>")
             if (gaps.isEmpty()) {
                 append("<p class=\"muted\">Every mutant is killed.</p>")
             } else {
@@ -112,6 +112,7 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
                 }
                 append("<table><thead><tr><th>Declaration</th><th>Construct or module</th><th>Mutation</th><th>Status</th></tr></thead><tbody>$rows</tbody></table>")
             }
+            append("</details>")
             append("<details class=\"sub\"><summary><h3>By operator</h3></summary>")
             append(tallyTable("Operator", results.mutants.groupBy { it.operator }))
             append("</details>")
@@ -124,20 +125,19 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
         val rows = groups.entries.sortedBy { it.key }.joinToString("") { (name, mutants) ->
             val t = MutantTally.of(mutants)
             "<tr><td>${code(name)}</td><td class=\"n\">${t.total}</td><td class=\"n c\">${t.killed}</td>" +
-                "<td class=\"n i\">${t.uncovered}</td><td class=\"n u\">${t.survived}</td><td class=\"n\">${t.score?.let { percentOf(it) } ?: "–"}</td></tr>"
+                "<td class=\"n i\">${t.uncovered}</td><td class=\"n u\">${t.survived}</td></tr>"
         }
         return "<table><thead><tr><th>${esc(heading)}</th><th class=\"n\">Mutants</th><th class=\"n\">Killed</th><th class=\"n\">Uncovered</th>" +
-            "<th class=\"n\">Survived</th><th class=\"n\">Score</th></tr></thead><tbody>$rows</tbody></table>"
+            "<th class=\"n\">Survived</th></tr></thead><tbody>$rows</tbody></table>"
     }
 
-    private fun percentOf(fraction: Double) = "%.0f%%".format(fraction * 100)
 
     /** A status chip that opens a popup with the mutant's details. */
-    private fun mutantChip(mutant: Mutant, target: Target?, depth: Int, short: Boolean): String {
+    private fun mutantChip(mutant: Mutant, target: Target?, depth: Int, short: Boolean, popup: Boolean = true): String {
         val id = "m-${mutant.id}"
         val text = if (short) mutant.status.label.first().toString() else mutant.status.label
         return "<button type=\"button\" class=\"mchip ${mutant.status.id}\" popovertarget=\"$id\" title=\"${esc(mutant.status.label)}: ${esc(mutant.label)}\">$text</button>" +
-            mutantPopup(id, mutant, target, depth)
+            if (popup) mutantPopup(id, mutant, target, depth) else ""
     }
 
     private fun mutantPopup(id: String, mutant: Mutant, target: Target?, depth: Int): String {
@@ -216,14 +216,10 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
         targets.forEach { target -> target.lines.keys.forEach { owner[it] = target } }
 
         append("<h1>${esc(path.substringAfterLast('/'))}</h1>")
-        append("<p class=\"path\">${esc(path)} · <code>${esc(targets.first().module.path)}</code></p>")
-        append("<ul class=\"legend\"><li><i class=\"c\"></i>Covered</li><li><i class=\"i\"></i>Incidental</li><li><i class=\"u\"></i>Uncovered</li><li><i class=\"r\"></i>Run, not in the totals</li><li><i class=\"n\"></i>Not run, not in the totals</li>")
-        append("<li><span class=\"chip x\">Unit</span> expected category</li><li><span class=\"chip\">Unit</span> other category</li>")
-        if (report.mutations?.mutants?.isNotEmpty() == true) {
-            append("<li><span class=\"mchip killed\">K</span> mutant killed</li><li><span class=\"mchip survived\">S</span> survived</li><li><span class=\"mchip timed-out\">T</span> timed out</li><li><span class=\"mchip uncovered\">U</span> uncovered</li>")
-        }
-        append("</ul>")
+        append("<p class=\"location\"><code>${esc(targets.first().module.path)}</code><span class=\"path\">${esc(path)}</span></p>")
+        append(fileKey())
         append(declarationTable(targets, showPath = false).replace("href=\"../${filePage(path)}#", "href=\"#"))
+        append(fileMutants(path, targets))
 
         append("<table class=\"src\"><tbody>")
         source.forEachIndexed { index, text ->
@@ -246,6 +242,45 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
             append("<td class=\"mark\"></td><td class=\"chips\">$chips$mutants</td><td class=\"code\">${esc(text)}</td></tr>")
         }
         append("</tbody></table>")
+    }
+
+    private fun fileKey(): String {
+        fun group(title: String, items: String) = "<div><h4>$title</h4><ul class=\"legend vertical\">$items</ul></div>"
+        val groups = buildString {
+            append(group("Lines", "<li><i class=\"c\"></i>Covered</li><li><i class=\"i\"></i>Incidental</li><li><i class=\"u\"></i>Uncovered</li>" +
+                "<li><i class=\"r\"></i>Run, not in the totals</li><li><i class=\"n\"></i>Not run, not in the totals</li>"))
+            append(group("Test categories", "<li><span class=\"chip x\">Unit</span> expected category</li><li><span class=\"chip\">Unit</span> other category</li>"))
+            if (report.mutations?.mutants?.isNotEmpty() == true) {
+                append(group("Mutants", "<li><span class=\"mchip killed\">K</span> killed</li><li><span class=\"mchip timed-out\">T</span> timed out, counts as killed</li>" +
+                    "<li><span class=\"mchip uncovered\">U</span> uncovered</li><li><span class=\"mchip survived\">S</span> survived</li>"))
+            }
+        }
+        return "<details class=\"key\"><summary>Key</summary><div class=\"keygroups\">$groups</div></details>"
+    }
+
+    /** The file's mutants, not killed first; each status opens the popup of the mutant's source line. */
+    private fun fileMutants(path: String, targets: List<Target>): String {
+        val results = report.mutations ?: return ""
+        if (results.outdated) return "<p class=\"warn\">The mutation results are out of date: ${esc(results.outdatedReason!!)}.</p>"
+        val mutants = results.mutants.filter { it.path == path }.takeIf { it.isNotEmpty() } ?: return ""
+        val targetOf = report.mutantsByTarget.filterKeys { it in targets }.flatMap { (target, list) -> list.map { it to target } }.toMap()
+        val tally = MutantTally.of(mutants)
+        val rows = mutants.sortedWith(compareBy({ statusOrder(it.status) }, { it.line })).joinToString("") { mutant ->
+            "<tr class=\"m-${mutant.status.id}\"><td class=\"n\"><a href=\"#L${mutant.line}\">${mutant.line}</a></td>" +
+                "<td>${targetOf[mutant]?.let { esc(it.shortName) }.orEmpty()}</td>" +
+                "<td><span class=\"muted\">${esc(mutant.label)}</span> ${code(mutant.text)}</td>" +
+                "<td>${mutantChip(mutant, targetOf[mutant], depth = 1, short = false, popup = false)}</td></tr>"
+        }
+        val title = "Mutants · ${tally.killed} killed, ${tally.uncovered} uncovered, ${tally.survived} survived"
+        return "<details class=\"sub\" open><summary><h3>${esc(title)}</h3></summary>" +
+            "<table class=\"mutants\"><thead><tr><th class=\"n\">Line</th><th>Declaration</th><th>Mutation</th><th>Status</th></tr></thead><tbody>$rows</tbody></table></details>"
+    }
+
+    private fun statusOrder(status: MutantStatus) = when (status) {
+        MutantStatus.Survived -> 0
+        MutantStatus.Uncovered -> 1
+        MutantStatus.TimedOut -> 2
+        MutantStatus.Killed -> 3
     }
 
     // Pieces
@@ -473,6 +508,12 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
             button.mchip { cursor:pointer; } button.mchip:hover { filter:brightness(1.1); } button.mchip:focus-visible { outline:2px solid var(--link); outline-offset:1px; }
             h3 { font-size:14px; margin:20px 0 4px; }
             details.sub > summary h3 { display:inline-block; margin:20px 0 4px; }
+            .location { margin:4px 0 12px; display:flex; flex-direction:column; gap:2px; }
+            details.key { margin:8px 0 12px; font-size:12.5px; } details.key > summary { color:var(--muted); }
+            .keygroups { display:flex; flex-wrap:wrap; gap:8px 40px; padding:8px 0 4px 14px; }
+            .keygroups h4 { margin:0 0 6px; font-size:12px; color:var(--muted); font-weight:600; }
+            .keygroups .legend.vertical { flex-direction:column; gap:5px; margin:0; color:var(--fg); }
+            table.mutants td.n { width:56px; }
             .mpop { white-space:normal; font:14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color:var(--fg); background:var(--bg);
               border:1px solid var(--line); border-radius:8px; padding:14px 16px; width:min(560px, calc(100vw - 32px)); box-shadow:0 8px 32px rgb(0 0 0 / .18); text-align:left; }
             .mpop::backdrop { background:rgb(0 0 0 / .15); }
