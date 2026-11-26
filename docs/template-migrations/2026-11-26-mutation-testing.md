@@ -39,12 +39,23 @@ A project is affected if the command prints nothing.
    `testCoverage { }` block:
    ```kotlin
    mutation {
+       excludeCalls(
+           "kotlin.io.println",
+           "kotlin.io.print",
+           "kotlin.Throwable.printStackTrace",
+           "org.koin.*",
+           "org.slf4j.Logger.*",
+           "io.ktor.client.plugins.HttpTimeoutConfig.*",
+           "io.ktor.client.plugins.timeout",
+       )
        rule("domain") { constructs("ServerDomain.*", "FeatureRules.Shared*") }
        rule("data") { constructs("ServerData.*") }
        rule("web") { constructs("ServerWeb.Routes", "ServerWeb.Form", "ServerWeb.ViewState", "ServerWeb.ViewHelper", "ServerWeb.EventStream") }
    }
    ```
-   A project that removed one of these Construct groups deletes the matching rule.
+   A project that removed one of these Construct groups deletes the matching rule. Add the
+   project's own logging facade and other calls that no test can observe to `excludeCalls()`
+   before the first run (`ukpt-test-audit`, "Excluded calls").
 
 ## Verification
 
