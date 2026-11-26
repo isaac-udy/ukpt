@@ -28,7 +28,7 @@ takes minutes. Later runs reuse the compiled classes.
 | One or more modules | `./gradlew runMutants -Pmutation.modules=:feature:<name>:client,:feature:<name>:server` |
 | The whole catalog | `./gradlew runMutants` |
 | Android host tests in place of JVM tests | add `-Pmutation.hosts=android,jvm` |
-| A fraction of one operator's mutants | add `-Pmutation.sample=remove-call=0.1` (`-Pmutation.sampleSeed=<n>` for a different sample) |
+| A fraction of one operator's mutants | add `-Pmutation.sample=remove-call=0.1`; each run samples at random and prints its seed, and `-Pmutation.sampleSeed=<seed>` repeats a sample |
 
 Run in the background with `--max-workers=2`, and run no other heavy build at the same time
 (see `UKPT.md`, "Building as an agent"). An interrupted run resumes when its inputs are unchanged.
@@ -122,7 +122,7 @@ Selectors: `constructs()`, `packages()`, `files()` (globs from the repository ro
 directories), `excludeConstructs()`, `excludeFiles()`, `excludeCalls()`, and `operators()`. Every
 non-empty selector must match. `excludeCalls("org.koin.*")` in the `mutation { }` block leaves out
 every `remove-call` mutant whose `callee` matches; `*` matches any characters, dots included.
-`sample("remove-call", 0.1)` runs a fixed 10% of one operator's selected mutants. `build/mutation/sites.json` lists every compiled mutant site with its Constructs and the
+`sample("remove-call", 0.1)` runs a random 10% of one operator's selected mutants in each run. `build/mutation/sites.json` lists every compiled mutant site with its Constructs and the
 rules that select the site; use it to check what a new rule selects before running it.
 
 ## Limits
