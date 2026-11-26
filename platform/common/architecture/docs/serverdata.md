@@ -245,7 +245,7 @@ client, tables on the server.
 
 ##### Tested by
 
-* Subcutaneous
+* Subcutaneous or Adapter
 
 ##### Rules
 
