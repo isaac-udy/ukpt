@@ -64,6 +64,18 @@ testCoverage {
 // by a test in a category that its Construct expects. Rule selectors: constructs(), packages(),
 // files(); ignore("<id>", "<reason>") excludes an equivalent mutant by the id in the report.
 mutation {
+    // Removing one of these calls changes no behaviour a test can check: console output, DI wiring
+    // that every test graph already exercises, log lines, and HTTP client timeouts.
+    excludeCalls(
+        "kotlin.io.println",
+        "kotlin.io.print",
+        "kotlin.Throwable.printStackTrace",
+        "org.koin.*",
+        "dev.isaacudy.udytils.urpc.koin.*",
+        "org.slf4j.Logger.*",
+        "io.ktor.client.plugins.HttpTimeoutConfig.*",
+        "io.ktor.client.plugins.timeout",
+    )
     rule("domain") { constructs("ClientDomain.*", "ServerDomain.*", "FeatureRules.Shared*") }
     rule("data") { constructs("ClientData.*", "ServerData.*") }
     rule("view-models") { constructs("ClientUi.ViewModel", "ClientUi.ViewModelState") }
