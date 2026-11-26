@@ -16,6 +16,9 @@ buildscript {
 
         // The mutation testing plugin, applied by ukpt.mutation.
         classpath(libs.udytils.mutationGradlePlugin)
+
+        // The tracing plugins, applied by :feature modules and :app:client:telemetry.
+        classpath(libs.udytils.traceGradlePlugin)
     }
 }
 

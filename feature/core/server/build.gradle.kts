@@ -38,3 +38,8 @@ dependencies {
     testImplementation(projects.platform.common.testing)
     testImplementation(libs.kotlin.test)
 }
+
+apply(plugin = "dev.isaacudy.udytils.trace")
+configure<dev.isaacudy.udytils.trace.gradle.TraceExtension> {
+    packages.add("feature")
+}
