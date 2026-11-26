@@ -4,7 +4,7 @@ description: >-
   Record and read the app's traces in a local Jaeger — start the viewer, run the desktop app and
   the server with trace export, list recent traces, and print one trace as a tree across client
   and server, with links to screen visits and spans whose parent Jaeger does not store. Use when
-  checking what a user action calls end to end, where a request spends its time, which call
+  checking what a user action calls end to end, how long each call takes, which call
   failed, or whether trace propagation works.
 ---
 
@@ -53,7 +53,7 @@ python3 -I .agents/skills/ukpt-traces/scripts/traces.py show <trace id>
 - `(visit)`: one visit of a screen, from the destination's first open to its close. A visit is the
   root of its own trace.
 - A `(collect)` or `(visit)` span is exported when it starts, with a duration of 0 ms and the
-  outcome `Running`. Its `(closed)` child is exported when the span ends and holds the span's
+  outcome `Running`. Its `(closed)` child is exported when the span ends and records the span's
   duration and outcome. A screen that is still open has no `(closed)` child.
 
 The Jaeger query API (`/api/v3/services`, `/api/v3/traces`, `/api/v3/traces/{id}`) returns OTLP
