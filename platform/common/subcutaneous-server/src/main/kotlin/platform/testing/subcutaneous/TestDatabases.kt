@@ -17,6 +17,9 @@ internal object TestDatabases {
     // Two clones in flight keep up with a test that takes less time than one clone.
     private const val READY = 2
 
+    // Clones outpace the single drop thread; without a bound, hundreds of clones fill the disk.
+    private const val PENDING_DROPS = 4
+
     private val postgres by lazy {
         EmbeddedPostgresLifecycle().also { postgres ->
             Runtime.getRuntime().addShutdownHook(Thread(postgres::close))
@@ -28,16 +31,25 @@ internal object TestDatabases {
     private val cloner = daemonThreads("subcutaneous-clone", READY)
     private val dropper = daemonThreads("subcutaneous-drop", 1)
     private val ready = ArrayDeque<Future<ClonedDatabase>>()
+    private val drops = ArrayDeque<Future<*>>()
 
     @Synchronized
     fun clone(): TestDatabase {
+        while (drops.size > PENDING_DROPS) await(drops.removeFirst())
         while (ready.size <= READY) ready.addLast(cloner.submit<ClonedDatabase> { template.clone() })
-        val database = try {
-            ready.removeFirst().get()
-        } catch (failure: ExecutionException) {
-            throw failure.cause ?: failure
-        }
-        return TestDatabase(database.config) { dropper.submit(database::close) }
+        val database = await(ready.removeFirst())
+        return TestDatabase(database.config) { queueDrop(database) }
+    }
+
+    @Synchronized
+    private fun queueDrop(database: ClonedDatabase) {
+        drops.addLast(dropper.submit(database::close))
+    }
+
+    private fun <T> await(future: Future<T>): T = try {
+        future.get()
+    } catch (failure: ExecutionException) {
+        throw failure.cause ?: failure
     }
 
     private fun daemonThreads(name: String, count: Int): ExecutorService = Executors.newFixedThreadPool(count) { task ->
