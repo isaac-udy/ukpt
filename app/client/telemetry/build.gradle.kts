@@ -3,6 +3,12 @@ plugins {
     id("dev.isaacudy.udytils.trace-site-table")
 }
 
+// The trace plugin rewrites the on(…) references of the rules; it instruments no telemetry code.
+apply(plugin = "dev.isaacudy.udytils.trace")
+configure<dev.isaacudy.udytils.trace.gradle.TraceExtension> {
+    packages.add("feature")
+}
+
 private val projectNamespace = providers.gradleProperty("ukpt.projectNamespace").get()
 private val architecture = ":platform:common:architecture"
 
@@ -14,6 +20,8 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(libs.udytils.traceRuntime)
+            implementation(libs.kotlinx.serialization)
+            implementation(libs.androidx.lifecycle.viewmodel)
             implementation(projects.feature.core.client)
         }
         commonTest.dependencies {

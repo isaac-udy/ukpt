@@ -59,7 +59,7 @@ object SubcutaneousTest : Construct<Testing>(
         )
     }
 
-    @Describe("A Subcutaneous Test must reference only entry-point vocabulary from production code: ViewModels, their states, Destinations, UI value types, client domain models and their extensions, domain exceptions and constants, shared wire types, and `@Urpc` service interfaces")
+    @Describe("A Subcutaneous Test must reference only entry-point vocabulary from production code: ViewModels, their states, Destinations, UI value types, client domain models and their extensions, domain exceptions and constants, shared wire types, and `@Urpc` service interfaces; in a telemetry module, also Trace Rules and Analytics Events")
     val entryPointVocabularyOnly by rule {
         rationale(
             """
@@ -70,7 +70,8 @@ object SubcutaneousTest : Construct<Testing>(
         )
         note("Test data comes from Scenarios (`given { }`), which may use the server domain. Checks on the server or on a fake go through Inspections (`inspectServer { }`, `inspectClient { }`).")
         constrainWithScopes { decl, scopes, _ ->
-            scopes.referencesOutside(decl, ENTRY_POINT_CONSTRUCTS)
+            val allowed = if (decl.isInTelemetryModule()) ENTRY_POINT_CONSTRUCTS + TELEMETRY_CONSTRUCTS else ENTRY_POINT_CONSTRUCTS
+            scopes.referencesOutside(decl, allowed)
                 .map { Violation(decl, "references `${it.name}` (${it.constructs.joinToString { c -> c.id }})") }
         }
     }
@@ -131,6 +132,8 @@ object SubcutaneousTest : Construct<Testing>(
 }
 
 private val HARNESS_EXPRESSION_BODY = Regex("""\)\s*(:\s*[\w.<>]+\s*)?=\s*subcutaneous\s*\(""")
+
+private val TELEMETRY_CONSTRUCTS = setOf("Telemetry.TraceRules", "Telemetry.AnalyticsEvent")
 
 private val ENTRY_POINT_CONSTRUCTS = setOf(
     "ClientUi.ViewModel",

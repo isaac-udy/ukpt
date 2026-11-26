@@ -3,6 +3,7 @@ package architecture.rules
 import architecture.definitions.isFeatureModule
 import architecture.projectScope
 import architecture.projectTestScope
+import architecture.rules.telemetry.Telemetry
 import architecture.rules.testing.Testing
 import dev.isaacudy.udytils.architecture.*
 import architecture.rules.clientdata.ClientData
@@ -66,6 +67,7 @@ object UkptArchitecture : ArchitectureDefinition(
         ServerData,
         DesignSystemRules,
         ProjectRules,
+        Telemetry,
         Testing,
     ),
     scope = { projectScope },
