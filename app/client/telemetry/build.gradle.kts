@@ -1,5 +1,6 @@
 plugins {
     id("ukpt.kmp-library")
+    id("ukpt.html-web")
     id("dev.isaacudy.udytils.trace-site-table")
 }
 
@@ -21,6 +22,7 @@ kotlin {
         commonMain.dependencies {
             api(libs.udytils.traceRuntime)
             implementation(libs.udytils.traceEnro)
+            implementation(libs.koin.core)
             implementation(libs.kotlinx.serialization)
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(projects.feature.core.client)

@@ -1,5 +1,6 @@
 package com.isaacudy.ukpt
 
+import com.isaacudy.ukpt.telemetry.telemetryDependencies
 import feature.ukpt.ukptClientDependencies
 import io.ktor.client.engine.HttpClientEngine
 import kotlinx.browser.window
@@ -23,4 +24,5 @@ val clientDependencies: List<Module> = listOf(
     },
     networkDependencies,
     ukptClientDependencies,
+    telemetryDependencies,
 )

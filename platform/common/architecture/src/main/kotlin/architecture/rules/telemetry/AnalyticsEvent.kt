@@ -6,13 +6,14 @@ import com.lemonappdev.konsist.api.provider.KoAnnotationProvider
 import dev.isaacudy.udytils.architecture.*
 
 @Describe("""
-    A `@Serializable sealed interface` in a telemetry module whose nested classes and objects are
-    the analytics events that the [Trace Rules](#trace-rules) build. No event reaches a vendor
+    A `@Serializable sealed interface` in a telemetry module, named `[Name]Event`, whose nested
+    classes and objects are the analytics events that the [Trace Rules](#trace-rules) build. No event reaches a vendor
     directly: the project's analytics sink maps each event to the vendor's event name and
     properties in hand-written code.
 
     ```kotlin
     val name = when (event) {
+        AnalyticsEvent.UkptScreenViewed -> "ukpt_screen_viewed"
         AnalyticsEvent.GreetClicked -> "greet_clicked"
         AnalyticsEvent.GreetingSent -> "greeting_sent"
         AnalyticsEvent.GreetingFailed -> "greeting_failed"
@@ -21,7 +22,7 @@ import dev.isaacudy.udytils.architecture.*
 """)
 object AnalyticsEvent : Construct<Telemetry>(
     testedBy = TestExpectation.none("a value type; the Subcutaneous Tests of the Trace Rules assert which events are recorded"),
-    requirements = listOf(isInterface, isSealed, isAnnotatedWith("Serializable"), inTelemetryModule),
+    requirements = listOf(isInterface, isSealed, isAnnotatedWith("Serializable"), inTelemetryModule, hasNameEndingWith("Event")),
 ) {
     @Describe("Every event of an Analytics Event hierarchy must be `@Serializable`")
     val serializableEvents by rule {

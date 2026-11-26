@@ -59,7 +59,7 @@ object SubcutaneousTest : Construct<Testing>(
         )
     }
 
-    @Describe("A Subcutaneous Test must reference only entry-point vocabulary from production code: ViewModels, their states, Destinations, UI value types, client domain models and their extensions, domain exceptions and constants, shared wire types, and `@Urpc` service interfaces; in a telemetry `:tests` module, also Trace Rules and Analytics Events")
+    @Describe("A Subcutaneous Test must reference only entry-point vocabulary from production code: ViewModels, their states, Destinations, UI value types, client domain models and their extensions, domain exceptions and constants, shared wire types, and `@Urpc` service interfaces; in a telemetry `:tests` module, also Trace Rules, Analytics Events and Metrics")
     val entryPointVocabularyOnly by rule {
         rationale(
             """
@@ -133,7 +133,7 @@ object SubcutaneousTest : Construct<Testing>(
 
 private val HARNESS_EXPRESSION_BODY = Regex("""\)\s*(:\s*[\w.<>]+\s*)?=\s*subcutaneous\s*\(""")
 
-private val TELEMETRY_CONSTRUCTS = setOf("Telemetry.TraceRules", "Telemetry.AnalyticsEvent")
+private val TELEMETRY_CONSTRUCTS = setOf("Telemetry.TraceRules", "Telemetry.AnalyticsEvent", "Telemetry.Metric")
 
 private val ENTRY_POINT_CONSTRUCTS = setOf(
     "ClientUi.ViewModel",

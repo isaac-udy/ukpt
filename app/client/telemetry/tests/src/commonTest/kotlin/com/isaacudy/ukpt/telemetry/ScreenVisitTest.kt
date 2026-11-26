@@ -4,7 +4,6 @@ import dev.isaacudy.udytils.trace.InMemorySpanSink
 import dev.isaacudy.udytils.trace.Trace
 import dev.isaacudy.udytils.trace.enro.TraceNavigationPlugin
 import dev.isaacudy.udytils.trace.rules.InMemoryAnalyticsSink
-import dev.isaacudy.udytils.trace.rules.InMemoryMetricsSink
 import feature.ukpt.client.ui.UkptDestination
 import feature.ukpt.client.ui.UkptViewModel
 import feature.ukpt.tests.ukptTestGraph
@@ -23,7 +22,7 @@ class ScreenVisitTest {
     private val spans = InMemorySpanSink()
     private val plugin = TraceNavigationPlugin()
     private val registrations = listOf(
-        Trace.addSink(clientTraceRules.sink(TraceSiteTable, analytics, InMemoryMetricsSink())),
+        Trace.addSink(clientAnalyticsRules.sink(TraceSiteTable, analytics)),
         Trace.addSink(spans),
         Trace.linkRoots(plugin::visitOf),
     )

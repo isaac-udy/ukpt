@@ -44,6 +44,7 @@ kotlin {
             api(libs.enro.core)
             implementation(libs.udytils.ui)
             implementation(libs.udytils.traceEnro)
+            implementation(projects.app.client.telemetry)
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.composeViewmodel)
