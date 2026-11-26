@@ -45,18 +45,9 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
             "<p class=\"lede\">Each line counts as <b>covered</b> when a test from a category its Construct expects runs it, and " +
                 "<b>incidental</b> when only tests from other categories run it. End-to-end Tests are not measured.</p>",
         )
-        append("<div class=\"pivot\">")
-        append("<div class=\"tiles\" id=\"tiles\">")
-        append(tile("Covered", total.covered, total.assessed, "c"))
-        append(tile("Incidental", total.incidental, total.assessed, "i"))
-        append(tile("Uncovered", total.uncovered, total.assessed, "u"))
-        append("</div>")
-        append(PIVOT_CONTROLS)
-        append("<noscript><p class=\"warn\">The coverage table requires JavaScript. Each source file's page under <code>files/</code> works without it.</p></noscript>")
-        append("<script type=\"application/json\" id=\"coverage-data\">")
-        append(pivotData(report, ::packageOf) { filePage(it.path) + "#d" + it.startLine })
-        append("</script>")
-        append("</div>")
+        val tiles = tile("Covered", total.covered, total.assessed, "c") + tile("Incidental", total.incidental, total.assessed, "i") +
+            tile("Uncovered", total.uncovered, total.assessed, "u")
+        append(pivot("coverage", tiles, pivotData(report, ::packageOf, ::declarationLink)))
 
         report.mutations?.let { append(mutantSection(it)) }
 
@@ -102,13 +93,7 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
             results.excludedCalls.takeIf { it > 0 }?.let { "<code>excludeCalls</code> left out $it mutants." },
         )
         val body = buildString {
-            append("<div class=\"tiles\">")
-            append(mutantTile("Killed", tally.killed, tally.total, "c"))
-            append(mutantTile("Survived", tally.survived, tally.total, "u"))
-            append(mutantTile("Uncovered", tally.uncovered, tally.total, "i"))
-            append("<div class=\"tile\"><div class=\"value\">${tally.score?.let { percentOf(it) } ?: "–"}</div>" +
-                "<div class=\"label\">Score · killed of the mutants a test runs</div></div>")
-            append("</div>")
+            append(pivot("mutation", "", mutationPivotData(report, ::packageOf, ::declarationLink)))
             notes.forEach { append("<p class=\"muted\">$it</p>") }
             val gaps = results.mutants.filter { !it.status.detected }
                 .sortedWith(compareBy({ it.status != MutantStatus.Survived }, { it.path }, { it.line }))
@@ -127,11 +112,9 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
                 }
                 append("<table><thead><tr><th>Declaration</th><th>Construct or module</th><th>Mutation</th><th>Status</th></tr></thead><tbody>$rows</tbody></table>")
             }
-            append("<div class=\"split\"><div><h3>By module</h3>")
-            append(tallyTable("Module", results.mutants.groupBy { mutant -> targetOf[mutant]?.module?.path ?: "Other" }))
-            append("</div><div><h3>By operator</h3>")
+            append("<details class=\"sub\"><summary><h3>By operator</h3></summary>")
             append(tallyTable("Operator", results.mutants.groupBy { it.operator }))
-            append("</div></div>")
+            append("</details>")
         }
         val description = "Results of the $run. A mutant counts as killed only by a test from a category its Construct expects."
         return section("Mutation testing", description, body)
@@ -141,14 +124,11 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
         val rows = groups.entries.sortedBy { it.key }.joinToString("") { (name, mutants) ->
             val t = MutantTally.of(mutants)
             "<tr><td>${code(name)}</td><td class=\"n\">${t.total}</td><td class=\"n c\">${t.killed}</td>" +
-                "<td class=\"n u\">${t.survived}</td><td class=\"n i\">${t.uncovered}</td><td class=\"n\">${t.score?.let { percentOf(it) } ?: "–"}</td></tr>"
+                "<td class=\"n i\">${t.uncovered}</td><td class=\"n u\">${t.survived}</td><td class=\"n\">${t.score?.let { percentOf(it) } ?: "–"}</td></tr>"
         }
-        return "<table><thead><tr><th>${esc(heading)}</th><th class=\"n\">Mutants</th><th class=\"n\">Killed</th><th class=\"n\">Survived</th>" +
-            "<th class=\"n\">Uncovered</th><th class=\"n\">Score</th></tr></thead><tbody>$rows</tbody></table>"
+        return "<table><thead><tr><th>${esc(heading)}</th><th class=\"n\">Mutants</th><th class=\"n\">Killed</th><th class=\"n\">Uncovered</th>" +
+            "<th class=\"n\">Survived</th><th class=\"n\">Score</th></tr></thead><tbody>$rows</tbody></table>"
     }
-
-    private fun mutantTile(label: String, count: Int, total: Int, cls: String) =
-        "<div class=\"tile $cls\"><div class=\"value\">$count</div><div class=\"label\">$label · ${percent(count, total)} of $total mutants</div></div>"
 
     private fun percentOf(fraction: Double) = "%.0f%%".format(fraction * 100)
 
@@ -312,6 +292,26 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
         "${tally.run} of ${tally.unassessed} lines run by a test"
     }
 
+    private fun declarationLink(target: Target) = filePage(target.path) + "#d" + target.startLine
+
+    /** A pivot table that `pivot.js` fills from [json]: the `coverage` or the `mutation` measure. */
+    private fun pivot(measure: String, tiles: String, json: String): String {
+        val heads = when (measure) {
+            "coverage" -> listOf("Lines" to "size", "Covered" to "covered", "Incidental" to "incidental", "Uncovered" to "uncovered")
+            else -> listOf("Mutants" to "size", "Killed" to "killed", "Uncovered" to "uncovered", "Survived" to "survived")
+        }
+        val legend = when (measure) {
+            "coverage" -> COVERAGE_KEY
+            else -> MUTATION_KEY
+        }
+        val columns = heads.drop(1).joinToString("") { (label, key) -> "<th class=\"n\" data-sort=\"$key\">$label</th>" }
+        return "<div class=\"pivot\" data-pivot=\"$measure\"><div class=\"tiles\" data-p=\"tiles\">$tiles</div>" +
+            PIVOT_CONTROLS.replace("{{size}}", "<th class=\"n\" data-sort=\"size\">${heads.first().first}</th>")
+                .replace("{{columns}}", columns).replace("{{key}}", legend) +
+            "<noscript><p class=\"warn\">The table requires JavaScript. Each source file's page under <code>files/</code> works without it.</p></noscript>" +
+            "<script type=\"application/json\" data-p=\"data\">$json</script></div>"
+    }
+
     private fun tile(label: String, count: Int, total: Int, cls: String) =
         "<div class=\"tile $cls\"><div class=\"value\">${percent(count, total)}</div><div class=\"label\">$label · $count lines</div></div>"
 
@@ -350,66 +350,75 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
 
         fun esc(text: String) = text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
 
-        /** The index page's table and its controls; `pivot.js` fills them from `#coverage-data`. */
+        /** A pivot table's controls; [pivot] fills in the size heading, the measure columns and the colour key. */
         private val PIVOT_CONTROLS = """
             <div class="controls">
               <div class="axes">
-                <div class="seg" role="group" aria-label="Group by" id="views">
+                <div class="seg" role="group" aria-label="Group by" data-p="views">
                   <button data-view="modules" aria-pressed="true">By module</button>
                   <button data-view="constructs" aria-pressed="false">By Construct</button>
                 </div>
-                <div class="seg sub" role="group" aria-label="Then group by" id="inner"></div>
-                <div class="seg opts" role="group" aria-label="Grouping options" id="axisOpts"></div>
+                <div class="seg sub" role="group" aria-label="Then group by" data-p="inner"></div>
+                <div class="seg opts" role="group" aria-label="Grouping options" data-p="axisOpts"></div>
               </div>
               <div class="right">
               <div class="expanders">
-                <span class="lbl">Expand</span><button class="link" id="expandOne">one</button><button class="link" id="expandAll">all</button>
-                <span class="lbl">Collapse</span><button class="link" id="collapseOne">one</button><button class="link" id="collapseAll">all</button>
+                <span class="lbl">Expand</span><button class="link" data-p="expandOne">one</button><button class="link" data-p="expandAll">all</button>
+                <span class="lbl">Collapse</span><button class="link" data-p="collapseOne">one</button><button class="link" data-p="collapseAll">all</button>
               </div>
               <div class="tools">
-                <div class="searchwrap" id="searchWrap">
-                  <button class="iconbtn" id="searchBtn" aria-label="Search declarations" aria-expanded="false">
+                <div class="searchwrap" data-p="searchWrap">
+                  <button class="iconbtn" data-p="searchBtn" aria-label="Search declarations" aria-expanded="false">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.2" y2="16.2"/></svg>
                   </button>
-                  <input type="search" id="search" placeholder="Search names, packages, files…" aria-label="Search declarations" tabindex="-1">
+                  <input type="search" data-p="search" placeholder="Search names, packages, files…" aria-label="Search declarations" tabindex="-1">
                 </div>
-                <details class="menu" id="filterMenu">
+                <details class="menu" data-p="filterMenu">
                   <summary class="iconbtn" aria-label="Filter">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="21 4 3 4 10 12.5 10 19 14 21 14 12.5 21 4"/></svg>
-                    <span class="badge" id="filterCount" hidden></span>
+                    <span class="badge" data-p="filterCount" hidden></span>
                   </summary>
-                  <div class="panel filters" id="facets"></div>
+                  <div class="panel filters" data-p="facets"></div>
                 </details>
-                <details class="menu" id="displayMenu">
+                <details class="menu" data-p="displayMenu">
                   <summary class="iconbtn" aria-label="Display options">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                   </summary>
                   <div class="panel display">
-                    <label><input type="checkbox" id="optCollapseFiles" checked><span>Collapse single-declaration files<span class="hint">A file with one declaration shows that declaration in place of a file row.</span></span></label>
-                    <label><input type="checkbox" id="optQualified" checked><span>Sort names by package<span class="hint">Sort declarations by package, then name, so declarations from one package stay together.</span></span></label>
-                    <label><input type="checkbox" id="optShortPkg"><span>Short package names<span class="hint">Name each package relative to the package row above it. The first package row always shows the full name.</span></span></label>
+                    <label><input type="checkbox" data-p="optCollapseFiles" checked><span>Collapse single-declaration files<span class="hint">A file with one declaration shows that declaration in place of a file row.</span></span></label>
+                    <label><input type="checkbox" data-p="optQualified" checked><span>Sort names by package<span class="hint">Sort declarations by package, then name, so declarations from one package stay together.</span></span></label>
+                    <label><input type="checkbox" data-p="optShortPkg"><span>Short package names<span class="hint">Name each package relative to the package row above it. The first package row always shows the full name.</span></span></label>
                   </div>
                 </details>
               </div>
               </div>
             </div>
-            <div class="active" id="active"></div>
+            <div class="active" data-p="active"></div>
 
             <div class="tablewrap">
               <table>
-                <thead><tr id="heads"><th data-sort="name">Name</th><th>Expected</th><th class="n" data-sort="decls">Decls</th><th class="n" data-sort="lines">Lines</th><th class="barcol"><details class="menu key" id="keyMenu"><summary class="keybtn" aria-label="Colour key" title="Colour key">?</summary><div class="panel keypanel"><ul class="legend vertical">
-                  <li><i class="c"></i>Covered: an expected test category runs the line</li>
-                  <li><i class="i"></i>Incidental: only other categories run the line</li>
-                  <li><i class="u"></i>Uncovered</li>
-                  <li><i class="r"></i>Ran, not expected to be tested</li>
-                  <li><i class="n"></i>Not run, not expected to be tested</li>
-                </ul></div></details></th><th class="n" data-sort="covered">Covered</th><th class="n" data-sort="incidental">Incidental</th><th class="n" data-sort="uncovered">Uncovered</th></tr></thead>
-                <tbody id="body"></tbody>
+                <colgroup><col><col class="w-exp"><col class="w-decls"><col class="w-size"><col class="w-bar"><col class="w-pct"><col class="w-pct"><col class="w-pct"></colgroup>
+                <thead><tr data-p="heads"><th data-sort="name">Name</th><th>Expected</th><th class="n" data-sort="decls">Decls</th>{{size}}<th class="barcol"><details class="menu key" data-p="keyMenu"><summary class="keybtn" aria-label="Colour key" title="Colour key">?</summary><div class="panel keypanel"><ul class="legend vertical">{{key}}</ul></div></details></th>{{columns}}</tr></thead>
+                <tbody data-p="body"></tbody>
               </table>
             </div>
             <div class="foot">
-              <span class="status" id="status"></span>
+              <span class="status" data-p="status"></span>
             </div>
+        """.trimIndent()
+
+        private val COVERAGE_KEY = """
+            <li><i class="c"></i>Covered: an expected test category runs the line</li>
+            <li><i class="i"></i>Incidental: only other categories run the line</li>
+            <li><i class="u"></i>Uncovered</li>
+            <li><i class="r"></i>Ran, not expected to be tested</li>
+            <li><i class="n"></i>Not run, not expected to be tested</li>
+        """.trimIndent()
+
+        private val MUTATION_KEY = """
+            <li><i class="c"></i>Killed: an expected test fails or times out with the mutant</li>
+            <li><i class="i"></i>Uncovered: no expected test runs the mutant</li>
+            <li><i class="u"></i>Survived: every expected test that runs the mutant passes</li>
         """.trimIndent()
 
         private val CSS = """
@@ -463,7 +472,7 @@ class HtmlReport(private val report: CoverageReport, private val root: File, pri
             .mchip { display:inline-block; white-space:nowrap; font:11px/16px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding:0 5px; border:0; border-radius:3px; margin-right:3px; color:#fff; }
             button.mchip { cursor:pointer; } button.mchip:hover { filter:brightness(1.1); } button.mchip:focus-visible { outline:2px solid var(--link); outline-offset:1px; }
             h3 { font-size:14px; margin:20px 0 4px; }
-            .split { display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:0 24px; }
+            details.sub > summary h3 { display:inline-block; margin:20px 0 4px; }
             .mpop { white-space:normal; font:14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color:var(--fg); background:var(--bg);
               border:1px solid var(--line); border-radius:8px; padding:14px 16px; width:min(560px, calc(100vw - 32px)); box-shadow:0 8px 32px rgb(0 0 0 / .18); text-align:left; }
             .mpop::backdrop { background:rgb(0 0 0 / .15); }

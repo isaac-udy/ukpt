@@ -37,8 +37,9 @@ The run prints `build/reports/mutation/summary.txt`. The full data is in
 `build/reports/mutation/results.json`. When `results.json` exists, `./gradlew testCoverageReport`
 adds the results to `build/reports/test-coverage/index.html`:
 
-- a **Mutation testing** section: the run's start time, killed, survived and uncovered counts,
-  the score, a **Not killed** table, and counts by module and by operator;
+- a **Mutation testing** section: the run's start time; a table of the declarations with mutants
+  that groups, filters, searches and sorts like the coverage table, with killed, uncovered and
+  survived shares and the score; a **Not killed** table; and counts by operator;
 - a `K`, `S`, `T` or `U` button on each mutated line of a file page. The button, and each status in
   the Not killed table, opens a popup with the mutated expression, the change, the removed call, the
   Construct, the expected categories, the killing test and its failure, and the mutant ID.
