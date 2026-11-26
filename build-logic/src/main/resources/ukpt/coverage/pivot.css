@@ -112,3 +112,4 @@ details.section > summary::before { content:"▶"; font-size:10px; color:var(--m
 details.section[open] > summary::before { transform:rotate(90deg); }
 details.section > summary h2 { margin:0; font-size:17px; white-space:nowrap; }
 details.section > summary .muted { font-size:13px; flex-basis:100%; padding-left:18px; }
+details.section > :not(summary), details.sub > :not(summary) { margin-left:18px; }
