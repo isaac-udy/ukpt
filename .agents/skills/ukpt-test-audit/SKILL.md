@@ -28,6 +28,7 @@ takes minutes. Later runs reuse the compiled classes.
 | One or more modules | `./gradlew runMutants -Pmutation.modules=:feature:<name>:client,:feature:<name>:server` |
 | The whole catalog | `./gradlew runMutants` |
 | Android host tests in place of JVM tests | add `-Pmutation.hosts=android,jvm` |
+| A fraction of one operator's mutants | add `-Pmutation.sample=remove-call=0.1` (`-Pmutation.sampleSeed=<n>` for a different sample) |
 
 Run in the background with `--max-workers=2`, and run no other heavy build at the same time
 (see `UKPT.md`, "Building as an agent"). An interrupted run resumes when its inputs are unchanged.
@@ -78,7 +79,8 @@ changed after the run.
 ## Triage
 
 Handle each `survived` and `uncovered` entry in `results.json`. The fields that matter:
-`path`, `line`, `operator`, `variant` (the change, for example `< → <=`), `text` (the mutated expression), `constructs`, `expected` (the
+`path`, `line`, `operator`, `variant` (the change, for example `< → <=`), `text` (the mutated expression),
+`callee` (the function or property a `remove-call` mutant removes), `constructs`, `expected` (the
 categories that count) and `candidateTests` (the expected tests that executed the mutant).
 
 1. **Read the code at `path:line`** and state what the `variant` applied to `text` changes in
@@ -94,7 +96,9 @@ categories that count) and `candidateTests` (the expected tests that executed th
    - **Equivalent mutant:** the change does not alter observable behaviour, for example a guard
      that a caller already guarantees, a cache check whose miss path computes the same value, or a
      removed logging call. Add `ignore("<id>", "<reason>")` to the `mutation { }` block. The reason names the fact
-     that makes the mutant equivalent.
+     that makes the mutant equivalent. When every `remove-call` mutant of one function or library is
+     equivalent (logging, metrics), add an `excludeCalls()` pattern for the `callee` field instead
+     and report the pattern to the user.
    - **Dead code:** no caller reaches the branch. Report the branch to the user. Remove the branch
      only when the user asks.
 3. **Report** per mutant: `path:line`, the behaviour change, the case, and the action taken.
@@ -115,8 +119,10 @@ mutation {
 ```
 
 Selectors: `constructs()`, `packages()`, `files()` (globs from the repository root, `**` across
-directories), `excludeConstructs()`, `excludeFiles()`, and `operators()`. Every non-empty selector
-must match. `build/mutation/sites.json` lists every compiled mutant site with its Constructs and the
+directories), `excludeConstructs()`, `excludeFiles()`, `excludeCalls()`, and `operators()`. Every
+non-empty selector must match. `excludeCalls("org.koin.*")` in the `mutation { }` block leaves out
+every `remove-call` mutant whose `callee` matches; `*` matches any characters, dots included.
+`sample("remove-call", 0.1)` runs a fixed 10% of one operator's selected mutants. `build/mutation/sites.json` lists every compiled mutant site with its Constructs and the
 rules that select the site; use it to check what a new rule selects before running it.
 
 ## Limits
