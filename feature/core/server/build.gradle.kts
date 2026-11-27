@@ -38,3 +38,10 @@ dependencies {
     testImplementation(projects.platform.common.testing)
     testImplementation(libs.kotlin.test)
 }
+
+// -Pukpt.trace=false compiles the feature without probes.
+apply(plugin = "dev.isaacudy.udytils.trace")
+configure<dev.isaacudy.udytils.trace.gradle.TraceExtension> {
+    packages.add("feature")
+    instrument.set(providers.gradleProperty("ukpt.trace").map { it != "false" }.orElse(true))
+}

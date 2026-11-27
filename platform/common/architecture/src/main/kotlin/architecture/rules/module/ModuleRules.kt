@@ -473,7 +473,7 @@ object ModuleRules : RuleGroup() {
         }
     }
 
-    @Describe("A test-support module (`:platform:common:testing`, `:platform:common:subcutaneous`, `:platform:common:subcutaneous-server`, `:platform:common:robots`, a `:feature:[name]:tests` module) may only be a test dependency, or a dependency of another test-support module")
+    @Describe("A test-support module (`:platform:common:testing`, `:platform:common:subcutaneous`, `:platform:common:subcutaneous-server`, `:platform:common:robots`, a `:feature:[name]:tests` module, an `:app:[side]:telemetry:tests` module) may only be a test dependency, or a dependency of another test-support module")
     val testSupportOnlyFromTests by rule {
         rationale("Test-support code on a production classpath ships test categories, fakes, and an embedded database to users.")
         note("A test dependency is one declared in a test source set block (`commonTest.dependencies { }`) or with a test configuration (`testImplementation`).")
@@ -521,7 +521,8 @@ private val TEST_SUPPORT_MODULES = setOf(
     ":platform:common:subcutaneous-server",
     ":platform:common:robots",
 )
-private fun isTestSupport(path: String) = path in TEST_SUPPORT_MODULES || TESTS_MODULE.matches(path)
+private val TELEMETRY_TESTS_MODULE = Regex("^:app:(?:client|server):telemetry:tests$")
+private fun isTestSupport(path: String) = path in TEST_SUPPORT_MODULES || TESTS_MODULE.matches(path) || TELEMETRY_TESTS_MODULE.matches(path)
 
 /** `:feature:core:server` → "server"; null if [path] isn't a `:feature:…:{api,client,server}` module. */
 private fun featureSubmoduleType(path: String): String? {

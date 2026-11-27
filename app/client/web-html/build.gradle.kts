@@ -45,6 +45,8 @@ kotlin {
             implementation(libs.enro.html)
             // Compose HTML destinations for udytils' ConfirmationDestination and ErrorDialogDestination.
             implementation(libs.udytils.uiHtml)
+            implementation(libs.udytils.traceEnro)
+            implementation(projects.app.client.telemetry)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.koin.core)
             implementation(libs.ktor.clientJs)

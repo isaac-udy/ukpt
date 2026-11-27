@@ -1,0 +1,48 @@
+plugins {
+    id("ukpt.kmp-library")
+    id("ukpt.html-web")
+    id("dev.isaacudy.udytils.trace-site-table")
+}
+
+// The trace plugin rewrites the onCalled and onConstructed references of the rules; it instruments no telemetry code.
+apply(plugin = "dev.isaacudy.udytils.trace")
+configure<dev.isaacudy.udytils.trace.gradle.TraceExtension> {
+    packages.add("feature")
+}
+
+private val projectNamespace = providers.gradleProperty("ukpt.projectNamespace").get()
+private val architecture = ":platform:common:architecture"
+
+kotlin {
+    @Suppress("UnstableApiUsage")
+    androidLibrary {
+        namespace = "$projectNamespace.telemetry"
+    }
+    sourceSets {
+        commonMain.dependencies {
+            api(libs.udytils.traceRuntime)
+            implementation(libs.udytils.traceEnro)
+            implementation(libs.udytils.core)
+            implementation(libs.udytils.viewmodel)
+            implementation(libs.koin.core)
+            implementation(libs.kotlinx.serialization)
+            implementation(libs.androidx.lifecycle.viewmodel)
+            // Aligns the Compose runtime that lifecycle and Enro bring with the version the clients use.
+            implementation(libs.compose.runtime)
+            implementation(projects.feature.core.client)
+        }
+    }
+}
+
+traceSiteTable {
+    classification.set(project(architecture).layout.buildDirectory.file("reports/architecture/classification.json"))
+    packageName.set("$projectNamespace.telemetry")
+}
+
+dependencies {
+    traceSites(projects.feature.core.client)
+}
+
+tasks.named("generateTraceSiteTable") {
+    dependsOn("$architecture:classifyArchitecture")
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Read UKPT Traces"
+  short_description: "Record traces in a local Jaeger and print them as trees across client and server"
+  default_prompt: "Use $ukpt-traces to record the action in Jaeger and print its trace."

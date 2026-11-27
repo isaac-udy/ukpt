@@ -47,6 +47,7 @@ annotated with `@ArchitectureException`. A rule that cannot be met is a design q
 - [Server Data](docs/serverdata.md)
 - [Design System Rules](docs/designsystem.md)
 - [Project Rules](docs/project.md)
+- [Telemetry](docs/telemetry.md)
 - [Testing](docs/testing.md)
 
 ## Reference

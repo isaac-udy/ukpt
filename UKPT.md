@@ -104,6 +104,7 @@ While iterating, run only the tests the change affects: `ukpt-testing`, "Develop
 - `ukpt-testing` — test categories and their annotations, where each test lives, per-category tasks, which tests to run while iterating, the Subcutaneous Test harness and coverage, robots, `Testing.*` rule failures.
 - `ukpt-test-audit` — mutation testing: `./gradlew runMutants`, the `mutation { }` catalog, and triage of survived and uncovered mutants.
 - `ukpt-drive-app` — drive the running desktop app through the Compose Hot Reload MCP server: semantic tree, clicks, screenshots, hot reload, runtime errors.
+- `ukpt-traces` — (beta) record traces in a local Jaeger (`traceViewerStart`, `UKPT_TRACE_EXPORT`) and print a trace as a tree across client and server.
 - `ukpt-verify-web` — wasm bundle and runtime verification.
 - `ukpt-web-deploy` — serving the web client: brotli-compressed wasm, headers, cache policy, host recipes.
 - `ukpt-html-web` — the Compose HTML web client: HTML screens, design tokens, gates, removing it.

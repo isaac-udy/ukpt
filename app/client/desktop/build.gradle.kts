@@ -13,6 +13,8 @@ dependencies {
 
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutinesSwing)
+    implementation(libs.udytils.traceOtlp)
+    implementation(libs.ktor.clientCio)
 
     testImplementation(projects.platform.common.testing)
     testImplementation(projects.platform.common.subcutaneousServer)

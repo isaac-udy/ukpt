@@ -42,23 +42,24 @@ object SubcutaneousTest : Construct<Testing>(
     testedBy = TestExpectation.none("a test"),
     requirements = listOf(isClass, isAnnotatedWith("SubcutaneousTest")),
 ) {
-    @Describe("A Subcutaneous Test must live in the `src/commonTest` source set of a `:feature:[name]:tests` module, or of `:platform:common:subcutaneous` for the harness's own tests")
+    @Describe("A Subcutaneous Test must live in the `src/commonTest` source set of a `:feature:[name]:tests` module, of an `:app:[side]:telemetry:tests` module for the trace rules' tests, or of `:platform:common:subcutaneous` for the harness's own tests")
     val placement by rule {
         rationale(
             """
             The `:tests` module depends on the feature's `:client` and `:server`, which no other
-            module may combine. The harness's own tests drive fake ViewModels through the harness
-            on every host.
+            module may combine. A telemetry `:tests` module's tests drive the features through the
+            harness and assert on the analytics events and spans that the trace rules record. The
+            harness's own tests drive fake ViewModels through the harness on every host.
             """.trimIndent(),
         )
         constrain(
-            placement("`:feature:[name]:tests` or `:platform:common:subcutaneous`, `src/commonTest/`") { decl ->
-                (decl.isInFeatureTestsModule() || decl.isInSubcutaneousHarnessModule()) && decl.sourceSet() == "commonTest"
+            placement("`:feature:[name]:tests`, `:app:[side]:telemetry:tests` or `:platform:common:subcutaneous`, `src/commonTest/`") { decl ->
+                (decl.isInFeatureTestsModule() || decl.isInTelemetryTestsModule() || decl.isInSubcutaneousHarnessModule()) && decl.sourceSet() == "commonTest"
             },
         )
     }
 
-    @Describe("A Subcutaneous Test must reference only entry-point vocabulary from production code: ViewModels, their states, Destinations, UI value types, client domain models and their extensions, domain exceptions and constants, shared wire types, and `@Urpc` service interfaces")
+    @Describe("A Subcutaneous Test must reference only entry-point vocabulary from production code: ViewModels, their states, Destinations, UI value types, client domain models and their extensions, domain exceptions and constants, shared wire types, and `@Urpc` service interfaces; in a telemetry `:tests` module, also Trace Rules, Analytics Events and Metrics")
     val entryPointVocabularyOnly by rule {
         rationale(
             """
@@ -69,7 +70,8 @@ object SubcutaneousTest : Construct<Testing>(
         )
         note("Test data comes from Scenarios (`given { }`), which may use the server domain. Checks on the server or on a fake go through Inspections (`inspectServer { }`, `inspectClient { }`).")
         constrainWithScopes { decl, scopes, _ ->
-            scopes.referencesOutside(decl, ENTRY_POINT_CONSTRUCTS)
+            val allowed = if (decl.isInTelemetryTestsModule()) ENTRY_POINT_CONSTRUCTS + TELEMETRY_CONSTRUCTS else ENTRY_POINT_CONSTRUCTS
+            scopes.referencesOutside(decl, allowed)
                 .map { Violation(decl, "references `${it.name}` (${it.constructs.joinToString { c -> c.id }})") }
         }
     }
@@ -130,6 +132,8 @@ object SubcutaneousTest : Construct<Testing>(
 }
 
 private val HARNESS_EXPRESSION_BODY = Regex("""\)\s*(:\s*[\w.<>]+\s*)?=\s*subcutaneous\s*\(""")
+
+private val TELEMETRY_CONSTRUCTS = setOf("Telemetry.TraceRules", "Telemetry.AnalyticsEvent", "Telemetry.Metric")
 
 private val ENTRY_POINT_CONSTRUCTS = setOf(
     "ClientUi.ViewModel",

@@ -16,6 +16,9 @@ buildscript {
 
         // The mutation testing plugin, applied by ukpt.mutation.
         classpath(libs.udytils.mutationGradlePlugin)
+
+        // The tracing plugins, applied by :feature modules and :app:client:telemetry.
+        classpath(libs.udytils.traceGradlePlugin)
     }
 }
 
@@ -87,3 +90,4 @@ mutation {
 // in subprojects. Subproject plugins (architecture, postgres) use alias() because
 // their plugins block inherits the root classpath; the root must apply() directly.
 apply(plugin = "dev.isaacudy.udytils.atlas")
+apply(plugin = "dev.isaacudy.udytils.trace-viewer")

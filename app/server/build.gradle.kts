@@ -27,6 +27,8 @@ dependencies {
     implementation(projects.platform.server.development)
 
     implementation(libs.logback)
+    implementation(libs.udytils.traceOtlp)
+    implementation(libs.ktor.clientCio)
     implementation(libs.koin.core)
     implementation(libs.ktor.serverCore)
     implementation(libs.ktor.serverNetty)

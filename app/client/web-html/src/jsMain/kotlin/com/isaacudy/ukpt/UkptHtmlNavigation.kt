@@ -15,6 +15,7 @@ import dev.enro.controller.createNavigationModule
 import dev.enro.navigationHandle
 import dev.enro.ui.decorators.NavigationDestinationDecorator
 import dev.enro.viewmodel.withNavigationHandle
+import dev.isaacudy.udytils.trace.enro.TraceNavigationPlugin
 import org.koin.mp.KoinPlatform
 import kotlin.reflect.KClass
 
@@ -25,6 +26,8 @@ import kotlin.reflect.KClass
 @NavigationComponent
 object UkptHtmlNavigation : NavigationComponentConfiguration(
     module = createNavigationModule {
+        plugin(TraceNavigationPlugin())
+
         decorator {
             NavigationDestinationDecorator(
                 onPop = {},

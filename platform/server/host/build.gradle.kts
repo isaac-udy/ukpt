@@ -11,4 +11,5 @@ dependencies {
     implementation(projects.platform.server.postgres)
     implementation(libs.koin.ktor)
     implementation(libs.urpc.koin)
+    implementation(libs.udytils.traceRuntime)
 }

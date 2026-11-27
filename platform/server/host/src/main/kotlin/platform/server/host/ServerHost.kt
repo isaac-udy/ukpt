@@ -1,6 +1,8 @@
 package platform.server.host
 
+import kotlin.coroutines.EmptyCoroutineContext
 import dev.isaacudy.udytils.postgres.PgNotificationBus
+import dev.isaacudy.udytils.trace.remoteParent
 import dev.isaacudy.udytils.urpc.UrpcLogger
 import dev.isaacudy.udytils.urpc.koin.urpcWithKoin
 import dev.isaacudy.udytils.urpc.server.ServiceErrorMapper
@@ -46,6 +48,9 @@ fun Application.installServerHost(modules: List<Module>) {
             logger = config.logger,
             idleTimeout = config.idleTimeout,
             serverInterceptors = config.serverInterceptors,
+            callContext = { call -> call.metadata[TRACEPARENT]?.let(::remoteParent) ?: EmptyCoroutineContext },
         )
     }
 }
+
+private const val TRACEPARENT = "traceparent"
