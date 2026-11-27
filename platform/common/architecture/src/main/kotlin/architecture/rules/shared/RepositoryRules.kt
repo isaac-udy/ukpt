@@ -15,7 +15,7 @@ import dev.isaacudy.udytils.architecture.*
 abstract class RepositoryRules<G : RuleGroup>(
     private val side: String,
 ) : Construct<G>(
-    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous),
+    testedBy = TestExpectation.anyOf(TestCategories.Subcutaneous, TestCategories.Adapter),
     requirements = listOf(
         isClass,
         hasNameEndingWith("Repository"),

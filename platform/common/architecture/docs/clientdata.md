@@ -76,7 +76,7 @@ The client's half of a pair: the server states the same construct as a
 
 ##### Tested by
 
-* Subcutaneous
+* Subcutaneous or Adapter
 
 ##### Rules
 
