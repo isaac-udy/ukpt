@@ -1,6 +1,8 @@
 package com.isaacudy.ukpt.telemetry
 
 import dev.isaacudy.udytils.state.getOrNull
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineScope
 import dev.isaacudy.udytils.trace.Trace
 import dev.isaacudy.udytils.trace.rules.InMemoryAnalyticsSink
 import dev.isaacudy.udytils.trace.rules.InMemoryMetricsSink
@@ -27,11 +29,14 @@ private suspend fun <T> StateFlow<T>.awaitMatching(predicate: (T) -> Boolean): T
 @SubcutaneousTest
 class GreetingEventsTest {
     private val analytics = InMemoryAnalyticsSink<AnalyticsEvent>()
-    private val metrics = InMemoryMetricsSink()
-    private val registration = Trace.addSink(clientTraceRules.sink(TraceSiteTable, analytics, metrics))
+    private val metrics = InMemoryMetricsSink<Metric>()
+    private val registrations = listOf(
+        Trace.addSink(clientAnalyticsRules.sink(TraceSiteTable, analytics, CoroutineScope(Dispatchers.Unconfined))),
+        Trace.addSink(clientMetricRules.sink(TraceSiteTable, metrics, CoroutineScope(Dispatchers.Unconfined))),
+    )
 
     @AfterTest
-    fun removeSink() = registration.close()
+    fun removeSinks() = registrations.forEach { it.close() }
 
     @Test
     fun `greeting records the click, then the sent greeting`() = subcutaneous(ukptTestGraph) {
@@ -45,19 +50,16 @@ class GreetingEventsTest {
     }
 
     @Test
-    fun `the repository's calls and the summary's first value are timed`() = subcutaneous(ukptTestGraph) {
+    fun `the screen's load, the greeting and the summary's first value are timed`() = subcutaneous(ukptTestGraph) {
         val screen = viewModel<UkptViewModel, UkptDestination>(UkptDestination)
         screen.viewModel.state.awaitMatching { it.greetingTexts() == emptyList<String>() }
         screen.viewModel.onGreetClicked()
         screen.viewModel.state.awaitMatching { it.greetingTexts() == listOf("Hello") }
 
-        val timings = metrics.timings.awaitMatching { timings -> timings.any { it.name == "feature.ukpt.client.data.GreetingRepository.greet" } }
+        val timings = metrics.timings.awaitMatching { timings -> timings.any { it.metric is Metric.GreetDuration } }
         assertEquals(
-            setOf(
-                "feature.ukpt.client.data.GreetingRepository.flowOfGreetingSummary" to "FirstValue",
-                "feature.ukpt.client.data.GreetingRepository.greet" to "Call",
-            ),
-            timings.map { it.name to it.tags.getValue("kind") }.toSet(),
+            setOf(Metric.UkptScreenLoaded, Metric.GreetingSummaryLoad, Metric.GreetDuration(succeeded = true)),
+            timings.map { it.metric }.toSet(),
         )
     }
 }

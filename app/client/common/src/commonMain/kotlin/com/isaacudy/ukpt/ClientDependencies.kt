@@ -1,5 +1,6 @@
 package com.isaacudy.ukpt
 
+import com.isaacudy.ukpt.telemetry.telemetryDependencies
 import feature.ukpt.ukptClientDependencies
 import io.ktor.client.engine.HttpClientEngine
 import org.koin.core.module.Module
@@ -20,6 +21,7 @@ val clientDependencies: List<Module> = listOf(
     },
     networkDependencies,
     ukptClientDependencies,
+    telemetryDependencies,
 )
 
 /** The dev server's address that this platform connects to. */
